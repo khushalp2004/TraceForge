@@ -1,0 +1,85 @@
+version: "3.9"
+
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: traceforge-postgres
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    ports:
+      - "5432:5432"
+    volumes:
+      - traceforge_db:/var/lib/postgresql/data
+      - ./docker/postgres/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+
+  redis:
+    image: redis:7-alpine
+    container_name: traceforge-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - traceforge_redis:/data
+
+  backend:
+    build:
+      context: ./apps/backend
+      dockerfile: Dockerfile
+    container_name: traceforge-backend
+    env_file:
+      - .env
+    environment:
+      DATABASE_URL: ${DATABASE_URL}
+      REDIS_URL: ${REDIS_URL}
+      PORT: ${BACKEND_PORT}
+    ports:
+      - "${BACKEND_PORT}:3001"
+    volumes:
+      - ./apps/backend:/app
+      - /app/node_modules
+    command: sh -c "npm install && npm run dev"
+    depends_on:
+      - db
+      - redis
+
+  worker:
+    build:
+      context: ./apps/worker
+      dockerfile: Dockerfile
+    container_name: traceforge-worker
+    env_file:
+      - .env
+    environment:
+      DATABASE_URL: ${DATABASE_URL}
+      REDIS_URL: ${REDIS_URL}
+      GROQ_API_KEY: ${GROQ_API_KEY}
+    volumes:
+      - ./apps/worker:/app
+      - /app/node_modules
+    command: sh -c "npm install && npm run dev"
+    depends_on:
+      - db
+      - redis
+
+  frontend:
+    build:
+      context: ./apps/frontend
+      dockerfile: Dockerfile
+    container_name: traceforge-frontend
+    env_file:
+      - .env
+    environment:
+      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL}
+    ports:
+      - "${FRONTEND_PORT}:3000"
+    volumes:
+      - ./apps/frontend:/app
+      - /app/node_modules
+    command: sh -c "npm install && npm run dev"
+    depends_on:
+      - backend
+
+volumes:
+  traceforge_db:
+  traceforge_redis:

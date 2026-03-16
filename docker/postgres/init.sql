@@ -1,0 +1,2 @@
+-- Placeholder for future schema migrations.
+-- Keeping this file ensures the init mount works in dev.
