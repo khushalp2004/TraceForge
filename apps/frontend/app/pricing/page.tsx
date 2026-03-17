@@ -27,13 +27,13 @@ const plans = [
 export default function PricingPage() {
   return (
     <main className="tf-page pb-20 pt-16">
-      <div className="relative mx-auto max-w-6xl">
+      <div className="tf-container">
         <section className="text-center">
           <p className="tf-kicker">Pricing</p>
           <h1 className="tf-title mt-4 text-4xl sm:text-5xl">
             Plans that scale from startup to enterprise.
           </h1>
-          <p className="mt-4 text-lg text-slate-600">
+          <p className="mt-4 text-lg text-text-secondary">
             Start free, upgrade as your team grows, and unlock enterprise compliance when
             you need it.
           </p>
@@ -42,10 +42,10 @@ export default function PricingPage() {
         <section className="mt-12 grid gap-6 lg:grid-cols-3">
           {plans.map((plan) => (
             <div key={plan.name} className="tf-card p-6">
-              <p className="text-xs font-semibold text-slate-500">{plan.name}</p>
-              <p className="mt-3 text-3xl font-semibold text-ink">{plan.price}</p>
-              <p className="mt-2 text-sm text-slate-600">{plan.description}</p>
-              <ul className="mt-4 space-y-2 text-sm text-slate-600">
+              <p className="text-xs font-semibold text-text-secondary">{plan.name}</p>
+              <p className="mt-3 text-3xl font-semibold text-text-primary">{plan.price}</p>
+              <p className="mt-2 text-sm text-text-secondary">{plan.description}</p>
+              <ul className="mt-4 space-y-2 text-sm text-text-secondary">
                 {plan.features.map((feature) => (
                   <li key={feature}>• {feature}</li>
                 ))}
@@ -57,11 +57,11 @@ export default function PricingPage() {
           ))}
         </section>
 
-        <section className="mt-16 rounded-3xl border border-slate-200 bg-white/90 p-8 shadow-sm">
+        <section className="mt-16 rounded-3xl border border-border bg-card/90 p-8 shadow-sm">
           <div className="flex flex-wrap items-center justify-between gap-6">
             <div>
               <h2 className="tf-title text-3xl">Need a custom plan?</h2>
-              <p className="mt-2 text-sm text-slate-600">
+              <p className="mt-2 text-sm text-text-secondary">
                 We can tailor TraceForge for your compliance, security, and scale needs.
               </p>
             </div>

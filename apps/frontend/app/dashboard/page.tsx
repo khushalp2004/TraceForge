@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import { useAuth } from "../../context/AuthContext";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
 
@@ -62,6 +63,7 @@ type AnalyticsPoint = {
 const tokenKey = "traceforge_token";
 
 export default function DashboardPage() {
+  const { login, logout } = useAuth();
   const [token, setToken] = useState<string | null>(null);
   const [user, setUser] = useState<User | null>(null);
   const [email, setEmail] = useState("");
@@ -242,7 +244,7 @@ export default function DashboardPage() {
         throw new Error(data.error || "Authentication failed");
       }
 
-      localStorage.setItem(tokenKey, data.token);
+      login(data.token, data.user);
       setToken(data.token);
       setUser(data.user);
     } catch (err) {
@@ -398,7 +400,7 @@ export default function DashboardPage() {
   };
 
   const handleLogout = () => {
-    localStorage.removeItem(tokenKey);
+    logout();
     setToken(null);
     setUser(null);
     setOrgs([]);
@@ -409,66 +411,60 @@ export default function DashboardPage() {
 
   if (!token) {
     return (
-      <main className="min-h-screen bg-slate-50 px-6 py-16">
-        <div className="mx-auto max-w-md rounded-2xl bg-white p-8 shadow-sm">
-          <h1 className="text-2xl font-bold text-ink">TraceForge Dashboard</h1>
-          <p className="mt-2 text-sm text-slate-500">
-            {authMode === "login" ? "Sign in to" : "Create an account to"} view your
-            errors.
-          </p>
+      <main className="tf-page pb-20 pt-16">
+        <div className="tf-container max-w-md">
+          <div className="tf-card p-8">
+            <h1 className="text-2xl font-semibold text-text-primary">TraceForge Dashboard</h1>
+            <p className="mt-2 text-sm text-text-secondary">
+              {authMode === "login" ? "Sign in to" : "Create an account to"} view your
+              errors.
+            </p>
 
-          <div className="mt-6 flex gap-2">
-            <button
-              className={`flex-1 rounded-full px-4 py-2 text-sm font-semibold ${
-                authMode === "login"
-                  ? "bg-amber-500 text-white"
-                  : "border border-slate-200 text-slate-600"
-              }`}
-              onClick={() => setAuthMode("login")}
-            >
-              Login
-            </button>
-            <button
-              className={`flex-1 rounded-full px-4 py-2 text-sm font-semibold ${
-                authMode === "register"
-                  ? "bg-amber-500 text-white"
-                  : "border border-slate-200 text-slate-600"
-              }`}
-              onClick={() => setAuthMode("register")}
-            >
-              Register
-            </button>
-          </div>
+            <div className="mt-6 flex gap-2">
+              <button
+                className={`flex-1 tf-button ${authMode !== "login" ? "tf-button-ghost" : ""}`}
+                onClick={() => setAuthMode("login")}
+              >
+                Login
+              </button>
+              <button
+                className={`flex-1 tf-button ${authMode !== "register" ? "tf-button-ghost" : ""}`}
+                onClick={() => setAuthMode("register")}
+              >
+                Register
+              </button>
+            </div>
 
-          <div className="mt-6 space-y-4">
-            <input
-              className="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm"
-              placeholder="Email"
-              value={email}
-              onChange={(event) => setEmail(event.target.value)}
-            />
-            <input
-              className="w-full rounded-xl border border-slate-200 px-4 py-3 text-sm"
-              placeholder="Password"
-              type="password"
-              value={password}
-              onChange={(event) => setPassword(event.target.value)}
-            />
-            {error && <p className="text-sm text-red-500">{error}</p>}
-            <button
-              className="w-full rounded-full bg-amber-500 px-4 py-3 text-sm font-semibold text-white"
-              onClick={handleAuth}
-              disabled={loading}
-            >
-              {loading
-                ? "Working..."
-                : authMode === "login"
-                ? "Sign In"
-                : "Create Account"}
-            </button>
-            <Link className="text-sm text-amber-600" href="/forgot-password">
-              Forgot password?
-            </Link>
+            <div className="mt-6 space-y-4">
+              <input
+                className="tf-input w-full"
+                placeholder="Email"
+                value={email}
+                onChange={(event) => setEmail(event.target.value)}
+              />
+              <input
+                className="tf-input w-full"
+                placeholder="Password"
+                type="password"
+                value={password}
+                onChange={(event) => setPassword(event.target.value)}
+              />
+              {error && <p className="text-sm text-red-500">{error}</p>}
+              <button
+                className="w-full tf-button px-4 py-3 text-sm font-semibold"
+                onClick={handleAuth}
+                disabled={loading}
+              >
+                {loading
+                  ? "Working..."
+                  : authMode === "login"
+                  ? "Sign In"
+                  : "Create Account"}
+              </button>
+              <Link className="tf-link text-sm" href="/forgot-password">
+                Forgot password?
+              </Link>
+            </div>
           </div>
         </div>
       </main>
@@ -492,127 +488,163 @@ export default function DashboardPage() {
   };
 
   return (
-    <main className="min-h-screen bg-slate-50 px-6 py-16">
-      <div className="mx-auto flex max-w-6xl flex-col gap-8">
-        <header className="flex flex-wrap items-center justify-between gap-4">
-          <div>
-            <p className="text-sm font-semibold uppercase tracking-[0.2em] text-amber-600">
-              Dashboard
-            </p>
-            <h1 className="mt-2 text-3xl font-bold text-ink">TraceForge</h1>
-            <p className="text-sm text-slate-500">{user?.email}</p>
-          </div>
-          <div className="relative flex items-center gap-2">
-            <button
-              className="relative rounded-full border border-slate-200 px-3 py-2 text-sm font-semibold text-slate-600"
-              onClick={() => setShowRequests((prev) => !prev)}
-            >
-              Notifications
-              {joinRequests.length + pendingInvites.length > 0 && (
-                <span className="ml-2 rounded-full bg-amber-500 px-2 py-0.5 text-xs text-white">
-                  {joinRequests.length + pendingInvites.length}
-                </span>
+    <main className="tf-page pb-20 pt-16">
+      <div className="tf-container flex flex-col gap-8">
+        <header className="flex flex-col gap-5">
+          <div className="flex flex-wrap items-center justify-between gap-4">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-primary">
+                Dashboard
+              </p>
+              <h1 className="mt-2 text-3xl font-semibold text-text-primary">TraceForge</h1>
+              <p className="text-sm text-text-secondary">{user?.email}</p>
+            </div>
+            <div className="flex flex-wrap items-center gap-2">
+              <button
+                className="relative rounded-full border border-border px-3 py-2 text-sm font-semibold text-text-secondary"
+                onClick={() => setShowRequests((prev) => !prev)}
+              >
+                Notifications
+                {joinRequests.length + pendingInvites.length > 0 && (
+                  <span className="ml-2 rounded-full bg-primary px-2 py-0.5 text-xs text-white">
+                    {joinRequests.length + pendingInvites.length}
+                  </span>
+                )}
+              </button>
+              {showRequests && (
+                <div className="absolute right-0 top-12 w-72 rounded-2xl bg-card p-4 shadow-lg border border-border">
+                  <h3 className="text-sm font-semibold text-text-secondary">Join Requests</h3>
+                  <div className="mt-3 space-y-3">
+                    {joinRequests.map((req) => (
+                      <div key={req.id} className="rounded-xl border border-border p-3 text-xs">
+                        <p className="font-semibold text-text-primary">{req.requesterEmail}</p>
+                        <p className="text-text-secondary">{req.orgName}</p>
+                        <div className="mt-2 flex gap-2">
+                          <button
+                            className="rounded-full border border-border px-2 py-1 text-xs"
+                            onClick={() => handleRequestAction(req.id, "approve")}
+                          >
+                            Approve
+                          </button>
+                          <button
+                            className="rounded-full border border-red-200 px-2 py-1 text-xs text-red-600"
+                            onClick={() => handleRequestAction(req.id, "reject")}
+                          >
+                            Reject
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                    {!joinRequests.length && (
+                      <p className="text-xs text-text-secondary">No pending requests.</p>
+                    )}
+                  </div>
+                  <h3 className="mt-4 text-sm font-semibold text-text-secondary">Invites</h3>
+                  <div className="mt-3 space-y-3">
+                    {pendingInvites.map((invite) => (
+                      <div
+                        key={invite.token}
+                        className="rounded-xl border border-border p-3 text-xs"
+                      >
+                        <p className="font-semibold text-text-primary">{invite.orgName}</p>
+                        <p className="text-text-secondary">Role: {invite.role.toLowerCase()}</p>
+                        <p className="text-text-secondary">
+                          Expires {new Date(invite.expiresAt).toLocaleDateString()}
+                        </p>
+                        <div className="mt-2 flex gap-2">
+                          <button
+                            className="rounded-full border border-border px-2 py-1 text-xs"
+                            onClick={() => handleAcceptInvite(invite.token)}
+                          >
+                            Accept
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                    {!pendingInvites.length && (
+                      <p className="text-xs text-text-secondary">No pending invites.</p>
+                    )}
+                  </div>
+                </div>
               )}
-            </button>
-            {showRequests && (
-              <div className="absolute right-0 top-12 w-72 rounded-2xl bg-white p-4 shadow-lg border border-slate-100">
-                <h3 className="text-sm font-semibold text-slate-600">Join Requests</h3>
-                <div className="mt-3 space-y-3">
-                  {joinRequests.map((req) => (
-                    <div key={req.id} className="rounded-xl border border-slate-100 p-3 text-xs">
-                      <p className="font-semibold text-slate-700">{req.requesterEmail}</p>
-                      <p className="text-slate-500">{req.orgName}</p>
-                      <div className="mt-2 flex gap-2">
-                        <button
-                          className="rounded-full border border-slate-200 px-2 py-1 text-xs"
-                          onClick={() => handleRequestAction(req.id, "approve")}
-                        >
-                          Approve
-                        </button>
-                        <button
-                          className="rounded-full border border-red-200 px-2 py-1 text-xs text-red-600"
-                          onClick={() => handleRequestAction(req.id, "reject")}
-                        >
-                          Reject
-                        </button>
-                      </div>
-                    </div>
-                  ))}
-                  {!joinRequests.length && (
-                    <p className="text-xs text-slate-400">No pending requests.</p>
-                  )}
-                </div>
-                <h3 className="mt-4 text-sm font-semibold text-slate-600">Invites</h3>
-                <div className="mt-3 space-y-3">
-                  {pendingInvites.map((invite) => (
-                    <div
-                      key={invite.token}
-                      className="rounded-xl border border-slate-100 p-3 text-xs"
-                    >
-                      <p className="font-semibold text-slate-700">{invite.orgName}</p>
-                      <p className="text-slate-500">Role: {invite.role.toLowerCase()}</p>
-                      <p className="text-slate-400">
-                        Expires {new Date(invite.expiresAt).toLocaleDateString()}
-                      </p>
-                      <div className="mt-2 flex gap-2">
-                        <button
-                          className="rounded-full border border-slate-200 px-2 py-1 text-xs"
-                          onClick={() => handleAcceptInvite(invite.token)}
-                        >
-                          Accept
-                        </button>
-                      </div>
-                    </div>
-                  ))}
-                  {!pendingInvites.length && (
-                    <p className="text-xs text-slate-400">No pending invites.</p>
-                  )}
-                </div>
-              </div>
-            )}
-            <select
-              className="rounded-full border border-slate-200 px-4 py-2 text-sm"
-              value={selectedOrgId}
-              onChange={(event) => {
-                setSelectedOrgId(event.target.value);
-                setSelectedProject("");
-              }}
-            >
-              <option value="">Personal</option>
-              {orgs.map((org) => (
-                <option key={org.id} value={org.id}>
-                  {org.name} ({org.role.toLowerCase()})
-                </option>
-              ))}
-            </select>
-            <Link
-              href="/dashboard/orgs"
-              className="rounded-full border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-600"
-            >
-              Manage Members
-            </Link>
-            <Link
-              href="/dashboard/projects"
-              className="rounded-full border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-600"
-            >
-              Project Settings
-            </Link>
-            <button
-              className="rounded-full border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-600"
-              onClick={handleLogout}
-            >
-              Logout
-            </button>
+              <button
+                className="rounded-full border border-border px-4 py-2 text-sm font-semibold text-text-secondary"
+                onClick={handleLogout}
+              >
+                Logout
+              </button>
+            </div>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-3 rounded-2xl border border-border bg-card/80 px-4 py-3">
+            <div className="flex flex-1 flex-wrap items-center gap-3">
+              <select
+                className="rounded-full border border-border px-4 py-2 text-sm text-text-primary"
+                value={selectedOrgId}
+                onChange={(event) => {
+                  setSelectedOrgId(event.target.value);
+                  setSelectedProject("");
+                }}
+              >
+                <option value="">Personal</option>
+                {orgs.map((org) => (
+                  <option key={org.id} value={org.id}>
+                    {org.name} ({org.role.toLowerCase()})
+                  </option>
+                ))}
+              </select>
+              <input
+                className="min-w-[180px] flex-1 rounded-full border border-border px-4 py-2 text-sm"
+                placeholder="Search errors"
+                value={search}
+                onChange={(event) => setSearch(event.target.value)}
+              />
+              <select
+                className="rounded-full border border-border px-3 py-2 text-sm"
+                value={environmentFilter}
+                onChange={(event) => setEnvironmentFilter(event.target.value)}
+              >
+                <option value="">All env</option>
+                <option value="development">Development</option>
+                <option value="staging">Staging</option>
+                <option value="production">Production</option>
+                <option value="browser">Browser</option>
+              </select>
+              <select
+                className="rounded-full border border-border px-3 py-2 text-sm"
+                value={sortBy}
+                onChange={(event) =>
+                  setSortBy(event.target.value === "count" ? "count" : "lastSeen")
+                }
+              >
+                <option value="lastSeen">Last seen</option>
+                <option value="count">Most frequent</option>
+              </select>
+            </div>
+            <div className="flex flex-wrap items-center gap-2">
+              <Link
+                href="/dashboard/orgs"
+                className="rounded-full border border-border px-4 py-2 text-sm font-semibold text-text-secondary"
+              >
+                Members
+              </Link>
+              <Link
+                href="/dashboard/projects"
+                className="rounded-full border border-border px-4 py-2 text-sm font-semibold text-text-secondary"
+              >
+                Projects
+              </Link>
+            </div>
           </div>
         </header>
 
         <section className="grid gap-6 lg:grid-cols-[300px_1fr]">
           <div className="space-y-6">
-            <div className="rounded-2xl bg-white p-6 shadow-sm">
-              <h2 className="text-sm font-semibold text-slate-500">Projects</h2>
+            <div className="tf-card p-6">
+              <h2 className="text-sm font-semibold text-text-secondary">Projects</h2>
               <div className="mt-4 space-y-3">
                 <select
-                  className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm"
+                  className="w-full rounded-xl border border-border px-3 py-2 text-sm text-text-primary"
                   value={selectedProject}
                   onChange={(event) => setSelectedProject(event.target.value)}
                 >
@@ -623,28 +655,28 @@ export default function DashboardPage() {
                   ))}
                 </select>
                 {selectedProjectMeta && (
-                  <div className="rounded-xl bg-slate-50 px-4 py-3 text-xs text-slate-600">
-                    <p className="font-semibold text-slate-500">API Key</p>
+                  <div className="rounded-xl bg-secondary/70 px-4 py-3 text-xs text-text-secondary">
+                    <p className="font-semibold text-text-secondary">API Key</p>
                     <p className="mt-1 break-all">{selectedProjectMeta.apiKey}</p>
                   </div>
                 )}
               </div>
             </div>
 
-            <div className="rounded-2xl bg-white p-6 shadow-sm">
-              <h2 className="text-sm font-semibold text-slate-500">Create Project</h2>
-              <p className="mt-2 text-xs text-slate-400">
+            <div className="tf-card p-6">
+              <h2 className="text-sm font-semibold text-text-secondary">Create Project</h2>
+              <p className="mt-2 text-xs text-text-secondary">
                 {selectedOrg ? `Org: ${selectedOrg.name}` : "Personal project"}
               </p>
               <div className="mt-4 space-y-3">
                 <input
-                  className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm"
+                  className="w-full rounded-xl border border-border px-3 py-2 text-sm"
                   placeholder="Project name"
                   value={projectName}
                   onChange={(event) => setProjectName(event.target.value)}
                 />
                 <button
-                  className="w-full rounded-full bg-amber-500 px-4 py-2 text-sm font-semibold text-white"
+                  className="w-full tf-button px-4 py-2 text-sm font-semibold"
                   onClick={handleProjectCreate}
                   disabled={loading}
                 >
@@ -654,17 +686,17 @@ export default function DashboardPage() {
               </div>
             </div>
 
-            <div className="rounded-2xl bg-white p-6 shadow-sm">
-              <h2 className="text-sm font-semibold text-slate-500">Organizations</h2>
+            <div className="tf-card p-6">
+              <h2 className="text-sm font-semibold text-text-secondary">Organizations</h2>
               <div className="mt-4 space-y-3">
                 <input
-                  className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm"
+                  className="w-full rounded-xl border border-border px-3 py-2 text-sm"
                   placeholder="Org name"
                   value={orgName}
                   onChange={(event) => setOrgName(event.target.value)}
                 />
                 <button
-                  className="w-full rounded-full border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700"
+                  className="w-full rounded-full border border-border px-4 py-2 text-sm font-semibold text-text-secondary"
                   onClick={handleOrgCreate}
                   disabled={loading}
                 >
@@ -673,13 +705,13 @@ export default function DashboardPage() {
               </div>
               <div className="mt-4 space-y-2">
                 <input
-                  className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm"
+                  className="w-full rounded-xl border border-border px-3 py-2 text-sm"
                   placeholder="Invite email"
                   value={inviteEmail}
                   onChange={(event) => setInviteEmail(event.target.value)}
                 />
                 <select
-                  className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm"
+                  className="w-full rounded-xl border border-border px-3 py-2 text-sm"
                   value={inviteRole}
                   onChange={(event) =>
                     setInviteRole(event.target.value === "OWNER" ? "OWNER" : "MEMBER")
@@ -689,7 +721,7 @@ export default function DashboardPage() {
                   <option value="OWNER">Owner</option>
                 </select>
                 <button
-                  className="w-full rounded-full border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-700"
+                  className="w-full rounded-full border border-border px-4 py-2 text-sm font-semibold text-text-secondary"
                   onClick={handleInvite}
                   disabled={loading}
                 >
@@ -700,15 +732,15 @@ export default function DashboardPage() {
           </div>
 
           <div className="space-y-6">
-            <div className="rounded-2xl bg-white p-6 shadow-sm">
+            <div className="tf-card p-6">
               <div className="flex flex-wrap items-center justify-between gap-4">
                 <div>
-                  <h2 className="text-lg font-semibold text-ink">Analytics</h2>
-                  <p className="text-sm text-slate-500">Last {days} days</p>
+                  <h2 className="text-lg font-semibold text-text-primary">Analytics</h2>
+                  <p className="text-sm text-text-secondary">Last {days} days</p>
                 </div>
                 <div className="flex items-center gap-3">
                   <select
-                    className="rounded-full border border-slate-200 px-3 py-1 text-xs"
+                    className="rounded-full border border-border px-3 py-1 text-xs"
                     value={days}
                     onChange={(event) => setDays(Number(event.target.value))}
                   >
@@ -717,7 +749,7 @@ export default function DashboardPage() {
                     <option value={30}>30 days</option>
                   </select>
                   <button
-                    className="rounded-full border border-slate-200 px-3 py-1 text-xs font-semibold text-slate-500"
+                    className="rounded-full border border-border px-3 py-1 text-xs font-semibold text-text-secondary"
                     onClick={() => setRefreshTick((value) => value + 1)}
                   >
                     Refresh
@@ -726,37 +758,37 @@ export default function DashboardPage() {
               </div>
 
               <div className="mt-6 grid gap-6 md:grid-cols-2">
-                <div className="rounded-xl border border-slate-100 p-4">
-                  <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">
+                <div className="rounded-xl border border-border p-4">
+                  <p className="text-xs font-semibold uppercase tracking-[0.2em] text-text-secondary">
                     Error Frequency
                   </p>
                   <svg className="mt-4 h-16 w-full" viewBox="0 0 100 40" preserveAspectRatio="none">
                     <path
                       d={linePath(frequency, maxFrequency)}
                       fill="none"
-                      stroke="#f59e0b"
+                      stroke="hsl(var(--primary))"
                       strokeWidth="2"
                     />
                   </svg>
-                  <div className="mt-2 flex justify-between text-[10px] text-slate-400">
+                  <div className="mt-2 flex justify-between text-[10px] text-text-secondary">
                     <span>{frequency[0]?.date.slice(5) || ""}</span>
                     <span>{frequency[frequency.length - 1]?.date.slice(5) || ""}</span>
                   </div>
                 </div>
 
-                <div className="rounded-xl border border-slate-100 p-4">
-                  <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">
+                <div className="rounded-xl border border-border p-4">
+                  <p className="text-xs font-semibold uppercase tracking-[0.2em] text-text-secondary">
                     Errors Last Seen
                   </p>
                   <svg className="mt-4 h-16 w-full" viewBox="0 0 100 40" preserveAspectRatio="none">
                     <path
                       d={linePath(lastSeen, maxLastSeen)}
                       fill="none"
-                      stroke="#64748b"
+                      stroke="hsl(var(--muted-foreground))"
                       strokeWidth="2"
                     />
                   </svg>
-                  <div className="mt-2 flex justify-between text-[10px] text-slate-400">
+                  <div className="mt-2 flex justify-between text-[10px] text-text-secondary">
                     <span>{lastSeen[0]?.date.slice(5) || ""}</span>
                     <span>{lastSeen[lastSeen.length - 1]?.date.slice(5) || ""}</span>
                   </div>
@@ -764,18 +796,18 @@ export default function DashboardPage() {
               </div>
             </div>
 
-            <div className="rounded-2xl bg-white p-6 shadow-sm">
+            <div className="tf-card p-6">
               <div className="flex flex-wrap items-center justify-between gap-4">
-                <h2 className="text-lg font-semibold text-ink">Recent Errors</h2>
+                <h2 className="text-lg font-semibold text-text-primary">Recent Errors</h2>
                 <div className="flex flex-wrap items-center gap-3">
                   <input
-                    className="rounded-full border border-slate-200 px-3 py-1 text-xs"
+                    className="rounded-full border border-border px-3 py-1 text-xs"
                     placeholder="Search errors"
                     value={search}
                     onChange={(event) => setSearch(event.target.value)}
                   />
                   <select
-                    className="rounded-full border border-slate-200 px-3 py-1 text-xs"
+                    className="rounded-full border border-border px-3 py-1 text-xs"
                     value={environmentFilter}
                     onChange={(event) => setEnvironmentFilter(event.target.value)}
                   >
@@ -786,7 +818,7 @@ export default function DashboardPage() {
                     <option value="browser">Browser</option>
                   </select>
                   <select
-                    className="rounded-full border border-slate-200 px-3 py-1 text-xs"
+                    className="rounded-full border border-border px-3 py-1 text-xs"
                     value={sortBy}
                     onChange={(event) =>
                       setSortBy(event.target.value === "count" ? "count" : "lastSeen")
@@ -798,7 +830,7 @@ export default function DashboardPage() {
                 </div>
               </div>
 
-              {loading && <p className="mt-4 text-sm text-slate-500">Loading...</p>}
+              {loading && <p className="mt-4 text-sm text-text-secondary">Loading...</p>}
               {error && <p className="mt-4 text-sm text-red-500">{error}</p>}
 
               <div className="mt-6 space-y-4">
@@ -806,28 +838,28 @@ export default function DashboardPage() {
                   <Link
                     key={item.id}
                     href={`/dashboard/errors/${item.id}`}
-                    className="block rounded-xl border border-slate-100 px-4 py-4 transition hover:border-amber-200 hover:bg-amber-50"
+                    className="block rounded-xl border border-border px-4 py-4 transition hover:border-primary/30 hover:bg-accent-soft"
                   >
                     <div className="flex flex-wrap items-center justify-between gap-4">
                       <div>
-                        <p className="text-sm font-semibold text-ink">{item.message}</p>
-                        <p className="mt-1 text-xs text-slate-500">
+                        <p className="text-sm font-semibold text-text-primary">{item.message}</p>
+                        <p className="mt-1 text-xs text-text-secondary">
                           Last seen {new Date(item.lastSeen).toLocaleString()}
                         </p>
                       </div>
-                      <span className="rounded-full bg-amber-100 px-3 py-1 text-xs font-semibold text-amber-700">
+                      <span className="rounded-full bg-accent-soft px-3 py-1 text-xs font-semibold text-text-primary">
                         {item.count} hits
                       </span>
                     </div>
                     {item.analysis?.aiExplanation && (
-                      <p className="mt-3 text-sm text-slate-600">
+                      <p className="mt-3 text-sm text-text-secondary">
                         AI: {item.analysis.aiExplanation}
                       </p>
                     )}
                   </Link>
                 ))}
                 {!loading && !errors.length && (
-                  <p className="text-sm text-slate-500">No errors yet.</p>
+                  <p className="text-sm text-text-secondary">No errors yet.</p>
                 )}
               </div>
             </div>

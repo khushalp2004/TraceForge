@@ -1,203 +1,240 @@
+@import url("https://fonts.googleapis.com/css2?family=Fraunces:wght@600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap");
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-@import url("https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&family=Playfair+Display:wght@500;600;700&display=swap");
+@layer base {
+  :root {
+    --background: 32 40% 97%;
+    --foreground: 216 28% 17%;
+    --card: 30 50% 98%;
+    --card-foreground: 216 28% 17%;
+    --popover: 30 50% 98%;
+    --popover-foreground: 216 28% 17%;
+    --primary: 38 92% 50%;
+    --primary-hover: 35 100% 46%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 32 60% 95%;
+    --secondary-foreground: 216 28% 17%;
+    --muted: 30 25% 93%;
+    --muted-foreground: 220 9% 46%;
+    --accent: 38 92% 50%;
+    --accent-foreground: 0 0% 100%;
+    --accent-soft: 32 100% 94%;
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 30 20% 88%;
+    --input: 30 20% 88%;
+    --ring: 38 92% 50%;
+    --sidebar: 32 60% 95%;
+    --text-primary: 216 28% 17%;
+    --text-secondary: 220 9% 46%;
+    --radius: 0.5rem;
+    --shadow-soft: 0 8px 24px rgba(0, 0, 0, 0.04);
+    color-scheme: light;
+  }
 
-:root {
-  color-scheme: light;
-  --sentry-purple: 121 40 247;
-  --sentry-orange: 249 115 22;
-  --tf-ink: #0f172a;
-  --tf-surface: rgb(255 255 255);
-  --tf-subtle: #f8fafc;
-  --tf-border: #e2e8f0;
-  --tf-muted: #64748b;
-  --tf-accent: hsl(var(--sentry-purple));
-  --tf-accent-strong: hsl(var(--sentry-purple-light));
-  --tf-shadow: 0 18px 40px rgba(15, 23, 42, 0.14);
-  --tf-shadow-soft: 0 10px 26px rgba(15, 23, 42, 0.1);
-  --tf-glow: 0 0 0 1px hsl(var(--sentry-purple) / 0.35);
+  .dark {
+    color-scheme: dark;
+  }
+
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground antialiased;
+    font-family: "Plus Jakarta Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  }
 }
 
-.dark {
-  color-scheme: dark;
-  --tf-ink: rgb(255 255 255);
-  --tf-surface: rgb(37 37 40);
-  --tf-subtle: rgb(58 58 62);
-  --tf-border: rgb(71 71 75);
-  --tf-muted: rgb(156 163 175);
-  --tf-accent: hsl(var(--sentry-purple));
-}
+@layer components {
+  .tf-page {
+    @apply min-h-screen bg-background text-foreground;
+    background-image:
+      radial-gradient(1200px 600px at 15% -10%, hsl(var(--accent-soft) / 0.6), transparent 60%),
+      radial-gradient(900px 500px at 90% 0%, hsl(var(--primary) / 0.08), transparent 60%),
+      radial-gradient(700px 400px at 40% 35%, hsl(var(--primary) / 0.05), transparent 60%);
+  }
 
-body {
-  @apply text-ink antialiased;
-  font-family: "Manrope", "Segoe UI", sans-serif;
-  background: radial-gradient(circle at top left, #f8fbff 0%, #eef2f7 55%, #e7edf6 100%);
+  .tf-container {
+    @apply relative mx-auto max-w-6xl px-[16px];
+  }
+
+  .tf-title {
+    @apply font-display tracking-tight text-text-primary;
+    text-wrap: balance;
+  }
+
+  .tf-section-title {
+    @apply text-lg font-semibold text-text-primary;
+  }
+
+  .tf-kicker {
+    @apply text-xs font-semibold uppercase tracking-[0.2em] text-primary;
+  }
+
+  .tf-chip {
+    @apply inline-flex items-center rounded-full border border-border bg-secondary px-3 py-1 text-xs font-semibold text-text-secondary;
+  }
+
+  .tf-pill {
+    @apply inline-flex items-center rounded-full border border-border bg-secondary px-2.5 py-1 text-[10px] font-semibold text-text-secondary;
+  }
+
+  .tf-link {
+    @apply font-semibold text-primary transition-colors hover:text-primary-hover;
+  }
+
+  .tf-navlink {
+    @apply text-sm font-semibold text-text-secondary transition-colors hover:text-text-primary;
+  }
+
+  .tf-navpill {
+    @apply inline-flex items-center rounded-full border border-border bg-secondary/70 px-3 py-1 text-xs font-semibold text-text-secondary;
+  }
+
+  .tf-marquee {
+    @apply relative overflow-hidden;
+    mask-image: linear-gradient(90deg, transparent, black 10%, black 90%, transparent);
+  }
+
+  .tf-marquee-track {
+    display: flex;
+    width: max-content;
+    gap: 1rem;
+    animation: marquee 22s linear infinite;
+  }
+
+  .tf-marquee-track:hover {
+    animation-play-state: paused;
+  }
+
+  .tf-marquee-item {
+    @apply inline-flex items-center gap-2 rounded-full border border-border bg-card px-4 py-2 text-xs font-semibold text-text-secondary shadow-sm;
+  }
+
+  .tf-glow-card {
+    @apply relative overflow-hidden rounded-3xl border border-border bg-card/90;
+    box-shadow: 0 24px 60px rgba(245, 158, 11, 0.08), 0 2px 12px rgba(0, 0, 0, 0.06);
+  }
+
+  .tf-glow-card::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(600px 300px at 10% 0%, hsl(var(--primary) / 0.12), transparent 55%);
+    opacity: 0.9;
+    pointer-events: none;
+  }
+
+  .tf-stat {
+    @apply rounded-2xl border border-border bg-secondary/70 px-4 py-4;
+  }
+
+  .tf-stat-label {
+    @apply text-xs font-semibold text-text-secondary;
+  }
+
+  .tf-stat-value {
+    @apply mt-2 text-2xl font-semibold text-text-primary;
+  }
+
+  .tf-stat-hint {
+    @apply mt-1 text-xs text-text-secondary;
+  }
+
+  .animate-float-slow {
+    animation: float-slow 10s ease-in-out infinite;
+  }
+
+  .animate-pulse-slow {
+    animation: pulse-slow 6s ease-in-out infinite;
+  }
+
+  .animate-fade-up {
+    animation: fade-up 700ms ease both;
+  }
 }
 
 .font-display {
-  font-family: "Playfair Display", "Manrope", sans-serif;
-}
-
-.tf-card {
-  @apply rounded-2xl border;
-  background: var(--tf-surface);
-  border-color: var(--tf-border);
-  box-shadow: var(--tf-shadow-soft);
-}
-
-.tf-pill {
-  @apply rounded-full border px-3 py-1 text-xs font-semibold text-slate-600;
-  background: #f1f5f9;
-  border-color: var(--tf-border);
-}
-
-.tf-input {
-  @apply rounded-xl border px-4 py-3 text-sm shadow-sm focus:outline-none focus:ring-2;
-  background: #ffffff;
-  border-color: var(--tf-border);
-  --tw-ring-color: rgba(37, 99, 235, 0.35);
+  font-family: "Fraunces", serif;
 }
 
 .tf-button {
-  @apply rounded-full px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:-translate-y-0.5;
-  background: linear-gradient(135deg, #1d4ed8, #2563eb);
+  @apply rounded-lg px-6 py-3 text-sm font-semibold text-primary-foreground transition-all duration-300;
+  background: hsl(var(--primary));
+  box-shadow: var(--shadow-soft);
 }
 
 .tf-button:hover {
-  background: linear-gradient(135deg, #1e40af, #1d4ed8);
+  background: hsl(var(--primary-hover));
+  transform: translateY(-2px);
+}
+
+.tf-button:active {
+  transform: scale(0.97);
 }
 
 .tf-button-ghost {
-  @apply rounded-full border px-4 py-2 text-sm font-semibold text-slate-700 transition;
-  background: #ffffff;
-  border-color: var(--tf-border);
+  @apply rounded-lg border px-6 py-3 text-sm font-semibold border-accent text-foreground transition-all duration-200;
+  background: hsl(var(--accent-soft));
 }
 
-.tf-select {
-  @apply rounded-xl border px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-2;
-  background: #fffdf9;
-  border-color: var(--tf-border);
-  --tw-ring-color: #ecd8b2;
+.tf-button-ghost:hover {
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-soft);
 }
 
-.tf-shell {
-  @apply relative mx-auto flex max-w-6xl flex-col gap-8;
+.tf-card {
+  @apply rounded-xl bg-card border-border p-6;
+  box-shadow: var(--shadow-soft);
 }
 
 .tf-frame {
-  @apply rounded-3xl border p-6 md:p-8;
-  background: #ffffff;
-  border-color: var(--tf-border);
-  box-shadow: var(--tf-shadow);
+  @apply rounded-2xl bg-card border border-border p-6 sm:p-8;
+  box-shadow: var(--shadow-soft);
 }
 
-.tf-frame-tight {
-  @apply rounded-3xl border p-5 md:p-6;
-  background: #ffffff;
-  border-color: var(--tf-border);
-  box-shadow: var(--tf-shadow-soft);
+@keyframes float-slow {
+  0%, 100% {
+    transform: translateY(0px) rotate(0deg);
+  }
+  33% {
+    transform: translateY(-10px) rotate(1deg);
+  }
+  66% {
+    transform: translateY(-5px) rotate(-1deg);
+  }
 }
 
-.tf-kicker {
-  @apply text-xs font-semibold uppercase tracking-[0.3em];
-  color: var(--tf-muted);
+@keyframes pulse-slow {
+  0%, 100% {
+    opacity: 0.6;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.05);
+  }
 }
 
-.tf-title {
-  @apply font-display text-3xl font-semibold text-ink;
-}
-
-.tf-subtitle {
-  @apply text-sm text-slate-500;
-}
-
-.tf-section-title {
-  @apply font-display text-lg font-semibold text-ink;
-}
-
-.tf-muted {
-  @apply text-xs;
-  color: var(--tf-muted);
-}
-
-.tf-divider {
-  @apply h-px w-full;
-  background: linear-gradient(90deg, transparent, rgba(148, 163, 184, 0.7), transparent);
-}
-
-.tf-chip {
-  @apply inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-[10px] font-semibold text-slate-700;
-  background: #f1f5f9;
-  border-color: var(--tf-border);
-}
-
-.tf-badge {
-  @apply rounded-full px-3 py-1 text-xs font-semibold text-slate-700;
-  background: #e2e8f0;
-}
-
-.tf-link {
-  @apply text-sm font-semibold transition;
-  color: var(--tf-accent);
-}
-
-.tf-link:hover {
-  color: var(--tf-accent-strong);
-}
-
-.tf-page {
-  @apply min-h-screen px-5 py-10;
-  background: radial-gradient(circle at top left, #f8fbff 0%, #eef2f7 55%, #e7edf6 100%);
-}
-
-.tf-row {
-  @apply flex flex-wrap items-center justify-between gap-4;
-}
-
-.tf-card-soft {
-  @apply rounded-2xl border border-slate-100/70 bg-white/70;
-  box-shadow: var(--tf-shadow-soft);
-}
-
-.tf-skeleton {
-  @apply relative overflow-hidden rounded-xl bg-slate-200/70;
-}
-
-.tf-skeleton::after {
-  content: "";
-  @apply absolute inset-0;
-  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.6), transparent);
-  animation: shimmer 1.4s infinite;
-}
-
-@keyframes shimmer {
+@keyframes marquee {
   0% {
-    transform: translateX(-100%);
+    transform: translateX(0);
   }
   100% {
-    transform: translateX(100%);
+    transform: translateX(-50%);
   }
 }
 
 @keyframes fade-up {
   0% {
     opacity: 0;
-    transform: translateY(12px);
+    transform: translateY(14px);
   }
   100% {
     opacity: 1;
     transform: translateY(0);
-  }
-}
-
-@keyframes float-slow {
-  0%,
-  100% {
-    transform: translateY(0) translateX(0);
-  }
-  50% {
-    transform: translateY(-12px) translateX(6px);
   }
 }

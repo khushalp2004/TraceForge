@@ -6,10 +6,35 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        // Sentry/Datadog inspired
+        // Premium TraceForge Light Theme
+        background: "hsl(var(--background))",
+        foreground: "hsl(var(--foreground))",
+        card: "hsl(var(--card))",
+        "card-foreground": "hsl(var(--card-foreground))",
+        "text-primary": "hsl(var(--text-primary))",
+        "text-secondary": "hsl(var(--text-secondary))",
+        "primary-hover": "hsl(var(--primary-hover))",
+        accent: {
+          DEFAULT: "hsl(var(--accent))",
+          foreground: "hsl(var(--accent-foreground))",
+          soft: "hsl(var(--accent-soft))",
+        },
+        sidebar: "hsl(var(--sidebar))",
+        popover: {
+          DEFAULT: "hsl(var(--popover))",
+          foreground: "hsl(var(--popover-foreground))",
+        },
         primary: {
-          DEFAULT: "hsl(var(--sentry-purple))",
-          foreground: "hsl(var(--tf-ink))",
+          DEFAULT: "hsl(var(--primary))",
+          foreground: "hsl(var(--primary-foreground))",
+        },
+        secondary: {
+          DEFAULT: "hsl(var(--secondary))",
+          foreground: "hsl(var(--secondary-foreground))",
+        },
+        muted: {
+          DEFAULT: "hsl(var(--muted))",
+          foreground: "hsl(var(--muted-foreground))",
         },
         destructive: {
           DEFAULT: "hsl(var(--destructive))",
@@ -18,25 +43,14 @@ const config: Config = {
         border: "hsl(var(--border))",
         input: "hsl(var(--input))",
         ring: "hsl(var(--ring))",
-        background: "hsl(var(--background))",
-        foreground: "hsl(var(--foreground))",
-        secondary: {
-          DEFAULT: "hsl(var(--secondary))",
-          foreground: "hsl(var(--secondary-foreground))",
-        },
-        accent: {
-          DEFAULT: "hsl(var(--accent))",
-          foreground: "hsl(var(--accent-foreground))",
-        },
-        muted: {
-          DEFAULT: "hsl(var(--muted))",
-          foreground: "hsl(var(--muted-foreground))",
-        },
-        // Custom
-        ink: "#0f172a",
-        ember: "#f97316",
-        "sentry-purple": "#7928f7",
-        "sentry-orange": "#f97316",
+        // Custom TraceForge
+        "trace-gold": "#F59E0B",
+        "trace-gold-light": "#FFF7ED",
+        "trace-gold-gradient": "linear-gradient(135deg, #F59E0B 0%, #FFF7ED 100%)",
+        error: "#EF4444",
+        warning: "#F59E0B",
+        success: "#10B981",
+        ink: "#1F2937",
       },
       borderRadius: {
         lg: "var(--radius)",

@@ -35,13 +35,13 @@ export default function ForgotPasswordPage() {
   };
 
   return (
-    <main className="tf-page">
-      <div className="relative mx-auto max-w-md">
+    <main className="tf-page pb-20 pt-16">
+      <div className="tf-container max-w-md">
         <div className="tf-card p-8">
-          <h1 className="font-display text-2xl font-semibold text-ink">
+          <h1 className="font-display text-2xl font-semibold text-text-primary">
             Reset your password
           </h1>
-          <p className="mt-2 text-sm text-slate-500">
+          <p className="mt-2 text-sm text-text-secondary">
             Enter your account email to receive a reset link.
           </p>
           <div className="mt-6 space-y-4">
@@ -58,7 +58,7 @@ export default function ForgotPasswordPage() {
             >
               {loading ? "Sending..." : "Send reset link"}
             </button>
-            {status && <p className="text-sm text-slate-500">{status}</p>}
+            {status && <p className="text-sm text-text-secondary">{status}</p>}
             <Link className="tf-link" href="/dashboard">
               Back to login
             </Link>
