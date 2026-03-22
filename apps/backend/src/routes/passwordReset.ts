@@ -3,8 +3,13 @@ import bcrypt from "bcryptjs";
 import crypto from "crypto";
 import prisma from "../db/prisma.js";
 import { generateResetToken } from "../utils/passwordReset.js";
+import { sendEmail } from "../utils/mailer.js";
 
 export const passwordResetRouter = Router();
+const passwordPolicy =
+  /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z\d])[A-Za-z\d\S]{10,64}$/;
+const passwordPolicyMessage =
+  "Password must be 10-64 characters and include uppercase, lowercase, number, and special character.";
 
 passwordResetRouter.post("/request", async (req, res) => {
   const { email } = req.body as { email?: string };
@@ -32,8 +37,37 @@ passwordResetRouter.post("/request", async (req, res) => {
     }
   });
 
-  const resetUrl = `${process.env.WEB_BASE_URL || "http://localhost:3000"}/reset-password?token=${token}`;
-  console.log(`Password reset link for ${email}: ${resetUrl}`);
+  const resetUrl = `${process.env.WEB_BASE_URL || "http://localhost:3000"}/reset?token=${token}`;
+  await sendEmail({
+    to: email,
+    subject: "TraceForge password reset",
+    text: [
+      "Hi,",
+      "",
+      "We received a request to reset your TraceForge password.",
+      `Use this link to continue: ${resetUrl}`,
+      "",
+      "This link expires in 1 hour.",
+      "If you did not request a password reset, you can ignore this email."
+    ].join("\n"),
+    html: `
+      <div style="font-family: Inter, Arial, sans-serif; color: #0f172a; line-height: 1.6;">
+        <p>Hi,</p>
+        <p>We received a request to reset your TraceForge password.</p>
+        <p>
+          <a
+            href="${resetUrl}"
+            style="display: inline-block; padding: 12px 18px; border-radius: 14px; background: #f97316; color: #ffffff; text-decoration: none; font-weight: 600;"
+          >
+            Reset password
+          </a>
+        </p>
+        <p style="word-break: break-all; color: #475569;">${resetUrl}</p>
+        <p>This link expires in 1 hour.</p>
+        <p style="color: #64748b;">If you did not request a password reset, you can ignore this email.</p>
+      </div>
+    `
+  });
 
   return res.json({ status: "ok" });
 });
@@ -43,6 +77,10 @@ passwordResetRouter.post("/confirm", async (req, res) => {
 
   if (!token || !password) {
     return res.status(400).json({ error: "Token and new password are required" });
+  }
+
+  if (!passwordPolicy.test(password)) {
+    return res.status(400).json({ error: passwordPolicyMessage });
   }
 
   const tokenHash = crypto.createHash("sha256").update(token).digest("hex");

@@ -1,4 +1,14 @@
+import type { Metadata } from "next";
 import Link from "next/link";
+import { createPageMetadata } from "../seo";
+
+export const metadata: Metadata = createPageMetadata({
+  title: "Solutions",
+  description:
+    "See how TraceForge supports engineering leaders, platform teams, and product teams running high-stakes production systems.",
+  path: "/solutions",
+  keywords: ["platform team monitoring", "engineering leader observability", "production reliability"]
+});
 
 const solutions = [
   {
@@ -42,7 +52,7 @@ export default function SolutionsPage() {
               enterprises, with configurable workflows and audit-ready visibility.
             </p>
             <div className="mt-8 flex flex-wrap gap-4">
-              <Link className="tf-button px-6 py-3 text-sm" href="/dashboard">
+              <Link className="tf-button px-6 py-3 text-sm" href="/signup">
                 Start trial
               </Link>
               <Link className="tf-button-ghost px-6 py-3 text-sm" href="/docs">

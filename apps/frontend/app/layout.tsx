@@ -1,11 +1,53 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import { AuthProvider } from "../context/AuthContext";
-import SiteHeader from "./components/SiteHeader";
+import { ThemeProvider } from "../context/ThemeContext";
+import { GlobalSearchProvider } from "./components/GlobalSearchProvider";
+import MarketingShell from "./components/MarketingShell";
+import { SITE_DESCRIPTION, SITE_KEYWORDS, SITE_NAME, siteUrl } from "./seo";
+import { DEFAULT_THEME, isDarkTheme, THEME_STORAGE_KEY } from "./theme";
 
 export const metadata: Metadata = {
-  title: "TraceForge",
-  description: "AI-powered error monitoring",
+  metadataBase: new URL(siteUrl),
+  applicationName: SITE_NAME,
+  title: {
+    default: SITE_NAME,
+    template: `%s | ${SITE_NAME}`
+  },
+  description: SITE_DESCRIPTION,
+  keywords: SITE_KEYWORDS,
+  category: "technology",
+  creator: SITE_NAME,
+  publisher: SITE_NAME,
+  referrer: "origin-when-cross-origin",
+  alternates: {
+    canonical: "/"
+  },
+  openGraph: {
+    title: SITE_NAME,
+    description: SITE_DESCRIPTION,
+    url: "/",
+    siteName: SITE_NAME,
+    type: "website",
+    images: [
+      {
+        url: "/traceforge.png",
+        width: 512,
+        height: 512,
+        alt: `${SITE_NAME} logo`
+      }
+    ]
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: SITE_NAME,
+    description: SITE_DESCRIPTION,
+    images: ["/traceforge.png"]
+  },
+  robots: {
+    index: true,
+    follow: true
+  },
   icons: {
     icon: "/traceforge.png",
     shortcut: "/traceforge.png",
@@ -13,37 +55,46 @@ export const metadata: Metadata = {
   }
 };
 
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  themeColor: "#f59e0b"
+};
+
 export default function RootLayout({
   children
 }: {
   children: React.ReactNode;
 }) {
+  const defaultThemeIsDark = isDarkTheme(DEFAULT_THEME);
+  const themeBootScript = `
+    (function () {
+      try {
+        var key = ${JSON.stringify(THEME_STORAGE_KEY)};
+        var fallback = ${JSON.stringify(DEFAULT_THEME)};
+        var stored = window.localStorage.getItem(key);
+        var allowed = ["trace-light", "linen-light", "sage-light", "graphite-dark", "midnight-dark", "plum-dark"];
+        var theme = allowed.indexOf(stored) >= 0 ? stored : fallback;
+        document.documentElement.dataset.theme = theme;
+        document.documentElement.classList.toggle("dark", theme === "graphite-dark" || theme === "midnight-dark" || theme === "plum-dark");
+      } catch (error) {
+        document.documentElement.dataset.theme = ${JSON.stringify(DEFAULT_THEME)};
+        document.documentElement.classList.toggle("dark", ${defaultThemeIsDark ? "true" : "false"});
+      }
+    })();
+  `;
+
   return (
     <html lang="en" suppressHydrationWarning>
       <body>
-        <AuthProvider>
-        <SiteHeader />
-        {children}
-        <footer className="border-t border-border bg-card">
-          <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-3 px-[30px] py-6 text-xs text-text-secondary">
-            <p>
-              TraceForge ·{" "}
-              <span className="font-semibold text-text-secondary">Forged for calm production.</span>
-            </p>
-            <div className="flex items-center gap-4">
-              <a className="tf-navlink" href="/docs">
-                Documentation
-              </a>
-              <a className="tf-navlink" href="/dashboard">
-                Status
-              </a>
-              <a className="tf-navlink" href="/forgot-password">
-                Support
-              </a>
-            </div>
-          </div>
-        </footer>
-      </AuthProvider>
+        <script dangerouslySetInnerHTML={{ __html: themeBootScript }} />
+        <ThemeProvider>
+          <AuthProvider>
+            <GlobalSearchProvider>
+              <MarketingShell>{children}</MarketingShell>
+            </GlobalSearchProvider>
+          </AuthProvider>
+        </ThemeProvider>
       </body>
     </html>
   );

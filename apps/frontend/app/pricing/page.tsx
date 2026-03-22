@@ -1,4 +1,14 @@
+import type { Metadata } from "next";
 import Link from "next/link";
+import { createPageMetadata } from "../seo";
+
+export const metadata: Metadata = createPageMetadata({
+  title: "Pricing",
+  description:
+    "Compare TraceForge pricing for startups, teams, and enterprise reliability programs.",
+  path: "/pricing",
+  keywords: ["error monitoring pricing", "developer tools pricing", "enterprise observability pricing"]
+});
 
 const plans = [
   {
@@ -50,7 +60,7 @@ export default function PricingPage() {
                   <li key={feature}>• {feature}</li>
                 ))}
               </ul>
-              <Link className="tf-button mt-6 inline-flex px-4 py-2 text-xs" href="/dashboard">
+              <Link className="tf-button mt-6 inline-flex px-4 py-2 text-xs" href="/signup">
                 {plan.cta}
               </Link>
             </div>

@@ -1,15 +1,17 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
+import { useRouter, useSearchParams } from "next/navigation";
+import { useDebouncedValue } from "../hooks/useDebouncedValue";
 import { useAuth } from "../../context/AuthContext";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
-
-type User = {
-  id: string;
-  email: string;
-};
+const NOTIFICATIONS_URL = `${API_URL}/notifications/stream`;
+const dismissedAlertNotificationsKey = "traceforge_dismissed_alert_notifications";
+const dismissedJoinRequestsKey = "traceforge_dismissed_join_requests";
+const dismissedInviteNotificationsKey = "traceforge_dismissed_invite_notifications";
+const postAuthToastKey = "traceforge_post_auth_toast";
 
 type Org = {
   id: string;
@@ -33,6 +35,62 @@ type PendingInvite = {
   orgName: string;
   role: "OWNER" | "MEMBER";
   expiresAt: string;
+};
+
+type AlertNotification = {
+  kind: "rule" | "event";
+  id: string;
+  message: string;
+  environment: string | null;
+  triggeredAt: string;
+  isTest?: boolean;
+  project: {
+    id: string;
+    name: string;
+  };
+  error: {
+    id?: string;
+  };
+  alertRule: {
+    id: string;
+    name: string;
+    severity: "INFO" | "WARNING" | "CRITICAL";
+  };
+};
+
+type RealtimeAlertPayload = {
+  type: "alert.triggered" | "alert.created" | "alert.deleted";
+  title: string;
+  message: string;
+  projectId?: string;
+  projectName?: string;
+  ruleId?: string;
+  errorId?: string;
+  environment?: string | null;
+  severity?: "INFO" | "WARNING" | "CRITICAL";
+  isTest?: boolean;
+  createdAt: string;
+};
+
+const isRealtimeAlertPayload = (value: unknown): value is RealtimeAlertPayload => {
+  if (!value || typeof value !== "object") {
+    return false;
+  }
+
+  const type = (value as { type?: unknown }).type;
+  return type === "alert.triggered" || type === "alert.created" || type === "alert.deleted";
+};
+
+type AlertRuleNotificationResponse = {
+  id: string;
+  name: string;
+  environment: string | null;
+  severity: "INFO" | "WARNING" | "CRITICAL";
+  createdAt: string;
+  project: {
+    id: string;
+    name: string;
+  } | null;
 };
 
 type Project = {
@@ -60,15 +118,74 @@ type AnalyticsPoint = {
   count: number;
 };
 
-const tokenKey = "traceforge_token";
+type Toast = {
+  message: string;
+  tone: "success" | "error";
+};
+
+type PaginationMeta = {
+  page: number;
+  pageSize: number;
+  total: number;
+  totalPages: number;
+};
+
+type InviteLinkStatus = {
+  valid: boolean;
+  trialsUsed: number;
+  trialsRemaining: number;
+  orgName?: string;
+  reason?: string;
+};
+
+const Skeleton = ({ className }: { className?: string }) => (
+  <div className={`animate-pulse rounded-xl bg-secondary/70 ${className ?? ""}`} />
+);
+
+const severityForMessage = (message: string) => {
+  const lower = message.toLowerCase();
+  if (lower.includes("null") || lower.includes("undefined") || lower.includes("typeerror")) {
+    return "critical";
+  }
+  if (lower.includes("timeout") || lower.includes("rate") || lower.includes("network")) {
+    return "warning";
+  }
+  return "info";
+};
+
+const isTestAlertMessage = (message: string) => message.startsWith("[Test alert]");
+
+const normalizeAlertNotification = (notification: AlertNotification): AlertNotification => {
+  if (!isTestAlertMessage(notification.message)) {
+    return notification;
+  }
+
+  return {
+    ...notification,
+    isTest: true,
+    message: "Alert notified to team."
+  };
+};
+
+const SeverityTag = ({ severity }: { severity: "critical" | "warning" | "info" }) => {
+  const styles =
+    severity === "critical"
+      ? "bg-red-50 text-red-700 border-red-200"
+      : severity === "warning"
+      ? "bg-amber-50 text-amber-700 border-amber-200"
+      : "bg-secondary/70 text-text-secondary border-border";
+  const label = severity === "critical" ? "Critical" : severity === "warning" ? "Warning" : "Info";
+  return (
+    <span className={`rounded-full border px-2.5 py-1 text-xs font-semibold ${styles}`}>
+      {label}
+    </span>
+  );
+};
 
 export default function DashboardPage() {
-  const { login, logout } = useAuth();
-  const [token, setToken] = useState<string | null>(null);
-  const [user, setUser] = useState<User | null>(null);
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [authMode, setAuthMode] = useState<"login" | "register">("login");
+  const { logout, user: authUser, token, isReady } = useAuth();
+  const router = useRouter();
+  const searchParams = useSearchParams();
   const [orgs, setOrgs] = useState<Org[]>([]);
   const [selectedOrgId, setSelectedOrgId] = useState<string>("");
   const [orgName, setOrgName] = useState("");
@@ -77,30 +194,294 @@ export default function DashboardPage() {
   const [projects, setProjects] = useState<Project[]>([]);
   const [selectedProject, setSelectedProject] = useState<string>("");
   const [errors, setErrors] = useState<ErrorItem[]>([]);
+  const [recentErrorsPagination, setRecentErrorsPagination] = useState<PaginationMeta>({
+    page: 1,
+    pageSize: 5,
+    total: 0,
+    totalPages: 1
+  });
   const [frequency, setFrequency] = useState<AnalyticsPoint[]>([]);
   const [lastSeen, setLastSeen] = useState<AnalyticsPoint[]>([]);
-  const [joinRequests, setJoinRequests] = useState<JoinRequest[]>([]);
-  const [pendingInvites, setPendingInvites] = useState<PendingInvite[]>([]);
-  const [showRequests, setShowRequests] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [dashboardLoading, setDashboardLoading] = useState(false);
   const [refreshTick, setRefreshTick] = useState(0);
   const [projectName, setProjectName] = useState("");
   const [search, setSearch] = useState("");
   const [environmentFilter, setEnvironmentFilter] = useState("");
   const [sortBy, setSortBy] = useState<"lastSeen" | "count">("lastSeen");
   const [days, setDays] = useState(30);
+  const [expandedErrorId, setExpandedErrorId] = useState<string | null>(null);
+  const [showApiKey, setShowApiKey] = useState(false);
+  const [joinRequests, setJoinRequests] = useState<JoinRequest[]>([]);
+  const [pendingInvites, setPendingInvites] = useState<PendingInvite[]>([]);
+  const [alertNotifications, setAlertNotifications] = useState<AlertNotification[]>([]);
+  const [showRequests, setShowRequests] = useState(false);
+  const [notificationsExpanded, setNotificationsExpanded] = useState(false);
+  const [toast, setToast] = useState<Toast | null>(null);
+  const [inviteTokenFromUrl, setInviteTokenFromUrl] = useState("");
+  const [inviteLinkStatus, setInviteLinkStatus] = useState<InviteLinkStatus | null>(null);
+  const [dismissedJoinRequestIds, setDismissedJoinRequestIds] = useState<string[]>(() => {
+    if (typeof window === "undefined") {
+      return [];
+    }
+
+    const dismissed = window.localStorage.getItem(dismissedJoinRequestsKey);
+    if (!dismissed) {
+      return [];
+    }
+
+    try {
+      return JSON.parse(dismissed) as string[];
+    } catch {
+      window.localStorage.removeItem(dismissedJoinRequestsKey);
+      return [];
+    }
+  });
+  const [dismissedInviteTokens, setDismissedInviteTokens] = useState<string[]>(() => {
+    if (typeof window === "undefined") {
+      return [];
+    }
+
+    const dismissed = window.localStorage.getItem(dismissedInviteNotificationsKey);
+    if (!dismissed) {
+      return [];
+    }
+
+    try {
+      return JSON.parse(dismissed) as string[];
+    } catch {
+      window.localStorage.removeItem(dismissedInviteNotificationsKey);
+      return [];
+    }
+  });
+  const [dismissedAlertNotificationIds, setDismissedAlertNotificationIds] = useState<string[]>(() => {
+    if (typeof window === "undefined") {
+      return [];
+    }
+
+    const dismissed = window.localStorage.getItem(dismissedAlertNotificationsKey);
+    if (!dismissed) {
+      return [];
+    }
+
+    try {
+      return JSON.parse(dismissed) as string[];
+    } catch {
+      window.localStorage.removeItem(dismissedAlertNotificationsKey);
+      return [];
+    }
+  });
+  const notificationsRef = useRef<HTMLDivElement | null>(null);
+  const inviteStatusToastRef = useRef<string | null>(null);
+  const deferredSearch = useDebouncedValue(search.trim(), 300);
+
+  const showToast = (message: string, tone: Toast["tone"]) => {
+    setToast({ message, tone });
+    window.setTimeout(() => setToast(null), 2400);
+  };
 
   useEffect(() => {
-    const stored = localStorage.getItem(tokenKey);
-    if (stored) {
-      setToken(stored);
+    if (!isReady || !token || typeof window === "undefined") {
+      return;
     }
-  }, []);
+
+    const storedToast = window.sessionStorage.getItem(postAuthToastKey);
+    if (!storedToast) {
+      return;
+    }
+
+    try {
+      const parsed = JSON.parse(storedToast) as Toast;
+      if (parsed?.message && parsed?.tone) {
+        showToast(parsed.message, parsed.tone);
+      }
+    } catch {
+      // Ignore invalid stored toast payloads.
+    } finally {
+      window.sessionStorage.removeItem(postAuthToastKey);
+    }
+  }, [isReady, token]);
+
+  const inviteTrialsLabel = (status: InviteLinkStatus | null) => {
+    const remaining = status?.trialsRemaining ?? 2;
+    if (remaining === 1) {
+      return "1 trial remaining";
+    }
+    return `${remaining} trials remaining`;
+  };
+
+  const persistDismissedAlertNotifications = (ids: string[]) => {
+    setDismissedAlertNotificationIds(ids);
+    localStorage.setItem(dismissedAlertNotificationsKey, JSON.stringify(ids));
+  };
+
+  const persistDismissedJoinRequests = (ids: string[]) => {
+    setDismissedJoinRequestIds(ids);
+    localStorage.setItem(dismissedJoinRequestsKey, JSON.stringify(ids));
+  };
+
+  const persistDismissedInviteNotifications = (tokens: string[]) => {
+    setDismissedInviteTokens(tokens);
+    localStorage.setItem(dismissedInviteNotificationsKey, JSON.stringify(tokens));
+  };
+
+  const loadNotifications = async (authToken: string) => {
+    try {
+      const [requestsRes, invitesRes, alertRulesRes, alertEventsRes] = await Promise.all([
+        fetch(`${API_URL}/orgs/requests/pending`, {
+          headers: { Authorization: `Bearer ${authToken}` }
+        }),
+        fetch(`${API_URL}/orgs/invites/pending`, {
+          headers: { Authorization: `Bearer ${authToken}` }
+        }),
+        fetch(`${API_URL}/alerts/rules`, {
+          headers: { Authorization: `Bearer ${authToken}` }
+        }),
+        fetch(`${API_URL}/alerts/events?includeTests=true`, {
+          headers: { Authorization: `Bearer ${authToken}` }
+        })
+      ]);
+
+      if (requestsRes.ok) {
+        const requestsData = await requestsRes.json();
+        setJoinRequests(
+          (requestsData.requests || []).filter(
+            (request: JoinRequest) => !dismissedJoinRequestIds.includes(request.id)
+          )
+        );
+      }
+
+      if (invitesRes.ok) {
+        const invitesData = await invitesRes.json();
+        setPendingInvites(
+          (invitesData.invites || []).filter(
+            (invite: PendingInvite) => !dismissedInviteTokens.includes(invite.token)
+          )
+        );
+      }
+
+      if (alertRulesRes.ok && alertEventsRes.ok) {
+        const [alertRulesData, alertEventsData] = await Promise.all([
+          alertRulesRes.json(),
+          alertEventsRes.json()
+        ]);
+
+        setAlertNotifications((prev) => {
+          const ruleNotifications = ((alertRulesData.rules || []) as AlertRuleNotificationResponse[]).map(
+            (rule) =>
+              ({
+                kind: "rule",
+                id: `rule:${rule.id}`,
+                message: `Alert created for ${rule.project?.name ?? "all projects"}`,
+                environment: rule.environment,
+                triggeredAt: rule.createdAt,
+                project: {
+                  id: rule.project?.id || "",
+                  name: rule.project?.name || "All projects"
+                },
+                error: {},
+                alertRule: {
+                  id: rule.id,
+                  name: rule.name,
+                  severity: rule.severity
+                }
+              }) satisfies AlertNotification
+          );
+
+          const eventNotifications = ((alertEventsData.events || []) as AlertNotification[]).map(
+            (event) =>
+              normalizeAlertNotification({
+                ...event,
+                kind: "event"
+              })
+          );
+
+          const incoming = [...ruleNotifications, ...eventNotifications];
+          const merged = [...incoming, ...prev];
+          const unique = merged.filter(
+            (item, index, list) => list.findIndex((entry) => entry.id === item.id) === index
+          );
+          return unique
+            .filter((item) => !dismissedAlertNotificationIds.includes(item.id))
+            .sort(
+              (a, b) =>
+                new Date(b.triggeredAt).getTime() - new Date(a.triggeredAt).getTime()
+            )
+            .slice(0, 5);
+        });
+      }
+    } catch {
+      // Keep the dashboard interactive even if notifications cannot refresh.
+    }
+  };
+
+  useEffect(() => {
+    setAlertNotifications((prev) =>
+      prev.filter((item) => !dismissedAlertNotificationIds.includes(item.id))
+    );
+  }, [dismissedAlertNotificationIds]);
+
+  useEffect(() => {
+    setJoinRequests((prev) =>
+      prev.filter((item) => !dismissedJoinRequestIds.includes(item.id))
+    );
+  }, [dismissedJoinRequestIds]);
+
+  useEffect(() => {
+    setPendingInvites((prev) =>
+      prev.filter((item) => !dismissedInviteTokens.includes(item.token))
+    );
+  }, [dismissedInviteTokens]);
+
+  useEffect(() => {
+    setInviteTokenFromUrl(searchParams.get("inviteToken") || "");
+  }, [searchParams]);
+
+  useEffect(() => {
+    if (searchParams.get("notifications") !== "open") {
+      return;
+    }
+
+    setShowRequests(true);
+    const params = new URLSearchParams(searchParams.toString());
+    params.delete("notifications");
+    params.delete("focus");
+    const nextQuery = params.toString();
+    router.replace(nextQuery ? `/dashboard?${nextQuery}` : "/dashboard");
+  }, [router, searchParams]);
+
+  useEffect(() => {
+    if (!token || !inviteTokenFromUrl) {
+      setInviteLinkStatus(null);
+      inviteStatusToastRef.current = null;
+      return;
+    }
+
+    const loadInviteStatus = async () => {
+      try {
+        const res = await fetch(`${API_URL}/orgs/invites/status/${inviteTokenFromUrl}`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+
+        const data = await res.json();
+        const status = (data.status ?? null) as InviteLinkStatus | null;
+        setInviteLinkStatus(status);
+
+        if (status && !status.valid && inviteStatusToastRef.current !== inviteTokenFromUrl) {
+          inviteStatusToastRef.current = inviteTokenFromUrl;
+          showToast("This invite link is expired or no longer valid", "error");
+        }
+      } catch {
+        setInviteLinkStatus(null);
+      }
+    };
+
+    void loadInviteStatus();
+  }, [token, inviteTokenFromUrl]);
 
   useEffect(() => {
     if (!token) {
-      setUser(null);
       setOrgs([]);
       setProjects([]);
       setErrors([]);
@@ -108,74 +489,87 @@ export default function DashboardPage() {
       setLastSeen([]);
       setJoinRequests([]);
       setPendingInvites([]);
+      setAlertNotifications([]);
+      setNotificationsExpanded(false);
+      setDashboardLoading(false);
+      return;
+    }
+  }, [token]);
+
+  useEffect(() => {
+    if (!token) {
       return;
     }
 
-    const loadData = async () => {
-      setLoading(true);
+    const controller = new AbortController();
+
+    const loadWorkspaceData = async () => {
       setError(null);
 
       try {
-        const projectsRes = await fetch(`${API_URL}/projects`, {
-          headers: {
-            Authorization: `Bearer ${token}`
-          }
-        });
+        const [projectsRes, orgsRes] = await Promise.all([
+          fetch(`${API_URL}/projects`, {
+            headers: { Authorization: `Bearer ${token}` },
+            signal: controller.signal
+          }),
+          fetch(`${API_URL}/orgs`, {
+            headers: { Authorization: `Bearer ${token}` },
+            signal: controller.signal
+          })
+        ]);
 
         if (!projectsRes.ok) {
           throw new Error("Failed to load projects");
         }
 
-        const projectsData = await projectsRes.json();
-        setProjects(projectsData.projects || []);
-
-        const orgsRes = await fetch(`${API_URL}/orgs`, {
-          headers: {
-            Authorization: `Bearer ${token}`
-          }
-        });
-
         if (!orgsRes.ok) {
           throw new Error("Failed to load orgs");
         }
 
-        const orgsData = await orgsRes.json();
-        setOrgs(orgsData.orgs || []);
+        const [projectsData, orgsData] = await Promise.all([projectsRes.json(), orgsRes.json()]);
 
-        const requestsRes = await fetch(`${API_URL}/orgs/requests/pending`, {
-          headers: { Authorization: `Bearer ${token}` }
-        });
-
-        if (requestsRes.ok) {
-          const requestsData = await requestsRes.json();
-          setJoinRequests(requestsData.requests || []);
+        if (!controller.signal.aborted) {
+          setProjects(projectsData.projects || []);
+          setOrgs(orgsData.orgs || []);
+        }
+      } catch (err) {
+        if (controller.signal.aborted) {
+          return;
         }
 
-        const invitesRes = await fetch(`${API_URL}/orgs/invites/pending`, {
-          headers: { Authorization: `Bearer ${token}` }
-        });
+        setError(err instanceof Error ? err.message : "Unexpected error");
+      }
+    };
 
-        if (invitesRes.ok) {
-          const invitesData = await invitesRes.json();
-          setPendingInvites(invitesData.invites || []);
-        }
+    void loadWorkspaceData();
+    void loadNotifications(token);
 
-        const filteredProjects = projectsData.projects || [];
-        const firstProject = filteredProjects[0];
-        if (firstProject && !selectedProject) {
-          setSelectedProject(firstProject.id);
-        }
+    return () => controller.abort();
+  }, [token, refreshTick]);
 
+  useEffect(() => {
+    if (!token) {
+      return;
+    }
+
+    const controller = new AbortController();
+
+    const loadErrors = async () => {
+      setDashboardLoading(true);
+      setError(null);
+
+      try {
         const params = new URLSearchParams();
         if (selectedProject) params.set("projectId", selectedProject);
-        if (search) params.set("q", search);
+        if (deferredSearch) params.set("q", deferredSearch);
         if (environmentFilter) params.set("env", environmentFilter);
         if (sortBy) params.set("sort", sortBy);
+        params.set("page", String(recentErrorsPagination.page));
+        params.set("pageSize", String(recentErrorsPagination.pageSize));
 
         const errorsRes = await fetch(`${API_URL}/errors?${params.toString()}`, {
-          headers: {
-            Authorization: `Bearer ${token}`
-          }
+          headers: { Authorization: `Bearer ${token}` },
+          signal: controller.signal
         });
 
         if (!errorsRes.ok) {
@@ -183,37 +577,234 @@ export default function DashboardPage() {
         }
 
         const errorsData = await errorsRes.json();
-        setErrors(errorsData.errors || []);
 
+        if (!controller.signal.aborted) {
+          setErrors(errorsData.errors || []);
+          setRecentErrorsPagination((prev) => ({
+            page: errorsData.pagination?.page || prev.page,
+            pageSize: errorsData.pagination?.pageSize || prev.pageSize,
+            total: errorsData.pagination?.total || 0,
+            totalPages: errorsData.pagination?.totalPages || 1
+          }));
+        }
+      } catch (err) {
+        if (controller.signal.aborted) {
+          return;
+        }
+
+        setError(err instanceof Error ? err.message : "Unexpected error");
+      } finally {
+        if (!controller.signal.aborted) {
+          setDashboardLoading(false);
+        }
+      }
+    };
+
+    void loadErrors();
+
+    return () => controller.abort();
+  }, [
+    token,
+    selectedProject,
+    deferredSearch,
+    environmentFilter,
+    sortBy,
+    recentErrorsPagination.page,
+    recentErrorsPagination.pageSize,
+    refreshTick
+  ]);
+
+  useEffect(() => {
+    if (!token) {
+      return;
+    }
+
+    const controller = new AbortController();
+
+    const loadAnalytics = async () => {
+      try {
         const analyticsParams = new URLSearchParams();
         if (selectedProject) analyticsParams.set("projectId", selectedProject);
         analyticsParams.set("days", String(days));
 
-        const analyticsRes = await fetch(
-          `${API_URL}/analytics?${analyticsParams.toString()}`,
-          {
-            headers: {
-              Authorization: `Bearer ${token}`
-            }
-          }
-        );
+        const analyticsRes = await fetch(`${API_URL}/analytics?${analyticsParams.toString()}`, {
+          headers: { Authorization: `Bearer ${token}` },
+          signal: controller.signal
+        });
 
         if (!analyticsRes.ok) {
           throw new Error("Failed to load analytics");
         }
 
         const analyticsData = await analyticsRes.json();
-        setFrequency(analyticsData.frequency || []);
-        setLastSeen(analyticsData.lastSeen || []);
+
+        if (!controller.signal.aborted) {
+          setFrequency(analyticsData.frequency || []);
+          setLastSeen(analyticsData.lastSeen || []);
+        }
       } catch (err) {
+        if (controller.signal.aborted) {
+          return;
+        }
+
         setError(err instanceof Error ? err.message : "Unexpected error");
-      } finally {
-        setLoading(false);
       }
     };
 
-    loadData();
-  }, [token, selectedProject, refreshTick, search, environmentFilter, sortBy, days]);
+    void loadAnalytics();
+
+    return () => controller.abort();
+  }, [token, selectedProject, days, refreshTick]);
+
+  useEffect(() => {
+    setRecentErrorsPagination((prev) => ({ ...prev, page: 1 }));
+  }, [selectedProject, deferredSearch, environmentFilter, sortBy]);
+
+  useEffect(() => {
+    setShowApiKey(false);
+  }, [selectedProject]);
+
+  useEffect(() => {
+    if (!token) return;
+    const id = window.setInterval(() => {
+      setRefreshTick((value) => value + 1);
+    }, 30000);
+    return () => window.clearInterval(id);
+  }, [token]);
+
+  useEffect(() => {
+    if (!token) {
+      return;
+    }
+
+    const stream = new EventSource(
+      `${NOTIFICATIONS_URL}?token=${encodeURIComponent(token)}`
+    );
+
+    stream.onmessage = (event) => {
+      try {
+        const payload = JSON.parse(event.data) as unknown;
+
+        if (
+          payload &&
+          typeof payload === "object" &&
+          "type" in payload &&
+          (payload as { type?: unknown }).type === "connected"
+        ) {
+          return;
+        }
+
+        const payloadRuleId = isRealtimeAlertPayload(payload) ? payload.ruleId : undefined;
+
+        if (isRealtimeAlertPayload(payload) && payload.type === "alert.deleted" && payloadRuleId) {
+          setAlertNotifications((prev) =>
+            prev.filter((item) => item.id !== `rule:${payloadRuleId}`)
+          );
+        }
+
+        if (
+          isRealtimeAlertPayload(payload) &&
+          payload.type === "alert.created" &&
+          payloadRuleId &&
+          payload.message
+        ) {
+          const ruleId = payloadRuleId;
+          setAlertNotifications((prev) => {
+            const nextItem: AlertNotification = {
+              kind: "rule",
+              id: `rule:${ruleId}`,
+              message: payload.message,
+              environment: payload.environment ?? null,
+              triggeredAt: payload.createdAt,
+              project: {
+                id: payload.projectId || "",
+                name: payload.projectName || "All projects"
+              },
+              error: {},
+              alertRule: {
+                id: ruleId,
+                name: payload.title || "Alert created",
+                severity: payload.severity ?? "CRITICAL"
+              }
+            };
+
+            const filtered = prev.filter((item) => item.id !== nextItem.id);
+            if (dismissedAlertNotificationIds.includes(nextItem.id)) {
+              return filtered;
+            }
+            return [nextItem, ...filtered]
+              .sort(
+                (a, b) =>
+                  new Date(b.triggeredAt).getTime() - new Date(a.triggeredAt).getTime()
+              )
+              .slice(0, 5);
+          });
+        }
+
+        if (
+          isRealtimeAlertPayload(payload) &&
+          payload.type === "alert.triggered" &&
+          payload.message
+        ) {
+          setAlertNotifications((prev) => {
+            const nextItem = normalizeAlertNotification({
+              kind: "event",
+              id: `${payload.ruleId || "alert"}:${payload.errorId || payload.message}:${payload.createdAt}`,
+              message: payload.message,
+              environment: payload.environment ?? null,
+              triggeredAt: payload.createdAt,
+              isTest: payload.isTest,
+              project: {
+                id: payload.projectId || "",
+                name: payload.projectName || "Organization project"
+              },
+              error: {
+                id: payload.errorId
+              },
+              alertRule: {
+                id: payload.ruleId || payload.createdAt,
+                name: payload.title || "Alert triggered",
+                severity: payload.severity ?? "CRITICAL"
+              }
+            });
+
+            const filtered = prev.filter((item) => item.id !== nextItem.id);
+            if (dismissedAlertNotificationIds.includes(nextItem.id)) {
+              return filtered;
+            }
+            return [nextItem, ...filtered]
+              .sort(
+                (a, b) =>
+                  new Date(b.triggeredAt).getTime() - new Date(a.triggeredAt).getTime()
+              )
+              .slice(0, 5);
+          });
+        }
+
+        if (!isRealtimeAlertPayload(payload)) {
+          void loadNotifications(token);
+        }
+      } catch {
+        // Ignore malformed keepalive or connection events.
+      }
+    };
+
+    return () => {
+      stream.close();
+    };
+  }, [token, dismissedAlertNotificationIds]);
+
+  useEffect(() => {
+    if (!showRequests) return;
+    const handleClick = (event: MouseEvent) => {
+      if (!notificationsRef.current) return;
+      if (!notificationsRef.current.contains(event.target as Node)) {
+        setShowRequests(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClick);
+    return () => document.removeEventListener("mousedown", handleClick);
+  }, [showRequests]);
 
   const selectedProjectMeta = useMemo(() => {
     return projects.find((project) => project.id === selectedProject) || null;
@@ -227,32 +818,6 @@ export default function DashboardPage() {
   }, [projects, selectedOrgId]);
 
   const selectedOrg = orgs.find((org) => org.id === selectedOrgId) || null;
-
-  const handleAuth = async () => {
-    setError(null);
-    setLoading(true);
-
-    try {
-      const res = await fetch(`${API_URL}/auth/${authMode}`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password })
-      });
-
-      const data = await res.json();
-      if (!res.ok) {
-        throw new Error(data.error || "Authentication failed");
-      }
-
-      login(data.token, data.user);
-      setToken(data.token);
-      setUser(data.user);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Unexpected error");
-    } finally {
-      setLoading(false);
-    }
-  };
 
   const handleProjectCreate = async () => {
     if (!projectName.trim()) {
@@ -351,8 +916,10 @@ export default function DashboardPage() {
         throw new Error(data.error || "Failed to invite member");
       }
 
+      showToast(`Invite sent to ${inviteEmail.trim()}`, "success");
       setInviteEmail("");
     } catch (err) {
+      showToast("Failed to send invite", "error");
       setError(err instanceof Error ? err.message : "Unexpected error");
     } finally {
       setLoading(false);
@@ -380,9 +947,33 @@ export default function DashboardPage() {
         throw new Error(data.error || "Failed to accept invite");
       }
 
-      setRefreshTick((value) => value + 1);
+      setPendingInvites((prev) => prev.filter((invite) => invite.token !== tokenValue));
+      setInviteTokenFromUrl((current) => (current === tokenValue ? "" : current));
+      setInviteLinkStatus(null);
+      if (searchParams.get("inviteToken") === tokenValue) {
+        router.replace("/dashboard");
+      }
+      showToast(
+        data.status === "pending" ? "Approval request sent to the owner" : "Invite accepted",
+        "success"
+      );
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Unexpected error");
+      const message = err instanceof Error ? err.message : "Unexpected error";
+      if (
+        message.includes("expired") ||
+        message.includes("not found") ||
+        message.includes("already used both approval attempts")
+      ) {
+        setInviteLinkStatus((current) =>
+          current
+            ? { ...current, valid: false, trialsRemaining: 0, trialsUsed: Math.max(2, current.trialsUsed) }
+            : { valid: false, trialsUsed: 2, trialsRemaining: 0 }
+        );
+        showToast("This invite link is expired or no longer valid", "error");
+      } else {
+        showToast(message, "error");
+      }
+      setError(message);
     } finally {
       setLoading(false);
     }
@@ -397,73 +988,58 @@ export default function DashboardPage() {
     });
 
     setJoinRequests((prev) => prev.filter((req) => req.id !== id));
+    setDismissedJoinRequestIds((prev) => prev.filter((requestId) => requestId !== id));
   };
 
   const handleLogout = () => {
     logout();
-    setToken(null);
-    setUser(null);
     setOrgs([]);
     setProjects([]);
     setErrors([]);
     setPendingInvites([]);
+    router.replace("/signin");
   };
 
-  if (!token) {
+  const dismissJoinRequestNotification = (id: string) => {
+    const next = Array.from(new Set([...dismissedJoinRequestIds, id]));
+    persistDismissedJoinRequests(next);
+    setJoinRequests((prev) => prev.filter((req) => req.id !== id));
+  };
+
+  const dismissInviteNotification = (tokenValue: string) => {
+    const next = Array.from(new Set([...dismissedInviteTokens, tokenValue]));
+    persistDismissedInviteNotifications(next);
+    setPendingInvites((prev) => prev.filter((invite) => invite.token !== tokenValue));
+  };
+
+  const dismissAlertNotification = (id: string) => {
+    const next = Array.from(new Set([...dismissedAlertNotificationIds, id]));
+    persistDismissedAlertNotifications(next);
+    setAlertNotifications((prev) => prev.filter((alert) => alert.id !== id));
+  };
+
+  useEffect(() => {
+    if (!showRequests) return;
+    const handleClick = (event: MouseEvent) => {
+      if (!notificationsRef.current) return;
+      if (!notificationsRef.current.contains(event.target as Node)) {
+        setShowRequests(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClick);
+    return () => document.removeEventListener("mousedown", handleClick);
+  }, [showRequests]);
+
+  if (!isReady || !token) {
     return (
-      <main className="tf-page pb-20 pt-16">
+      <main className="tf-page tf-dashboard-page">
         <div className="tf-container max-w-md">
           <div className="tf-card p-8">
-            <h1 className="text-2xl font-semibold text-text-primary">TraceForge Dashboard</h1>
-            <p className="mt-2 text-sm text-text-secondary">
-              {authMode === "login" ? "Sign in to" : "Create an account to"} view your
-              errors.
-            </p>
-
-            <div className="mt-6 flex gap-2">
-              <button
-                className={`flex-1 tf-button ${authMode !== "login" ? "tf-button-ghost" : ""}`}
-                onClick={() => setAuthMode("login")}
-              >
-                Login
-              </button>
-              <button
-                className={`flex-1 tf-button ${authMode !== "register" ? "tf-button-ghost" : ""}`}
-                onClick={() => setAuthMode("register")}
-              >
-                Register
-              </button>
-            </div>
-
-            <div className="mt-6 space-y-4">
-              <input
-                className="tf-input w-full"
-                placeholder="Email"
-                value={email}
-                onChange={(event) => setEmail(event.target.value)}
-              />
-              <input
-                className="tf-input w-full"
-                placeholder="Password"
-                type="password"
-                value={password}
-                onChange={(event) => setPassword(event.target.value)}
-              />
-              {error && <p className="text-sm text-red-500">{error}</p>}
-              <button
-                className="w-full tf-button px-4 py-3 text-sm font-semibold"
-                onClick={handleAuth}
-                disabled={loading}
-              >
-                {loading
-                  ? "Working..."
-                  : authMode === "login"
-                  ? "Sign In"
-                  : "Create Account"}
-              </button>
-              <Link className="tf-link text-sm" href="/forgot-password">
-                Forgot password?
-              </Link>
+            <div className="h-6 w-32 animate-pulse rounded-full bg-secondary/70" />
+            <div className="mt-4 h-10 w-52 animate-pulse rounded-2xl bg-secondary/70" />
+            <div className="mt-8 space-y-4">
+              <div className="h-32 animate-pulse rounded-3xl bg-secondary/70" />
+              <div className="h-32 animate-pulse rounded-3xl bg-secondary/70" />
             </div>
           </div>
         </div>
@@ -473,6 +1049,26 @@ export default function DashboardPage() {
 
   const maxFrequency = Math.max(1, ...frequency.map((item) => item.count));
   const maxLastSeen = Math.max(1, ...lastSeen.map((item) => item.count));
+  const totalErrors = recentErrorsPagination.total;
+  const isInitialLoading = dashboardLoading && !projects.length && !errors.length;
+  const visibleRecentErrorPages = (() => {
+    const totalPages = recentErrorsPagination.totalPages;
+    const current = recentErrorsPagination.page;
+
+    if (totalPages <= 5) {
+      return Array.from({ length: totalPages }, (_, index) => index + 1);
+    }
+
+    if (current <= 3) {
+      return [1, 2, 3, 4, totalPages];
+    }
+
+    if (current >= totalPages - 2) {
+      return [1, totalPages - 3, totalPages - 2, totalPages - 1, totalPages];
+    }
+
+    return [1, current - 1, current, current + 1, totalPages];
+  })();
 
   const linePath = (data: AnalyticsPoint[], maxValue: number) => {
     if (!data.length) return "";
@@ -488,247 +1084,502 @@ export default function DashboardPage() {
   };
 
   return (
-    <main className="tf-page pb-20 pt-16">
-      <div className="tf-container flex flex-col gap-8">
+    <main className="tf-page tf-dashboard-page">
+      <div className="tf-dashboard flex flex-col gap-8">
         <header className="flex flex-col gap-5">
           <div className="flex flex-wrap items-center justify-between gap-4">
             <div>
               <p className="text-xs font-semibold uppercase tracking-[0.2em] text-primary">
                 Dashboard
               </p>
-              <h1 className="mt-2 text-3xl font-semibold text-text-primary">TraceForge</h1>
-              <p className="text-sm text-text-secondary">{user?.email}</p>
+              <Link href="/" className="inline-block">
+                <h1 className="tf-title mt-2 text-3xl">TraceForge</h1>
+              </Link>
+              <p className="text-sm text-text-secondary">{authUser?.email}</p>
             </div>
             <div className="flex flex-wrap items-center gap-2">
-              <button
-                className="relative rounded-full border border-border px-3 py-2 text-sm font-semibold text-text-secondary"
-                onClick={() => setShowRequests((prev) => !prev)}
-              >
-                Notifications
-                {joinRequests.length + pendingInvites.length > 0 && (
-                  <span className="ml-2 rounded-full bg-primary px-2 py-0.5 text-xs text-white">
-                    {joinRequests.length + pendingInvites.length}
+              <div className="relative" ref={notificationsRef}>
+                <button
+                  className="relative inline-flex items-center gap-2.5 rounded-full border border-border bg-card/90 px-4 py-2 text-sm font-semibold text-text-secondary shadow-sm transition hover:border-primary/40 hover:bg-secondary/70 hover:text-text-primary"
+                  onClick={() => setShowRequests((prev) => !prev)}
+                  aria-label="Notifications"
+                >
+                  <span className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-secondary/80 text-text-secondary">
+                    <svg
+                      aria-hidden="true"
+                      className="h-4 w-4"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    >
+                      <path d="M15 17h5l-1.4-1.4A2 2 0 0 1 18 14.2V11a6 6 0 1 0-12 0v3.2a2 2 0 0 1-.6 1.4L4 17h5" />
+                      <path d="M9.5 17a2.5 2.5 0 0 0 5 0" />
+                    </svg>
                   </span>
+                  Notifications
+                  {joinRequests.length + pendingInvites.length + alertNotifications.length > 0 && (
+                    <span className="rounded-full bg-primary px-2.5 py-0.5 text-xs font-semibold text-white shadow-sm">
+                      {joinRequests.length + pendingInvites.length + alertNotifications.length}
+                    </span>
+                  )}
+                </button>
+                {showRequests && (
+                  <div
+                    className={`absolute right-0 top-full z-30 mt-3 rounded-2xl border border-border bg-card p-4 shadow-lg max-[639px]:left-0 max-[639px]:right-0 max-[639px]:w-[calc(100vw-2rem)] max-[639px]:max-w-none ${
+                      notificationsExpanded ? "w-[28rem]" : "w-72"
+                    }`}
+                  >
+                    <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
+                      <h3 className="text-sm font-semibold text-text-primary">Notifications</h3>
+                      <div className="flex items-center gap-2">
+                        <button
+                          type="button"
+                          className="hidden rounded-full border border-border px-2.5 py-1 text-[11px] font-semibold text-text-secondary transition hover:bg-secondary/70 hover:text-text-primary sm:inline-flex"
+                          onClick={() => setNotificationsExpanded((value) => !value)}
+                        >
+                          {notificationsExpanded ? "Collapse" : "Expand"}
+                        </button>
+                        <button
+                          type="button"
+                          className="rounded-full border border-border px-2.5 py-1 text-[11px] font-semibold text-text-secondary transition hover:bg-secondary/70 hover:text-text-primary"
+                          onClick={() => {
+                            const nextIds = Array.from(
+                              new Set([
+                                ...dismissedAlertNotificationIds,
+                                ...alertNotifications.map((alert) => alert.id)
+                              ])
+                            );
+                            persistDismissedAlertNotifications(nextIds);
+                            setAlertNotifications([]);
+                          }}
+                          disabled={!alertNotifications.length}
+                        >
+                          Clear
+                        </button>
+                      </div>
+                    </div>
+                    <div
+                      className={`overflow-y-auto pr-1 ${
+                        notificationsExpanded ? "max-h-[32rem]" : "max-h-80"
+                      }`}
+                    >
+                      <h3 className="text-sm font-semibold text-text-secondary">Join Requests</h3>
+                      <div className="mt-3 space-y-3">
+                        {joinRequests.map((req) => (
+                          <div key={req.id} className="relative rounded-xl border border-border p-3 pr-11 text-xs">
+                            <button
+                              type="button"
+                              className="absolute right-3 top-3 inline-flex h-6 w-6 items-center justify-center rounded-full border border-border text-text-secondary transition hover:bg-secondary/70 hover:text-text-primary"
+                              onClick={() => dismissJoinRequestNotification(req.id)}
+                              aria-label="Dismiss join request notification"
+                            >
+                              <svg
+                                aria-hidden="true"
+                                className="h-3.5 w-3.5"
+                                viewBox="0 0 16 16"
+                                fill="none"
+                                stroke="currentColor"
+                                strokeWidth="1.8"
+                                strokeLinecap="round"
+                              >
+                                <path d="M4 4l8 8" />
+                                <path d="M12 4 4 12" />
+                              </svg>
+                            </button>
+                            <p className="font-semibold text-text-primary">{req.requesterEmail}</p>
+                            <p className="text-text-secondary">{req.orgName}</p>
+                            <div className="mt-2 flex gap-2">
+                              <button
+                                className="rounded-full border border-border px-2 py-1 text-xs"
+                                onClick={() => handleRequestAction(req.id, "approve")}
+                              >
+                                Approve
+                              </button>
+                              <button
+                                className="rounded-full border border-red-200 px-2 py-1 text-xs text-red-600"
+                                onClick={() => handleRequestAction(req.id, "reject")}
+                              >
+                                Reject
+                              </button>
+                            </div>
+                          </div>
+                        ))}
+                        {!joinRequests.length && (
+                          <p className="text-xs text-text-secondary">No pending requests.</p>
+                        )}
+                      </div>
+                      <h3 className="mt-4 text-sm font-semibold text-text-secondary">Invites</h3>
+                      <div className="mt-3 space-y-3">
+                        {pendingInvites.map((invite) => (
+                          <div
+                            key={invite.token}
+                            className="relative rounded-xl border border-border p-3 pr-11 text-xs"
+                          >
+                            <button
+                              type="button"
+                              className="absolute right-3 top-3 inline-flex h-6 w-6 items-center justify-center rounded-full border border-border text-text-secondary transition hover:bg-secondary/70 hover:text-text-primary"
+                              onClick={() => dismissInviteNotification(invite.token)}
+                              aria-label="Dismiss invite notification"
+                            >
+                              <svg
+                                aria-hidden="true"
+                                className="h-3.5 w-3.5"
+                                viewBox="0 0 16 16"
+                                fill="none"
+                                stroke="currentColor"
+                                strokeWidth="1.8"
+                                strokeLinecap="round"
+                              >
+                                <path d="M4 4l8 8" />
+                                <path d="M12 4 4 12" />
+                              </svg>
+                            </button>
+                            <p className="font-semibold text-text-primary">{invite.orgName}</p>
+                            <p className="text-text-secondary">Role: {invite.role.toLowerCase()}</p>
+                            <p className="text-text-secondary">
+                              Expires {new Date(invite.expiresAt).toLocaleDateString()}
+                            </p>
+                            <div className="mt-2 flex gap-2">
+                              <button
+                                className="rounded-full border border-border px-2 py-1 text-xs"
+                                onClick={() => handleAcceptInvite(invite.token)}
+                              >
+                                Accept
+                              </button>
+                            </div>
+                          </div>
+                        ))}
+                        {!pendingInvites.length && (
+                          <p className="text-xs text-text-secondary">No pending invites.</p>
+                        )}
+                      </div>
+                      <h3 className="mt-4 text-sm font-semibold text-text-secondary">Alerts</h3>
+                      <div className="mt-3 space-y-3">
+                        {alertNotifications.map((alert) => (
+                          <div key={alert.id} className="relative rounded-xl border border-border p-3 pr-11 text-xs">
+                            <button
+                              type="button"
+                              className="absolute right-3 top-3 inline-flex h-6 w-6 items-center justify-center rounded-full border border-border text-text-secondary transition hover:bg-secondary/70 hover:text-text-primary"
+                              onClick={() => dismissAlertNotification(alert.id)}
+                              aria-label="Dismiss alert notification"
+                            >
+                              <svg
+                                aria-hidden="true"
+                                className="h-3.5 w-3.5"
+                                viewBox="0 0 16 16"
+                                fill="none"
+                                stroke="currentColor"
+                                strokeWidth="1.8"
+                                strokeLinecap="round"
+                              >
+                                <path d="M4 4l8 8" />
+                                <path d="M12 4 4 12" />
+                              </svg>
+                            </button>
+                            <p className="font-semibold text-text-primary">
+                              {alert.alertRule.name}
+                            </p>
+                            <p className="mt-1 text-text-secondary">{alert.message}</p>
+                            <p className="mt-1 text-text-secondary">
+                              {alert.project.name}
+                              {alert.environment ? ` · ${alert.environment}` : ""}
+                            </p>
+                            <div className="mt-2 flex gap-2">
+                              <Link
+                                className="rounded-full border border-border px-2 py-1 text-xs"
+                                href={alert.isTest ? "/dashboard/alerts" : "/dashboard/issues"}
+                                onClick={() => setShowRequests(false)}
+                              >
+                                {alert.isTest ? "Open alerts" : "Open issues"}
+                              </Link>
+                            </div>
+                          </div>
+                        ))}
+                        {!alertNotifications.length && (
+                          <p className="text-xs text-text-secondary">No recent alerts.</p>
+                        )}
+                      </div>
+                    </div>
+                  </div>
                 )}
-              </button>
-              {showRequests && (
-                <div className="absolute right-0 top-12 w-72 rounded-2xl bg-card p-4 shadow-lg border border-border">
-                  <h3 className="text-sm font-semibold text-text-secondary">Join Requests</h3>
-                  <div className="mt-3 space-y-3">
-                    {joinRequests.map((req) => (
-                      <div key={req.id} className="rounded-xl border border-border p-3 text-xs">
-                        <p className="font-semibold text-text-primary">{req.requesterEmail}</p>
-                        <p className="text-text-secondary">{req.orgName}</p>
-                        <div className="mt-2 flex gap-2">
-                          <button
-                            className="rounded-full border border-border px-2 py-1 text-xs"
-                            onClick={() => handleRequestAction(req.id, "approve")}
-                          >
-                            Approve
-                          </button>
-                          <button
-                            className="rounded-full border border-red-200 px-2 py-1 text-xs text-red-600"
-                            onClick={() => handleRequestAction(req.id, "reject")}
-                          >
-                            Reject
-                          </button>
-                        </div>
-                      </div>
-                    ))}
-                    {!joinRequests.length && (
-                      <p className="text-xs text-text-secondary">No pending requests.</p>
-                    )}
-                  </div>
-                  <h3 className="mt-4 text-sm font-semibold text-text-secondary">Invites</h3>
-                  <div className="mt-3 space-y-3">
-                    {pendingInvites.map((invite) => (
-                      <div
-                        key={invite.token}
-                        className="rounded-xl border border-border p-3 text-xs"
-                      >
-                        <p className="font-semibold text-text-primary">{invite.orgName}</p>
-                        <p className="text-text-secondary">Role: {invite.role.toLowerCase()}</p>
-                        <p className="text-text-secondary">
-                          Expires {new Date(invite.expiresAt).toLocaleDateString()}
-                        </p>
-                        <div className="mt-2 flex gap-2">
-                          <button
-                            className="rounded-full border border-border px-2 py-1 text-xs"
-                            onClick={() => handleAcceptInvite(invite.token)}
-                          >
-                            Accept
-                          </button>
-                        </div>
-                      </div>
-                    ))}
-                    {!pendingInvites.length && (
-                      <p className="text-xs text-text-secondary">No pending invites.</p>
-                    )}
-                  </div>
-                </div>
-              )}
+              </div>
               <button
-                className="rounded-full border border-border px-4 py-2 text-sm font-semibold text-text-secondary"
+                className="tf-danger-button inline-flex items-center gap-2 rounded-full border bg-card/90 px-4 py-2 text-sm font-semibold shadow-sm transition"
                 onClick={handleLogout}
               >
-                Logout
+                <svg
+                  aria-hidden="true"
+                  className="h-4 w-4"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+                  <path d="M16 17l5-5-5-5" />
+                  <path d="M21 12H9" />
+                </svg>
+                Sign Out
               </button>
             </div>
           </div>
 
-          <div className="flex flex-wrap items-center gap-3 rounded-2xl border border-border bg-card/80 px-4 py-3">
-            <div className="flex flex-1 flex-wrap items-center gap-3">
-              <select
-                className="rounded-full border border-border px-4 py-2 text-sm text-text-primary"
-                value={selectedOrgId}
-                onChange={(event) => {
-                  setSelectedOrgId(event.target.value);
-                  setSelectedProject("");
-                }}
-              >
-                <option value="">Personal</option>
-                {orgs.map((org) => (
-                  <option key={org.id} value={org.id}>
-                    {org.name} ({org.role.toLowerCase()})
-                  </option>
-                ))}
-              </select>
-              <input
-                className="min-w-[180px] flex-1 rounded-full border border-border px-4 py-2 text-sm"
-                placeholder="Search errors"
-                value={search}
-                onChange={(event) => setSearch(event.target.value)}
-              />
-              <select
-                className="rounded-full border border-border px-3 py-2 text-sm"
-                value={environmentFilter}
-                onChange={(event) => setEnvironmentFilter(event.target.value)}
-              >
-                <option value="">All env</option>
-                <option value="development">Development</option>
-                <option value="staging">Staging</option>
-                <option value="production">Production</option>
-                <option value="browser">Browser</option>
-              </select>
-              <select
-                className="rounded-full border border-border px-3 py-2 text-sm"
-                value={sortBy}
-                onChange={(event) =>
-                  setSortBy(event.target.value === "count" ? "count" : "lastSeen")
-                }
-              >
-                <option value="lastSeen">Last seen</option>
-                <option value="count">Most frequent</option>
-              </select>
+          {inviteTokenFromUrl &&
+            inviteLinkStatus?.valid !== false &&
+            inviteLinkStatus?.reason === "request_approval" && (
+            <div className="rounded-2xl border border-primary/20 bg-primary/5 px-4 py-3">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div>
+                  <p className="text-sm font-semibold text-text-primary">
+                    {inviteLinkStatus?.orgName
+                      ? `Team invite for ${inviteLinkStatus.orgName}`
+                      : "Team invite detected"}
+                  </p>
+                  <p className="mt-1 text-sm text-text-secondary">
+                    This link sends an approval request to the owner.
+                  </p>
+                  <p className="mt-1 text-xs font-medium text-text-secondary">
+                    {inviteTrialsLabel(inviteLinkStatus)}
+                  </p>
+                </div>
+                <button
+                  className="tf-button px-4 py-2 text-sm"
+                  onClick={() => handleAcceptInvite(inviteTokenFromUrl)}
+                  disabled={loading}
+                >
+                  {loading ? "Working..." : "Request approval"}
+                </button>
+              </div>
             </div>
-            <div className="flex flex-wrap items-center gap-2">
-              <Link
-                href="/dashboard/orgs"
-                className="rounded-full border border-border px-4 py-2 text-sm font-semibold text-text-secondary"
-              >
-                Members
-              </Link>
-              <Link
-                href="/dashboard/projects"
-                className="rounded-full border border-border px-4 py-2 text-sm font-semibold text-text-secondary"
-              >
-                Projects
-              </Link>
+          )}
+
+          <div className="tf-filter-panel">
+            <div className="tf-filter-header">
+              <div>
+                <h2 className="text-lg font-semibold text-text-primary">Workspace filters</h2>
+                <p className="tf-filter-help">
+                  Switch org scope, search recent issues, and narrow results before jumping into details.
+                </p>
+              </div>
+              <div className="flex flex-wrap items-center gap-2">
+                <button
+                  type="button"
+                  className="tf-filter-reset"
+                  onClick={() => {
+                    setSelectedOrgId("");
+                    setSelectedProject("");
+                    setSearch("");
+                    setEnvironmentFilter("");
+                    setSortBy("lastSeen");
+                  }}
+                >
+                  Reset filters
+                </button>
+              </div>
+            </div>
+            <div className="tf-filter-grid sm:grid-cols-2 xl:grid-cols-[220px_minmax(0,1.4fr)_190px_180px_auto]">
+              <label className="tf-filter-field">
+                <span className="tf-filter-label">Organization</span>
+                <select
+                  className="tf-select tf-filter-control max-[639px]:w-full"
+                  value={selectedOrgId}
+                  onChange={(event) => {
+                    setSelectedOrgId(event.target.value);
+                    setSelectedProject("");
+                  }}
+                >
+                  <option value="">Personal</option>
+                  {orgs.map((org) => (
+                    <option key={org.id} value={org.id}>
+                      {org.name} ({org.role.toLowerCase()})
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label className="tf-filter-field">
+                <span className="tf-filter-label">Search</span>
+                <input
+                  className="tf-input tf-filter-control flex-1 sm:min-w-[180px] max-[639px]:basis-full max-[639px]:w-full"
+                  placeholder="Search errors"
+                  value={search}
+                  onChange={(event) => setSearch(event.target.value)}
+                />
+              </label>
+              <label className="tf-filter-field">
+                <span className="tf-filter-label">Environment</span>
+                <select
+                  className="tf-select tf-filter-control max-[639px]:w-full"
+                  value={environmentFilter}
+                  onChange={(event) => setEnvironmentFilter(event.target.value)}
+                >
+                  <option value="">All env</option>
+                  <option value="development">Development</option>
+                  <option value="staging">Staging</option>
+                  <option value="production">Production</option>
+                  <option value="browser">Browser</option>
+                </select>
+              </label>
+              <label className="tf-filter-field">
+                <span className="tf-filter-label">Sort by</span>
+                <select
+                  className="tf-select tf-filter-control max-[639px]:w-full"
+                  value={sortBy}
+                  onChange={(event) =>
+                    setSortBy(event.target.value === "count" ? "count" : "lastSeen")
+                  }
+                >
+                  <option value="lastSeen">Last seen</option>
+                  <option value="count">Most frequent</option>
+                </select>
+              </label>
+              <div className="flex flex-wrap items-end gap-2">
+                <Link
+                  href="/dashboard/orgs"
+                  className="tf-filter-reset"
+                >
+                  Organizations
+                </Link>
+                <Link
+                  href="/dashboard/projects"
+                  className="tf-filter-reset"
+                >
+                  Projects
+                </Link>
+              </div>
+            </div>
+            <div className="tf-filter-pills">
+              <span className="tf-filter-pill">
+                Scope: {selectedOrg ? selectedOrg.name : "Personal"}
+              </span>
+              <span className="tf-filter-pill">
+                {environmentFilter || "All environments"}
+              </span>
+              <span className="tf-filter-pill">
+                {sortBy === "count" ? "Most frequent first" : "Latest first"}
+              </span>
             </div>
           </div>
         </header>
 
-        <section className="grid gap-6 lg:grid-cols-[300px_1fr]">
-          <div className="space-y-6">
-            <div className="tf-card p-6">
-              <h2 className="text-sm font-semibold text-text-secondary">Projects</h2>
-              <div className="mt-4 space-y-3">
-                <select
-                  className="w-full rounded-xl border border-border px-3 py-2 text-sm text-text-primary"
-                  value={selectedProject}
-                  onChange={(event) => setSelectedProject(event.target.value)}
+        <section className="grid gap-6">
+          {error && !dashboardLoading && (
+            <div className="rounded-2xl border border-border bg-card/90 p-4 text-sm text-text-secondary">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <span>{error}</span>
+                <button
+                  className="rounded-full border border-border px-3 py-1 text-xs font-semibold text-text-secondary"
+                  onClick={() => setRefreshTick((value) => value + 1)}
                 >
-                  {displayedProjects.map((project) => (
-                    <option key={project.id} value={project.id}>
-                      {project.name}
-                    </option>
-                  ))}
-                </select>
-                {selectedProjectMeta && (
-                  <div className="rounded-xl bg-secondary/70 px-4 py-3 text-xs text-text-secondary">
-                    <p className="font-semibold text-text-secondary">API Key</p>
-                    <p className="mt-1 break-all">{selectedProjectMeta.apiKey}</p>
+                  Retry
+                </button>
+              </div>
+            </div>
+          )}
+          <div className="tf-card p-5">
+            {isInitialLoading ? (
+              <Skeleton className="h-20" />
+            ) : (
+              <div className="grid gap-4 sm:grid-cols-3">
+                {[
+                  { label: "Projects", value: displayedProjects.length },
+                  { label: "Total errors", value: totalErrors },
+                  { label: "Organizations", value: orgs.length }
+                ].map((stat) => (
+                  <div key={stat.label} className="rounded-xl border border-border bg-card/80 px-4 py-3">
+                    <p className="text-xs font-semibold text-text-secondary">{stat.label}</p>
+                    <p className="mt-1 text-xl font-semibold text-text-primary">{stat.value}</p>
                   </div>
-                )}
+                ))}
+              </div>
+            )}
+          </div>
+          <div className="tf-card p-5" id="analytics">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <div>
+                <h2 className="text-sm font-semibold text-text-secondary">Project</h2>
+                <p className="text-xs text-text-secondary">
+                  Select a project to reveal its API key and shortcuts.
+                </p>
+              </div>
+              <Link
+                href="/dashboard/projects"
+                className="rounded-full border border-border px-2.5 py-1 text-[11px] font-semibold text-text-secondary"
+              >
+                Manage projects
+              </Link>
+            </div>
+            <div className="mt-3 flex flex-wrap items-center gap-2">
+              <select
+                className="tf-select w-full flex-1 sm:min-w-[180px]"
+                value={selectedProject}
+                onChange={(event) => setSelectedProject(event.target.value)}
+              >
+                <option value="">Select a project</option>
+                {displayedProjects.map((project) => (
+                  <option key={project.id} value={project.id}>
+                    {project.name}
+                  </option>
+                ))}
+              </select>
+              {selectedProjectMeta && (
+                <button
+                  className="rounded-full border border-border px-3 py-2 text-xs font-semibold text-text-secondary"
+                  onClick={() => setShowApiKey((value) => !value)}
+                >
+                  {showApiKey ? "Hide key" : "Show key"}
+                </button>
+              )}
+            </div>
+            {selectedProjectMeta && showApiKey && (
+              <div className="mt-3 rounded-xl bg-secondary/70 px-3 py-2 text-xs text-text-secondary">
+                <p className="font-semibold text-text-secondary">API Key</p>
+                <p className="mt-1 break-all">{selectedProjectMeta.apiKey}</p>
+              </div>
+            )}
+            <div className="mt-4 grid gap-3 md:grid-cols-2">
+              <div className="rounded-xl border border-border bg-secondary/70 p-3">
+                <p className="text-xs font-semibold text-text-secondary">Create Project</p>
+                <div className="mt-2 flex flex-wrap gap-2">
+                  <input
+                    className="tf-input flex-1"
+                    placeholder="Project name"
+                    value={projectName}
+                    onChange={(event) => setProjectName(event.target.value)}
+                  />
+                  <button
+                    className="tf-button px-4 py-2 text-sm font-semibold"
+                    onClick={handleProjectCreate}
+                    disabled={loading}
+                  >
+                    {loading ? "Creating..." : "Create"}
+                  </button>
+                </div>
+              </div>
+              <div className="rounded-xl border border-border bg-secondary/70 p-3">
+                <p className="text-xs font-semibold text-text-secondary">Create Organization</p>
+                <div className="mt-2 flex flex-wrap gap-2">
+                  <input
+                    className="tf-input flex-1"
+                    placeholder="Organization name"
+                    value={orgName}
+                    onChange={(event) => setOrgName(event.target.value)}
+                  />
+                  <button
+                    className="tf-button-ghost px-4 py-2 text-sm font-semibold"
+                    onClick={handleOrgCreate}
+                    disabled={loading}
+                  >
+                    {loading ? "Creating..." : "Create"}
+                  </button>
+                </div>
               </div>
             </div>
-
-            <div className="tf-card p-6">
-              <h2 className="text-sm font-semibold text-text-secondary">Create Project</h2>
-              <p className="mt-2 text-xs text-text-secondary">
-                {selectedOrg ? `Org: ${selectedOrg.name}` : "Personal project"}
-              </p>
-              <div className="mt-4 space-y-3">
-                <input
-                  className="w-full rounded-xl border border-border px-3 py-2 text-sm"
-                  placeholder="Project name"
-                  value={projectName}
-                  onChange={(event) => setProjectName(event.target.value)}
-                />
-                <button
-                  className="w-full tf-button px-4 py-2 text-sm font-semibold"
-                  onClick={handleProjectCreate}
-                  disabled={loading}
-                >
-                  {loading ? "Creating..." : "Create Project"}
-                </button>
-                {error && <p className="text-xs text-red-500">{error}</p>}
-              </div>
-            </div>
-
-            <div className="tf-card p-6">
-              <h2 className="text-sm font-semibold text-text-secondary">Organizations</h2>
-              <div className="mt-4 space-y-3">
-                <input
-                  className="w-full rounded-xl border border-border px-3 py-2 text-sm"
-                  placeholder="Org name"
-                  value={orgName}
-                  onChange={(event) => setOrgName(event.target.value)}
-                />
-                <button
-                  className="w-full rounded-full border border-border px-4 py-2 text-sm font-semibold text-text-secondary"
-                  onClick={handleOrgCreate}
-                  disabled={loading}
-                >
-                  {loading ? "Creating..." : "Create Organization"}
-                </button>
-              </div>
-              <div className="mt-4 space-y-2">
-                <input
-                  className="w-full rounded-xl border border-border px-3 py-2 text-sm"
-                  placeholder="Invite email"
-                  value={inviteEmail}
-                  onChange={(event) => setInviteEmail(event.target.value)}
-                />
-                <select
-                  className="w-full rounded-xl border border-border px-3 py-2 text-sm"
-                  value={inviteRole}
-                  onChange={(event) =>
-                    setInviteRole(event.target.value === "OWNER" ? "OWNER" : "MEMBER")
-                  }
-                >
-                  <option value="MEMBER">Member</option>
-                  <option value="OWNER">Owner</option>
-                </select>
-                <button
-                  className="w-full rounded-full border border-border px-4 py-2 text-sm font-semibold text-text-secondary"
-                  onClick={handleInvite}
-                  disabled={loading}
-                >
-                  {loading ? "Inviting..." : "Invite Member"}
-                </button>
-              </div>
-            </div>
+            {error && <p className="mt-3 text-xs text-red-500">{error}</p>}
           </div>
 
           <div className="space-y-6">
@@ -740,7 +1591,7 @@ export default function DashboardPage() {
                 </div>
                 <div className="flex items-center gap-3">
                   <select
-                    className="rounded-full border border-border px-3 py-1 text-xs"
+                    className="tf-select"
                     value={days}
                     onChange={(event) => setDays(Number(event.target.value))}
                   >
@@ -799,73 +1650,187 @@ export default function DashboardPage() {
             <div className="tf-card p-6">
               <div className="flex flex-wrap items-center justify-between gap-4">
                 <h2 className="text-lg font-semibold text-text-primary">Recent Errors</h2>
-                <div className="flex flex-wrap items-center gap-3">
-                  <input
-                    className="rounded-full border border-border px-3 py-1 text-xs"
-                    placeholder="Search errors"
-                    value={search}
-                    onChange={(event) => setSearch(event.target.value)}
-                  />
-                  <select
-                    className="rounded-full border border-border px-3 py-1 text-xs"
-                    value={environmentFilter}
-                    onChange={(event) => setEnvironmentFilter(event.target.value)}
-                  >
-                    <option value="">All env</option>
-                    <option value="development">Development</option>
-                    <option value="staging">Staging</option>
-                    <option value="production">Production</option>
-                    <option value="browser">Browser</option>
-                  </select>
-                  <select
-                    className="rounded-full border border-border px-3 py-1 text-xs"
-                    value={sortBy}
-                    onChange={(event) =>
-                      setSortBy(event.target.value === "count" ? "count" : "lastSeen")
-                    }
-                  >
-                    <option value="lastSeen">Last seen</option>
-                    <option value="count">Most frequent</option>
-                  </select>
+                <div className="flex flex-wrap items-center gap-2 text-xs text-text-secondary">
+                  <span className="rounded-full border border-border bg-secondary/70 px-2.5 py-1">
+                    {environmentFilter ? environmentFilter : "All env"}
+                  </span>
+                  <span className="rounded-full border border-border bg-secondary/70 px-2.5 py-1">
+                    {sortBy === "count" ? "Most frequent" : "Last seen"}
+                  </span>
                 </div>
               </div>
 
-              {loading && <p className="mt-4 text-sm text-text-secondary">Loading...</p>}
-              {error && <p className="mt-4 text-sm text-red-500">{error}</p>}
+              {dashboardLoading && <p className="mt-4 text-sm text-text-secondary">Loading...</p>}
 
               <div className="mt-6 space-y-4">
-                {errors.map((item) => (
-                  <Link
-                    key={item.id}
-                    href={`/dashboard/errors/${item.id}`}
-                    className="block rounded-xl border border-border px-4 py-4 transition hover:border-primary/30 hover:bg-accent-soft"
-                  >
-                    <div className="flex flex-wrap items-center justify-between gap-4">
-                      <div>
-                        <p className="text-sm font-semibold text-text-primary">{item.message}</p>
-                        <p className="mt-1 text-xs text-text-secondary">
-                          Last seen {new Date(item.lastSeen).toLocaleString()}
-                        </p>
+                {errors.map((item) => {
+                  const severity = severityForMessage(item.message);
+                  const isExpanded = expandedErrorId === item.id;
+                  return (
+                    <div
+                      key={item.id}
+                      className="rounded-xl border border-border px-4 py-4 transition hover:border-primary/30 hover:bg-accent-soft"
+                    >
+                      <div className="flex flex-wrap items-start justify-between gap-4">
+                        <div>
+                          <div className="flex flex-wrap items-center gap-2">
+                            <SeverityTag severity={severity} />
+                            <p className="text-sm font-semibold text-text-primary">{item.message}</p>
+                          </div>
+                          <p className="mt-1 text-xs text-text-secondary">
+                            Last seen {new Date(item.lastSeen).toLocaleString()}
+                          </p>
+                        </div>
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span className="rounded-full bg-accent-soft px-3 py-1 text-xs font-semibold text-text-primary">
+                            {item.count} hits
+                          </span>
+                          <Link
+                            href={`/dashboard/errors/${item.id}`}
+                            className="rounded-full border border-border px-3 py-1 text-xs font-semibold text-text-secondary"
+                          >
+                            View
+                          </Link>
+                          <button
+                            className="rounded-full border border-border px-3 py-1 text-xs font-semibold text-text-secondary"
+                            onClick={() =>
+                              setExpandedErrorId(isExpanded ? null : item.id)
+                            }
+                          >
+                            {isExpanded ? "Hide stack" : "Show stack"}
+                          </button>
+                        </div>
                       </div>
-                      <span className="rounded-full bg-accent-soft px-3 py-1 text-xs font-semibold text-text-primary">
-                        {item.count} hits
-                      </span>
+                      {item.analysis?.aiExplanation && (
+                        <p className="mt-3 text-sm text-text-secondary">
+                          AI: {item.analysis.aiExplanation}
+                        </p>
+                      )}
+                      {isExpanded && item.stackTrace && (
+                        <pre className="mt-3 max-h-56 overflow-auto rounded-xl bg-ink p-3 text-xs text-white/90">
+                          {item.stackTrace}
+                        </pre>
+                      )}
                     </div>
-                    {item.analysis?.aiExplanation && (
-                      <p className="mt-3 text-sm text-text-secondary">
-                        AI: {item.analysis.aiExplanation}
-                      </p>
-                    )}
-                  </Link>
-                ))}
-                {!loading && !errors.length && (
-                  <p className="text-sm text-text-secondary">No errors yet.</p>
+                  );
+                })}
+                {!dashboardLoading && !errors.length && (
+                  <div className="rounded-2xl border border-border bg-card/90 p-6 text-center">
+                    <p className="text-sm font-semibold text-text-primary">No errors yet</p>
+                    <p className="mt-2 text-sm text-text-secondary">
+                      Create a project and send your first exception to see live issues here.
+                    </p>
+                    <div className="mt-4 flex flex-wrap justify-center gap-3">
+                      <Link className="tf-button px-4 py-2 text-sm" href="/dashboard/projects">
+                        Create project
+                      </Link>
+                      <Link className="tf-button-ghost px-4 py-2 text-sm" href="/docs">
+                        Read docs
+                      </Link>
+                    </div>
+                  </div>
                 )}
               </div>
+
+              {!dashboardLoading && recentErrorsPagination.totalPages > 1 && (
+                <div className="mt-5 rounded-2xl border border-border bg-card/90 px-4 py-4">
+                  <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                    <p className="text-sm text-text-secondary">
+                      Page {recentErrorsPagination.page} of {recentErrorsPagination.totalPages}
+                      {" · "}
+                      {recentErrorsPagination.total}{" "}
+                      {recentErrorsPagination.total === 1 ? "error" : "errors"} total
+                    </p>
+                    <div className="flex flex-wrap items-center gap-2 max-[639px]:w-full max-[639px]:flex-col">
+                      <select
+                        className="tf-select max-[639px]:w-full sm:min-w-[112px]"
+                        value={recentErrorsPagination.pageSize}
+                        onChange={(event) =>
+                          setRecentErrorsPagination((prev) => ({
+                            ...prev,
+                            page: 1,
+                            pageSize: Number(event.target.value)
+                          }))
+                        }
+                      >
+                        <option value="5">5 / page</option>
+                        <option value="10">10 / page</option>
+                        <option value="20">20 / page</option>
+                      </select>
+                      <button
+                        type="button"
+                        className="rounded-full border border-border bg-card px-4 py-2 text-sm font-semibold text-text-secondary transition hover:bg-secondary/70 hover:text-text-primary disabled:cursor-not-allowed disabled:opacity-50 max-[639px]:w-full"
+                        onClick={() =>
+                          setRecentErrorsPagination((prev) => ({
+                            ...prev,
+                            page: Math.max(1, prev.page - 1)
+                          }))
+                        }
+                        disabled={recentErrorsPagination.page === 1}
+                      >
+                        Previous
+                      </button>
+                      <div className="flex flex-wrap items-center justify-center gap-2 sm:justify-start">
+                        {visibleRecentErrorPages.map((pageNumber, index) => {
+                          const previous = visibleRecentErrorPages[index - 1];
+                          const showGap = previous && pageNumber - previous > 1;
+
+                          return (
+                            <div key={pageNumber} className="flex items-center gap-2">
+                              {showGap && (
+                                <span className="px-1 text-sm text-text-secondary">...</span>
+                              )}
+                              <button
+                                type="button"
+                                className={`rounded-full border px-4 py-2 text-sm font-semibold transition ${
+                                  recentErrorsPagination.page === pageNumber
+                                    ? "border-primary/40 bg-accent-soft text-text-primary"
+                                    : "border-border bg-card text-text-secondary hover:bg-secondary/70 hover:text-text-primary"
+                                }`}
+                                onClick={() =>
+                                  setRecentErrorsPagination((prev) => ({
+                                    ...prev,
+                                    page: pageNumber
+                                  }))
+                                }
+                              >
+                                {pageNumber}
+                              </button>
+                            </div>
+                          );
+                        })}
+                      </div>
+                      <button
+                        type="button"
+                        className="rounded-full border border-border bg-card px-4 py-2 text-sm font-semibold text-text-secondary transition hover:bg-secondary/70 hover:text-text-primary disabled:cursor-not-allowed disabled:opacity-50 max-[639px]:w-full"
+                        onClick={() =>
+                          setRecentErrorsPagination((prev) => ({
+                            ...prev,
+                            page: Math.min(prev.totalPages, prev.page + 1)
+                          }))
+                        }
+                        disabled={recentErrorsPagination.page >= recentErrorsPagination.totalPages}
+                      >
+                        Next
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </section>
       </div>
+      {toast && (
+        <div
+          className="fixed bottom-6 right-6 z-50 rounded-full px-4 py-2 text-sm font-semibold text-white shadow-lg"
+          style={{
+            background: toast.tone === "success" ? "#16a34a" : "#dc2626"
+          }}
+        >
+          {toast.message}
+        </div>
+      )}
     </main>
   );
 }

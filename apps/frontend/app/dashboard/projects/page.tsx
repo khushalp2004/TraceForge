@@ -27,6 +27,9 @@ export default function ProjectSettingsPage() {
   const [deleteInput, setDeleteInput] = useState("");
   const [toast, setToast] = useState<Toast | null>(null);
   const [showArchived, setShowArchived] = useState(false);
+  const [revealedProjectId, setRevealedProjectId] = useState<string | null>(null);
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [newProjectName, setNewProjectName] = useState("");
 
   const showToast = (message: string, tone: Toast["tone"]) => {
     setToast({ message, tone });
@@ -173,126 +176,231 @@ export default function ProjectSettingsPage() {
     }
   };
 
+  const createProject = async () => {
+    const token = localStorage.getItem(tokenKey);
+    if (!token) {
+      setError("Missing auth token. Please log in again.");
+      return;
+    }
+    if (!newProjectName.trim()) {
+      setError("Project name is required.");
+      return;
+    }
+
+    setLoading(true);
+    setError(null);
+
+    try {
+      const res = await fetch(`${API_URL}/projects`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({ name: newProjectName })
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || "Failed to create project");
+      }
+
+      setProjects((prev) => [data.project, ...prev]);
+      setNewProjectName("");
+      setShowCreateModal(false);
+      showToast("Project created", "success");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Unexpected error");
+      showToast("Failed to create project", "error");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const activeProjects = projects.filter((project) => !project.archivedAt);
   const archivedProjects = projects.filter((project) => project.archivedAt);
 
   return (
-    <main className="tf-page">
-      <div className="relative mx-auto max-w-4xl">
-        <Link className="tf-link" href="/dashboard">
-          ← Back to dashboard
-        </Link>
-        <header className="mt-4">
-          <p className="tf-kicker">Project Settings</p>
-          <h1 className="font-display mt-2 text-2xl font-semibold text-ink">
-            Manage Projects
-          </h1>
-          <p className="mt-2 text-sm text-slate-500">
-            Rotate API keys or archive projects you no longer need.
-          </p>
-          <div className="mt-4 flex items-center gap-2 text-sm text-slate-600">
-            <input
-              id="showArchived"
-              type="checkbox"
-              className="h-4 w-4 accent-[#d2a45f]"
-              checked={showArchived}
-              onChange={(event) => setShowArchived(event.target.checked)}
-            />
-            <label htmlFor="showArchived">Show archived projects</label>
+    <main className="tf-page tf-dashboard-page">
+      <div className="tf-dashboard">
+        <header className="mt-2 flex flex-wrap items-center justify-between gap-4">
+          <div>
+            <p className="tf-kicker">Projects</p>
+            <h1 className="font-display mt-2 text-2xl font-semibold text-text-primary">
+              Manage Projects
+            </h1>
+            <p className="mt-2 text-sm text-text-secondary">
+              Rotate keys and archive projects you no longer need.
+            </p>
+          </div>
+          <div className="flex flex-wrap items-center gap-3">
+            <button
+              type="button"
+              className={`rounded-full border px-4 py-2 text-sm font-semibold transition ${
+                showArchived
+                  ? "border-primary/40 bg-accent-soft text-text-primary"
+                  : "border-border text-text-secondary hover:bg-secondary/70"
+              }`}
+              onClick={() => setShowArchived((value) => !value)}
+            >
+              {showArchived ? "Hide archived" : "Show archived"}
+            </button>
+            <button
+              className="tf-button px-4 py-2 text-sm"
+              onClick={() => setShowCreateModal(true)}
+            >
+              Create project
+            </button>
           </div>
         </header>
 
         <div className="tf-divider my-6" />
 
         {error && <p className="text-sm text-red-500">{error}</p>}
-        {loading && <p className="text-sm text-slate-500">Working...</p>}
+        {loading && <p className="text-sm text-text-secondary">Working...</p>}
 
-        <div className="space-y-4">
+        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
           {activeProjects.map((project) => (
-            <div key={project.id} className="tf-card p-6">
-              <div className="tf-row">
+            <div key={project.id} className="tf-card p-5">
+              <div className="flex items-start justify-between gap-3">
                 <div>
-                  <h2 className="text-lg font-semibold text-ink">{project.name}</h2>
-                  <p className="text-xs text-slate-500">
+                  <h2 className="text-base font-semibold text-text-primary">{project.name}</h2>
+                  <p className="text-xs text-text-secondary">
                     Created {new Date(project.createdAt).toLocaleDateString()}
                   </p>
                 </div>
-                <div className="flex gap-2">
-                  <button
-                    className="tf-pill"
-                    onClick={() => rotateKey(project.id)}
-                    disabled={loading}
-                  >
-                    Rotate Key
-                  </button>
-                  <button
-                    className="rounded-full border border-red-200 px-3 py-1 text-xs font-semibold text-red-600 transition hover:-translate-y-0.5 hover:bg-red-50"
-                    onClick={() => {
-                      setError(null);
-                      setDeleteTarget(project);
-                      setDeleteInput("");
-                    }}
-                    disabled={loading}
-                  >
-                    Archive Project
-                  </button>
-                </div>
+                <button
+                  className="rounded-full border border-border px-3 py-1 text-[11px] font-semibold text-text-secondary"
+                  onClick={() =>
+                    setRevealedProjectId(
+                      revealedProjectId === project.id ? null : project.id
+                    )
+                  }
+                >
+                  {revealedProjectId === project.id ? "Hide key" : "Reveal key"}
+                </button>
               </div>
-              <div className="mt-4 rounded-xl bg-slate-50/80 px-4 py-3 text-xs text-slate-600">
-                <div className="flex flex-wrap items-center justify-between gap-3">
-                  <div>
-                    <p className="font-semibold text-slate-500">API Key</p>
-                    <p className="mt-1 break-all">{project.apiKey}</p>
-                  </div>
-                  <button className="tf-pill" onClick={() => copyApiKey(project.apiKey)}>
-                    Copy
-                  </button>
-                </div>
-                <p className="mt-3 text-[11px] text-slate-400">
-                  Ingestion endpoint: {API_URL}/ingest
+              <div className="mt-4 rounded-xl border border-border bg-card/70 px-3 py-3 text-xs text-text-secondary">
+                <p className="font-semibold text-text-secondary">API Key</p>
+                <p className="mt-1 break-all">
+                  {revealedProjectId === project.id
+                    ? project.apiKey
+                    : project.apiKey.replace(/.(?=.{6})/g, "•")}
                 </p>
+              </div>
+              <div className="mt-3 flex flex-wrap items-center gap-2">
+                <button className="tf-pill" onClick={() => copyApiKey(project.apiKey)}>
+                  Copy
+                </button>
+                <button
+                  className="tf-pill"
+                  onClick={() => rotateKey(project.id)}
+                  disabled={loading}
+                >
+                  Rotate Key
+                </button>
+                <button
+                  className="tf-danger-button rounded-full border px-3 py-1 text-xs font-semibold transition"
+                  onClick={() => {
+                    setError(null);
+                    setDeleteTarget(project);
+                    setDeleteInput("");
+                  }}
+                  disabled={loading}
+                >
+                  Archive
+                </button>
               </div>
             </div>
           ))}
           {!activeProjects.length && !loading && (
-            <p className="text-sm text-slate-500">No active projects yet.</p>
+            <p className="text-sm text-text-secondary">No active projects yet.</p>
           )}
         </div>
 
-        {showArchived && archivedProjects.length > 0 && (
-          <div className="mt-8 space-y-3">
-            <h3 className="tf-section-title">Archived Projects</h3>
-            {archivedProjects.map((project) => (
-              <div key={project.id} className="tf-card p-6">
-                <div className="tf-row">
-                  <div>
-                    <h2 className="text-lg font-semibold text-ink">{project.name}</h2>
-                    <p className="text-xs text-slate-500">
-                      Archived{" "}
-                      {project.archivedAt
-                        ? new Date(project.archivedAt).toLocaleDateString()
-                        : ""}
-                    </p>
+        {showArchived && (
+          <div className="mt-8 space-y-4">
+            <div className="flex items-center justify-between">
+              <h3 className="tf-section-title">Archived Projects</h3>
+              <p className="text-xs text-text-secondary">
+                {archivedProjects.length
+                  ? `${archivedProjects.length} archived`
+                  : "No archived projects"}
+              </p>
+            </div>
+            {!!archivedProjects.length && (
+              <div className="grid gap-3 sm:grid-cols-2">
+                {archivedProjects.map((project) => (
+                  <div key={project.id} className="tf-card p-5">
+                    <div className="flex items-start justify-between gap-3">
+                      <div>
+                        <h2 className="text-base font-semibold text-text-primary">
+                          {project.name}
+                        </h2>
+                        <p className="text-xs text-text-secondary">
+                          Archived{" "}
+                          {project.archivedAt
+                            ? new Date(project.archivedAt).toLocaleDateString()
+                            : ""}
+                        </p>
+                      </div>
+                      <button
+                        className="rounded-full border border-border px-3 py-1 text-[11px] font-semibold text-text-secondary transition hover:bg-secondary/70"
+                        onClick={() => restoreProject(project.id)}
+                        disabled={loading}
+                      >
+                        Restore
+                      </button>
+                    </div>
                   </div>
-                  <button
-                    className="tf-pill"
-                    onClick={() => restoreProject(project.id)}
-                    disabled={loading}
-                  >
-                    Restore Project
-                  </button>
-                </div>
+                ))}
               </div>
-            ))}
+            )}
           </div>
         )}
       </div>
 
+      {showCreateModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-6">
+          <div className="w-full max-w-md rounded-2xl border border-border bg-card/95 p-6 shadow-xl backdrop-blur">
+            <h3 className="font-display text-lg font-semibold text-text-primary">
+              Create Project
+            </h3>
+            <p className="mt-2 text-sm text-text-secondary">
+              Add a new project to start tracking errors immediately.
+            </p>
+            <input
+              className="tf-input mt-4 w-full"
+              placeholder="Project name"
+              value={newProjectName}
+              onChange={(event) => setNewProjectName(event.target.value)}
+            />
+            {error && <p className="mt-3 text-xs text-red-500">{error}</p>}
+            <div className="mt-5 flex items-center justify-end gap-3">
+              <button
+                className="tf-button-ghost"
+                onClick={() => setShowCreateModal(false)}
+                disabled={loading}
+              >
+                Cancel
+              </button>
+              <button
+                className="tf-button px-4 py-2 text-sm font-semibold"
+                onClick={createProject}
+                disabled={loading}
+              >
+                {loading ? "Creating..." : "Create Project"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
         {deleteTarget && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-6">
-            <div className="w-full max-w-md rounded-2xl border border-white/60 bg-white/90 p-6 shadow-xl backdrop-blur">
-              <h3 className="font-display text-lg font-semibold text-ink">Archive Project</h3>
-              <p className="mt-2 text-sm text-slate-600">
+            <div className="w-full max-w-md rounded-2xl border border-border bg-card/95 p-6 shadow-xl backdrop-blur">
+              <h3 className="font-display text-lg font-semibold text-text-primary">Archive Project</h3>
+              <p className="mt-2 text-sm text-text-secondary">
                 This will archive <span className="font-semibold">{deleteTarget.name}</span> and stop
                 new ingestion. Type the project name to confirm.
               </p>
@@ -305,14 +413,14 @@ export default function ProjectSettingsPage() {
               {error && <p className="mt-3 text-xs text-red-500">{error}</p>}
               <div className="mt-5 flex items-center justify-end gap-3">
                 <button
-                  className="tf-button-ghost"
+                  className="rounded-full border border-border px-4 py-2 text-sm font-semibold text-text-secondary transition hover:bg-secondary/70"
                   onClick={() => setDeleteTarget(null)}
                   disabled={loading}
                 >
                   Cancel
                 </button>
                 <button
-                  className="rounded-full bg-red-600 px-4 py-2 text-sm font-semibold text-white disabled:opacity-50"
+                  className="tf-danger-solid rounded-full border px-4 py-2 text-sm font-semibold transition disabled:opacity-50"
                   onClick={() => archiveProject(deleteTarget.id)}
                   disabled={loading || deleteInput.trim() !== deleteTarget.name}
                 >

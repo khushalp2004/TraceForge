@@ -1,7 +1,9 @@
 import { Router } from "express";
 import crypto from "crypto";
+import { Prisma } from "@prisma/client";
 import prisma from "../db/prisma.js";
 import { requireAuth } from "../middleware/auth.js";
+import { publishNotificationToUser } from "../utils/notifications.js";
 
 export const orgsRouter = Router();
 
@@ -92,6 +94,104 @@ orgsRouter.get("/invites/pending", async (req, res) => {
   });
 });
 
+orgsRouter.get("/invites/status/:token", async (req, res) => {
+  const userId = req.user?.id;
+  const token = req.params.token;
+
+  if (!userId) {
+    return res.status(401).json({ error: "Unauthorized" });
+  }
+
+  const invite = await prisma.organizationInvite.findUnique({
+    where: { token },
+    include: { organization: true }
+  });
+
+  if (!invite) {
+    return res.status(404).json({
+      error: "Invite not found",
+      status: { valid: false, trialsUsed: 0, trialsRemaining: 0 }
+    });
+  }
+
+  if (invite.acceptedAt) {
+    return res.status(400).json({
+      error: "Invite already accepted",
+      status: { valid: false, trialsUsed: 0, trialsRemaining: 0, orgName: invite.organization.name }
+    });
+  }
+
+  if (invite.expiresAt < new Date()) {
+    return res.status(400).json({
+      error: "Invite expired",
+      status: { valid: false, trialsUsed: 0, trialsRemaining: 0, orgName: invite.organization.name }
+    });
+  }
+
+  const user = await prisma.user.findUnique({ where: { id: userId } });
+  if (!user) {
+    return res.status(404).json({ error: "User not found" });
+  }
+
+  if (invite.email && invite.email !== user.email) {
+    return res.status(403).json({
+      error: "Invite email mismatch",
+      status: { valid: false, trialsUsed: 0, trialsRemaining: 0, orgName: invite.organization.name }
+    });
+  }
+
+  const membership = await prisma.organizationMember.findUnique({
+    where: {
+      organizationId_userId: {
+        organizationId: invite.organizationId,
+        userId
+      }
+    }
+  });
+
+  if (membership) {
+    return res.json({
+      status: {
+        valid: false,
+        trialsUsed: 0,
+        trialsRemaining: 0,
+        orgName: invite.organization.name,
+        reason: "already_member"
+      }
+    });
+  }
+
+  if (invite.email) {
+    return res.json({
+      status: {
+        valid: true,
+        trialsUsed: 0,
+        trialsRemaining: 1,
+        orgName: invite.organization.name,
+        reason: "direct_invite"
+      }
+    });
+  }
+
+  const trialsUsed = await prisma.orgJoinRequest.count({
+    where: {
+      organizationId: invite.organizationId,
+      requesterId: userId,
+      inviteToken: invite.token
+    }
+  });
+
+  return res.json({
+    status: {
+      valid: trialsUsed < 2,
+      trialsUsed,
+      trialsRemaining: Math.max(0, 2 - trialsUsed),
+      orgName: invite.organization.name,
+      reason: trialsUsed >= 2 ? "attempt_limit_reached" : "request_approval"
+    }
+  });
+});
+
 orgsRouter.get("/requests/pending", async (req, res) => {
   const userId = req.user?.id;
   if (!userId) {
@@ -115,8 +215,41 @@ orgsRouter.get("/requests/pending", async (req, res) => {
     include: { requester: true, organization: true }
   });
 
+  const dedupedRequests = Array.from(
+    new Map(
+      requests.map((request) => [
+        `${request.organizationId}:${request.requesterId}:${request.inviteToken ?? "none"}`,
+        request
+      ])
+    ).values()
+  );
+
+  const inviteTokens = dedupedRequests
+    .map((request) => request.inviteToken)
+    .filter((token): token is string => Boolean(token));
+
+  const invitesByToken = inviteTokens.length
+    ? new Map(
+        (
+          await prisma.organizationInvite.findMany({
+            where: { token: { in: inviteTokens } },
+            select: { token: true, createdById: true }
+          })
+        ).map((invite) => [invite.token, invite])
+      )
+    : new Map<string, { token: string; createdById: string }>();
+
+  const visibleRequests = dedupedRequests.filter((request) => {
+    if (!request.inviteToken) {
+      return true;
+    }
+
+    const invite = invitesByToken.get(request.inviteToken);
+    return invite?.createdById === userId;
+  });
+
   return res.json({
-    requests: requests.map((request) => ({
+    requests: visibleRequests.map((request) => ({
       id: request.id,
       orgId: request.organizationId,
       orgName: request.organization.name,
@@ -245,6 +378,55 @@ orgsRouter.post("/", async (req, res) => {
       createdAt: org.createdAt
     }
   });
+});
+
+orgsRouter.delete("/:id", async (req, res) => {
+  const userId = req.user?.id;
+  const orgId = req.params.id;
+
+  if (!userId) {
+    return res.status(401).json({ error: "Unauthorized" });
+  }
+
+  const membership = await requireOwner(orgId, userId);
+  if (!membership) {
+    return res.status(403).json({ error: "Only owners can delete organizations" });
+  }
+
+  const projectIds = (
+    await prisma.project.findMany({
+      where: { orgId },
+      select: { id: true }
+    })
+  ).map((project) => project.id);
+
+  const errorIds =
+    projectIds.length > 0
+      ? (
+          await prisma.error.findMany({
+            where: { projectId: { in: projectIds } },
+            select: { id: true }
+          })
+        ).map((error) => error.id)
+      : [];
+
+  await prisma.$transaction([
+    ...(errorIds.length
+      ? [
+          prisma.errorAnalysis.deleteMany({ where: { errorId: { in: errorIds } } }),
+          prisma.errorEvent.deleteMany({ where: { errorId: { in: errorIds } } }),
+          prisma.error.deleteMany({ where: { id: { in: errorIds } } })
+        ]
+      : []),
+    prisma.project.deleteMany({ where: { orgId } }),
+    prisma.organizationInvite.deleteMany({ where: { organizationId: orgId } }),
+    prisma.orgAuditLog.deleteMany({ where: { organizationId: orgId } }),
+    prisma.orgJoinRequest.deleteMany({ where: { organizationId: orgId } }),
+    prisma.organizationMember.deleteMany({ where: { organizationId: orgId } }),
+    prisma.organization.delete({ where: { id: orgId } })
+  ]);
+
+  return res.json({ status: "deleted" });
 });
 
 orgsRouter.get("/:id/members", async (req, res) => {
@@ -413,6 +595,30 @@ orgsRouter.post("/:id/invites", async (req, res) => {
     }
   });
 
+  if (invite.email) {
+    const invitedUser = await prisma.user.findUnique({
+      where: { email: invite.email }
+    });
+
+    if (invitedUser) {
+      const organization = await prisma.organization.findUnique({
+        where: { id: orgId },
+        select: { name: true }
+      });
+
+      if (organization) {
+        publishNotificationToUser(invitedUser.id, {
+          type: "invite.received",
+          title: "New team invite",
+          message: `You received an invite to join ${organization.name}.`,
+          orgId,
+          orgName: organization.name,
+          createdAt: new Date().toISOString()
+        });
+      }
+    }
+  }
+
   await logEvent(orgId, userId, "invite.created", {
     email: invite.email,
     role: invite.role,
@@ -468,26 +674,78 @@ orgsRouter.post("/invites/accept", async (req, res) => {
   }
 
   if (!invite.email) {
+    const membership = await prisma.organizationMember.findUnique({
+      where: {
+        organizationId_userId: {
+          organizationId: invite.organizationId,
+          userId
+        }
+      }
+    });
+
+    if (membership) {
+      return res.status(200).json({
+        org: {
+          id: invite.organizationId,
+          name: invite.organization.name
+        }
+      });
+    }
+
+    const priorAttempts = await prisma.orgJoinRequest.count({
+      where: {
+        organizationId: invite.organizationId,
+        requesterId: userId,
+        inviteToken: invite.token
+      }
+    });
+
+    if (priorAttempts >= 2) {
+      return res.status(400).json({
+        error: "You have already used both approval attempts for this invite link"
+      });
+    }
+
     const existing = await prisma.orgJoinRequest.findFirst({
       where: {
         organizationId: invite.organizationId,
         requesterId: userId,
+        inviteToken: invite.token,
         status: "PENDING"
       }
     });
 
     if (!existing) {
-      await prisma.orgJoinRequest.create({
-        data: {
-          organizationId: invite.organizationId,
-          requesterId: userId,
-          inviteToken: invite.token,
+      try {
+        await prisma.orgJoinRequest.create({
+          data: {
+            organizationId: invite.organizationId,
+            requesterId: userId,
+            inviteToken: invite.token,
+            role: invite.role
+          }
+        });
+
+        publishNotificationToUser(invite.createdById, {
+          type: "join_request.received",
+          title: "New join request",
+          message: `${user.email} requested to join ${invite.organization.name}.`,
+          orgId: invite.organizationId,
+          orgName: invite.organization.name,
+          createdAt: new Date().toISOString()
+        });
+
+        await logEvent(invite.organizationId, userId, "request.created", {
           role: invite.role
+        });
+      } catch (error) {
+        if (
+          !(error instanceof Prisma.PrismaClientKnownRequestError) ||
+          error.code !== "P2002"
+        ) {
+          throw error;
         }
-      });
-      await logEvent(invite.organizationId, userId, "request.created", {
-        role: invite.role
-      });
+      }
     }
 
     return res.json({ status: "pending" });
@@ -597,6 +855,15 @@ orgsRouter.delete("/:orgId/members/:memberId", async (req, res) => {
     return res.status(401).json({ error: "Unauthorized" });
   }
 
+  const target = await prisma.organizationMember.findUnique({
+    where: { id: memberId },
+    include: { user: true }
+  });
+
+  if (!target) {
+    return res.status(404).json({ error: "Member not found" });
+  }
+
   const membership = await prisma.organizationMember.findUnique({
     where: {
       organizationId_userId: {
@@ -606,17 +873,11 @@ orgsRouter.delete("/:orgId/members/:memberId", async (req, res) => {
     }
   });
 
-  if (!membership || membership.role !== "OWNER") {
+  const isSelf = target.userId === userId;
+  const isOwner = membership?.role === "OWNER";
+
+  if (!membership || (!isOwner && !isSelf)) {
     return res.status(403).json({ error: "Only owners can remove members" });
-  }
-
-  const target = await prisma.organizationMember.findUnique({
-    where: { id: memberId },
-    include: { user: true }
-  });
-
-  if (!target) {
-    return res.status(404).json({ error: "Member not found" });
   }
 
   if (target.role === "OWNER") {

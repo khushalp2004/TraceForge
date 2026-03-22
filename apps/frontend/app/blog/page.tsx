@@ -1,4 +1,14 @@
+import type { Metadata } from "next";
 import Link from "next/link";
+import { createPageMetadata } from "../seo";
+
+export const metadata: Metadata = createPageMetadata({
+  title: "Blog",
+  description:
+    "Read TraceForge insights on reliability engineering, AI-assisted debugging, alerting, and faster incident response.",
+  path: "/blog",
+  keywords: ["reliability blog", "incident response blog", "AI debugging blog"]
+});
 
 const posts = [
   {

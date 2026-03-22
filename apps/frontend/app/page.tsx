@@ -1,8 +1,46 @@
+import type { Metadata } from "next";
 import Link from "next/link";
+import { absoluteUrl, createPageMetadata, SITE_NAME } from "./seo";
+
+export const metadata: Metadata = createPageMetadata({
+  title: SITE_NAME,
+  description:
+    "Turn stack traces into clear fixes with AI-powered error monitoring, issue grouping, and faster incident response for engineering teams.",
+  path: "/",
+  keywords: ["stack trace analysis", "incident response", "developer observability"]
+});
 
 export default function HomePage() {
+  const structuredData = [
+    {
+      "@context": "https://schema.org",
+      "@type": "Organization",
+      name: SITE_NAME,
+      url: absoluteUrl("/"),
+      logo: absoluteUrl("/traceforge.png")
+    },
+    {
+      "@context": "https://schema.org",
+      "@type": "SoftwareApplication",
+      name: SITE_NAME,
+      applicationCategory: "DeveloperApplication",
+      operatingSystem: "Web",
+      description:
+        "AI-powered error monitoring for engineering teams, with issue grouping, release context, alerts, and remediation guidance.",
+      url: absoluteUrl("/"),
+      image: absoluteUrl("/traceforge.png")
+    }
+  ];
+
   return (
     <main className="tf-page pb-20 pt-14 sm:pb-24 sm:pt-16">
+      {structuredData.map((item, index) => (
+        <script
+          key={`seo-jsonld-${index}`}
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(item) }}
+        />
+      ))}
       <div className="relative mx-auto max-w-6xl px-[16px]">
         <div
           className="pointer-events-none absolute -top-28 right-0 h-80 w-80 rounded-full bg-primary/20 blur-3xl animate-float-slow"
@@ -32,7 +70,7 @@ export default function HomePage() {
             </p>
             <div className="mt-7 space-y-4">
               <div className="flex flex-col items-start gap-3 sm:flex-row sm:items-center">
-                <Link className="tf-button w-full justify-center px-7 py-3 text-sm sm:w-auto" href="/dashboard">
+                <Link className="tf-button w-full justify-center px-7 py-3 text-sm sm:w-auto" href="/signup">
                   Start trial
                 </Link>
                 <Link className="tf-button-ghost w-full justify-center px-7 py-3 text-sm sm:w-auto" href="/docs">
@@ -334,7 +372,7 @@ export default function HomePage() {
               </p>
             </div>
             <div className="flex flex-wrap gap-3">
-              <Link className="tf-button px-7 py-3 text-sm" href="/dashboard">
+              <Link className="tf-button px-7 py-3 text-sm" href="/signup">
                 Start free trial
               </Link>
               <Link className="tf-button-ghost px-7 py-3 text-sm" href="/docs">

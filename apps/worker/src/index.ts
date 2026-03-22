@@ -4,6 +4,8 @@ import { connectRedis, redis } from "./db/redis.js";
 import { generateExplanation } from "./services/groq.js";
 
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+const RETENTION_DAYS = 15;
+const CLEANUP_INTERVAL_MS = 60 * 60 * 1000;
 
 const processError = async (errorId: string) => {
   const errorRecord = await prisma.error.findUnique({
@@ -32,14 +34,161 @@ const processError = async (errorId: string) => {
   });
 };
 
+const cleanupArchivedData = async () => {
+  const cutoff = new Date(Date.now() - RETENTION_DAYS * 24 * 60 * 60 * 1000);
+
+  const archivedIssues = await prisma.error.findMany({
+    where: {
+      archivedAt: {
+        lte: cutoff
+      }
+    },
+    select: {
+      id: true
+    }
+  });
+
+  const archivedIssueIds = archivedIssues.map((issue) => issue.id);
+  if (archivedIssueIds.length) {
+    await prisma.alertDelivery.deleteMany({
+      where: {
+        errorId: {
+          in: archivedIssueIds
+        }
+      }
+    });
+
+    await prisma.errorAnalysis.deleteMany({
+      where: {
+        errorId: {
+          in: archivedIssueIds
+        }
+      }
+    });
+
+    await prisma.errorEvent.deleteMany({
+      where: {
+        errorId: {
+          in: archivedIssueIds
+        }
+      }
+    });
+
+    await prisma.error.deleteMany({
+      where: {
+        id: {
+          in: archivedIssueIds
+        }
+      }
+    });
+  }
+
+  await prisma.alertRule.deleteMany({
+    where: {
+      archivedAt: {
+        lte: cutoff
+      }
+    }
+  });
+
+  const archivedProjects = await prisma.project.findMany({
+    where: {
+      archivedAt: {
+        lte: cutoff
+      }
+    },
+    select: {
+      id: true
+    }
+  });
+
+  const archivedProjectIds = archivedProjects.map((project) => project.id);
+  if (archivedProjectIds.length) {
+    const projectErrors = await prisma.error.findMany({
+      where: {
+        projectId: {
+          in: archivedProjectIds
+        }
+      },
+      select: {
+        id: true
+      }
+    });
+
+    const projectErrorIds = projectErrors.map((error) => error.id);
+
+    await prisma.alertDelivery.deleteMany({
+      where: {
+        projectId: {
+          in: archivedProjectIds
+        }
+      }
+    });
+
+    if (projectErrorIds.length) {
+      await prisma.errorAnalysis.deleteMany({
+        where: {
+          errorId: {
+            in: projectErrorIds
+          }
+        }
+      });
+
+      await prisma.errorEvent.deleteMany({
+        where: {
+          errorId: {
+            in: projectErrorIds
+          }
+        }
+      });
+
+      await prisma.error.deleteMany({
+        where: {
+          id: {
+            in: projectErrorIds
+          }
+        }
+      });
+    }
+
+    await prisma.alertRule.deleteMany({
+      where: {
+        projectId: {
+          in: archivedProjectIds
+        }
+      }
+    });
+
+    await prisma.project.deleteMany({
+      where: {
+        id: {
+          in: archivedProjectIds
+        }
+      }
+    });
+  }
+
+  if (archivedIssueIds.length || archivedProjectIds.length) {
+    console.log(
+      `Archived cleanup complete: removed ${archivedIssueIds.length} issues and ${archivedProjectIds.length} projects older than ${RETENTION_DAYS} days.`
+    );
+  }
+};
+
 const start = async () => {
   await prisma.$connect();
   await connectRedis();
 
   console.log("TraceForge worker started. Waiting for jobs...");
+  let lastCleanupAt = 0;
 
   while (true) {
     try {
+      if (Date.now() - lastCleanupAt >= CLEANUP_INTERVAL_MS) {
+        await cleanupArchivedData();
+        lastCleanupAt = Date.now();
+      }
+
       const result = await redis.blPop("ai:queue", 5);
       if (!result) {
         await sleep(1000);

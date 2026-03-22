@@ -26,10 +26,10 @@ cp .env.example .env
 docker compose up --build
 ```
 
-3. Run database migrations (inside the backend container):
+3. Database migrations are applied automatically when the backend and worker start. If you need to run them manually:
 
 ```bash
-docker compose exec backend npm run prisma:migrate
+docker compose exec backend npm run prisma:migrate:deploy
 ```
 
 4. Open services:
@@ -82,7 +82,7 @@ npm install /path/to/traceforge-js-0.1.0.tgz
 ## Quick Start
 1. `cp .env.example .env` (add `GROQ_API_KEY` from groq.com)
 2. `docker compose up -d`
-3. `docker compose exec backend npx prisma migrate deploy`
+3. Migrations run automatically on startup. If needed, run `docker compose exec backend npx prisma migrate deploy`
 4. Open http://localhost:3000 → register → create project → test ingest
 
 ## Test Ingest

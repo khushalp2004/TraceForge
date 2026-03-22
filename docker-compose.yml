@@ -22,6 +22,13 @@ services:
     volumes:
       - traceforge_redis:/data
 
+  mailpit:
+    image: axllent/mailpit:latest
+    container_name: traceforge-mailpit
+    ports:
+      - "1025:1025"
+      - "8025:8025"
+
   backend:
     build:
       context: ./apps/backend
@@ -38,10 +45,11 @@ services:
     volumes:
       - ./apps/backend:/app
       - /app/node_modules
-    command: sh -c "npm install && npm run dev"
+    command: sh -c "npm install && npm run prisma:generate && npm run prisma:migrate:deploy && npm run dev"
     depends_on:
       - db
       - redis
+      - mailpit
 
   worker:
     build:
@@ -57,7 +65,7 @@ services:
     volumes:
       - ./apps/worker:/app
       - /app/node_modules
-    command: sh -c "npm install && npm run dev"
+    command: sh -c "npm install && npm run prisma:generate && npm run prisma:migrate:deploy && npm run dev"
     depends_on:
       - db
       - redis

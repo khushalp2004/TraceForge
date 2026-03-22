@@ -1,4 +1,14 @@
+import type { Metadata } from "next";
 import Link from "next/link";
+import { createPageMetadata } from "../seo";
+
+export const metadata: Metadata = createPageMetadata({
+  title: "About",
+  description:
+    "Learn about TraceForge and the mission behind building AI-powered error intelligence for modern engineering teams.",
+  path: "/about",
+  keywords: ["about TraceForge", "engineering reliability", "error intelligence platform"]
+});
 
 export default function AboutPage() {
   return (
@@ -16,7 +26,7 @@ export default function AboutPage() {
               collaborative.
             </p>
             <div className="mt-8 flex flex-wrap gap-4">
-              <Link className="tf-button px-6 py-3 text-sm" href="/dashboard">
+              <Link className="tf-button px-6 py-3 text-sm" href="/signup">
                 View Platform
               </Link>
               <Link className="tf-button-ghost px-6 py-3 text-sm" href="/blog">
@@ -69,7 +79,7 @@ export default function AboutPage() {
                 We are a remote-first team building tools for resilient software teams.
               </p>
             </div>
-            <Link className="tf-button-ghost px-6 py-3 text-sm" href="/dashboard">
+            <Link className="tf-button-ghost px-6 py-3 text-sm" href="/signin">
               View Open Roles
             </Link>
           </div>

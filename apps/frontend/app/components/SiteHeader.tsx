@@ -1,15 +1,54 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useAuth } from "../../context/AuthContext";
+import { useGlobalSearch } from "./GlobalSearchProvider";
 
 export default function SiteHeader() {
   const [open, setOpen] = useState(false);
   const { isLoggedIn } = useAuth();
+  const { openSearch } = useGlobalSearch();
   const pathname = usePathname();
+  const headerRef = useRef<HTMLElement | null>(null);
+
+  useEffect(() => {
+    setOpen(false);
+  }, [pathname]);
+
+  useEffect(() => {
+    if (!open) {
+      return;
+    }
+
+    const previousOverflow = document.body.style.overflow;
+    const handlePointerDown = (event: MouseEvent | TouchEvent) => {
+      const target = event.target as Node | null;
+
+      if (target && !headerRef.current?.contains(target)) {
+        setOpen(false);
+      }
+    };
+
+    const handleEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setOpen(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handlePointerDown);
+    document.addEventListener("touchstart", handlePointerDown);
+    window.addEventListener("keydown", handleEscape);
+
+    return () => {
+      document.body.style.overflow = previousOverflow;
+      document.removeEventListener("mousedown", handlePointerDown);
+      document.removeEventListener("touchstart", handlePointerDown);
+      window.removeEventListener("keydown", handleEscape);
+    };
+  }, [open]);
 
   const activePath = useMemo(() => {
     if (!pathname) return "/";
@@ -23,7 +62,10 @@ export default function SiteHeader() {
   }, [pathname]);
 
   return (
-    <header className="sticky top-0 z-40 border-b border-border/60 bg-background/75 backdrop-blur">
+    <header
+      ref={headerRef}
+      className="sticky top-0 z-[60] border-b border-border/60 bg-background/75 backdrop-blur"
+    >
       <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-[30px] py-3">
         <Link href="/" className="flex items-center gap-1">
           <Image
@@ -78,7 +120,12 @@ export default function SiteHeader() {
         </nav>
 
         <div className="hidden items-center gap-3 text-sm font-semibold text-text-secondary lg:flex">
-          <div className="relative hidden xl:block flex-1 max-w-sm">
+          <button
+            type="button"
+            onClick={() => openSearch()}
+            className="relative hidden max-w-sm flex-1 xl:block"
+            aria-label="Open global search"
+          >
             <svg
               className="pointer-events-none absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-text-secondary"
               fill="none"
@@ -88,12 +135,29 @@ export default function SiteHeader() {
               <circle cx="11" cy="11" r="8" />
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-4.35-4.35" />
             </svg>
-            <input
-              type="search"
-              placeholder="Type / to search"
-              className="h-10 w-full rounded-2xl border border-border/70 bg-card/70 pl-11 pr-4 text-sm text-text-primary shadow-sm transition-all duration-200 placeholder-text-secondary focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary/40"
-            />
-          </div>
+            <span className="flex h-10 w-full items-center rounded-2xl border border-border/70 bg-card/70 pl-11 pr-4 text-left text-sm text-text-secondary shadow-sm transition-all duration-200 hover:border-primary/30 hover:bg-card">
+              Search TraceForge
+              <span className="ml-auto rounded-md border border-border bg-secondary/60 px-2 py-0.5 text-[10px] font-semibold text-text-secondary">
+                /
+              </span>
+            </span>
+          </button>
+          <button
+            type="button"
+            onClick={() => openSearch()}
+            className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-border bg-card text-text-secondary shadow-sm transition-all duration-200 hover:border-primary/30 hover:text-text-primary xl:hidden"
+            aria-label="Open global search"
+          >
+            <svg
+              className="h-4 w-4"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <circle cx="11" cy="11" r="8" />
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-4.35-4.35" />
+            </svg>
+          </button>
           {isLoggedIn ? (
             <Link className="tf-button inline-flex items-center px-4 py-1.5 text-sm" href="/dashboard">
               Dashboard
@@ -103,38 +167,51 @@ export default function SiteHeader() {
             </Link>
           ) : (
             <>
-              <Link className="tf-navlink" href="/dashboard">
+              <Link className="tf-navlink" href="/signin">
                 Login
               </Link>
-              <Link className="tf-button px-4 py-1.5 text-sm" href="/dashboard">
+              <Link className="tf-button px-4 py-1.5 text-sm" href="/signup">
                 Get Started
               </Link>
             </>
           )}
         </div>
 
-        <button
-          type="button"
-          aria-label="Toggle navigation"
-          aria-expanded={open}
-          onClick={() => setOpen((prev) => !prev)}
-          className="inline-flex items-center justify-center rounded-xl border border-border bg-card px-3 py-2 text-text-secondary shadow-sm transition-all duration-200 hover:text-text-primary lg:hidden"
-        >
-          <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d={open ? "M6 18L18 6M6 6l12 12" : "M4 6h16M4 12h16M4 18h16"}
-            />
-          </svg>
-        </button>
+        <div className="flex items-center gap-2 lg:hidden">
+          <button
+            type="button"
+            onClick={() => openSearch()}
+            className="inline-flex items-center justify-center rounded-full border border-border bg-card px-3 py-2 text-text-secondary shadow-sm transition-all duration-200 hover:text-text-primary"
+            aria-label="Open global search"
+          >
+            <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+              <circle cx="11" cy="11" r="8" />
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-4.35-4.35" />
+            </svg>
+          </button>
+          <button
+            type="button"
+            aria-label="Toggle navigation"
+            aria-expanded={open}
+            onClick={() => setOpen((prev) => !prev)}
+            className="inline-flex items-center justify-center rounded-full border border-border bg-card px-3 py-2 text-text-secondary shadow-sm transition-all duration-200 hover:text-text-primary"
+          >
+            <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d={open ? "M6 18L18 6M6 6l12 12" : "M4 6h16M4 12h16M4 18h16"}
+              />
+            </svg>
+          </button>
+        </div>
       </div>
 
       {open ? (
-        <div className="border-t border-border bg-background/95 lg:hidden">
-          <div className="mx-auto max-w-6xl px-4 py-5">
-            <div className="rounded-2xl border border-border bg-card/90">
+        <div className="absolute inset-x-0 top-full z-[61] rounded-b-[32px] border-t border-border/60 bg-background/95 shadow-[0_20px_48px_hsl(var(--foreground)/0.08)] backdrop-blur-md lg:hidden">
+          <div className="mx-auto max-w-6xl px-[30px] pb-5 pt-3">
+            <div className="overflow-hidden rounded-[28px] border border-border bg-card/95 shadow-xl">
               {[
                 { label: "Product", href: "/product" },
                 { label: "Pricing", href: "/pricing" },
@@ -147,8 +224,8 @@ export default function SiteHeader() {
                   key={item.label}
                   href={item.href}
                   onClick={() => setOpen(false)}
-                  className={`flex items-center justify-between px-4 py-3 text-sm font-semibold ${
-                    activePath === item.href ? "text-text-primary bg-secondary/70" : "text-text-primary"
+                  className={`flex items-center justify-between px-4 py-3.5 text-sm font-semibold ${
+                    activePath === item.href ? "bg-secondary/70 text-text-primary" : "text-text-primary"
                   } ${idx !== arr.length - 1 ? "border-b border-border" : ""}`}
                 >
                   {item.label}
@@ -160,7 +237,7 @@ export default function SiteHeader() {
             <div className="mt-4 grid gap-3">
               {isLoggedIn ? (
                 <Link
-                  className="tf-button inline-flex w-full items-center justify-center px-4 py-1.5 text-sm"
+                  className="tf-button inline-flex w-full items-center justify-center px-4 py-2 text-sm"
                   href="/dashboard"
                   onClick={() => setOpen(false)}
                 >
@@ -173,14 +250,14 @@ export default function SiteHeader() {
                 <>
                   <Link
                     className="tf-button w-full justify-center px-6 py-2 text-sm"
-                    href="/dashboard"
+                    href="/signup"
                     onClick={() => setOpen(false)}
                   >
                     Get Started
                   </Link>
                   <Link
                     className="tf-button-ghost w-full justify-center px-6 py-2 text-sm"
-                    href="/dashboard"
+                    href="/signin"
                     onClick={() => setOpen(false)}
                   >
                     Login

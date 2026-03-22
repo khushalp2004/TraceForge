@@ -11,6 +11,9 @@ import { errorsRouter } from "./routes/errors.js";
 import { analyticsRouter } from "./routes/analytics.js";
 import { orgsRouter } from "./routes/orgs.js";
 import { passwordResetRouter } from "./routes/passwordReset.js";
+import { notificationsRouter } from "./routes/notifications.js";
+import { alertsRouter } from "./routes/alerts.js";
+import { releasesRouter } from "./routes/releases.js";
 
 export const createApp = () => {
   const app = express();
@@ -30,6 +33,9 @@ export const createApp = () => {
   app.use("/health", healthRouter);
   app.use("/auth", authRouter);
   app.use("/auth/password", passwordResetRouter);
+  app.use("/notifications", notificationsRouter);
+  app.use("/alerts", alertsRouter);
+  app.use("/releases", releasesRouter);
   app.use("/projects", projectsRouter);
   app.use("/orgs", orgsRouter);
   app.use("/ingest", ingestRouter);

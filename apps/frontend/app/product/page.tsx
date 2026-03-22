@@ -1,4 +1,14 @@
+import type { Metadata } from "next";
 import Link from "next/link";
+import { createPageMetadata } from "../seo";
+
+export const metadata: Metadata = createPageMetadata({
+  title: "Product",
+  description:
+    "Explore TraceForge features for AI-assisted error monitoring, issue grouping, alerts, release health, and team workflows.",
+  path: "/product",
+  keywords: ["error tracking features", "release health", "AI issue triage"]
+});
 
 export default function ProductPage() {
   return (
@@ -15,7 +25,7 @@ export default function ProductPage() {
               route them to the right teams with enterprise-grade workflows.
             </p>
             <div className="mt-8 flex flex-wrap gap-4">
-              <Link className="tf-button px-6 py-3 text-sm" href="/dashboard">
+              <Link className="tf-button px-6 py-3 text-sm" href="/signup">
                 Start trial
               </Link>
               <Link className="tf-button-ghost px-6 py-3 text-sm" href="/docs">
@@ -138,7 +148,7 @@ export default function ProductPage() {
               </p>
             </div>
             <div className="flex flex-wrap gap-3">
-              <Link className="tf-button px-6 py-3 text-sm" href="/dashboard">
+              <Link className="tf-button px-6 py-3 text-sm" href="/signup">
                 Start trial
               </Link>
               <Link className="tf-button-ghost px-6 py-3 text-sm" href="/docs">
