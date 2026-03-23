@@ -1,12 +1,10 @@
 {
-  "/_not-found/page": "app/_not-found/page.js",
   "/manifest.webmanifest/route": "app/manifest.webmanifest/route.js",
-  "/page": "app/page.js",
-  "/product/page": "app/product/page.js",
-  "/signin/page": "app/signin/page.js",
-  "/pricing/page": "app/pricing/page.js",
-  "/solutions/page": "app/solutions/page.js",
+  "/dashboard/insights/page": "app/dashboard/insights/page.js",
+  "/dashboard/releases/page": "app/dashboard/releases/page.js",
   "/dashboard/page": "app/dashboard/page.js",
   "/dashboard/issues/page": "app/dashboard/issues/page.js",
-  "/dashboard/projects/page": "app/dashboard/projects/page.js"
+  "/dashboard/account/details/page": "app/dashboard/account/details/page.js",
+  "/dashboard/projects/page": "app/dashboard/projects/page.js",
+  "/dashboard/alerts/page": "app/dashboard/alerts/page.js"
 }

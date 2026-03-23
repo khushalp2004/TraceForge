@@ -250,26 +250,7 @@ export default function ReleasesPage() {
         </section>
 
         <section className="tf-filter-panel mt-6">
-          <div className="tf-filter-header">
-            <div>
-              <h2 className="text-lg font-semibold text-text-primary">Scope</h2>
-              <p className="tf-filter-help">
-                Review release health overall, or narrow it to a single project or environment.
-              </p>
-            </div>
-            <button
-              type="button"
-              className="tf-filter-reset"
-              onClick={() => {
-                setSelectedProjectId("");
-                setEnvironmentFilter("");
-              }}
-            >
-              Reset
-            </button>
-          </div>
-
-          <div className="tf-filter-grid lg:grid-cols-[minmax(0,1.2fr)_220px]">
+          <div className="tf-filter-grid sm:grid-cols-2 xl:grid-cols-[minmax(0,1.1fr)_220px_132px]">
             <label className="tf-filter-field">
               <span className="tf-filter-label">Project</span>
               <select
@@ -299,10 +280,18 @@ export default function ReleasesPage() {
                 <option value="browser">Browser</option>
               </select>
             </label>
-          </div>
-          <div className="tf-filter-pills">
-            <span className="tf-filter-pill">{selectedProjectId ? "Single-project scope" : "All projects"}</span>
-            <span className="tf-filter-pill">{environmentFilter || "All environments"}</span>
+            <div className="flex items-end">
+              <button
+                type="button"
+                className="tf-filter-reset w-full"
+                onClick={() => {
+                  setSelectedProjectId("");
+                  setEnvironmentFilter("");
+                }}
+              >
+                Reset
+              </button>
+            </div>
           </div>
         </section>
 

@@ -376,7 +376,7 @@ export default function IssuesPage() {
   };
 
   return (
-    <main className="tf-page tf-dashboard-page min-h-screen lg:h-screen lg:overflow-hidden">
+    <main className="tf-page tf-dashboard-page lg:h-screen lg:overflow-hidden">
       <div className="tf-dashboard flex min-h-0 flex-col lg:h-full">
         <header className="flex flex-wrap items-center justify-between gap-4">
           <div>
@@ -407,26 +407,26 @@ export default function IssuesPage() {
           </div>
         </header>
 
-        <section className="mt-6 grid gap-4 md:grid-cols-3">
-          <div className="rounded-2xl border border-border bg-card/90 px-5 py-4">
-            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-text-secondary">
+        <section className="mt-6 grid gap-3 md:grid-cols-3">
+          <div className="rounded-xl border border-border bg-card/90 px-4 py-3">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-text-secondary">
               Active issues
             </p>
-            <p className="mt-2 text-2xl font-semibold text-text-primary">
+            <p className="mt-1.5 text-xl font-semibold text-text-primary sm:text-[22px]">
               {pagination.total}
             </p>
           </div>
-          <div className="rounded-2xl border border-border bg-card/90 px-5 py-4">
-            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-text-secondary">
+          <div className="rounded-xl border border-border bg-card/90 px-4 py-3">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-text-secondary">
               Critical issues
             </p>
-            <p className="mt-2 text-2xl font-semibold text-text-primary">{stats.critical}</p>
+            <p className="mt-1.5 text-xl font-semibold text-text-primary sm:text-[22px]">{stats.critical}</p>
           </div>
-          <div className="rounded-2xl border border-border bg-card/90 px-5 py-4">
-            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-text-secondary">
+          <div className="rounded-xl border border-border bg-card/90 px-4 py-3">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-text-secondary">
               Affected projects
             </p>
-            <p className="mt-2 text-2xl font-semibold text-text-primary">{stats.projectCount}</p>
+            <p className="mt-1.5 text-xl font-semibold text-text-primary sm:text-[22px]">{stats.projectCount}</p>
           </div>
         </section>
 
@@ -458,30 +458,7 @@ export default function IssuesPage() {
         </div>
 
         <section className="tf-filter-panel mt-6">
-          <div className="tf-filter-header">
-            <div>
-              <h2 className="text-lg font-semibold text-text-primary">Filters</h2>
-              <p className="tf-filter-help">
-                {viewMode === "active"
-                  ? "Narrow the inbox by project, environment, severity, or recent volume."
-                  : "Review archived issues and restore anything that should return to the active inbox."}
-              </p>
-            </div>
-            <button
-              type="button"
-              className="tf-filter-reset"
-              onClick={() => {
-                setSearch("");
-                setSelectedProjectId("");
-                setEnvironmentFilter("");
-                setSeverityFilter("all");
-                setSortBy("lastSeen");
-              }}
-            >
-              Reset
-            </button>
-          </div>
-          <div className="tf-filter-grid sm:grid-cols-2 xl:grid-cols-[minmax(0,1.3fr)_220px_200px_200px_160px]">
+          <div className="tf-filter-grid sm:grid-cols-2 xl:grid-cols-[minmax(0,1.3fr)_220px_200px_200px_160px_132px]">
             <label className="tf-filter-field">
               <span className="tf-filter-label">Search</span>
               <input
@@ -548,11 +525,21 @@ export default function IssuesPage() {
                 <option value="count">Most frequent</option>
               </select>
             </label>
-          </div>
-          <div className="tf-filter-pills">
-            <span className="tf-filter-pill">{viewMode === "active" ? "Active inbox" : "Archived inbox"}</span>
-            <span className="tf-filter-pill">{environmentFilter || "All environments"}</span>
-            <span className="tf-filter-pill">{severityFilter === "all" ? "All severities" : severityFilter}</span>
+            <div className="flex items-end">
+              <button
+                type="button"
+                className="tf-filter-reset w-full"
+                onClick={() => {
+                  setSearch("");
+                  setSelectedProjectId("");
+                  setEnvironmentFilter("");
+                  setSeverityFilter("all");
+                  setSortBy("lastSeen");
+                }}
+              >
+                Reset
+              </button>
+            </div>
           </div>
         </section>
 
@@ -562,89 +549,102 @@ export default function IssuesPage() {
           </div>
         )}
 
-        <section className="mt-6 space-y-4 lg:min-h-0 lg:flex-1 lg:overflow-y-auto lg:pr-1">
-          {loading && (
-            <div className="rounded-2xl border border-border bg-card/90 p-6 text-sm text-text-secondary">
-              Loading issues...
-            </div>
-          )}
+        <div className="mt-6 min-h-0 flex-1 rounded-3xl border border-border bg-card/80 p-4 shadow-sm lg:flex lg:flex-col lg:overflow-hidden">
+          <section className="tf-scroll-rail min-h-0 space-y-4 lg:flex-1 lg:overflow-y-auto lg:overscroll-contain lg:pr-2">
+            {loading && (
+              <div className="rounded-2xl border border-border bg-card/90 p-6 text-sm text-text-secondary">
+                Loading issues...
+              </div>
+            )}
 
-          {!loading && !issues.length && (
-            <div className="rounded-2xl border border-border bg-card/90 p-6 text-center">
-              <p className="text-sm font-semibold text-text-primary">No issues found</p>
-              <p className="mt-2 text-sm text-text-secondary">
-                {viewMode === "active"
-                  ? "Adjust your filters or send new errors from a project to populate the inbox."
-                  : "No archived issues match these filters right now."}
-              </p>
-              <div className="mt-4 flex flex-wrap justify-center gap-3">
-                {viewMode === "active" && (
+            {!loading && !issues.length && (
+              <div className="rounded-2xl border border-border bg-card/90 p-6 text-center">
+                <p className="text-sm font-semibold text-text-primary">No issues found</p>
+                <p className="mt-2 text-sm text-text-secondary">
+                  {viewMode === "active"
+                    ? "Adjust your filters or send new errors from a project to populate the inbox."
+                    : "No archived issues match these filters right now."}
+                </p>
+                <div className="mt-4 flex flex-wrap justify-center gap-3">
+                  {viewMode === "active" && (
+                    <button
+                      type="button"
+                      className="tf-button px-4 py-2 text-sm"
+                      onClick={() => {
+                        setError(null);
+                        setShowCreateModal(true);
+                      }}
+                    >
+                      Create project
+                    </button>
+                  )}
                   <button
-                    type="button"
-                    className="tf-button px-4 py-2 text-sm"
+                    className="tf-button-ghost px-4 py-2 text-sm"
                     onClick={() => {
-                      setError(null);
-                      setShowCreateModal(true);
+                      setSearch("");
+                      setSelectedProjectId("");
+                      setEnvironmentFilter("");
+                      setSeverityFilter("all");
+                      setSortBy("lastSeen");
                     }}
                   >
-                    Create project
+                    Reset filters
                   </button>
-                )}
-                <button
-                  className="tf-button-ghost px-4 py-2 text-sm"
-                  onClick={() => {
-                    setSearch("");
-                    setSelectedProjectId("");
-                    setEnvironmentFilter("");
-                    setSeverityFilter("all");
-                    setSortBy("lastSeen");
-                  }}
-                >
-                  Reset filters
-                </button>
+                </div>
               </div>
-            </div>
-          )}
+            )}
 
-          {!loading &&
-            issues.map((issue) => {
-              const severity = severityForMessage(issue.message);
-              const project = projectMap.get(issue.projectId);
+            {!loading &&
+              issues.map((issue) => {
+                const severity = severityForMessage(issue.message);
+                const project = projectMap.get(issue.projectId);
 
-              return (
-                <div
-                  key={issue.id}
-                  className="rounded-2xl border border-border bg-card/95 p-5 shadow-sm transition hover:border-primary/25"
-                >
-                  <div className="flex flex-wrap items-start justify-between gap-4">
-                    <div className="min-w-0 flex-1">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <span
-                          className={`rounded-full border px-2.5 py-1 text-xs font-semibold ${severityClasses[severity]}`}
-                        >
-                          {severity === "critical"
-                            ? "Critical"
-                            : severity === "warning"
-                            ? "Warning"
-                            : "Info"}
-                        </span>
-                        <span className="rounded-full border border-border bg-card px-2.5 py-1 text-xs font-semibold text-text-secondary">
-                          {project?.name ?? "Unknown project"}
-                        </span>
-                        <span className="rounded-full border border-border bg-card px-2.5 py-1 text-xs font-semibold text-text-secondary">
-                          {issue.analysis ? "AI analyzed" : "AI pending"}
-                        </span>
+                return (
+                  <div
+                    key={issue.id}
+                    className="rounded-2xl border border-border bg-card/95 p-5 shadow-sm transition hover:border-primary/25"
+                  >
+                    <div className="gap-4 lg:grid lg:grid-cols-[minmax(0,1.45fr)_220px_248px] lg:items-start">
+                      <div className="min-w-0">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span
+                            className={`rounded-full border px-2.5 py-1 text-xs font-semibold ${severityClasses[severity]}`}
+                          >
+                            {severity === "critical"
+                              ? "Critical"
+                              : severity === "warning"
+                              ? "Warning"
+                              : "Info"}
+                          </span>
+                          <span className="rounded-full border border-border bg-card px-2.5 py-1 text-xs font-semibold text-text-secondary">
+                            {project?.name ?? "Unknown project"}
+                          </span>
+                          <span className="rounded-full border border-border bg-card px-2.5 py-1 text-xs font-semibold text-text-secondary">
+                            {issue.analysis ? "AI analyzed" : "AI pending"}
+                          </span>
+                        </div>
+
+                        <h2 className="mt-3 text-lg font-semibold text-text-primary">
+                          {issue.message}
+                        </h2>
+
+                        <p className="mt-2 line-clamp-2 rounded-2xl border border-border bg-secondary/20 px-4 py-3 text-sm text-text-secondary">
+                          {issue.stackTrace}
+                        </p>
+
+                        {issue.analysis?.aiExplanation && (
+                          <div className="mt-4 rounded-2xl border border-border bg-secondary/50 px-4 py-3">
+                            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-text-secondary">
+                              AI summary
+                            </p>
+                            <p className="mt-2 text-sm text-text-secondary">
+                              {issue.analysis.aiExplanation}
+                            </p>
+                          </div>
+                        )}
                       </div>
 
-                      <h2 className="mt-3 text-lg font-semibold text-text-primary">
-                        {issue.message}
-                      </h2>
-
-                      <p className="mt-2 line-clamp-2 rounded-2xl border border-border bg-secondary/20 px-4 py-3 text-sm text-text-secondary">
-                        {issue.stackTrace}
-                      </p>
-
-                      <div className="mt-4 grid gap-3 sm:grid-cols-3">
+                      <div className="mt-4 grid gap-3 sm:grid-cols-3 lg:mt-0 lg:grid-cols-1">
                         <div className="rounded-2xl border border-border bg-secondary/25 px-3 py-3">
                           <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-text-secondary">
                             Frequency
@@ -671,160 +671,145 @@ export default function IssuesPage() {
                         </div>
                       </div>
 
-                      {issue.analysis?.aiExplanation && (
-                        <div className="mt-4 rounded-2xl border border-border bg-secondary/50 px-4 py-3">
-                          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-text-secondary">
-                            AI summary
+                      <div className="mt-4 w-full lg:mt-0 lg:min-w-[248px]">
+                        <div className="rounded-2xl border border-border bg-secondary/20 p-3">
+                          <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-text-secondary">
+                            Actions
                           </p>
-                          <p className="mt-2 text-sm text-text-secondary">
-                            {issue.analysis.aiExplanation}
-                          </p>
-                        </div>
-                      )}
-                    </div>
-
-                    <div className="w-full lg:w-auto lg:min-w-[248px]">
-                      <div className="rounded-2xl border border-border bg-secondary/20 p-3">
-                        <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-text-secondary">
-                          Actions
-                        </p>
-                        <div className="mt-3 space-y-2.5">
-                          <Link
-                            className="tf-button flex w-full items-center justify-center gap-2 px-4 py-2.5 text-sm"
-                            href={`/dashboard/errors/${issue.id}`}
-                          >
-                            Open issue
-                          </Link>
-
-                          <div className="grid gap-2 sm:grid-cols-2">
-                            <button
-                              className="inline-flex w-full items-center justify-center gap-2 rounded-full border border-border bg-card px-4 py-2.5 text-sm font-semibold text-text-secondary transition hover:bg-secondary/70 hover:text-text-primary"
-                              onClick={() => copyStackTrace(issue.stackTrace)}
+                          <div className="mt-3 space-y-2.5">
+                            <Link
+                              className="tf-button flex w-full items-center justify-center gap-2 px-4 py-2.5 text-sm"
+                              href={`/dashboard/errors/${issue.id}`}
                             >
-                              <Copy className="h-4 w-4" />
-                              Copy stack
-                            </button>
+                              Open issue
+                            </Link>
 
-                            {viewMode === "active" ? (
+                            <div className="grid gap-2 sm:grid-cols-2">
                               <button
                                 className="inline-flex w-full items-center justify-center gap-2 rounded-full border border-border bg-card px-4 py-2.5 text-sm font-semibold text-text-secondary transition hover:bg-secondary/70 hover:text-text-primary"
-                                onClick={() => regenerateIssue(issue.id)}
-                                disabled={regeneratingId === issue.id}
+                                onClick={() => copyStackTrace(issue.stackTrace)}
                               >
-                                <Sparkles className="h-4 w-4" />
-                                {regeneratingId === issue.id ? "Regenerating..." : "Regenerate AI"}
+                                <Copy className="h-4 w-4" />
+                                Copy stack
                               </button>
-                            ) : (
+
+                              {viewMode === "active" ? (
+                                <button
+                                  className="inline-flex w-full items-center justify-center gap-2 rounded-full border border-border bg-card px-4 py-2.5 text-sm font-semibold text-text-secondary transition hover:bg-secondary/70 hover:text-text-primary"
+                                  onClick={() => regenerateIssue(issue.id)}
+                                  disabled={regeneratingId === issue.id}
+                                >
+                                  <Sparkles className="h-4 w-4" />
+                                  {regeneratingId === issue.id ? "Regenerating..." : "Regenerate AI"}
+                                </button>
+                              ) : (
+                                <button
+                                  type="button"
+                                  className="inline-flex w-full items-center justify-center gap-2 rounded-full border border-border bg-card px-4 py-2.5 text-sm font-semibold text-text-secondary transition hover:bg-secondary/70 hover:text-text-primary"
+                                  onClick={() => restoreIssue(issue.id)}
+                                  disabled={restoringIssueId === issue.id}
+                                >
+                                  <RotateCcw className="h-4 w-4" />
+                                  {restoringIssueId === issue.id ? "Restoring..." : "Restore"}
+                                </button>
+                              )}
+                            </div>
+
+                            {viewMode === "active" && (
                               <button
                                 type="button"
-                                className="inline-flex w-full items-center justify-center gap-2 rounded-full border border-border bg-card px-4 py-2.5 text-sm font-semibold text-text-secondary transition hover:bg-secondary/70 hover:text-text-primary"
-                                onClick={() => restoreIssue(issue.id)}
-                                disabled={restoringIssueId === issue.id}
+                                className="tf-danger-button inline-flex w-full items-center justify-center gap-2 rounded-full border px-4 py-2.5 text-sm font-semibold transition"
+                                onClick={() => setArchiveTarget(issue)}
+                                aria-label="Archive issue"
+                                title="Archive issue"
                               >
-                                <RotateCcw className="h-4 w-4" />
-                                {restoringIssueId === issue.id ? "Restoring..." : "Restore"}
+                                <Archive className="h-4 w-4" />
+                                Archive
                               </button>
                             )}
                           </div>
-
-                          {viewMode === "active" && (
-                            <button
-                              type="button"
-                              className="tf-danger-button inline-flex w-full items-center justify-center gap-2 rounded-full border px-4 py-2.5 text-sm font-semibold transition"
-                              onClick={() => setArchiveTarget(issue)}
-                              aria-label="Archive issue"
-                              title="Archive issue"
-                            >
-                              <Archive className="h-4 w-4" />
-                              Archive
-                            </button>
-                          )}
                         </div>
                       </div>
                     </div>
                   </div>
+                );
+              })}
+          </section>
+
+          {!loading && pagination.totalPages > 1 && (
+            <div className="mt-4 rounded-2xl border border-border bg-card/90 px-4 py-4 shadow-sm">
+              <div className="tf-pagination-bar">
+                <div className="tf-pagination-size">
+                  <select
+                    className="tf-select tf-pagination-select w-full sm:min-w-[98px]"
+                    value={pagination.pageSize}
+                    onChange={(event) =>
+                      setPagination((prev) => ({
+                        ...prev,
+                        page: 1,
+                        pageSize: Number(event.target.value)
+                      }))
+                    }
+                  >
+                    <option value="5">5 / page</option>
+                    <option value="10">10 / page</option>
+                    <option value="20">20 / page</option>
+                  </select>
                 </div>
-              );
-            })}
+                <div className="tf-pagination-controls">
+                  <button
+                    type="button"
+                    className="tf-pagination-button"
+                    onClick={() =>
+                      setPagination((prev) => ({ ...prev, page: Math.max(1, prev.page - 1) }))
+                    }
+                    disabled={pagination.page === 1}
+                  >
+                    Prev
+                  </button>
+                  {visiblePages.map((pageNumber, index) => {
+                    const previous = visiblePages[index - 1];
+                    const showGap = previous && pageNumber - previous > 1;
 
-        </section>
-
-        {!loading && pagination.totalPages > 1 && (
-          <div className="mt-4 rounded-2xl border border-border bg-card/90 px-4 py-4 shadow-sm">
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-              <p className="text-sm text-text-secondary">
-                Page {pagination.page} of {pagination.totalPages}
-                {" · "}
-                {pagination.total} {pagination.total === 1 ? "issue" : "issues"} total
-              </p>
-              <div className="flex flex-wrap items-center gap-2">
-                <select
-                  className="tf-select w-full sm:min-w-[112px]"
-                  value={pagination.pageSize}
-                  onChange={(event) =>
-                    setPagination((prev) => ({
-                      ...prev,
-                      page: 1,
-                      pageSize: Number(event.target.value)
-                    }))
-                  }
-                >
-                  <option value="5">5 / page</option>
-                  <option value="10">10 / page</option>
-                  <option value="20">20 / page</option>
-                </select>
-                <button
-                  type="button"
-                  className="rounded-full border border-border bg-card px-4 py-2 text-sm font-semibold text-text-secondary transition hover:bg-secondary/70 hover:text-text-primary disabled:cursor-not-allowed disabled:opacity-50"
-                  onClick={() =>
-                    setPagination((prev) => ({ ...prev, page: Math.max(1, prev.page - 1) }))
-                  }
-                  disabled={pagination.page === 1}
-                >
-                  Previous
-                </button>
-                {visiblePages.map((pageNumber, index) => {
-                  const previous = visiblePages[index - 1];
-                  const showGap = previous && pageNumber - previous > 1;
-
-                  return (
-                    <div key={pageNumber} className="flex items-center gap-2">
-                      {showGap && (
-                        <span className="px-1 text-sm text-text-secondary">...</span>
-                      )}
-                      <button
-                        type="button"
-                        className={`rounded-full border px-4 py-2 text-sm font-semibold transition ${
-                          pagination.page === pageNumber
-                            ? "border-primary/40 bg-accent-soft text-text-primary"
-                            : "border-border bg-card text-text-secondary hover:bg-secondary/70 hover:text-text-primary"
-                        }`}
-                        onClick={() =>
-                          setPagination((prev) => ({ ...prev, page: pageNumber }))
-                        }
-                      >
-                        {pageNumber}
-                      </button>
-                    </div>
-                  );
-                })}
-                <button
-                  type="button"
-                  className="rounded-full border border-border bg-card px-4 py-2 text-sm font-semibold text-text-secondary transition hover:bg-secondary/70 hover:text-text-primary disabled:cursor-not-allowed disabled:opacity-50"
-                  onClick={() =>
-                    setPagination((prev) => ({
-                      ...prev,
-                      page: Math.min(prev.totalPages, prev.page + 1)
-                    }))
-                  }
-                  disabled={pagination.page >= pagination.totalPages}
-                >
-                  Next
-                </button>
+                    return (
+                      <div key={pageNumber} className="flex items-center gap-2">
+                        {showGap && (
+                          <span className="tf-pagination-gap">...</span>
+                        )}
+                        <button
+                          type="button"
+                          className={`tf-pagination-page ${
+                            pagination.page === pageNumber
+                              ? "tf-pagination-page-active"
+                              : "tf-pagination-page-idle"
+                          }`}
+                          onClick={() =>
+                            setPagination((prev) => ({ ...prev, page: pageNumber }))
+                          }
+                        >
+                          {pageNumber}
+                        </button>
+                      </div>
+                    );
+                  })}
+                  <button
+                    type="button"
+                    className="tf-pagination-button"
+                    onClick={() =>
+                      setPagination((prev) => ({
+                        ...prev,
+                        page: Math.min(prev.totalPages, prev.page + 1)
+                      }))
+                    }
+                    disabled={pagination.page >= pagination.totalPages}
+                  >
+                    Next
+                  </button>
+                </div>
               </div>
             </div>
-          </div>
-        )}
+          )}
+        </div>
       </div>
 
       {archiveTarget && (

@@ -147,7 +147,9 @@ export default function ErrorDetailPage({ params }: { params: { id: string } }) 
     return (
       <main className="tf-page tf-dashboard-page">
         <div className="tf-dashboard">
-          <p className="text-sm text-slate-500">Loading...</p>
+          <div className="rounded-3xl border border-border bg-card/95 p-6 shadow-sm">
+            <p className="text-sm text-text-secondary">Loading issue details…</p>
+          </div>
         </div>
       </main>
     );
@@ -157,10 +159,12 @@ export default function ErrorDetailPage({ params }: { params: { id: string } }) 
     return (
       <main className="tf-page tf-dashboard-page">
         <div className="tf-dashboard">
-          <p className="text-sm text-red-500">{error ?? "Not found"}</p>
-          <Link className="mt-4 inline-block tf-link" href="/dashboard">
-            Back to dashboard
-          </Link>
+          <div className="rounded-3xl border border-red-200 bg-red-50 p-6 shadow-sm">
+            <p className="text-sm font-semibold text-red-700">{error ?? "Not found"}</p>
+            <Link className="mt-4 inline-flex tf-link" href="/dashboard/issues">
+              Back to issues
+            </Link>
+          </div>
         </div>
       </main>
     );
@@ -168,145 +172,271 @@ export default function ErrorDetailPage({ params }: { params: { id: string } }) 
 
   const frames = parseStack(errorDetail.stackTrace);
   const visibleFrames = showAllFrames ? frames : frames.slice(0, 6);
+  const payloadEventCount = errorDetail.events.filter((event) => !!event.payload).length;
 
   return (
     <main className="tf-page tf-dashboard-page">
       <div className="tf-dashboard">
-          <Link className="tf-link" href="/dashboard">
-            ← Back to dashboard
-          </Link>
-          <header className="mt-4">
-            <p className="tf-kicker">{errorDetail.project.name}</p>
-            <div className="mt-3 flex flex-wrap items-start justify-between gap-4">
-              <div>
-                <h1 className="font-display text-2xl font-semibold text-ink">
-                  {errorDetail.message}
-                </h1>
-                <p className="mt-2 text-sm text-slate-500">
-                  First seen {new Date(errorDetail.firstSeen).toLocaleString()} · Last seen{" "}
-                  {new Date(errorDetail.lastSeen).toLocaleString()} · {errorDetail.count} hits
-                </p>
-              </div>
+        <Link className="tf-link" href="/dashboard/issues">
+          ← Back to issues
+        </Link>
+
+        <header className="mt-4 rounded-3xl border border-border bg-card/95 p-6 shadow-sm">
+          <div className="flex flex-wrap items-start justify-between gap-4">
+            <div className="min-w-0">
+              <p className="tf-kicker">{errorDetail.project.name}</p>
+              <h1 className="tf-title mt-3 text-2xl sm:text-3xl">{errorDetail.message}</h1>
+              <p className="mt-3 max-w-3xl text-sm text-text-secondary">
+                Review the grouped stack, recent event payloads, and AI guidance for this issue
+                without losing the higher-level inbox context.
+              </p>
+            </div>
+            <div className="flex flex-wrap items-center gap-3">
               <button
-                className="tf-button-ghost"
+                className="tf-button-ghost px-4 py-2 text-sm"
+                onClick={handleCopyStack}
+              >
+                {copyStatus ?? "Copy stack"}
+              </button>
+              <button
+                className="tf-button px-4 py-2 text-sm"
                 onClick={handleRegenerate}
                 disabled={regenerating}
               >
                 {regenerating ? "Regenerating..." : "Regenerate AI"}
               </button>
             </div>
-          </header>
+          </div>
 
-          <div className="tf-divider my-6" />
-
-          <section className="tf-card p-6">
-          <div className="tf-row">
-            <h2 className="tf-section-title">Stack Trace</h2>
-            <div className="flex items-center gap-2">
-              <button
-                className="tf-pill"
-                onClick={() => setShowAllFrames((prev) => !prev)}
-              >
-                {showAllFrames ? "Collapse" : "Expand"}
-              </button>
-              <button
-                className="tf-pill"
-                onClick={handleCopyStack}
-              >
-                Copy
-              </button>
-              {copyStatus && <span className="text-xs text-slate-400">{copyStatus}</span>}
+          <div className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+            <div className="rounded-2xl border border-border bg-secondary/20 px-4 py-4">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-text-secondary">
+                First seen
+              </p>
+              <p className="mt-2 text-sm font-semibold text-text-primary">
+                {new Date(errorDetail.firstSeen).toLocaleString()}
+              </p>
+            </div>
+            <div className="rounded-2xl border border-border bg-secondary/20 px-4 py-4">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-text-secondary">
+                Last seen
+              </p>
+              <p className="mt-2 text-sm font-semibold text-text-primary">
+                {new Date(errorDetail.lastSeen).toLocaleString()}
+              </p>
+            </div>
+            <div className="rounded-2xl border border-border bg-secondary/20 px-4 py-4">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-text-secondary">
+                Occurrences
+              </p>
+              <p className="mt-2 text-sm font-semibold text-text-primary">
+                {errorDetail.count} hits
+              </p>
+            </div>
+            <div className="rounded-2xl border border-border bg-secondary/20 px-4 py-4">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-text-secondary">
+                Event payloads
+              </p>
+              <p className="mt-2 text-sm font-semibold text-text-primary">
+                {payloadEventCount} with context
+              </p>
             </div>
           </div>
-          <div className="mt-4 space-y-2 rounded-xl bg-slate-900 p-4 text-xs text-slate-100">
-            {visibleFrames.map((frame, index) => (
-              <div key={`${frame.raw}-${index}`} className="flex flex-col gap-1">
-                <span>{frame.raw}</span>
-                {frame.file && (
-                  <span className="text-[11px] text-slate-400">
-                    {frame.file}:{frame.line}:{frame.column}
-                  </span>
+        </header>
+
+        <section className="mt-6 grid gap-6 xl:grid-cols-[minmax(0,1.2fr)_380px]">
+          <div className="space-y-6">
+            <section className="rounded-3xl border border-border bg-card/95 p-6 shadow-sm">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-[0.14em] text-text-secondary">
+                    Stack trace
+                  </p>
+                  <h2 className="mt-2 text-xl font-semibold text-text-primary">
+                    Grouped frames and source locations
+                  </h2>
+                </div>
+                <button
+                  className="tf-button-ghost px-4 py-2 text-sm"
+                  onClick={() => setShowAllFrames((prev) => !prev)}
+                >
+                  {showAllFrames ? "Collapse frames" : "Show all frames"}
+                </button>
+              </div>
+
+              <div className="mt-5 space-y-3">
+                {visibleFrames.map((frame, index) => (
+                  <div
+                    key={`${frame.raw}-${index}`}
+                    className="rounded-2xl border border-border bg-secondary/20 px-4 py-4"
+                  >
+                    <p className="break-all text-sm font-medium text-text-primary">{frame.raw}</p>
+                    {frame.file && (
+                      <p className="mt-2 text-xs text-text-secondary">
+                        {frame.file}:{frame.line}:{frame.column}
+                      </p>
+                    )}
+                  </div>
+                ))}
+                {!showAllFrames && frames.length > visibleFrames.length && (
+                  <p className="text-sm text-text-secondary">
+                    Showing {visibleFrames.length} of {frames.length} frames.
+                  </p>
                 )}
               </div>
-            ))}
-            {!showAllFrames && frames.length > visibleFrames.length && (
-              <p className="text-[11px] text-slate-400">
-                Showing {visibleFrames.length} of {frames.length} frames
-              </p>
-            )}
-          </div>
-        </section>
-
-          {errorDetail.analysis?.aiExplanation && (
-            <section className="tf-card p-6 mt-6">
-              <h2 className="tf-section-title">AI Explanation</h2>
-              <p className="mt-3 text-sm text-slate-700">
-                {errorDetail.analysis.aiExplanation}
-              </p>
-              {errorDetail.analysis.suggestedFix && (
-                <p className="mt-3 text-sm text-slate-700">
-                  Suggested fix: {errorDetail.analysis.suggestedFix}
-                </p>
-              )}
             </section>
-          )}
 
-          <section className="tf-card mt-6 p-6">
-            <div className="tf-row">
-              <h2 className="tf-section-title">Recent Events</h2>
-            </div>
-            <div className="tf-filter-panel mt-4">
-              <div className="tf-filter-header">
+            <section className="rounded-3xl border border-border bg-card/95 p-6 shadow-sm">
+              <div className="flex flex-wrap items-center justify-between gap-3">
                 <div>
-                  <p className="text-sm font-semibold text-text-primary">Event filters</p>
-                  <p className="tf-filter-help">
-                    Search within payload data or reveal full payloads when you need deeper context.
+                  <p className="text-xs font-semibold uppercase tracking-[0.14em] text-text-secondary">
+                    Recent events
+                  </p>
+                  <h2 className="mt-2 text-xl font-semibold text-text-primary">
+                    Payloads and environment snapshots
+                  </h2>
+                </div>
+                <span className="rounded-full border border-border bg-card px-3 py-1 text-xs font-semibold text-text-secondary">
+                  {filteredEvents.length} events
+                </span>
+              </div>
+
+              <div className="tf-filter-panel mt-5">
+                <div className="tf-filter-header">
+                  <div>
+                    <p className="text-sm font-semibold text-text-primary">Event filters</p>
+                    <p className="tf-filter-help">
+                      Search payload content or reveal the full payload JSON when you need deeper context.
+                    </p>
+                  </div>
+                </div>
+                <div className="tf-filter-grid md:grid-cols-[minmax(0,1fr)_200px]">
+                  <label className="tf-filter-field">
+                    <span className="tf-filter-label">Payload search</span>
+                    <input
+                      className="tf-input tf-filter-control"
+                      placeholder="Search payloads"
+                      value={payloadSearch}
+                      onChange={(event) => setPayloadSearch(event.target.value)}
+                    />
+                  </label>
+                  <label className="tf-filter-field">
+                    <span className="tf-filter-label">Visibility</span>
+                    <button
+                      type="button"
+                      className={`inline-flex h-11 items-center justify-center rounded-2xl border px-4 text-sm font-semibold transition ${
+                        showPayloads
+                          ? "border-primary/30 bg-primary/12 text-primary"
+                          : "border-border bg-card text-text-secondary hover:bg-secondary/70 hover:text-text-primary"
+                      }`}
+                      onClick={() => setShowPayloads((current) => !current)}
+                    >
+                      {showPayloads ? "Hide payloads" : "Show payloads"}
+                    </button>
+                  </label>
+                </div>
+              </div>
+
+              <div className="mt-5 space-y-3">
+                {filteredEvents.map((event) => (
+                  <div
+                    key={event.id}
+                    className="rounded-2xl border border-border bg-secondary/15 px-4 py-4"
+                  >
+                    <div className="flex flex-wrap items-center justify-between gap-3">
+                      <p className="text-sm font-semibold text-text-primary">
+                        {new Date(event.timestamp).toLocaleString()}
+                      </p>
+                      <span className="rounded-full border border-border bg-card px-2.5 py-1 text-xs font-semibold text-text-secondary">
+                        {event.environment ?? "unknown"}
+                      </span>
+                    </div>
+                    {showPayloads && event.payload && (
+                      <pre className="mt-3 overflow-auto rounded-2xl bg-slate-900 p-4 text-[11px] text-slate-100">
+                        {JSON.stringify(event.payload, null, 2)}
+                      </pre>
+                    )}
+                  </div>
+                ))}
+                {!filteredEvents.length && (
+                  <div className="rounded-2xl border border-dashed border-border bg-secondary/20 px-4 py-4">
+                    <p className="text-sm font-semibold text-text-primary">No matching events</p>
+                    <p className="mt-1 text-sm text-text-secondary">
+                      Try a broader payload search or clear the filter to see recent events again.
+                    </p>
+                  </div>
+                )}
+              </div>
+            </section>
+          </div>
+
+          <div className="space-y-6">
+            <section className="rounded-3xl border border-border bg-card/95 p-6 shadow-sm">
+              <p className="text-xs font-semibold uppercase tracking-[0.14em] text-text-secondary">
+                AI summary
+              </p>
+              <h2 className="mt-2 text-xl font-semibold text-text-primary">
+                Suggested debugging direction
+              </h2>
+              {errorDetail.analysis?.aiExplanation ? (
+                <>
+                  <p className="mt-4 text-sm leading-7 text-text-secondary">
+                    {errorDetail.analysis.aiExplanation}
+                  </p>
+                  {errorDetail.analysis.suggestedFix && (
+                    <div className="mt-4 rounded-2xl border border-primary/20 bg-accent-soft px-4 py-4">
+                      <p className="text-xs font-semibold uppercase tracking-[0.14em] text-primary">
+                        Suggested fix
+                      </p>
+                      <p className="mt-2 text-sm text-text-primary">
+                        {errorDetail.analysis.suggestedFix}
+                      </p>
+                    </div>
+                  )}
+                </>
+              ) : (
+                <div className="mt-4 rounded-2xl border border-dashed border-border bg-secondary/20 px-4 py-4">
+                  <p className="text-sm font-semibold text-text-primary">AI summary pending</p>
+                  <p className="mt-1 text-sm text-text-secondary">
+                    Regenerate the summary when you want a fresh explanation for this grouped issue.
                   </p>
                 </div>
+              )}
+            </section>
+
+            <section className="rounded-3xl border border-border bg-card/95 p-6 shadow-sm">
+              <p className="text-xs font-semibold uppercase tracking-[0.14em] text-text-secondary">
+                Quick actions
+              </p>
+              <h2 className="mt-2 text-xl font-semibold text-text-primary">
+                Stay in flow while triaging
+              </h2>
+              <div className="mt-5 space-y-3">
+                <Link
+                  className="tf-button flex w-full items-center justify-center px-4 py-2 text-sm"
+                  href="/dashboard/issues"
+                >
+                  Return to issues inbox
+                </Link>
+                <button
+                  type="button"
+                  className="tf-button-ghost flex w-full items-center justify-center px-4 py-2 text-sm"
+                  onClick={handleCopyStack}
+                >
+                  {copyStatus ?? "Copy full stack trace"}
+                </button>
+                <button
+                  type="button"
+                  className="tf-button-ghost flex w-full items-center justify-center px-4 py-2 text-sm"
+                  onClick={handleRegenerate}
+                  disabled={regenerating}
+                >
+                  {regenerating ? "Regenerating..." : "Regenerate AI summary"}
+                </button>
               </div>
-              <div className="tf-filter-grid md:grid-cols-[minmax(0,1fr)_180px]">
-                <label className="tf-filter-field">
-                  <span className="tf-filter-label">Payload search</span>
-                  <input
-                    className="tf-input tf-filter-control"
-                    placeholder="Search payloads"
-                    value={payloadSearch}
-                    onChange={(event) => setPayloadSearch(event.target.value)}
-                  />
-                </label>
-                <label className="tf-filter-field">
-                  <span className="tf-filter-label">Visibility</span>
-                  <span className="flex h-11 items-center gap-2 rounded-2xl border border-border/80 bg-background/85 px-4 text-sm text-text-secondary shadow-sm">
-                    <input
-                      type="checkbox"
-                      className="h-4 w-4 accent-amber-500"
-                      checked={showPayloads}
-                      onChange={(event) => setShowPayloads(event.target.checked)}
-                    />
-                    Show payloads
-                  </span>
-                </label>
-              </div>
-            </div>
-            <div className="mt-4 space-y-3 text-sm text-slate-600">
-              {filteredEvents.map((event) => (
-                <div key={event.id} className="rounded-xl border border-slate-100 p-3">
-                  <div className="flex items-center justify-between">
-                    <span>{new Date(event.timestamp).toLocaleString()}</span>
-                    <span className="text-xs text-slate-400">
-                      {event.environment ?? "unknown"}
-                    </span>
-                  </div>
-                  {showPayloads && event.payload && (
-                    <pre className="mt-3 overflow-auto rounded-lg bg-slate-900 p-3 text-[11px] text-slate-100">
-                      {JSON.stringify(event.payload, null, 2)}
-                    </pre>
-                  )}
-                </div>
-              ))}
-              {!filteredEvents.length && <p>No events match that payload search.</p>}
-            </div>
-          </section>
+            </section>
+          </div>
+        </section>
       </div>
     </main>
   );

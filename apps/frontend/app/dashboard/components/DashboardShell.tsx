@@ -220,7 +220,7 @@ export default function DashboardShell({ children }: { children: React.ReactNode
         }`}
       >
         <DashboardMobileNav />
-        <main className="min-w-0 flex-1 overflow-x-hidden pb-28 lg:pb-0">{children}</main>
+        <main className="min-w-0 flex-1 overflow-x-hidden pb-24 lg:pb-0">{children}</main>
       </div>
       {!!notificationToasts.length && (
         <div className="pointer-events-none fixed bottom-24 right-4 z-50 flex w-[min(24rem,calc(100vw-2rem))] flex-col gap-3 lg:bottom-4">

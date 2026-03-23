@@ -93,6 +93,8 @@ export default function AlertsPage() {
   const [statusFilter, setStatusFilter] = useState<"active" | "paused" | "">("");
   const [view, setView] = useState<"active" | "archived">("active");
   const [restoringRuleId, setRestoringRuleId] = useState<string | null>(null);
+  const [rulesPage, setRulesPage] = useState(1);
+  const [rulesPageSize, setRulesPageSize] = useState(6);
   const debouncedSearch = useDebouncedValue(search, 250);
 
   const showToast = (message: string, tone: Toast["tone"]) => {
@@ -212,6 +214,32 @@ export default function AlertsPage() {
     });
   }, [events, debouncedSearch, projectFilter, environmentFilter, severityFilter]);
 
+  const rulesTotalPages = useMemo(
+    () => Math.max(1, Math.ceil(filteredRules.length / rulesPageSize)),
+    [filteredRules.length, rulesPageSize]
+  );
+
+  const paginatedRules = useMemo(() => {
+    const start = (rulesPage - 1) * rulesPageSize;
+    return filteredRules.slice(start, start + rulesPageSize);
+  }, [filteredRules, rulesPage, rulesPageSize]);
+
+  const visibleRulePages = useMemo(() => {
+    if (rulesTotalPages <= 5) {
+      return Array.from({ length: rulesTotalPages }, (_, index) => index + 1);
+    }
+
+    if (rulesPage <= 3) {
+      return [1, 2, 3, 4, rulesTotalPages];
+    }
+
+    if (rulesPage >= rulesTotalPages - 2) {
+      return [1, rulesTotalPages - 3, rulesTotalPages - 2, rulesTotalPages - 1, rulesTotalPages];
+    }
+
+    return [1, rulesPage - 1, rulesPage, rulesPage + 1, rulesTotalPages];
+  }, [rulesPage, rulesTotalPages]);
+
   const resetForm = () => {
     setName("");
     setProjectId(projects[0]?.id || "");
@@ -228,6 +256,14 @@ export default function AlertsPage() {
 
     setProjectId((current) => current || projects[0].id);
   }, [projects]);
+
+  useEffect(() => {
+    setRulesPage(1);
+  }, [debouncedSearch, projectFilter, environmentFilter, severityFilter, statusFilter, view]);
+
+  useEffect(() => {
+    setRulesPage((current) => Math.min(current, rulesTotalPages));
+  }, [rulesTotalPages]);
 
   const createRule = async () => {
     const token = localStorage.getItem(tokenKey);
@@ -406,8 +442,8 @@ export default function AlertsPage() {
   };
 
   return (
-    <main className="tf-page tf-dashboard-page">
-      <div className="tf-dashboard">
+    <main className="tf-page tf-dashboard-page lg:h-screen lg:overflow-hidden">
+      <div className="tf-dashboard flex min-h-0 flex-col lg:h-full">
         <header className="flex flex-wrap items-center justify-between gap-4">
           <div>
             <p className="tf-kicker">Alerts</p>
@@ -429,24 +465,24 @@ export default function AlertsPage() {
           </button>
         </header>
 
-        <section className="mt-6 grid gap-4 md:grid-cols-3">
-          <div className="rounded-2xl border border-border bg-card/90 px-5 py-4">
-            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-text-secondary">
+        <section className="mt-6 grid gap-3 md:grid-cols-3">
+          <div className="rounded-xl border border-border bg-card/90 px-4 py-3">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-text-secondary">
               Active rules
             </p>
-            <p className="mt-2 text-2xl font-semibold text-text-primary">{activeRules.length}</p>
+            <p className="mt-1.5 text-xl font-semibold text-text-primary sm:text-[22px]">{activeRules.length}</p>
           </div>
-          <div className="rounded-2xl border border-border bg-card/90 px-5 py-4">
-            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-text-secondary">
+          <div className="rounded-xl border border-border bg-card/90 px-4 py-3">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-text-secondary">
               Recent triggers
             </p>
-            <p className="mt-2 text-2xl font-semibold text-text-primary">{triggeredToday}</p>
+            <p className="mt-1.5 text-xl font-semibold text-text-primary sm:text-[22px]">{triggeredToday}</p>
           </div>
-          <div className="rounded-2xl border border-border bg-card/90 px-5 py-4">
-            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-text-secondary">
+          <div className="rounded-xl border border-border bg-card/90 px-4 py-3">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-text-secondary">
               Tracked projects
             </p>
-            <p className="mt-2 text-2xl font-semibold text-text-primary">{projects.length}</p>
+            <p className="mt-1.5 text-xl font-semibold text-text-primary sm:text-[22px]">{projects.length}</p>
           </div>
         </section>
 
@@ -457,29 +493,7 @@ export default function AlertsPage() {
         )}
 
         <section className="tf-filter-panel mt-6">
-          <div className="tf-filter-header">
-            <div>
-              <h2 className="text-lg font-semibold text-text-primary">Search and filter</h2>
-              <p className="tf-filter-help">
-                Narrow alert rules and recent activity without leaving the page.
-              </p>
-            </div>
-            <button
-              type="button"
-              className="tf-filter-reset"
-              onClick={() => {
-                setSearch("");
-                setProjectFilter("");
-                setEnvironmentFilter("");
-                setSeverityFilter("");
-                setStatusFilter("");
-              }}
-            >
-              Reset filters
-            </button>
-          </div>
-
-          <div className="tf-filter-grid md:grid-cols-2 xl:grid-cols-5">
+          <div className="tf-filter-grid md:grid-cols-2 xl:grid-cols-[minmax(0,1.25fr)_180px_180px_170px_160px_132px]">
             <label className="tf-filter-field">
               <span className="tf-filter-label">Search</span>
               <input
@@ -549,16 +563,26 @@ export default function AlertsPage() {
                 <option value="paused">Paused</option>
               </select>
             </label>
-          </div>
-          <div className="tf-filter-pills">
-            <span className="tf-filter-pill">{projectFilter ? "Project scoped" : "All projects"}</span>
-            <span className="tf-filter-pill">{environmentFilter || "All environments"}</span>
-            <span className="tf-filter-pill">{statusFilter || "Any status"}</span>
+            <div className="flex items-end">
+              <button
+                type="button"
+                className="tf-filter-reset w-full"
+                onClick={() => {
+                  setSearch("");
+                  setProjectFilter("");
+                  setEnvironmentFilter("");
+                  setSeverityFilter("");
+                  setStatusFilter("");
+                }}
+              >
+                Reset filters
+              </button>
+            </div>
           </div>
         </section>
 
-        <section className="mt-6 grid gap-6 xl:grid-cols-[minmax(0,1.2fr)_380px]">
-          <div>
+        <section className="mt-6 grid min-h-0 flex-1 gap-6 lg:grid-cols-[minmax(0,1.2fr)_360px]">
+          <div className="min-h-0 lg:flex lg:flex-col">
             <div className="rounded-2xl border border-border bg-card/80 p-4">
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <div>
@@ -603,152 +627,218 @@ export default function AlertsPage() {
               </div>
             </div>
 
-            <div className="mt-4 space-y-4">
-              {loading && (
-                <div className="rounded-2xl border border-border bg-card/90 p-6 text-sm text-text-secondary">
-                  Loading alert rules...
-                </div>
-              )}
+            <div className="mt-4 rounded-3xl border border-border bg-card/80 p-4 shadow-sm lg:flex lg:min-h-0 lg:flex-1 lg:flex-col lg:overflow-hidden">
+              <div className="tf-scroll-rail min-h-0 space-y-4 lg:flex-1 lg:overflow-y-auto lg:overscroll-contain lg:pr-2">
+                {loading && (
+                  <div className="rounded-2xl border border-border bg-card/90 p-6 text-sm text-text-secondary">
+                    Loading alert rules...
+                  </div>
+                )}
 
-              {!loading && !filteredRules.length && (
-                <div className="rounded-2xl border border-border bg-card/90 p-6">
-                  <p className="text-sm font-semibold text-text-primary">
-                    {view === "archived" ? "No archived alerts" : "No matching alert rules"}
-                  </p>
-                  <p className="mt-2 text-sm text-text-secondary">
-                    {view === "archived"
-                      ? "Archived rules will show up here once you archive them from the active list."
-                      : "Adjust the filters above or create a new alert rule for the projects you want to watch."}
-                  </p>
-                </div>
-              )}
-
-              {!loading &&
-                filteredRules.map((rule) => (
+                {!loading && !filteredRules.length && (
                   <div
-                    key={rule.id}
-                    className="rounded-2xl border border-border bg-card/95 p-5 shadow-sm"
+                    className="rounded-2xl border border-border bg-card/90 p-6"
                   >
-                    <div className="flex flex-wrap items-start justify-between gap-5">
-                      <div className="min-w-0 flex-1">
-                        <div className="flex flex-wrap items-center gap-2">
-                          <h3 className="text-base font-semibold text-text-primary">
-                            {rule.name}
-                          </h3>
-                          <span
-                            className={`rounded-full border px-2.5 py-1 text-xs font-semibold ${severityTone[rule.severity]}`}
-                          >
-                            {rule.severity}
-                          </span>
-                          <span className="rounded-full border border-border bg-card px-2.5 py-1 text-xs font-semibold text-text-secondary">
-                            {rule.isActive ? "Active" : "Paused"}
-                          </span>
+                    <p className="text-sm font-semibold text-text-primary">
+                      {view === "archived" ? "No archived alerts" : "No matching alert rules"}
+                    </p>
+                    <p className="mt-2 text-sm text-text-secondary">
+                      {view === "archived"
+                        ? "Archived rules will show up here once you archive them from the active list."
+                        : "Adjust the filters above or create a new alert rule for the projects you want to watch."}
+                    </p>
+                  </div>
+                )}
+
+                {!loading &&
+                  paginatedRules.map((rule) => (
+                    <div
+                      key={rule.id}
+                      className="rounded-2xl border border-border bg-card/95 p-5 shadow-sm"
+                    >
+                      <div className="gap-5 lg:grid lg:grid-cols-[minmax(0,1.4fr)_288px_168px] lg:items-start">
+                        <div className="min-w-0">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <h3 className="text-base font-semibold text-text-primary">
+                              {rule.name}
+                            </h3>
+                            <span
+                              className={`rounded-full border px-2.5 py-1 text-xs font-semibold ${severityTone[rule.severity]}`}
+                            >
+                              {rule.severity}
+                            </span>
+                            <span className="rounded-full border border-border bg-card px-2.5 py-1 text-xs font-semibold text-text-secondary">
+                              {rule.isActive ? "Active" : "Paused"}
+                            </span>
+                          </div>
+
+                          <div className="mt-4 flex flex-wrap items-center gap-3 text-sm text-text-secondary">
+                            <span>Last triggered {relativeTime(rule.lastTriggeredAt)}</span>
+                            <span className="hidden h-1 w-1 rounded-full bg-border sm:block" />
+                            <span>
+                              Fired {rule._count.deliveries} time
+                              {rule._count.deliveries === 1 ? "" : "s"}
+                            </span>
+                          </div>
                         </div>
 
-                        <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-                          <div className="rounded-2xl border border-border bg-secondary/25 px-3 py-3">
-                            <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-text-secondary">
+                        <div className="mt-4 grid gap-2.5 sm:grid-cols-2 lg:mt-0 lg:grid-cols-2">
+                          <div className="rounded-xl border border-border bg-secondary/25 px-3 py-2.5">
+                            <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-text-secondary">
                               Scope
                             </p>
-                            <p className="mt-1 text-sm font-medium text-text-primary">
+                            <p className="mt-1 text-[13px] font-medium leading-5 text-text-primary">
                               {rule.project?.name ?? "All projects"}
                             </p>
                           </div>
-                          <div className="rounded-2xl border border-border bg-secondary/25 px-3 py-3">
-                            <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-text-secondary">
+                          <div className="rounded-xl border border-border bg-secondary/25 px-3 py-2.5">
+                            <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-text-secondary">
                               Environment
                             </p>
-                            <p className="mt-1 text-sm font-medium text-text-primary">
+                            <p className="mt-1 text-[13px] font-medium leading-5 text-text-primary">
                               {rule.environment || "All environments"}
                             </p>
                           </div>
-                          <div className="rounded-2xl border border-border bg-secondary/25 px-3 py-3">
-                            <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-text-secondary">
+                          <div className="rounded-xl border border-border bg-secondary/25 px-3 py-2.5">
+                            <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-text-secondary">
                               Trigger
                             </p>
-                            <p className="mt-1 text-sm font-medium text-text-primary">
+                            <p className="mt-1 text-[13px] font-medium leading-5 text-text-primary">
                               {rule.minOccurrences} occurrence{rule.minOccurrences > 1 ? "s" : ""}
                             </p>
                           </div>
-                          <div className="rounded-2xl border border-border bg-secondary/25 px-3 py-3">
-                            <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-text-secondary">
+                          <div className="rounded-xl border border-border bg-secondary/25 px-3 py-2.5">
+                            <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-text-secondary">
                               Cooldown
                             </p>
-                            <p className="mt-1 text-sm font-medium text-text-primary">
+                            <p className="mt-1 text-[13px] font-medium leading-5 text-text-primary">
                               {rule.cooldownMinutes} minutes
                             </p>
                           </div>
                         </div>
 
-                        <div className="mt-4 flex flex-wrap items-center gap-3 text-sm text-text-secondary">
-                          <span>Last triggered {relativeTime(rule.lastTriggeredAt)}</span>
-                          <span className="hidden h-1 w-1 rounded-full bg-border sm:block" />
-                          <span>
-                            Fired {rule._count.deliveries} time
-                            {rule._count.deliveries === 1 ? "" : "s"}
-                          </span>
+                        <div className="mt-4 flex w-full flex-col gap-2 lg:mt-0 lg:min-w-[168px]">
+                          {view === "active" ? (
+                            <>
+                              <button
+                                type="button"
+                                className="tf-button flex w-full items-center justify-center gap-2 px-4 py-2 text-sm"
+                                onClick={() => sendTestAlert(rule.id)}
+                                disabled={testingRuleId === rule.id}
+                              >
+                                <BellRing className="h-4 w-4" />
+                                {testingRuleId === rule.id ? "Sending..." : "Notify"}
+                              </button>
+                              <button
+                                type="button"
+                                className="flex w-full items-center justify-center gap-2 rounded-full border border-border bg-card px-4 py-2 text-sm font-semibold text-text-secondary transition hover:bg-secondary/70 hover:text-text-primary"
+                                onClick={() =>
+                                  updateRule(
+                                    rule.id,
+                                    { isActive: !rule.isActive },
+                                    rule.isActive ? "Alert paused" : "Alert resumed"
+                                  )
+                                }
+                              >
+                                {rule.isActive ? (
+                                  <Pause className="h-4 w-4" />
+                                ) : (
+                                  <Play className="h-4 w-4" />
+                                )}
+                                {rule.isActive ? "Pause" : "Resume"}
+                              </button>
+                              <button
+                                type="button"
+                                className="tf-danger-button flex w-full items-center justify-center gap-2 rounded-full border px-4 py-2 text-sm font-semibold transition"
+                                onClick={() => setArchiveTarget(rule)}
+                              >
+                                <Archive className="h-4 w-4" />
+                                Archive
+                              </button>
+                            </>
+                          ) : (
+                            <button
+                              type="button"
+                              className="flex w-full items-center justify-center gap-2 rounded-full border border-emerald-200 bg-emerald-50 px-4 py-2 text-sm font-semibold text-emerald-700 transition hover:bg-emerald-100"
+                              onClick={() => restoreRule(rule.id)}
+                              disabled={restoringRuleId === rule.id}
+                            >
+                              <RotateCcw className="h-4 w-4" />
+                              {restoringRuleId === rule.id ? "Restoring..." : "Restore alert"}
+                            </button>
+                          )}
                         </div>
                       </div>
+                    </div>
+                  ))}
+              </div>
 
-                      <div className="flex w-full flex-col gap-2 lg:w-auto lg:min-w-[176px]">
-                        {view === "active" ? (
-                          <>
+              {!loading && filteredRules.length > 0 && (
+                <div className="rounded-2xl border border-border bg-card/90 px-4 py-4 shadow-sm">
+                  <div className="tf-pagination-bar">
+                    <div className="tf-pagination-size">
+                      <select
+                        className="tf-select tf-pagination-select w-full sm:min-w-[102px]"
+                        value={rulesPageSize}
+                        onChange={(event) => {
+                          setRulesPage(1);
+                          setRulesPageSize(Number(event.target.value));
+                        }}
+                      >
+                        <option value="6">6 / page</option>
+                        <option value="12">12 / page</option>
+                        <option value="18">18 / page</option>
+                      </select>
+                    </div>
+                    <div className="tf-pagination-controls">
+                      <button
+                        type="button"
+                        className="tf-pagination-button"
+                        onClick={() => setRulesPage((current) => Math.max(1, current - 1))}
+                        disabled={rulesPage === 1}
+                      >
+                        Prev
+                      </button>
+                      {visibleRulePages.map((pageNumber, index) => {
+                        const previous = visibleRulePages[index - 1];
+                        const showGap = previous && pageNumber - previous > 1;
+
+                        return (
+                          <div key={pageNumber} className="flex items-center gap-2">
+                            {showGap && <span className="tf-pagination-gap">...</span>}
                             <button
                               type="button"
-                              className="tf-button flex w-full items-center justify-center gap-2 px-4 py-2 text-sm"
-                              onClick={() => sendTestAlert(rule.id)}
-                              disabled={testingRuleId === rule.id}
+                              className={`tf-pagination-page ${
+                                rulesPage === pageNumber
+                                  ? "tf-pagination-page-active"
+                                  : "tf-pagination-page-idle"
+                              }`}
+                              onClick={() => setRulesPage(pageNumber)}
                             >
-                              <BellRing className="h-4 w-4" />
-                              {testingRuleId === rule.id ? "Sending..." : "Notify"}
+                              {pageNumber}
                             </button>
-                            <button
-                              type="button"
-                              className="flex w-full items-center justify-center gap-2 rounded-full border border-border bg-card px-4 py-2 text-sm font-semibold text-text-secondary transition hover:bg-secondary/70 hover:text-text-primary"
-                              onClick={() =>
-                                updateRule(
-                                  rule.id,
-                                  { isActive: !rule.isActive },
-                                  rule.isActive ? "Alert paused" : "Alert resumed"
-                                )
-                              }
-                            >
-                              {rule.isActive ? (
-                                <Pause className="h-4 w-4" />
-                              ) : (
-                                <Play className="h-4 w-4" />
-                              )}
-                              {rule.isActive ? "Pause" : "Resume"}
-                            </button>
-                            <button
-                              type="button"
-                              className="tf-danger-button flex w-full items-center justify-center gap-2 rounded-full border px-4 py-2 text-sm font-semibold transition"
-                              onClick={() => setArchiveTarget(rule)}
-                            >
-                              <Archive className="h-4 w-4" />
-                              Archive
-                            </button>
-                          </>
-                        ) : (
-                          <button
-                            type="button"
-                            className="flex w-full items-center justify-center gap-2 rounded-full border border-emerald-200 bg-emerald-50 px-4 py-2 text-sm font-semibold text-emerald-700 transition hover:bg-emerald-100"
-                            onClick={() => restoreRule(rule.id)}
-                            disabled={restoringRuleId === rule.id}
-                          >
-                            <RotateCcw className="h-4 w-4" />
-                            {restoringRuleId === rule.id ? "Restoring..." : "Restore alert"}
-                          </button>
-                        )}
-                      </div>
+                          </div>
+                        );
+                      })}
+                      <button
+                        type="button"
+                        className="tf-pagination-button"
+                        onClick={() =>
+                          setRulesPage((current) => Math.min(rulesTotalPages, current + 1))
+                        }
+                        disabled={rulesPage >= rulesTotalPages}
+                      >
+                        Next
+                      </button>
                     </div>
                   </div>
-                ))}
+                </div>
+              )}
             </div>
           </div>
 
-          <div>
-            <div className="rounded-2xl border border-border bg-card/90 p-5 shadow-sm">
+          <div className="min-h-0 lg:flex lg:flex-col">
+            <div className="rounded-2xl border border-border bg-card/90 p-5 shadow-sm lg:flex lg:min-h-0 lg:flex-1 lg:flex-col lg:overflow-hidden">
               <div className="flex items-center justify-between gap-3">
                 <div>
                   <h2 className="text-lg font-semibold text-text-primary">Recent activity</h2>
@@ -761,7 +851,7 @@ export default function AlertsPage() {
                 </span>
               </div>
 
-              <div className="mt-4 space-y-3">
+              <div className="tf-scroll-rail mt-4 min-h-0 space-y-3 lg:flex-1 lg:overflow-y-auto lg:overscroll-contain lg:pr-2">
                 {loading && (
                   <div className="rounded-2xl border border-border bg-secondary/30 px-4 py-4 text-sm text-text-secondary">
                     Loading alert history...
@@ -842,7 +932,7 @@ export default function AlertsPage() {
             <div className="mt-5 flex items-center justify-end gap-3">
               <button
                 type="button"
-                className="tf-button-ghost px-4 py-2 text-sm"
+                className="tf-button-ghost inline-flex h-10 w-28 shrink-0 items-center justify-center px-0 py-0 text-sm"
                 onClick={() => setArchiveTarget(null)}
                 disabled={archivingRuleId === archiveTarget.id}
               >
@@ -850,7 +940,7 @@ export default function AlertsPage() {
               </button>
               <button
                 type="button"
-                className="rounded-full border border-amber-200 bg-amber-50 px-4 py-2 text-sm font-semibold text-amber-700 transition hover:bg-amber-100"
+                className="inline-flex h-10 w-28 shrink-0 items-center justify-center rounded-full border border-primary/30 bg-primary/12 px-0 py-0 text-sm font-semibold text-primary transition hover:bg-primary/18"
                 onClick={archiveRule}
                 disabled={archivingRuleId === archiveTarget.id}
               >

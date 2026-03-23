@@ -1734,16 +1734,10 @@ export default function DashboardPage() {
 
               {!dashboardLoading && recentErrorsPagination.totalPages > 1 && (
                 <div className="mt-5 rounded-2xl border border-border bg-card/90 px-4 py-4">
-                  <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                    <p className="text-sm text-text-secondary">
-                      Page {recentErrorsPagination.page} of {recentErrorsPagination.totalPages}
-                      {" · "}
-                      {recentErrorsPagination.total}{" "}
-                      {recentErrorsPagination.total === 1 ? "error" : "errors"} total
-                    </p>
-                    <div className="flex flex-wrap items-center gap-2 max-[639px]:w-full max-[639px]:flex-col">
+                  <div className="tf-pagination-bar">
+                    <div className="tf-pagination-size">
                       <select
-                        className="tf-select max-[639px]:w-full sm:min-w-[112px]"
+                        className="tf-select tf-pagination-select w-full sm:min-w-[98px]"
                         value={recentErrorsPagination.pageSize}
                         onChange={(event) =>
                           setRecentErrorsPagination((prev) => ({
@@ -1757,9 +1751,11 @@ export default function DashboardPage() {
                         <option value="10">10 / page</option>
                         <option value="20">20 / page</option>
                       </select>
+                    </div>
+                    <div className="tf-pagination-controls">
                       <button
                         type="button"
-                        className="rounded-full border border-border bg-card px-4 py-2 text-sm font-semibold text-text-secondary transition hover:bg-secondary/70 hover:text-text-primary disabled:cursor-not-allowed disabled:opacity-50 max-[639px]:w-full"
+                        className="tf-pagination-button"
                         onClick={() =>
                           setRecentErrorsPagination((prev) => ({
                             ...prev,
@@ -1768,9 +1764,9 @@ export default function DashboardPage() {
                         }
                         disabled={recentErrorsPagination.page === 1}
                       >
-                        Previous
+                        Prev
                       </button>
-                      <div className="flex flex-wrap items-center justify-center gap-2 sm:justify-start">
+                      <div className="flex flex-wrap items-center justify-end gap-2">
                         {visibleRecentErrorPages.map((pageNumber, index) => {
                           const previous = visibleRecentErrorPages[index - 1];
                           const showGap = previous && pageNumber - previous > 1;
@@ -1778,14 +1774,14 @@ export default function DashboardPage() {
                           return (
                             <div key={pageNumber} className="flex items-center gap-2">
                               {showGap && (
-                                <span className="px-1 text-sm text-text-secondary">...</span>
+                                <span className="tf-pagination-gap">...</span>
                               )}
                               <button
                                 type="button"
-                                className={`rounded-full border px-4 py-2 text-sm font-semibold transition ${
+                                className={`tf-pagination-page ${
                                   recentErrorsPagination.page === pageNumber
-                                    ? "border-primary/40 bg-accent-soft text-text-primary"
-                                    : "border-border bg-card text-text-secondary hover:bg-secondary/70 hover:text-text-primary"
+                                    ? "tf-pagination-page-active"
+                                    : "tf-pagination-page-idle"
                                 }`}
                                 onClick={() =>
                                   setRecentErrorsPagination((prev) => ({
@@ -1802,7 +1798,7 @@ export default function DashboardPage() {
                       </div>
                       <button
                         type="button"
-                        className="rounded-full border border-border bg-card px-4 py-2 text-sm font-semibold text-text-secondary transition hover:bg-secondary/70 hover:text-text-primary disabled:cursor-not-allowed disabled:opacity-50 max-[639px]:w-full"
+                        className="tf-pagination-button"
                         onClick={() =>
                           setRecentErrorsPagination((prev) => ({
                             ...prev,

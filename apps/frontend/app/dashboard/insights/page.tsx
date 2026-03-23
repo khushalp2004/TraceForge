@@ -128,7 +128,7 @@ export default function InsightsPage() {
   return (
     <main className="tf-page tf-dashboard-page">
       <div className="tf-dashboard">
-        <header className="flex flex-wrap items-end justify-between gap-4">
+        <header className="flex flex-wrap items-start justify-between gap-4">
           <div>
             <p className="tf-kicker">Insights</p>
             <h1 className="tf-title mt-3 text-3xl">Operational insights</h1>
@@ -137,10 +137,12 @@ export default function InsightsPage() {
               project when you want a focused view.
             </p>
           </div>
+        </header>
 
-          <div className="tf-filter-panel w-full sm:max-w-sm">
-            <div className="tf-filter-field">
-              <label className="tf-filter-label">Scope</label>
+        <section className="tf-filter-panel mt-6">
+          <div className="tf-filter-grid sm:grid-cols-[minmax(0,1fr)_132px]">
+            <label className="tf-filter-field">
+              <span className="tf-filter-label">Scope</span>
               <select
                 className="tf-select tf-filter-control w-full"
                 value={selectedProjectId}
@@ -153,12 +155,18 @@ export default function InsightsPage() {
                   </option>
                 ))}
               </select>
-            </div>
-            <div className="tf-filter-pills mt-3">
-              <span className="tf-filter-pill">{selectedProject ? selectedProject.name : "Account-wide view"}</span>
+            </label>
+            <div className="flex items-end">
+              <button
+                type="button"
+                className="tf-filter-reset w-full"
+                onClick={() => setSelectedProjectId("")}
+              >
+                Reset
+              </button>
             </div>
           </div>
-        </header>
+        </section>
 
         {!loading && (
           <div className="mt-6 flex flex-wrap items-center gap-3">
