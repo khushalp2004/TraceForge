@@ -1,10 +1,17 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
+import { Dices } from "lucide-react";
 import { useDebouncedValue } from "../hooks/useDebouncedValue";
 import { useAuth } from "../../context/AuthContext";
+import { useLayout } from "../../context/LayoutContext";
+import { useTheme } from "../../context/ThemeContext";
+import { useMediaQuery } from "../hooks/useMediaQuery";
+import { SparkAreaChart } from "./components/SparkAreaChart";
+import { LAYOUTS } from "../layoutPreference";
+import { THEMES } from "../theme";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
 const NOTIFICATIONS_URL = `${API_URL}/notifications/stream`;
@@ -12,6 +19,7 @@ const dismissedAlertNotificationsKey = "traceforge_dismissed_alert_notifications
 const dismissedJoinRequestsKey = "traceforge_dismissed_join_requests";
 const dismissedInviteNotificationsKey = "traceforge_dismissed_invite_notifications";
 const postAuthToastKey = "traceforge_post_auth_toast";
+const dashboardPrefsKey = "traceforge_dashboard_prefs_v1";
 
 type Org = {
   id: string;
@@ -183,7 +191,19 @@ const SeverityTag = ({ severity }: { severity: "critical" | "warning" | "info" }
 };
 
 export default function DashboardPage() {
+  return (
+    <Suspense fallback={<div className="tf-page tf-dashboard-page" />}>
+      <DashboardPageInner />
+    </Suspense>
+  );
+}
+
+function DashboardPageInner() {
   const { logout, user: authUser, token, isReady } = useAuth();
+  const { layout, setLayout } = useLayout();
+  const { theme, setTheme } = useTheme();
+  const isDesktop = useMediaQuery("(min-width: 1024px)");
+  const effectiveLayout = isDesktop ? layout : "classic";
   const router = useRouter();
   const searchParams = useSearchParams();
   const [orgs, setOrgs] = useState<Org[]>([]);
@@ -218,6 +238,9 @@ export default function DashboardPage() {
   const [alertNotifications, setAlertNotifications] = useState<AlertNotification[]>([]);
   const [showRequests, setShowRequests] = useState(false);
   const [notificationsExpanded, setNotificationsExpanded] = useState(false);
+  const [diceRolling, setDiceRolling] = useState(false);
+  const diceTimerRef = useRef<number | null>(null);
+  const [chartVariant, setChartVariant] = useState<"area" | "bar">("area");
   const [toast, setToast] = useState<Toast | null>(null);
   const [inviteTokenFromUrl, setInviteTokenFromUrl] = useState("");
   const [inviteLinkStatus, setInviteLinkStatus] = useState<InviteLinkStatus | null>(null);
@@ -274,11 +297,85 @@ export default function DashboardPage() {
   });
   const notificationsRef = useRef<HTMLDivElement | null>(null);
   const inviteStatusToastRef = useRef<string | null>(null);
+  const prefsHydratedRef = useRef(false);
   const deferredSearch = useDebouncedValue(search.trim(), 300);
 
   const showToast = (message: string, tone: Toast["tone"]) => {
     setToast({ message, tone });
     window.setTimeout(() => setToast(null), 2400);
+  };
+
+  useEffect(() => {
+    if (!token || typeof window === "undefined") {
+      prefsHydratedRef.current = false;
+      return;
+    }
+
+    if (!prefsHydratedRef.current) {
+      prefsHydratedRef.current = true;
+      try {
+        const raw = window.localStorage.getItem(dashboardPrefsKey);
+        if (!raw) return;
+        const prefs = JSON.parse(raw) as {
+          orgId?: string;
+          projectId?: string;
+          environment?: string;
+          sortBy?: "lastSeen" | "count";
+          days?: number;
+          chartVariant?: "area" | "bar";
+        };
+
+        if (typeof prefs.orgId === "string") setSelectedOrgId(prefs.orgId);
+        if (typeof prefs.projectId === "string") setSelectedProject(prefs.projectId);
+        if (typeof prefs.environment === "string") setEnvironmentFilter(prefs.environment);
+        if (prefs.sortBy === "lastSeen" || prefs.sortBy === "count") setSortBy(prefs.sortBy);
+        if (prefs.days === 7 || prefs.days === 14 || prefs.days === 30) setDays(prefs.days);
+        if (prefs.chartVariant === "area" || prefs.chartVariant === "bar") setChartVariant(prefs.chartVariant);
+      } catch {
+        // Ignore malformed prefs.
+      }
+      return;
+    }
+
+    window.localStorage.setItem(
+      dashboardPrefsKey,
+      JSON.stringify({
+        orgId: selectedOrgId,
+        projectId: selectedProject,
+        environment: environmentFilter,
+        sortBy,
+        days,
+        chartVariant
+      })
+    );
+  }, [token, selectedOrgId, selectedProject, environmentFilter, sortBy, days, chartVariant]);
+
+  useEffect(() => {
+    return () => {
+      if (diceTimerRef.current) {
+        window.clearTimeout(diceTimerRef.current);
+      }
+    };
+  }, []);
+
+  const rollStyle = () => {
+    if (diceTimerRef.current) {
+      window.clearTimeout(diceTimerRef.current);
+    }
+
+    setDiceRolling(true);
+    diceTimerRef.current = window.setTimeout(() => setDiceRolling(false), 720);
+
+    const availableThemes = THEMES.map((item) => item.id).filter((id) => id !== theme);
+    const availableLayouts = LAYOUTS.map((item) => item.id).filter((id) => id !== layout);
+
+    const nextTheme =
+      availableThemes[Math.floor(Math.random() * Math.max(availableThemes.length, 1))] || theme;
+    const nextLayout =
+      availableLayouts[Math.floor(Math.random() * Math.max(availableLayouts.length, 1))] || layout;
+
+    setTheme(nextTheme);
+    setLayout(nextLayout);
   };
 
   useEffect(() => {
@@ -1047,10 +1144,10 @@ export default function DashboardPage() {
     );
   }
 
-  const maxFrequency = Math.max(1, ...frequency.map((item) => item.count));
-  const maxLastSeen = Math.max(1, ...lastSeen.map((item) => item.count));
   const totalErrors = recentErrorsPagination.total;
   const isInitialLoading = dashboardLoading && !projects.length && !errors.length;
+  const isTopbarLayout = effectiveLayout === "topbar";
+  const isCompactLayout = effectiveLayout === "compact";
   const visibleRecentErrorPages = (() => {
     const totalPages = recentErrorsPagination.totalPages;
     const current = recentErrorsPagination.page;
@@ -1069,19 +1166,12 @@ export default function DashboardPage() {
 
     return [1, current - 1, current, current + 1, totalPages];
   })();
-
-  const linePath = (data: AnalyticsPoint[], maxValue: number) => {
-    if (!data.length) return "";
-    const width = 100;
-    const height = 40;
-    return data
-      .map((point, index) => {
-        const x = (index / Math.max(data.length - 1, 1)) * width;
-        const y = height - (point.count / maxValue) * height;
-        return `${index === 0 ? "M" : "L"} ${x} ${y}`;
-      })
-      .join(" ");
-  };
+  const frequencyTotal = frequency.reduce((sum, item) => sum + item.count, 0);
+  const frequencyPeak = Math.max(0, ...frequency.map((item) => item.count));
+  const frequencyAvg = Math.round(frequencyTotal / Math.max(1, frequency.length));
+  const lastSeenTotal = lastSeen.reduce((sum, item) => sum + item.count, 0);
+  const lastSeenPeak = Math.max(0, ...lastSeen.map((item) => item.count));
+  const lastSeenAvg = Math.round(lastSeenTotal / Math.max(1, lastSeen.length));
 
   return (
     <main className="tf-page tf-dashboard-page">
@@ -1098,6 +1188,17 @@ export default function DashboardPage() {
               <p className="text-sm text-text-secondary">{authUser?.email}</p>
             </div>
             <div className="flex flex-wrap items-center gap-2">
+              <button
+                type="button"
+                onClick={rollStyle}
+                className="group relative inline-flex items-center justify-center rounded-full border border-border bg-card/90 px-3.5 py-2 text-text-secondary shadow-sm transition hover:border-primary/40 hover:bg-secondary/70 hover:text-text-primary"
+                aria-label="Surprise me (random theme + layout)"
+              >
+                <Dices className={`h-4 w-4 transition ${diceRolling ? "tf-dice-roll" : "group-hover:rotate-12"}`} />
+                <span className="pointer-events-none absolute left-1/2 top-full z-30 mt-2 -translate-x-1/2 whitespace-nowrap rounded-full border border-border bg-card/95 px-3 py-1.5 text-[11px] font-semibold text-text-secondary opacity-0 shadow-lg backdrop-blur transition group-hover:opacity-100">
+                  Surprise me: random theme + layout
+                </span>
+              </button>
               <div className="relative" ref={notificationsRef}>
                 <button
                   className="relative inline-flex items-center gap-2.5 rounded-full border border-border bg-card/90 px-4 py-2 text-sm font-semibold text-text-secondary shadow-sm transition hover:border-primary/40 hover:bg-secondary/70 hover:text-text-primary"
@@ -1582,7 +1683,15 @@ export default function DashboardPage() {
             {error && <p className="mt-3 text-xs text-red-500">{error}</p>}
           </div>
 
-          <div className="space-y-6">
+          <div
+            className={
+              isTopbarLayout
+                ? "grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(420px,0.9fr)] lg:items-start"
+                : isCompactLayout
+                ? "grid gap-6 lg:grid-cols-2 lg:items-start"
+                : "space-y-6"
+            }
+          >
             <div className="tf-card p-6">
               <div className="flex flex-wrap items-center justify-between gap-4">
                 <div>
@@ -1590,6 +1699,32 @@ export default function DashboardPage() {
                   <p className="text-sm text-text-secondary">Last {days} days</p>
                 </div>
                 <div className="flex items-center gap-3">
+                  <div className="inline-flex items-center rounded-full border border-border bg-card/90 p-1 text-xs font-semibold text-text-secondary shadow-sm">
+                    <button
+                      type="button"
+                      className={`rounded-full px-3 py-1 transition ${
+                        chartVariant === "area"
+                          ? "bg-accent-soft text-text-primary"
+                          : "hover:bg-secondary/70 hover:text-text-primary"
+                      }`}
+                      onClick={() => setChartVariant("area")}
+                      aria-label="Line chart view"
+                    >
+                      Line
+                    </button>
+                    <button
+                      type="button"
+                      className={`rounded-full px-3 py-1 transition ${
+                        chartVariant === "bar"
+                          ? "bg-accent-soft text-text-primary"
+                          : "hover:bg-secondary/70 hover:text-text-primary"
+                      }`}
+                      onClick={() => setChartVariant("bar")}
+                      aria-label="Bar chart view"
+                    >
+                      Bar
+                    </button>
+                  </div>
                   <select
                     className="tf-select"
                     value={days}
@@ -1609,45 +1744,75 @@ export default function DashboardPage() {
               </div>
 
               <div className="mt-6 grid gap-6 md:grid-cols-2">
-                <div className="rounded-xl border border-border p-4">
-                  <p className="text-xs font-semibold uppercase tracking-[0.2em] text-text-secondary">
-                    Error Frequency
-                  </p>
-                  <svg className="mt-4 h-16 w-full" viewBox="0 0 100 40" preserveAspectRatio="none">
-                    <path
-                      d={linePath(frequency, maxFrequency)}
-                      fill="none"
-                      stroke="hsl(var(--primary))"
-                      strokeWidth="2"
+                <div className="rounded-2xl border border-border bg-card/70 p-4">
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <p className="text-xs font-semibold uppercase tracking-[0.2em] text-text-secondary">
+                        Error Frequency
+                      </p>
+                      <p className="mt-1 text-xs text-text-secondary">Total {frequencyTotal} · Avg {frequencyAvg}/day · Peak {frequencyPeak}</p>
+                    </div>
+                    <Link
+                      href="/dashboard/insights"
+                      className="rounded-full border border-border bg-card/90 px-3 py-1 text-xs font-semibold text-text-secondary transition hover:bg-secondary/70 hover:text-text-primary"
+                    >
+                      Insights
+                    </Link>
+                  </div>
+                  <div className="mt-4 rounded-2xl border border-border bg-secondary/20 p-3">
+                    <SparkAreaChart
+                      data={frequency}
+                      tone="primary"
+                      height={96}
+                      unitLabel="events"
+                      variant={chartVariant}
+                      showXAxis={false}
                     />
-                  </svg>
-                  <div className="mt-2 flex justify-between text-[10px] text-text-secondary">
-                    <span>{frequency[0]?.date.slice(5) || ""}</span>
-                    <span>{frequency[frequency.length - 1]?.date.slice(5) || ""}</span>
+                    <div className="mt-2 flex justify-between text-[10px] text-text-secondary">
+                      <span>{frequency[0]?.date.slice(5) || ""}</span>
+                      <span>{frequency[frequency.length - 1]?.date.slice(5) || ""}</span>
+                    </div>
                   </div>
                 </div>
 
-                <div className="rounded-xl border border-border p-4">
-                  <p className="text-xs font-semibold uppercase tracking-[0.2em] text-text-secondary">
-                    Errors Last Seen
-                  </p>
-                  <svg className="mt-4 h-16 w-full" viewBox="0 0 100 40" preserveAspectRatio="none">
-                    <path
-                      d={linePath(lastSeen, maxLastSeen)}
-                      fill="none"
-                      stroke="hsl(var(--muted-foreground))"
-                      strokeWidth="2"
+                <div className="rounded-2xl border border-border bg-card/70 p-4">
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <p className="text-xs font-semibold uppercase tracking-[0.2em] text-text-secondary">
+                        Errors Last Seen
+                      </p>
+                      <p className="mt-1 text-xs text-text-secondary">Total {lastSeenTotal} · Avg {lastSeenAvg}/day · Peak {lastSeenPeak}</p>
+                    </div>
+                    <Link
+                      href="/dashboard/issues"
+                      className="rounded-full border border-border bg-card/90 px-3 py-1 text-xs font-semibold text-text-secondary transition hover:bg-secondary/70 hover:text-text-primary"
+                    >
+                      Issues
+                    </Link>
+                  </div>
+                  <div className="mt-4 rounded-2xl border border-border bg-secondary/20 p-3">
+                    <SparkAreaChart
+                      data={lastSeen}
+                      tone="muted"
+                      height={96}
+                      unitLabel="issues"
+                      variant={chartVariant}
+                      showXAxis={false}
                     />
-                  </svg>
-                  <div className="mt-2 flex justify-between text-[10px] text-text-secondary">
-                    <span>{lastSeen[0]?.date.slice(5) || ""}</span>
-                    <span>{lastSeen[lastSeen.length - 1]?.date.slice(5) || ""}</span>
+                    <div className="mt-2 flex justify-between text-[10px] text-text-secondary">
+                      <span>{lastSeen[0]?.date.slice(5) || ""}</span>
+                      <span>{lastSeen[lastSeen.length - 1]?.date.slice(5) || ""}</span>
+                    </div>
                   </div>
                 </div>
               </div>
             </div>
 
-            <div className="tf-card p-6">
+            <div
+              className={`tf-card p-6 ${
+                isTopbarLayout ? "lg:sticky lg:top-24 lg:self-start" : ""
+              }`}
+            >
               <div className="flex flex-wrap items-center justify-between gap-4">
                 <h2 className="text-lg font-semibold text-text-primary">Recent Errors</h2>
                 <div className="flex flex-wrap items-center gap-2 text-xs text-text-secondary">
@@ -1662,7 +1827,11 @@ export default function DashboardPage() {
 
               {dashboardLoading && <p className="mt-4 text-sm text-text-secondary">Loading...</p>}
 
-              <div className="mt-6 space-y-4">
+              <div
+                className={`mt-6 space-y-4 ${
+                  isTopbarLayout ? "max-h-[60vh] overflow-auto pr-1 tf-scroll-rail" : ""
+                }`}
+              >
                 {errors.map((item) => {
                   const severity = severityForMessage(item.message);
                   const isExpanded = expandedErrorId === item.id;

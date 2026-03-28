@@ -1,11 +1,14 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import { AuthProvider } from "../context/AuthContext";
+import { LayoutProvider } from "../context/LayoutContext";
 import { ThemeProvider } from "../context/ThemeContext";
 import { GlobalSearchProvider } from "./components/GlobalSearchProvider";
 import MarketingShell from "./components/MarketingShell";
+import TraceForgeBrowserInit from "./components/TraceForgeBrowserInit";
 import { SITE_DESCRIPTION, SITE_KEYWORDS, SITE_NAME, siteUrl } from "./seo";
 import { DEFAULT_THEME, isDarkTheme, THEME_STORAGE_KEY } from "./theme";
+import { DEFAULT_LAYOUT, LAYOUT_STORAGE_KEY } from "./layoutPreference";
 
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
@@ -67,6 +70,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   const defaultThemeIsDark = isDarkTheme(DEFAULT_THEME);
+  const defaultLayout = DEFAULT_LAYOUT;
   const themeBootScript = `
     (function () {
       try {
@@ -84,16 +88,35 @@ export default function RootLayout({
     })();
   `;
 
+  const layoutBootScript = `
+    (function () {
+      try {
+        var key = ${JSON.stringify(LAYOUT_STORAGE_KEY)};
+        var fallback = ${JSON.stringify(defaultLayout)};
+        var stored = window.localStorage.getItem(key);
+        var allowed = ["classic", "compact", "topbar"];
+        var layout = allowed.indexOf(stored) >= 0 ? stored : fallback;
+        document.documentElement.dataset.layout = layout;
+      } catch (error) {
+        document.documentElement.dataset.layout = ${JSON.stringify(defaultLayout)};
+      }
+    })();
+  `;
+
   return (
     <html lang="en" suppressHydrationWarning>
       <body>
         <script dangerouslySetInnerHTML={{ __html: themeBootScript }} />
+        <script dangerouslySetInnerHTML={{ __html: layoutBootScript }} />
         <ThemeProvider>
-          <AuthProvider>
-            <GlobalSearchProvider>
-              <MarketingShell>{children}</MarketingShell>
-            </GlobalSearchProvider>
-          </AuthProvider>
+          <TraceForgeBrowserInit />
+          <LayoutProvider>
+            <AuthProvider>
+              <GlobalSearchProvider>
+                <MarketingShell>{children}</MarketingShell>
+              </GlobalSearchProvider>
+            </AuthProvider>
+          </LayoutProvider>
         </ThemeProvider>
       </body>
     </html>

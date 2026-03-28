@@ -5,12 +5,21 @@ import Link from "next/link";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
 const tokenKey = "traceforge_token";
+const dashboardPrefsKey = "traceforge_dashboard_prefs_v1";
+
+type Org = {
+  id: string;
+  name: string;
+  role: "OWNER" | "MEMBER";
+  createdAt: string;
+};
 
 type Project = {
   id: string;
   name: string;
   apiKey: string;
   createdAt: string;
+  orgId?: string | null;
   archivedAt?: string | null;
 };
 
@@ -21,6 +30,8 @@ type Toast = {
 
 export default function ProjectSettingsPage() {
   const [projects, setProjects] = useState<Project[]>([]);
+  const [orgs, setOrgs] = useState<Org[]>([]);
+  const [selectedOrgId, setSelectedOrgId] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<Project | null>(null);
@@ -30,6 +41,37 @@ export default function ProjectSettingsPage() {
   const [revealedProjectId, setRevealedProjectId] = useState<string | null>(null);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [newProjectName, setNewProjectName] = useState("");
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    try {
+      const raw = window.localStorage.getItem(dashboardPrefsKey);
+      if (!raw) return;
+      const prefs = JSON.parse(raw) as { orgId?: string };
+      if (typeof prefs.orgId === "string") {
+        setSelectedOrgId(prefs.orgId);
+      }
+    } catch {
+      // Ignore malformed prefs.
+    }
+  }, []);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    try {
+      const raw = window.localStorage.getItem(dashboardPrefsKey);
+      const existing = raw ? (JSON.parse(raw) as Record<string, unknown>) : {};
+      window.localStorage.setItem(
+        dashboardPrefsKey,
+        JSON.stringify({
+          ...existing,
+          orgId: selectedOrgId
+        })
+      );
+    } catch {
+      // Ignore persistence errors.
+    }
+  }, [selectedOrgId]);
 
   const showToast = (message: string, tone: Toast["tone"]) => {
     setToast({ message, tone });
@@ -47,21 +89,28 @@ export default function ProjectSettingsPage() {
     setError(null);
 
     try {
-      const res = await fetch(
-        `${API_URL}/projects?includeArchived=${showArchived ? "true" : "false"}`,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`
-          }
-        }
-      );
+      const [projectsRes, orgsRes] = await Promise.all([
+        fetch(`${API_URL}/projects?includeArchived=${showArchived ? "true" : "false"}`, {
+          headers: { Authorization: `Bearer ${token}` }
+        }),
+        fetch(`${API_URL}/orgs`, {
+          headers: { Authorization: `Bearer ${token}` }
+        })
+      ]);
 
-      const data = await res.json();
-      if (!res.ok) {
-        throw new Error(data.error || "Failed to load projects");
+      const [projectsData, orgsData] = await Promise.all([
+        projectsRes.json(),
+        orgsRes.json().catch(() => ({}))
+      ]);
+
+      if (!projectsRes.ok) {
+        throw new Error(projectsData.error || "Failed to load projects");
       }
 
-      setProjects(data.projects || []);
+      setProjects(projectsData.projects || []);
+      if (orgsRes.ok) {
+        setOrgs(orgsData.orgs || []);
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Unexpected error");
     } finally {
@@ -197,7 +246,7 @@ export default function ProjectSettingsPage() {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`
         },
-        body: JSON.stringify({ name: newProjectName })
+        body: JSON.stringify({ name: newProjectName, orgId: selectedOrgId || undefined })
       });
 
       const data = await res.json();
@@ -217,8 +266,11 @@ export default function ProjectSettingsPage() {
     }
   };
 
-  const activeProjects = projects.filter((project) => !project.archivedAt);
-  const archivedProjects = projects.filter((project) => project.archivedAt);
+  const scopedProjects = selectedOrgId
+    ? projects.filter((project) => project.orgId === selectedOrgId)
+    : projects.filter((project) => !project.orgId);
+  const activeProjects = scopedProjects.filter((project) => !project.archivedAt);
+  const archivedProjects = scopedProjects.filter((project) => project.archivedAt);
 
   return (
     <main className="tf-page tf-dashboard-page">
@@ -234,6 +286,22 @@ export default function ProjectSettingsPage() {
             </p>
           </div>
           <div className="flex flex-wrap items-center gap-3">
+            <label className="flex items-center gap-2 rounded-full border border-border bg-card/90 px-3 py-2 text-xs font-semibold text-text-secondary">
+              <span>Org</span>
+              <select
+                className="bg-transparent text-xs font-semibold text-text-primary outline-none"
+                value={selectedOrgId}
+                onChange={(event) => setSelectedOrgId(event.target.value)}
+                aria-label="Select organization scope"
+              >
+                <option value="">Personal</option>
+                {orgs.map((org) => (
+                  <option key={org.id} value={org.id}>
+                    {org.name}
+                  </option>
+                ))}
+              </select>
+            </label>
             <button
               type="button"
               className={`rounded-full border px-4 py-2 text-sm font-semibold transition ${

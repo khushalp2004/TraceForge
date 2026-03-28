@@ -13,6 +13,9 @@ model User {
   address              String?
   email                String                 @unique
   passwordHash         String
+  plan                 BillingPlan            @default(FREE)
+  subscriptionStatus   String?
+  planExpiresAt        DateTime?
   createdAt            DateTime               @default(now())
   projects             Project[]
   alertRules           AlertRule[]
@@ -22,6 +25,11 @@ model User {
   resetTokens          PasswordResetToken[]
   joinRequests         OrgJoinRequest[]       @relation("Requester")
   resolvedJoinRequests OrgJoinRequest[]       @relation("Resolver")
+}
+
+enum BillingPlan {
+  FREE
+  PRO
 }
 
 model PasswordResetToken {

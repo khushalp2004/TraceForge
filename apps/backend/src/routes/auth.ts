@@ -33,7 +33,11 @@ authRouter.get("/me", requireAuth, async (req, res) => {
       fullName: true,
       address: true,
       email: true,
-      emailVerifiedAt: true
+      emailVerifiedAt: true,
+      plan: true,
+      proPricingTier: true,
+      planExpiresAt: true,
+      subscriptionStatus: true
     }
   });
 

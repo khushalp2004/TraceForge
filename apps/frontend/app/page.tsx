@@ -41,7 +41,7 @@ export default function HomePage() {
           dangerouslySetInnerHTML={{ __html: JSON.stringify(item) }}
         />
       ))}
-      <div className="relative mx-auto max-w-6xl px-[16px]">
+      <div className="tf-container">
         <div
           className="pointer-events-none absolute -top-28 right-0 h-80 w-80 rounded-full bg-primary/20 blur-3xl animate-float-slow"
           style={{ animationDelay: "0s" }}

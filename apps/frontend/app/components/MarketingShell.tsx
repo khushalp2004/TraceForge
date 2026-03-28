@@ -33,7 +33,7 @@ export default function MarketingShell({
       {children}
       {showMarketing ? (
         <footer className="border-t border-border bg-card">
-          <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-3 px-[30px] py-6 text-xs text-text-secondary">
+          <div className="tf-container flex flex-wrap items-center justify-between gap-3 px-[30px] py-6 text-xs text-text-secondary">
             <p>
               <Link href="/" className="transition hover:text-text-primary">
                 TraceForge

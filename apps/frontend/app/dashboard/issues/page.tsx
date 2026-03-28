@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { Archive, Copy, RotateCcw, Sparkles } from "lucide-react";
 import { useDebouncedValue } from "../../hooks/useDebouncedValue";
 
@@ -76,6 +77,16 @@ const formatRelative = (value: string) => {
 };
 
 export default function IssuesPage() {
+  return (
+    <Suspense fallback={<div className="tf-page tf-dashboard-page" />}>
+      <IssuesPageInner />
+    </Suspense>
+  );
+}
+
+function IssuesPageInner() {
+  const searchParams = useSearchParams();
+  const hydratedFromQuery = useRef(false);
   const [projects, setProjects] = useState<Project[]>([]);
   const [issues, setIssues] = useState<Issue[]>([]);
   const [pagination, setPagination] = useState<Pagination>({
@@ -101,6 +112,41 @@ export default function IssuesPage() {
   const [archivingIssueId, setArchivingIssueId] = useState<string | null>(null);
   const [restoringIssueId, setRestoringIssueId] = useState<string | null>(null);
   const deferredSearch = useDebouncedValue(search, 300);
+
+  useEffect(() => {
+    if (hydratedFromQuery.current) return;
+    hydratedFromQuery.current = true;
+
+    const queryProjectId = searchParams.get("projectId") || "";
+    const queryEnv = searchParams.get("env") || "";
+    const querySeverity = (searchParams.get("severity") || "").toLowerCase();
+    const querySort = (searchParams.get("sort") || "").toLowerCase();
+    const queryQ = searchParams.get("q") || "";
+    const queryArchivedOnly = searchParams.get("archivedOnly") || "";
+    const queryPage = Number(searchParams.get("page") || "");
+    const queryPageSize = Number(searchParams.get("pageSize") || "");
+
+    if (queryProjectId) setSelectedProjectId(queryProjectId);
+    if (queryEnv) setEnvironmentFilter(queryEnv);
+    if (queryQ) setSearch(queryQ);
+    if (queryArchivedOnly === "true") setViewMode("archived");
+
+    if (querySeverity === "critical" || querySeverity === "warning" || querySeverity === "info") {
+      setSeverityFilter(querySeverity);
+    }
+
+    if (querySort === "lastseen" || querySort === "count") {
+      setSortBy(querySort === "lastseen" ? "lastSeen" : "count");
+    }
+
+    if (Number.isFinite(queryPage) && queryPage > 0) {
+      setPagination((prev) => ({ ...prev, page: queryPage }));
+    }
+
+    if (Number.isFinite(queryPageSize) && queryPageSize > 0) {
+      setPagination((prev) => ({ ...prev, pageSize: queryPageSize }));
+    }
+  }, [searchParams]);
 
   const showToast = (message: string, tone: Toast["tone"]) => {
     setToast({ message, tone });

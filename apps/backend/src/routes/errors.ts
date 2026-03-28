@@ -133,7 +133,8 @@ errorsRouter.get("/", async (req, res) => {
 
   const where: Prisma.ErrorWhereInput = { AND: andConditions };
 
-  const orderBy = sort === "count" ? { count: "desc" } : { lastSeen: "desc" };
+  const orderBy: Prisma.ErrorOrderByWithRelationInput =
+    sort === "count" ? { count: "desc" } : { lastSeen: "desc" };
 
   const [errors, total] = await Promise.all([
     prisma.error.findMany({

@@ -14,13 +14,23 @@ import { passwordResetRouter } from "./routes/passwordReset.js";
 import { notificationsRouter } from "./routes/notifications.js";
 import { alertsRouter } from "./routes/alerts.js";
 import { releasesRouter } from "./routes/releases.js";
+import { paymentRouter } from "./routes/payment.js";
+import { fxRouter } from "./routes/fx.js";
+import { publicBillingRouter } from "./routes/publicBilling.js";
 
 export const createApp = () => {
   const app = express();
 
   app.use(helmet());
   app.use(cors());
-  app.use(express.json({ limit: "1mb" }));
+  app.use(
+    express.json({
+      limit: "1mb",
+      verify: (req, _res, buf) => {
+        (req as { rawBody?: Buffer }).rawBody = buf;
+      }
+    })
+  );
   app.use(morgan("dev"));
 
   app.get("/", (_req, res) => {
@@ -36,6 +46,9 @@ export const createApp = () => {
   app.use("/notifications", notificationsRouter);
   app.use("/alerts", alertsRouter);
   app.use("/releases", releasesRouter);
+  app.use("/api/payment", paymentRouter);
+  app.use("/public/fx", fxRouter);
+  app.use("/public/billing", publicBillingRouter);
   app.use("/projects", projectsRouter);
   app.use("/orgs", orgsRouter);
   app.use("/ingest", ingestRouter);

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useAuth } from "../../../../context/AuthContext";
@@ -33,6 +33,14 @@ type AuditLog = {
 };
 
 export default function OrganizationDetailPage({ params }: { params: { id: string } }) {
+  return (
+    <Suspense fallback={<div className="tf-page tf-dashboard-page" />}>
+      <OrganizationDetailPageInner params={params} />
+    </Suspense>
+  );
+}
+
+function OrganizationDetailPageInner({ params }: { params: { id: string } }) {
   const orgId = params.id;
   const { user } = useAuth();
   const router = useRouter();

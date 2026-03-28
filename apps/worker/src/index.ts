@@ -6,11 +6,13 @@ import { generateExplanation } from "./services/groq.js";
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 const RETENTION_DAYS = 15;
 const CLEANUP_INTERVAL_MS = 60 * 60 * 1000;
+const currentMonthKey = (now: Date) =>
+  `${now.getUTCFullYear()}-${String(now.getUTCMonth() + 1).padStart(2, "0")}`;
 
 const processError = async (errorId: string) => {
   const errorRecord = await prisma.error.findUnique({
     where: { id: errorId },
-    include: { analysis: true }
+    include: { analysis: true, project: { select: { userId: true } } }
   });
 
   if (!errorRecord) {
@@ -19,6 +21,49 @@ const processError = async (errorId: string) => {
 
   if (errorRecord.analysis) {
     return;
+  }
+
+  const ownerId = errorRecord.project.userId;
+  const now = new Date();
+  const owner = await prisma.user.findUnique({
+    where: { id: ownerId },
+    select: { plan: true, planExpiresAt: true }
+  });
+
+  const proActive =
+    owner?.plan === "PRO" && (!owner.planExpiresAt || owner.planExpiresAt.getTime() > now.getTime());
+
+  if (!proActive) {
+    const limit = 20;
+    const usageKey = `usage:ai:${ownerId}:${currentMonthKey(now)}`;
+
+    if (redis.isOpen) {
+      const current = await redis.incr(usageKey);
+      if (current === 1) {
+        await redis.expire(usageKey, 60 * 60 * 24 * 45);
+      }
+
+      if (current > limit) {
+        await redis.decr(usageKey);
+        return;
+      }
+    } else {
+      const monthStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1, 0, 0, 0, 0));
+      const used = await prisma.errorAnalysis.count({
+        where: {
+          createdAt: { gte: monthStart },
+          error: {
+            project: {
+              userId: ownerId
+            }
+          }
+        }
+      });
+
+      if (used >= limit) {
+        return;
+      }
+    }
   }
 
   const explanation = await generateExplanation({

@@ -39,6 +39,7 @@ projectsRouter.get("/", async (req, res) => {
 projectsRouter.post("/", async (req, res) => {
   const userId = req.user?.id;
   const { name, orgId } = req.body as { name?: string; orgId?: string };
+  const normalizedOrgId = orgId?.trim() || undefined;
 
   if (!userId) {
     return res.status(401).json({ error: "Unauthorized" });
@@ -48,11 +49,11 @@ projectsRouter.post("/", async (req, res) => {
     return res.status(400).json({ error: "Project name is required" });
   }
 
-  if (orgId) {
+  if (normalizedOrgId) {
     const membership = await prisma.organizationMember.findUnique({
       where: {
         organizationId_userId: {
-          organizationId: orgId,
+          organizationId: normalizedOrgId,
           userId
         }
       }
@@ -60,6 +61,29 @@ projectsRouter.post("/", async (req, res) => {
 
     if (!membership) {
       return res.status(403).json({ error: "Not a member of that organization" });
+    }
+  } else {
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { plan: true, planExpiresAt: true }
+    });
+    const proActive =
+      user?.plan === "PRO" && (!user.planExpiresAt || user.planExpiresAt.getTime() > Date.now());
+
+    if (!proActive) {
+      const activePersonalProjects = await prisma.project.count({
+        where: {
+          userId,
+          orgId: null,
+          archivedAt: null
+        }
+      });
+
+      if (activePersonalProjects >= 3) {
+        return res.status(402).json({
+          error: "Free plan supports up to 3 personal projects. Upgrade to Pro to create more."
+        });
+      }
     }
   }
 
@@ -70,7 +94,7 @@ projectsRouter.post("/", async (req, res) => {
       userId,
       name: name.trim(),
       apiKey,
-      orgId: orgId ?? null
+      orgId: normalizedOrgId ?? null
     },
     select: { id: true, name: true, apiKey: true, createdAt: true, archivedAt: true, orgId: true }
   });

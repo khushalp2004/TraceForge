@@ -20,7 +20,7 @@ const logEvent = async (
       organizationId,
       actorId,
       action,
-      metadata: metadata ?? undefined
+      metadata: metadata ? (metadata as Prisma.InputJsonValue) : undefined
     }
   });
 };

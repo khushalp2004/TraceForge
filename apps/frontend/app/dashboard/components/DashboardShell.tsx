@@ -1,10 +1,13 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { Suspense, useEffect, useMemo, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useAuth } from "../../../context/AuthContext";
+import { useLayout } from "../../../context/LayoutContext";
+import { useMediaQuery } from "../../hooks/useMediaQuery";
 import DashboardMobileNav from "./DashboardMobileNav";
 import DashboardSidebar from "./DashboardSidebar";
+import DashboardTopNav from "./DashboardTopNav";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
 const NOTIFICATIONS_URL = `${API_URL}/notifications/stream`;
@@ -45,8 +48,11 @@ type ShellToast = {
   href: string;
 };
 
-export default function DashboardShell({ children }: { children: React.ReactNode }) {
+function DashboardShellInner({ children }: { children: React.ReactNode }) {
   const { token, isReady } = useAuth();
+  const { layout } = useLayout();
+  const isDesktop = useMediaQuery("(min-width: 1024px)");
+  const effectiveLayout = isDesktop ? layout : "classic";
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -74,6 +80,10 @@ export default function DashboardShell({ children }: { children: React.ReactNode
       router.prefetch(href);
     });
   }, [router, token]);
+
+  useEffect(() => {
+    setCollapsed(effectiveLayout === "compact");
+  }, [effectiveLayout]);
 
   const removeShellToast = (id: string) => {
     setNotificationToasts((prev) => prev.filter((toast) => toast.id !== id));
@@ -187,18 +197,26 @@ export default function DashboardShell({ children }: { children: React.ReactNode
   if (!isReady || !token) {
     return (
       <div className="flex min-h-screen overflow-x-hidden bg-background">
-        <div className="hidden w-64 border-r border-border bg-card/80 p-4 lg:block">
-          <div className="h-20 animate-pulse rounded-3xl bg-secondary/70" />
-          <div className="mt-6 space-y-3">
-            <div className="h-10 animate-pulse rounded-2xl bg-secondary/70" />
-            <div className="h-10 animate-pulse rounded-2xl bg-secondary/70" />
-            <div className="h-10 animate-pulse rounded-2xl bg-secondary/70" />
+        {effectiveLayout === "topbar" ? null : (
+          <div className="hidden w-64 border-r border-border bg-card/80 p-4 lg:block">
+            <div className="h-20 animate-pulse rounded-3xl bg-secondary/70" />
+            <div className="mt-6 space-y-3">
+              <div className="h-10 animate-pulse rounded-2xl bg-secondary/70" />
+              <div className="h-10 animate-pulse rounded-2xl bg-secondary/70" />
+              <div className="h-10 animate-pulse rounded-2xl bg-secondary/70" />
+            </div>
           </div>
-        </div>
+        )}
         <div className="flex min-h-screen min-w-0 flex-1 flex-col">
-          <div className="border-b border-border bg-background px-4 py-4 lg:hidden">
-            <div className="h-8 animate-pulse rounded-2xl bg-secondary/70" />
-          </div>
+          {effectiveLayout === "topbar" ? (
+            <div className="hidden border-b border-border bg-background px-4 py-4 lg:block">
+              <div className="h-8 animate-pulse rounded-2xl bg-secondary/70" />
+            </div>
+          ) : (
+            <div className="border-b border-border bg-background px-4 py-4 lg:hidden">
+              <div className="h-8 animate-pulse rounded-2xl bg-secondary/70" />
+            </div>
+          )}
           <main className="flex-1 p-6">
             <div className="mx-auto max-w-5xl space-y-4">
               <div className="h-10 animate-pulse rounded-3xl bg-secondary/70" />
@@ -213,12 +231,16 @@ export default function DashboardShell({ children }: { children: React.ReactNode
 
   return (
     <div className="flex min-h-screen overflow-x-hidden bg-background">
-      <DashboardSidebar collapsed={collapsed} onToggle={() => setCollapsed(!collapsed)} />
+      {effectiveLayout === "topbar" ? null : (
+        <DashboardSidebar collapsed={collapsed} onToggle={() => setCollapsed(!collapsed)} />
+      )}
       <div
         className={`flex min-h-screen min-w-0 flex-1 flex-col overflow-x-hidden ${
-          collapsed ? "lg:pl-[85px]" : "lg:pl-64"
+          effectiveLayout === "topbar" ? "" : collapsed ? "lg:pl-[85px]" : "lg:pl-64"
         }`}
       >
+        {effectiveLayout === "topbar" ? <DashboardTopNav /> : null}
+        {effectiveLayout === "topbar" ? <div className="hidden h-[72px] lg:block" /> : null}
         <DashboardMobileNav />
         <main className="min-w-0 flex-1 overflow-x-hidden pb-24 lg:pb-0">{children}</main>
       </div>
@@ -282,5 +304,13 @@ export default function DashboardShell({ children }: { children: React.ReactNode
         </div>
       )}
     </div>
+  );
+}
+
+export default function DashboardShell(props: { children: React.ReactNode }) {
+  return (
+    <Suspense fallback={<div className="tf-page tf-dashboard-page" />}>
+      <DashboardShellInner {...props} />
+    </Suspense>
   );
 }

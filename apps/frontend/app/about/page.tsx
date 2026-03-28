@@ -13,7 +13,7 @@ export const metadata: Metadata = createPageMetadata({
 export default function AboutPage() {
   return (
     <main className="tf-page pb-20 pt-16">
-      <div className="relative mx-auto max-w-6xl px-[16px]">
+      <div className="tf-container">
         <section className="grid gap-10 lg:grid-cols-[1.05fr_0.95fr] lg:items-center">
           <div>
             <p className="tf-kicker">About</p>

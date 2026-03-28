@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { Archive, BellRing, Pause, Play, RotateCcw } from "lucide-react";
 import { useDebouncedValue } from "../../hooks/useDebouncedValue";
 
@@ -68,6 +69,16 @@ const relativeTime = (value: string | null) => {
 };
 
 export default function AlertsPage() {
+  return (
+    <Suspense fallback={<div className="tf-page tf-dashboard-page" />}>
+      <AlertsPageInner />
+    </Suspense>
+  );
+}
+
+function AlertsPageInner() {
+  const searchParams = useSearchParams();
+  const hydratedFromQuery = useRef(false);
   const [projects, setProjects] = useState<Project[]>([]);
   const [rules, setRules] = useState<AlertRule[]>([]);
   const [archivedRules, setArchivedRules] = useState<AlertRule[]>([]);
@@ -96,6 +107,36 @@ export default function AlertsPage() {
   const [rulesPage, setRulesPage] = useState(1);
   const [rulesPageSize, setRulesPageSize] = useState(6);
   const debouncedSearch = useDebouncedValue(search, 250);
+
+  useEffect(() => {
+    if (hydratedFromQuery.current) return;
+    hydratedFromQuery.current = true;
+
+    const queryQ = searchParams.get("q") || "";
+    const queryProjectId = searchParams.get("projectId") || "";
+    const queryEnv = searchParams.get("env") || "";
+    const querySeverity = (searchParams.get("severity") || "").toUpperCase();
+    const queryStatus = (searchParams.get("status") || "").toLowerCase();
+    const queryView = (searchParams.get("view") || "").toLowerCase();
+    const queryPageSize = Number(searchParams.get("pageSize") || "");
+
+    if (queryQ) setSearch(queryQ);
+    if (queryProjectId) setProjectFilter(queryProjectId);
+    if (queryEnv) setEnvironmentFilter(queryEnv);
+    if (querySeverity === "CRITICAL" || querySeverity === "WARNING" || querySeverity === "INFO") {
+      setSeverityFilter(querySeverity as AlertRule["severity"]);
+    }
+    if (queryStatus === "active" || queryStatus === "paused") {
+      setStatusFilter(queryStatus);
+    }
+    if (queryView === "active" || queryView === "archived") {
+      setView(queryView);
+    }
+    if (Number.isFinite(queryPageSize) && queryPageSize > 0) {
+      setRulesPageSize(queryPageSize);
+    }
+    setRulesPage(1);
+  }, [searchParams]);
 
   const showToast = (message: string, tone: Toast["tone"]) => {
     setToast({ message, tone });

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
@@ -43,6 +43,14 @@ const reliabilityStats = [
 ];
 
 export default function AuthScreen({ mode }: AuthScreenProps) {
+  return (
+    <Suspense fallback={<div className="tf-page pb-20 pt-16" />}>
+      <AuthScreenInner mode={mode} />
+    </Suspense>
+  );
+}
+
+function AuthScreenInner({ mode }: AuthScreenProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { login, isReady, token } = useAuth();

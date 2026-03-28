@@ -4,55 +4,91 @@ import { useEffect, useMemo, useState } from "react";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
 const tokenKey = "traceforge_token";
-
-type Project = {
-  id: string;
-  name: string;
-  archivedAt?: string | null;
-};
-
-type Org = {
-  id: string;
-  name: string;
-};
+declare global {
+  interface Window {
+    Razorpay?: new (options: Record<string, any>) => { open: () => void; on: (evt: string, cb: (data: any) => void) => void };
+  }
+}
 
 type Toast = {
   message: string;
   tone: "success" | "error";
 };
 
-const invoices = [
-  {
-    id: "inv_mar_2026",
-    label: "March 2026",
-    amount: "$49.00",
-    status: "Paid",
-    issuedAt: "2026-03-01"
-  },
-  {
-    id: "inv_feb_2026",
-    label: "February 2026",
-    amount: "$49.00",
-    status: "Paid",
-    issuedAt: "2026-02-01"
-  },
-  {
-    id: "inv_jan_2026",
-    label: "January 2026",
-    amount: "$49.00",
-    status: "Paid",
-    issuedAt: "2026-01-01"
-  }
-];
+type User = {
+  id: string;
+  fullName: string | null;
+  email: string;
+  plan: "FREE" | "PRO";
+  proPricingTier?: "LAUNCH" | "STANDARD" | null;
+  planExpiresAt: string | null;
+  subscriptionStatus: string | null;
+};
 
-const usageBar = (used: number, limit: number) => `${Math.min(100, Math.round((used / limit) * 100))}%`;
+type Invoice = {
+  id: string;
+  status: string;
+  amount: number;
+  currency: string;
+  shortUrl: string | null;
+  invoiceNumber: string | null;
+  createdAt: string | null;
+  paidAt: string | null;
+};
+
+type PaymentRow = {
+  id: string;
+  status: string;
+  amount: number;
+  currency: string;
+  razorpayPaymentId: string | null;
+  razorpayOrderId: string | null;
+  razorpaySubscriptionId: string | null;
+  capturedAt: string | null;
+  expiresAt: string | null;
+  createdAt: string;
+};
+
+type CreateOrderResponse =
+  | {
+      alreadyPro: true;
+      plan: "pro";
+      expiresAt: string | null;
+    }
+  | {
+      keyId: string;
+      subscriptionId: string;
+      amount: number;
+      currency: string;
+      receipt: string;
+    };
+
+type VerifyResponse = {
+  ok: boolean;
+  plan: "pro";
+  expiresAt: string;
+};
+
+const loadRazorpay = () =>
+  new Promise<boolean>((resolve) => {
+    if (typeof window === "undefined") return resolve(false);
+    if (window.Razorpay) return resolve(true);
+    const script = document.createElement("script");
+    script.src = "https://checkout.razorpay.com/v1/checkout.js";
+    script.async = true;
+    script.onload = () => resolve(Boolean(window.Razorpay));
+    script.onerror = () => resolve(false);
+    document.body.appendChild(script);
+  });
 
 export default function BillingPage() {
-  const [projects, setProjects] = useState<Project[]>([]);
-  const [orgs, setOrgs] = useState<Org[]>([]);
+  const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  const [billingLoading, setBillingLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [toast, setToast] = useState<Toast | null>(null);
+  const [invoices, setInvoices] = useState<Invoice[]>([]);
+  const [payments, setPayments] = useState<PaymentRow[]>([]);
 
   const showToast = (message: string, tone: Toast["tone"]) => {
     setToast({ message, tone });
@@ -60,88 +96,262 @@ export default function BillingPage() {
   };
 
   useEffect(() => {
-    const token = localStorage.getItem(tokenKey);
-    if (!token) {
-      setError("Missing auth token. Please log in again.");
-      setLoading(false);
-      return;
-    }
-
-    const loadBillingContext = async () => {
-      setLoading(true);
-      setError(null);
-
-      try {
-        const [projectsRes, orgsRes] = await Promise.all([
-          fetch(`${API_URL}/projects`, {
-            headers: { Authorization: `Bearer ${token}` }
-          }),
-          fetch(`${API_URL}/orgs`, {
-            headers: { Authorization: `Bearer ${token}` }
-          })
-        ]);
-
-        const [projectsData, orgsData] = await Promise.all([
-          projectsRes.json(),
-          orgsRes.json()
-        ]);
-
-        if (!projectsRes.ok) {
-          throw new Error(projectsData.error || "Failed to load projects");
-        }
-
-        if (!orgsRes.ok) {
-          throw new Error(orgsData.error || "Failed to load organizations");
-        }
-
-        setProjects(projectsData.projects || []);
-        setOrgs(orgsData.orgs || []);
-      } catch (err) {
-        setError(err instanceof Error ? err.message : "Unexpected error");
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    void loadBillingContext();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    void refreshUser();
   }, []);
 
-  const activeProjects = useMemo(
-    () => projects.filter((project) => !project.archivedAt),
-    [projects]
-  );
+  const refreshUser = async () => {
+    const token = localStorage.getItem(tokenKey);
+    if (!token) return;
 
-  const usageCards = useMemo(
-    () => [
-      {
-        label: "Monitored projects",
-        used: activeProjects.length,
-        limit: 10,
-        hint: "Projects actively sending events into TraceForge"
-      },
-      {
-        label: "Organizations",
-        used: orgs.length,
-        limit: 5,
-        hint: "Shared workspaces covered in this plan"
-      },
-      {
-        label: "AI analyses",
-        used: Math.max(12, activeProjects.length * 18),
-        limit: 250,
-        hint: "Monthly AI-assisted error explanations"
-      },
-      {
-        label: "Alert rules",
-        used: Math.max(4, orgs.length * 2 + activeProjects.length),
-        limit: 50,
-        hint: "Manual alert coverage across projects and organizations"
+    setLoading(true);
+    setError(null);
+
+    try {
+      const res = await fetch(`${API_URL}/auth/me`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || "Failed to load account");
       }
-    ],
-    [activeProjects.length, orgs.length]
-  );
 
-  const nextInvoiceDate = "April 1, 2026";
+      const nextUser = data.user as User;
+      setUser({
+        id: nextUser.id,
+        fullName: nextUser.fullName ?? null,
+        email: nextUser.email,
+        plan: nextUser.plan,
+        proPricingTier: nextUser.proPricingTier ?? null,
+        planExpiresAt: nextUser.planExpiresAt ?? null,
+        subscriptionStatus: nextUser.subscriptionStatus ?? null
+      });
+
+      void refreshBillingData();
+    } catch (err) {
+      setUser(null);
+      setError(err instanceof Error ? err.message : "Unexpected error");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const refreshBillingData = async () => {
+    const token = localStorage.getItem(tokenKey);
+    if (!token) return;
+
+    setBillingLoading(true);
+    try {
+      const [invoiceRes, historyRes] = await Promise.all([
+        fetch(`${API_URL}/api/payment/invoices`, {
+          headers: { Authorization: `Bearer ${token}` }
+        }),
+        fetch(`${API_URL}/api/payment/history`, {
+          headers: { Authorization: `Bearer ${token}` }
+        })
+      ]);
+
+      const invoiceData = (await invoiceRes.json()) as { invoices?: Invoice[]; error?: string };
+      if (invoiceRes.ok) {
+        setInvoices(Array.isArray(invoiceData.invoices) ? invoiceData.invoices : []);
+      }
+
+      const historyData = (await historyRes.json()) as { payments?: PaymentRow[]; error?: string };
+      if (historyRes.ok) {
+        setPayments(Array.isArray(historyData.payments) ? historyData.payments : []);
+      }
+    } finally {
+      setBillingLoading(false);
+    }
+  };
+
+  const isProActive = useMemo(() => {
+    if (!user) return false;
+    if (user.plan !== "PRO") return false;
+    if (!user.planExpiresAt) return true;
+    return new Date(user.planExpiresAt).getTime() > Date.now();
+  }, [user]);
+
+  const startCheckout = async () => {
+    const token = localStorage.getItem(tokenKey);
+    if (!token) return;
+    setLoading(true);
+    setError(null);
+
+    try {
+      const ready = await loadRazorpay();
+      if (!ready || !window.Razorpay) {
+        throw new Error("Failed to load Razorpay checkout");
+      }
+
+      const res = await fetch(`${API_URL}/api/payment/create-order`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({})
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || "Failed to start checkout");
+      }
+
+      if (typeof data === "object" && data && "alreadyPro" in (data as Record<string, unknown>)) {
+        showToast("You already have Pro active.", "success");
+        await refreshUser();
+        return;
+      }
+      const subscription = data as CreateOrderResponse & {
+        subscriptionId: string;
+        amount: number;
+        currency: string;
+        keyId: string;
+        receipt: string;
+      };
+
+      const options = {
+        key: subscription.keyId,
+        name: "TraceForge",
+        description: "Pro Plan (₹299/month)",
+        subscription_id: subscription.subscriptionId,
+        method: {
+          card: true,
+          upi: false,
+          netbanking: false,
+          wallet: false,
+          emi: false
+        },
+        prefill: {
+          email: user?.email
+        },
+        handler: async (response: {
+          razorpay_payment_id: string;
+          razorpay_subscription_id?: string;
+          razorpay_signature: string;
+        }) => {
+          try {
+            const verifyRes = await fetch(`${API_URL}/api/payment/verify`, {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${token}`
+              },
+              body: JSON.stringify({
+                ...response,
+                razorpay_subscription_id:
+                  response.razorpay_subscription_id || subscription.subscriptionId
+              })
+            });
+            const verifyData = (await verifyRes.json()) as VerifyResponse & { error?: string };
+            if (!verifyRes.ok || !verifyData.ok) {
+              throw new Error(verifyData.error || "Payment verification failed");
+            }
+            showToast("Upgraded to Pro", "success");
+            await refreshUser();
+            void refreshBillingData();
+          } catch (err) {
+            setError(err instanceof Error ? err.message : "Unexpected error");
+            showToast("Payment verification failed", "error");
+          }
+        },
+        modal: {
+          ondismiss: () => {
+            showToast("Payment cancelled", "error");
+          }
+        },
+        theme: {
+          color: "#6d28d9"
+        }
+      };
+
+      const instance = new window.Razorpay(options);
+      instance.on("payment.failed", () => {
+        showToast("Payment failed. Please try again.", "error");
+      });
+      instance.open();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Unexpected error");
+      showToast("Failed to start payment", "error");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const cancelSubscription = async () => {
+    const token = localStorage.getItem(tokenKey);
+    if (!token) return;
+
+    setLoading(true);
+    setError(null);
+
+    try {
+      const res = await fetch(`${API_URL}/api/payment/cancel`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({ atCycleEnd: false })
+      });
+
+      const data = (await res.json()) as { ok?: boolean; error?: string; expiresAt?: string | null };
+      if (!res.ok || !data.ok) {
+        throw new Error(data.error || "Failed to cancel subscription");
+      }
+
+      showToast("Subscription cancelled. Switched to Free.", "success");
+      await refreshUser();
+      void refreshBillingData();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Unexpected error");
+      showToast("Failed to cancel subscription", "error");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const upgradeToPro = async () => {
+    const token = localStorage.getItem(tokenKey);
+    if (!token) return;
+
+    setLoading(true);
+    setError(null);
+
+    try {
+      const res = await fetch(`${API_URL}/api/payment/upgrade`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({})
+      });
+
+      const data = (await res.json()) as
+        | { ok: true; alreadyPro?: boolean; plan?: "pro"; expiresAt?: string | null }
+        | { ok?: boolean; requiresPayment?: boolean; error?: string };
+
+      if (!res.ok) {
+        throw new Error((data as { error?: string }).error || "Failed to upgrade");
+      }
+
+      if (typeof data === "object" && data && "requiresPayment" in data && data.requiresPayment) {
+        await startCheckout();
+        return;
+      }
+
+      showToast("Pro enabled.", "success");
+      await refreshUser();
+      void refreshBillingData();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Unexpected error");
+      showToast("Failed to upgrade", "error");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <main className="tf-page tf-dashboard-page">
@@ -159,16 +369,16 @@ export default function BillingPage() {
             <button
               type="button"
               className="tf-button px-4 py-2 text-sm"
-              onClick={() => showToast("Plan management is coming soon", "success")}
+              onClick={() => {
+                if (isProActive) {
+                  showToast("Pro is already active.", "success");
+                  return;
+                }
+                void upgradeToPro();
+              }}
+              disabled={loading}
             >
-              Manage plan
-            </button>
-            <button
-              type="button"
-              className="tf-button-ghost px-4 py-2 text-sm"
-              onClick={() => showToast("Invoice center is coming soon", "success")}
-            >
-              Download invoices
+              Upgrade to Pro
             </button>
           </div>
         </header>
@@ -186,17 +396,22 @@ export default function BillingPage() {
                 <p className="text-xs font-semibold uppercase tracking-[0.14em] text-text-secondary">
                   Current plan
                 </p>
-                <h2 className="mt-3 text-3xl font-semibold text-text-primary">Team</h2>
+                <h2 className="mt-3 text-3xl font-semibold text-text-primary">
+                  {isProActive ? "Pro" : "Free"}
+                </h2>
                 <p className="mt-2 text-sm text-text-secondary">
-                  Built for growing organizations that need shared alerting, project coverage,
-                  and AI-assisted triage.
+                  {isProActive
+                    ? "Unlimited projects, errors, and AI analysis."
+                    : "Upgrade to Pro to unlock unlimited projects, errors, and AI analysis."}
                 </p>
               </div>
               <div className="rounded-2xl border border-primary/20 bg-accent-soft px-4 py-3 text-right">
                 <p className="text-xs font-semibold uppercase tracking-[0.14em] text-text-secondary">
-                  Renewal
+                  Expires
                 </p>
-                <p className="mt-1 text-lg font-semibold text-text-primary">{nextInvoiceDate}</p>
+                <p className="mt-1 text-lg font-semibold text-text-primary">
+                  {user?.planExpiresAt ? new Date(user.planExpiresAt).toLocaleDateString() : "—"}
+                </p>
               </div>
             </div>
 
@@ -205,24 +420,34 @@ export default function BillingPage() {
                 <p className="text-xs font-semibold uppercase tracking-[0.14em] text-text-secondary">
                   Monthly price
                 </p>
-                <p className="mt-2 text-2xl font-semibold text-text-primary">$49</p>
-                <p className="mt-1 text-sm text-text-secondary">per workspace / month</p>
-              </div>
-              <div className="rounded-2xl border border-border bg-secondary/25 px-4 py-4">
-                <p className="text-xs font-semibold uppercase tracking-[0.14em] text-text-secondary">
-                  Billing owner
+                <p className="mt-2 text-2xl font-semibold text-text-primary">
+                  {isProActive ? (user?.proPricingTier === "STANDARD" ? "₹499" : "₹299") : "-"}
                 </p>
-                <p className="mt-2 text-sm font-semibold text-text-primary">Workspace owners</p>
                 <p className="mt-1 text-sm text-text-secondary">
-                  Organization owners can manage shared billing
+                  {isProActive ? "per month" : "-"}
                 </p>
               </div>
               <div className="rounded-2xl border border-border bg-secondary/25 px-4 py-4">
                 <p className="text-xs font-semibold uppercase tracking-[0.14em] text-text-secondary">
-                  Payment method
+                  Projects
                 </p>
-                <p className="mt-2 text-sm font-semibold text-text-primary">Visa ending in 4242</p>
-                <p className="mt-1 text-sm text-text-secondary">Expires 08/2028</p>
+                <p className="mt-2 text-sm font-semibold text-text-primary">
+                  {isProActive ? "Unlimited" : "3"}
+                </p>
+                <p className="mt-1 text-sm text-text-secondary">
+                  {isProActive ? "Create as many projects as you need." : "Upgrade to remove limits."}
+                </p>
+              </div>
+              <div className="rounded-2xl border border-border bg-secondary/25 px-4 py-4">
+                <p className="text-xs font-semibold uppercase tracking-[0.14em] text-text-secondary">
+                  Errors / month
+                </p>
+                <p className="mt-2 text-sm font-semibold text-text-primary">
+                  {isProActive ? "Unlimited" : "1000"}
+                </p>
+                <p className="mt-1 text-sm text-text-secondary">
+                  {isProActive ? "No monthly cap." : "Upgrade to remove caps."}
+                </p>
               </div>
             </div>
           </div>
@@ -234,195 +459,195 @@ export default function BillingPage() {
                 <p className="text-xs font-semibold uppercase tracking-[0.14em] text-text-secondary">
                   Subscription status
                 </p>
-                <p className="mt-2 text-sm font-semibold text-text-primary">Active and renewing</p>
+                <p className="mt-2 text-sm font-semibold text-text-primary">
+                  {isProActive ? user?.subscriptionStatus || "active" : "free"}
+                </p>
               </div>
               <div className="rounded-2xl border border-border bg-secondary/25 px-4 py-4">
                 <p className="text-xs font-semibold uppercase tracking-[0.14em] text-text-secondary">
-                  Billing contact
+                  AI analyses / month
                 </p>
                 <p className="mt-2 text-sm font-semibold text-text-primary">
-                  finance@traceforge.dev
+                  {isProActive ? "Unlimited" : "20"}
                 </p>
               </div>
               <div className="rounded-2xl border border-border bg-secondary/25 px-4 py-4">
                 <p className="text-xs font-semibold uppercase tracking-[0.14em] text-text-secondary">
-                  Tax region
+                  Provider
                 </p>
-                <p className="mt-2 text-sm font-semibold text-text-primary">United States</p>
+                <p className="mt-2 text-sm font-semibold text-text-primary">Razorpay</p>
               </div>
             </div>
             <div className="mt-5 flex flex-wrap gap-3">
               <button
                 type="button"
                 className="rounded-full border border-border bg-card px-4 py-2 text-sm font-semibold text-text-secondary transition hover:bg-secondary/70 hover:text-text-primary"
-                onClick={() => showToast("Payment method editor is coming soon", "success")}
+                onClick={() => void refreshUser()}
               >
-                Update card
+                Refresh
               </button>
+              {isProActive ? (
+                <button
+                  type="button"
+                  className="rounded-full border border-border bg-card px-4 py-2 text-sm font-semibold text-text-secondary transition hover:bg-secondary/70 hover:text-text-primary"
+                  onClick={() => void cancelSubscription()}
+                  disabled={loading}
+                >
+                  Cancel subscription
+                </button>
+              ) : null}
               <button
                 type="button"
                 className="rounded-full border border-border bg-card px-4 py-2 text-sm font-semibold text-text-secondary transition hover:bg-secondary/70 hover:text-text-primary"
-                onClick={() => showToast("Billing contact editor is coming soon", "success")}
+                onClick={() => void startCheckout()}
+                disabled={loading || isProActive}
               >
-                Edit billing contact
+                Retry payment
               </button>
+            </div>
+          </div>
+        </section>
+
+        <section className="mt-6 grid gap-6 lg:grid-cols-2">
+          <div className="rounded-3xl border border-border bg-card/95 p-6 shadow-sm">
+            <div className="flex items-center justify-between gap-4">
+              <h2 className="text-lg font-semibold text-text-primary">Invoices</h2>
+              <button
+                type="button"
+                className="rounded-full border border-border bg-card px-3 py-1.5 text-xs font-semibold text-text-secondary transition hover:bg-secondary/70 hover:text-text-primary"
+                onClick={() => void refreshBillingData()}
+                disabled={billingLoading || loading}
+              >
+                Refresh
+              </button>
+            </div>
+
+            {!isProActive ? (
+              <p className="mt-3 text-sm text-text-secondary">
+                Upgrade to Pro to generate invoices for monthly renewals.
+              </p>
+            ) : invoices.length === 0 && !billingLoading ? (
+              <p className="mt-3 text-sm text-text-secondary">
+                No invoices yet. Your first invoice appears after the payment is captured.
+              </p>
+            ) : null}
+
+            <div className="mt-4 space-y-3">
+              {(billingLoading ? Array.from({ length: 3 }) : invoices.slice(0, 8)).map((invoice, idx) => {
+                const row = invoice as Invoice | undefined;
+                return (
+                  <div
+                    key={row?.id || idx}
+                    className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-border bg-secondary/15 px-4 py-3"
+                  >
+                    <div className="min-w-[220px]">
+                      <p className="text-sm font-semibold text-text-primary">
+                        {row?.invoiceNumber || row?.id || "Loading…"}
+                      </p>
+                      <p className="mt-1 text-xs text-text-secondary">
+                        {row?.createdAt ? new Date(row.createdAt).toLocaleString() : "—"} •{" "}
+                        {row?.status || "—"}
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <p className="text-sm font-semibold text-text-primary">
+                        {row ? `₹${(row.amount / 100).toFixed(0)}` : "—"}
+                      </p>
+                      {row?.shortUrl ? (
+                        <a
+                          className="tf-button-ghost inline-flex px-3 py-1.5 text-xs"
+                          href={row.shortUrl}
+                          target="_blank"
+                          rel="noreferrer"
+                        >
+                          Download
+                        </a>
+                      ) : (
+                        <span className="rounded-full border border-border bg-card px-3 py-1.5 text-xs font-semibold text-text-secondary">
+                          —
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          <div className="rounded-3xl border border-border bg-card/95 p-6 shadow-sm">
+            <div className="flex items-center justify-between gap-4">
+              <h2 className="text-lg font-semibold text-text-primary">Payments</h2>
+              <button
+                type="button"
+                className="rounded-full border border-border bg-card px-3 py-1.5 text-xs font-semibold text-text-secondary transition hover:bg-secondary/70 hover:text-text-primary"
+                onClick={() => void refreshBillingData()}
+                disabled={billingLoading || loading}
+              >
+                Refresh
+              </button>
+            </div>
+
+            {payments.length === 0 && !billingLoading ? (
+              <p className="mt-3 text-sm text-text-secondary">
+                No payments recorded yet.
+              </p>
+            ) : null}
+
+            <div className="mt-4 space-y-3">
+              {(billingLoading ? Array.from({ length: 3 }) : payments.slice(0, 8)).map((payment, idx) => {
+                const row = payment as PaymentRow | undefined;
+                const primaryId = row?.razorpayPaymentId || row?.razorpaySubscriptionId || row?.razorpayOrderId;
+                return (
+                  <div
+                    key={row?.id || idx}
+                    className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-border bg-secondary/15 px-4 py-3"
+                  >
+                    <div className="min-w-[220px]">
+                      <p className="text-sm font-semibold text-text-primary">
+                        {primaryId ? primaryId.slice(0, 18) : "Loading…"}
+                      </p>
+                      <p className="mt-1 text-xs text-text-secondary">
+                        {row?.createdAt ? new Date(row.createdAt).toLocaleString() : "—"} •{" "}
+                        {row?.status || "—"}
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <p className="text-sm font-semibold text-text-primary">
+                        {row ? `₹${(row.amount / 100).toFixed(0)}` : "—"}
+                      </p>
+                      <p className="text-xs text-text-secondary">
+                        {row?.expiresAt ? `Renews: ${new Date(row.expiresAt).toLocaleDateString()}` : "—"}
+                      </p>
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           </div>
         </section>
 
         <section className="mt-6 rounded-2xl border border-border bg-card/95 p-6 shadow-sm">
-          <div className="flex flex-wrap items-center justify-between gap-4">
-            <div>
-              <h2 className="text-lg font-semibold text-text-primary">Usage and limits</h2>
-              <p className="mt-1 text-sm text-text-secondary">
-                Keep an eye on workspace usage before you hit plan limits.
-              </p>
-            </div>
-            <span className="rounded-full border border-border bg-secondary/70 px-3 py-1 text-xs font-semibold text-text-secondary">
-              Current billing cycle
-            </span>
-          </div>
-
-          <div className="mt-5 grid gap-4 lg:grid-cols-2">
-            {usageCards.map((card) => (
-              <div
-                key={card.label}
-                className="rounded-2xl border border-border bg-secondary/20 px-4 py-4"
-              >
-                <div className="flex items-center justify-between gap-3">
-                  <p className="text-sm font-semibold text-text-primary">{card.label}</p>
-                  <p className="text-sm font-semibold text-text-secondary">
-                    {card.used} / {card.limit}
-                  </p>
-                </div>
-                <div className="mt-3 h-2 overflow-hidden rounded-full bg-border/70">
-                  <div
-                    className="h-full rounded-full bg-primary transition-all"
-                    style={{ width: usageBar(card.used, card.limit) }}
-                  />
-                </div>
-                <p className="mt-3 text-sm text-text-secondary">{card.hint}</p>
+          <h2 className="text-lg font-semibold text-text-primary">How it works</h2>
+          <div className="mt-3 grid gap-3 sm:grid-cols-2">
+            {[
+              {
+                title: "Secure verification",
+                detail: "Backend verifies Razorpay signature and fetches payment status before upgrading."
+              },
+              {
+                title: "No frontend trust",
+                detail: "Pro is only activated after server-side verification or webhook capture."
+              },
+              {
+                title: "Auto-debit subscription",
+                detail: "Pro renews monthly via Razorpay subscription until you downgrade."
+              }
+            ].map((item) => (
+              <div key={item.title} className="rounded-2xl border border-border bg-secondary/20 px-4 py-4">
+                <p className="text-sm font-semibold text-text-primary">{item.title}</p>
+                <p className="mt-1 text-sm text-text-secondary">{item.detail}</p>
               </div>
             ))}
-          </div>
-        </section>
-
-        <section className="mt-6 grid gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(340px,0.9fr)]">
-          <div className="rounded-2xl border border-border bg-card/95 p-6 shadow-sm">
-            <div className="flex flex-wrap items-center justify-between gap-4">
-              <div>
-                <h2 className="text-lg font-semibold text-text-primary">Invoices</h2>
-                <p className="mt-1 text-sm text-text-secondary">
-                  Review historical charges and invoice status for this workspace.
-                </p>
-              </div>
-              <button
-                type="button"
-                className="rounded-full border border-border bg-card px-4 py-2 text-sm font-semibold text-text-secondary transition hover:bg-secondary/70 hover:text-text-primary"
-                onClick={() => showToast("Invoice export is coming soon", "success")}
-              >
-                Export
-              </button>
-            </div>
-
-            <div className="mt-5 space-y-3">
-              {invoices.map((invoice) => (
-                <div
-                  key={invoice.id}
-                  className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-border bg-secondary/20 px-4 py-4"
-                >
-                  <div>
-                    <p className="text-sm font-semibold text-text-primary">{invoice.label}</p>
-                    <p className="mt-1 text-sm text-text-secondary">
-                      Issued {new Date(invoice.issuedAt).toLocaleDateString()}
-                    </p>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <span className="rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-700">
-                      {invoice.status}
-                    </span>
-                    <span className="text-sm font-semibold text-text-primary">{invoice.amount}</span>
-                    <button
-                      type="button"
-                      className="rounded-full border border-border bg-card px-4 py-2 text-sm font-semibold text-text-secondary transition hover:bg-secondary/70 hover:text-text-primary"
-                      onClick={() => showToast(`Invoice ${invoice.label} download is coming soon`, "success")}
-                    >
-                      PDF
-                    </button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          <div className="space-y-6">
-            <div className="rounded-2xl border border-border bg-card/95 p-6 shadow-sm">
-              <h2 className="text-lg font-semibold text-text-primary">Plan comparison</h2>
-              <div className="mt-5 space-y-3">
-                {[
-                  {
-                    name: "Starter",
-                    detail: "Single workspace with lighter event and AI usage",
-                    action: "Downgrade"
-                  },
-                  {
-                    name: "Team",
-                    detail: "Current plan with organization support and alert coverage",
-                    action: "Current plan"
-                  },
-                  {
-                    name: "Scale",
-                    detail: "Higher ingest limits, stronger billing controls, and priority support",
-                    action: "Upgrade"
-                  }
-                ].map((plan) => (
-                  <div
-                    key={plan.name}
-                    className="rounded-2xl border border-border bg-secondary/20 px-4 py-4"
-                  >
-                    <div className="flex flex-wrap items-center justify-between gap-3">
-                      <div>
-                        <p className="text-sm font-semibold text-text-primary">{plan.name}</p>
-                        <p className="mt-1 text-sm text-text-secondary">{plan.detail}</p>
-                      </div>
-                      <button
-                        type="button"
-                        className={`rounded-full px-4 py-2 text-sm font-semibold transition ${
-                          plan.action === "Current plan"
-                            ? "border border-primary/30 bg-accent-soft text-text-primary"
-                            : "border border-border bg-card text-text-secondary hover:bg-secondary/70 hover:text-text-primary"
-                        }`}
-                        onClick={() => showToast(`${plan.action} flow is coming soon`, "success")}
-                      >
-                        {plan.action}
-                      </button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            <div className="tf-danger-surface rounded-2xl border p-6 shadow-sm">
-              <h2 className="text-lg font-semibold text-text-primary">Billing controls</h2>
-              <p className="mt-1 text-sm text-text-secondary">
-                Sensitive billing actions should stay deliberate and owner-controlled.
-              </p>
-              <div className="mt-5 space-y-3">
-                <div className="rounded-2xl border border-[hsl(var(--destructive-border))] bg-card/80 px-4 py-4">
-                  <p className="text-sm font-semibold text-text-primary">Cancel renewal</p>
-                  <p className="mt-1 text-sm text-text-secondary">
-                    Stop renewal at the end of the current billing cycle without losing access immediately.
-                  </p>
-                </div>
-                <button
-                  type="button"
-                  className="tf-danger-button rounded-full border px-4 py-2 text-sm font-semibold transition"
-                  onClick={() => showToast("Cancellation flow is coming soon", "error")}
-                >
-                  Cancel plan
-                </button>
-              </div>
-            </div>
           </div>
         </section>
       </div>

@@ -4,7 +4,9 @@ import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ChevronDown, Eye, EyeOff } from "lucide-react";
 import { THEMES } from "../../../../app/theme";
+import { LAYOUTS } from "../../../../app/layoutPreference";
 import { useAuth } from "../../../../context/AuthContext";
+import { useLayout } from "../../../../context/LayoutContext";
 import { useTheme } from "../../../../context/ThemeContext";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
@@ -18,6 +20,7 @@ export default function AccountDetailsPage() {
   const router = useRouter();
   const { token, user, login, logout } = useAuth();
   const { theme, setTheme } = useTheme();
+  const { layout, setLayout } = useLayout();
   const [toast, setToast] = useState<Toast | null>(null);
   const [busyAction, setBusyAction] = useState<string | null>(null);
   const [profileName, setProfileName] = useState(user?.fullName || "");
@@ -118,6 +121,12 @@ export default function AccountDetailsPage() {
     setTheme(value);
     const activeTheme = THEMES.find((item) => item.id === value);
     showToast(`${activeTheme?.name || "Theme"} applied`, "success");
+  };
+
+  const updateLayoutPreference = (value: (typeof LAYOUTS)[number]["id"]) => {
+    setLayout(value);
+    const active = LAYOUTS.find((item) => item.id === value);
+    showToast(`${active?.name || "Layout"} applied`, "success");
   };
 
   const requestPasswordReset = async () => {
@@ -442,7 +451,7 @@ export default function AccountDetailsPage() {
             <section className="rounded-2xl border border-border bg-card/90 p-5 shadow-sm 2xl:p-6">
               <h2 className="text-lg font-semibold text-text-primary">Appearance</h2>
               <p className="mt-1 text-sm text-text-secondary">
-                Choose from four production-ready palettes designed for calmer monitoring work.
+                Choose a theme and layout that best fits how you monitor production.
               </p>
 
               <div className="mt-5 grid gap-3">
@@ -489,6 +498,43 @@ export default function AccountDetailsPage() {
                     </button>
                   );
                 })}
+              </div>
+
+              <div className="mt-6 border-t border-border/70 pt-6">
+                <p className="text-sm font-semibold text-text-primary">Layout</p>
+                <p className="mt-1 text-sm text-text-secondary">
+                  Switch between three workspace layouts. Layout changes apply on desktop screens; mobile stays consistent.
+                </p>
+
+                <div className="mt-4 grid gap-3">
+                  {LAYOUTS.map((option) => {
+                    const isActive = layout === option.id;
+                    return (
+                      <button
+                        key={option.id}
+                        type="button"
+                        onClick={() => updateLayoutPreference(option.id)}
+                        className={`rounded-2xl border px-4 py-4 text-left transition ${
+                          isActive
+                            ? "border-primary/35 bg-accent-soft shadow-sm"
+                            : "border-border bg-secondary/25 hover:border-primary/20 hover:bg-card"
+                        }`}
+                      >
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="min-w-0">
+                            <p className="text-sm font-semibold text-text-primary">{option.name}</p>
+                            <p className="mt-1 text-sm text-text-secondary">{option.description}</p>
+                          </div>
+                          {isActive && (
+                            <span className="rounded-full bg-primary px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-primary-foreground">
+                              Active
+                            </span>
+                          )}
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
             </section>
 

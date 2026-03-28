@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
@@ -64,6 +64,14 @@ const featureCards = [
 ];
 
 export default function VerifyEmailPage() {
+  return (
+    <Suspense fallback={<div className="tf-page pb-20 pt-16" />}>
+      <VerifyEmailPageInner />
+    </Suspense>
+  );
+}
+
+function VerifyEmailPageInner() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const { login, isReady, token } = useAuth();

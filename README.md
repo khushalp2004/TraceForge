@@ -37,6 +37,26 @@ docker compose exec backend npm run prisma:migrate:deploy
 - Backend: http://localhost:3001
 - Health check: http://localhost:3001/health
 
+## Billing (Razorpay)
+The `/dashboard/billing` page uses Razorpay Checkout to upgrade a user from **Free** → **Pro**.
+
+1. Add these to `.env` (see `.env.example`):
+   - `RAZORPAY_KEY_ID`
+   - `RAZORPAY_KEY_SECRET`
+   - `RAZORPAY_WEBHOOK_SECRET` (recommended for reliability)
+2. Apply DB schema changes and restart:
+   - `docker compose exec backend npm run prisma:migrate:deploy`
+   - `docker compose restart backend`
+3. Open `/dashboard/billing` and click **Upgrade to Pro**.
+
+Webhook setup (optional but recommended):
+- Expose backend (e.g. `ngrok http 3001`) and set the webhook URL to `/api/payment/webhook`.
+
+Local test notes:
+- Use Razorpay **Test Mode** keys (`rzp_test_...`) so you can simulate successful and failed payments safely.
+- The frontend calls `POST /api/payment/create-order` → opens Razorpay Checkout → then calls `POST /api/payment/verify`.
+- Pro is activated only after server-side signature verification + Razorpay payment status check.
+
 ## Ingestion Test (Phase 3)
 1. Create a user + project to get an API key.
 2. Send a sample error:

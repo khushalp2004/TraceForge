@@ -15,6 +15,13 @@ model User {
   passwordHash String
   emailVerifiedAt DateTime?
   createdAt    DateTime               @default(now())
+  plan         BillingPlan            @default(FREE)
+  proPricingTier ProPricingTier?
+  subscriptionStatus String?
+  planExpiresAt DateTime?
+  lastPaymentProvider String?
+  lastPaymentId String?
+  razorpaySubscriptionId String?
   projects     Project[]
   alertRules   AlertRule[]
   memberships  OrganizationMember[]
@@ -24,6 +31,40 @@ model User {
   verificationCodes EmailVerificationCode[]
   joinRequests OrgJoinRequest[]       @relation("Requester")
   resolvedJoinRequests OrgJoinRequest[] @relation("Resolver")
+  payments     Payment[]
+}
+
+enum BillingPlan {
+  FREE
+  PRO
+}
+
+enum ProPricingTier {
+  LAUNCH
+  STANDARD
+}
+
+model Payment {
+  id                String      @id @default(cuid())
+  userId            String
+  provider          String
+  plan              BillingPlan
+  amount            Int
+  currency          String
+  status            String
+  razorpayOrderId   String?     @unique
+  razorpaySubscriptionId String?
+  razorpayPaymentId String?     @unique
+  capturedAt        DateTime?
+  expiresAt         DateTime?
+  payload           Json?
+  createdAt         DateTime    @default(now())
+  updatedAt         DateTime    @updatedAt
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@index([createdAt])
 }
 
 model EmailVerificationCode {

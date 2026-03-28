@@ -66,7 +66,7 @@ export default function SiteHeader() {
       ref={headerRef}
       className="sticky top-0 z-[60] border-b border-border/60 bg-background/75 backdrop-blur"
     >
-      <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-[30px] py-3">
+      <div className="tf-container flex items-center justify-between gap-4 px-[30px] py-3">
         <Link href="/" className="flex items-center gap-1">
           <Image
             src="/traceforge.png"
@@ -210,7 +210,7 @@ export default function SiteHeader() {
 
       {open ? (
         <div className="absolute inset-x-0 top-full z-[61] rounded-b-[32px] border-t border-border/60 bg-background/95 shadow-[0_20px_48px_hsl(var(--foreground)/0.08)] backdrop-blur-md lg:hidden">
-          <div className="mx-auto max-w-6xl px-[30px] pb-5 pt-3">
+          <div className="tf-container px-[30px] pb-5 pt-3">
             <div className="overflow-hidden rounded-[28px] border border-border bg-card/95 shadow-xl">
               {[
                 { label: "Product", href: "/product" },

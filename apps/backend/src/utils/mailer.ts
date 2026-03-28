@@ -1,4 +1,4 @@
-import nodemailer from "nodemailer";
+import nodemailer, { type Transporter } from "nodemailer";
 
 const smtpPort = Number(process.env.SMTP_PORT || 1025);
 const smtpHost = process.env.SMTP_HOST;
@@ -7,7 +7,7 @@ const smtpPass = process.env.SMTP_PASS;
 const smtpSecure = process.env.SMTP_SECURE === "true";
 const smtpFrom = process.env.SMTP_FROM || "TraceForge <no-reply@traceforge.local>";
 
-let transporterPromise: Promise<nodemailer.Transporter> | null = null;
+let transporterPromise: Promise<Transporter> | null = null;
 
 const createTransporter = async () => {
   if (!smtpHost) {

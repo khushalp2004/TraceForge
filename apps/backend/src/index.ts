@@ -1,5 +1,6 @@
 import "dotenv/config";
 import { createApp } from "./app.js";
+import { installTraceForge } from "./traceforge/install.js";
 import prisma from "./db/prisma.js";
 import { connectRedis, redis } from "./db/redis.js";
 
@@ -10,6 +11,7 @@ const start = async () => {
   await connectRedis();
 
   const app = createApp();
+  installTraceForge(app);
 
   const server = app.listen(port, () => {
     console.log(`TraceForge API listening on port ${port}`);

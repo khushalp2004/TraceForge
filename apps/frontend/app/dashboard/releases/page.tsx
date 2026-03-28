@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
 const tokenKey = "traceforge_token";
@@ -56,6 +57,17 @@ const healthClasses: Record<ReleaseHealth, string> = {
 };
 
 export default function ReleasesPage() {
+  return (
+    <Suspense fallback={<div className="tf-page tf-dashboard-page" />}>
+      <ReleasesPageInner />
+    </Suspense>
+  );
+}
+
+function ReleasesPageInner() {
+  const searchParams = useSearchParams();
+  const hydratedFromQuery = useRef(false);
+  const scrolledToHighlight = useRef(false);
   const [projects, setProjects] = useState<Project[]>([]);
   const [releases, setReleases] = useState<ReleaseItem[]>([]);
   const [summary, setSummary] = useState<ReleaseSummary>({
@@ -75,11 +87,25 @@ export default function ReleasesPage() {
   const [releaseEnvironment, setReleaseEnvironment] = useState("production");
   const [notes, setNotes] = useState("");
   const [releasedAt, setReleasedAt] = useState("");
+  const [highlightReleaseId, setHighlightReleaseId] = useState("");
 
   const showToast = (message: string, tone: Toast["tone"]) => {
     setToast({ message, tone });
     window.setTimeout(() => setToast(null), 2400);
   };
+
+  useEffect(() => {
+    if (hydratedFromQuery.current) return;
+    hydratedFromQuery.current = true;
+
+    const queryProjectId = searchParams.get("projectId") || "";
+    const queryEnvironment = searchParams.get("environment") || "";
+    const queryReleaseId = searchParams.get("releaseId") || "";
+
+    if (queryProjectId) setSelectedProjectId(queryProjectId);
+    if (queryEnvironment) setEnvironmentFilter(queryEnvironment);
+    if (queryReleaseId) setHighlightReleaseId(queryReleaseId);
+  }, [searchParams]);
 
   const loadProjects = async (token: string) => {
     const res = await fetch(`${API_URL}/projects`, {
@@ -137,6 +163,18 @@ export default function ReleasesPage() {
 
     void loadData();
   }, [selectedProjectId, environmentFilter]);
+
+  useEffect(() => {
+    if (loading) return;
+    if (!highlightReleaseId) return;
+    if (scrolledToHighlight.current) return;
+
+    const el = document.querySelector(`[data-release-id="${highlightReleaseId}"]`);
+    if (el instanceof HTMLElement) {
+      scrolledToHighlight.current = true;
+      el.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+  }, [highlightReleaseId, loading, releases.length]);
 
   const regressionRate = useMemo(() => {
     if (!summary.total) {
@@ -334,7 +372,12 @@ export default function ReleasesPage() {
             releases.map((release) => (
               <article
                 key={release.id}
-                className="rounded-2xl border border-border bg-card/95 p-5 shadow-sm transition hover:border-primary/25"
+                data-release-id={release.id}
+                className={`rounded-2xl border bg-card/95 p-5 shadow-sm transition hover:border-primary/25 ${
+                  highlightReleaseId && release.id === highlightReleaseId
+                    ? "border-primary/40 ring-2 ring-primary/15"
+                    : "border-border"
+                }`}
               >
                 <div className="flex flex-wrap items-start justify-between gap-4">
                   <div className="min-w-0 flex-1">

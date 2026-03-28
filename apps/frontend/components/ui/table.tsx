@@ -21,7 +21,8 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from './table-shadcn' // Placeholder - use CSS classes
+} from "./table-shadcn";
+import { Button } from "./button";
 
 interface DataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[]
@@ -43,7 +44,7 @@ export function DataTable<TData, TValue>({
     onSortingChange: setSorting,
     onColumnFiltersChange: setColumnFilters,
     getCoreRowModel: getCoreRowModel(),
-    getRowModel: getPaginationRowModel(),
+    getPaginationRowModel: getPaginationRowModel(),
     getSortedRowModel: getSortedRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
     getFacetedRowModel: getFacetedRowModel(),
@@ -127,4 +128,3 @@ export function DataTable<TData, TValue>({
     </div>
   )
 }
-
