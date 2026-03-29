@@ -123,6 +123,38 @@ const chooseProjectFolder = async (kind, entries) => {
     })), { placeHolder: `Select ${kind} folder (package.json)` });
     return pick?.entry ?? null;
 };
+const getSetupUrlFromIngestUrl = (ingestUrl) => {
+    try {
+        const url = new URL(ingestUrl);
+        url.pathname = `${url.pathname.replace(/\/$/, "")}/setup`;
+        return url.toString();
+    }
+    catch {
+        return "";
+    }
+};
+const markProjectConfigured = async (ingestUrl, projectKey) => {
+    const setupUrl = getSetupUrlFromIngestUrl(ingestUrl);
+    if (!setupUrl || !projectKey)
+        return { ok: false, reason: "invalid_setup_url" };
+    try {
+        const response = await fetch(setupUrl, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "X-Traceforge-Key": projectKey
+            },
+            body: JSON.stringify({ source: "extension" })
+        });
+        if (!response.ok) {
+            return { ok: false, reason: `setup_request_failed_${response.status}` };
+        }
+        return { ok: true };
+    }
+    catch {
+        return { ok: false, reason: "setup_request_unreachable" };
+    }
+};
 const ensureBackendFiles = async (backendRoot, ingestUrl, projectKey, backendProxyPath) => {
     const envUri = vscode.Uri.joinPath(backendRoot, ".env");
     await appendEnvVar(envUri, "TRACEFORGE_INGEST_URL", ingestUrl);
@@ -141,6 +173,19 @@ type CapturePayload = {
   environment?: string;
   release?: string;
   payload?: Record<string, unknown>;
+};
+
+const getSetupUrl = () => {
+  const ingestUrl = process.env.TRACEFORGE_INGEST_URL || "";
+  if (!ingestUrl) return "";
+
+  try {
+    const url = new URL(ingestUrl);
+    url.pathname = \`\${url.pathname.replace(/\\/$/, "")}/setup\`;
+    return url.toString();
+  } catch {
+    return "";
+  }
 };
 
 const captureToTraceForge = async (payload: CapturePayload) => {
@@ -162,6 +207,25 @@ const captureToTraceForge = async (payload: CapturePayload) => {
   }
 };
 
+const notifyTraceForgeConfigured = async (runtime: "backend" | "frontend") => {
+  const setupUrl = getSetupUrl();
+  const projectKey = process.env.TRACEFORGE_PROJECT_KEY || "";
+  if (!setupUrl || !projectKey) return;
+
+  try {
+    await fetch(setupUrl, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-Traceforge-Key": projectKey
+      },
+      body: JSON.stringify({ runtime })
+    });
+  } catch {
+    // ignore
+  }
+};
+
 const normalizeError = (err: unknown) => {
   if (err instanceof Error) {
     return { message: err.message || "Error", stackTrace: err.stack || err.message };
@@ -172,9 +236,27 @@ const normalizeError = (err: unknown) => {
 
 export const installTraceForge = (app: Express) => {
   const proxyPath = process.env.TRACEFORGE_PROXY_PATH || "/api/traceforge/ingest";
+  let setupSent = false;
+
+  const sendSetupSignal = async (runtime: "backend" | "frontend") => {
+    if (runtime === "backend" && setupSent) return;
+    await notifyTraceForgeConfigured(runtime);
+    if (runtime === "backend") {
+      setupSent = true;
+    }
+  };
+
+  void sendSetupSignal("backend");
 
   app.post(proxyPath, express.json({ limit: "1mb" }), async (req: Request, res: Response) => {
-    const { message, stackTrace, environment, release, payload } = (req.body || {}) as Partial<CapturePayload>;
+    const { type, runtime, message, stackTrace, environment, release, payload } = (req.body || {}) as
+      Partial<CapturePayload> & { type?: string; runtime?: "backend" | "frontend" };
+
+    if (type === "setup") {
+      await sendSetupSignal(runtime === "frontend" ? "frontend" : "backend");
+      return res.json({ ok: true, status: "configured" });
+    }
+
     if (!message || !stackTrace) {
       return res.status(400).json({ error: "message and stackTrace are required" });
     }
@@ -245,6 +327,38 @@ const captureToTraceForge = async (payload) => {
   }
 };
 
+const getSetupUrl = () => {
+  const ingestUrl = process.env.TRACEFORGE_INGEST_URL || "";
+  if (!ingestUrl) return "";
+
+  try {
+    const url = new URL(ingestUrl);
+    url.pathname = \`\${url.pathname.replace(/\\/$/, "")}/setup\`;
+    return url.toString();
+  } catch {
+    return "";
+  }
+};
+
+const notifyTraceForgeConfigured = async (runtime) => {
+  const setupUrl = getSetupUrl();
+  const projectKey = process.env.TRACEFORGE_PROJECT_KEY || "";
+  if (!setupUrl || !projectKey) return;
+
+  try {
+    await fetch(setupUrl, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-Traceforge-Key": projectKey
+      },
+      body: JSON.stringify({ runtime })
+    });
+  } catch {
+    // ignore
+  }
+};
+
 const normalizeError = (err) => {
   if (err instanceof Error) {
     return { message: err.message || "Error", stackTrace: err.stack || err.message };
@@ -255,9 +369,25 @@ const normalizeError = (err) => {
 
 export const installTraceForge = (app) => {
   const proxyPath = process.env.TRACEFORGE_PROXY_PATH || "/api/traceforge/ingest";
+  let setupSent = false;
+
+  const sendSetupSignal = async (runtime) => {
+    if (runtime === "backend" && setupSent) return;
+    await notifyTraceForgeConfigured(runtime);
+    if (runtime === "backend") {
+      setupSent = true;
+    }
+  };
+
+  void sendSetupSignal("backend");
 
   app.post(proxyPath, express.json({ limit: "1mb" }), async (req, res) => {
-    const { message, stackTrace, environment, release, payload } = req.body || {};
+    const { type, runtime, message, stackTrace, environment, release, payload } = req.body || {};
+    if (type === "setup") {
+      await sendSetupSignal(runtime === "frontend" ? "frontend" : "backend");
+      return res.json({ ok: true, status: "configured" });
+    }
+
     if (!message || !stackTrace) {
       return res.status(400).json({ error: "message and stackTrace are required" });
     }
@@ -307,12 +437,8 @@ export const installTraceForge = (app) => {
   });
 };
 `;
-    if (!(await fileExists(installTsUri))) {
-        await writeTextFile(installTsUri, installCodeTs);
-    }
-    if (!(await fileExists(installJsUri))) {
-        await writeTextFile(installJsUri, installCodeJs);
-    }
+    await writeTextFile(installTsUri, installCodeTs);
+    await writeTextFile(installJsUri, installCodeJs);
 };
 const patchBackendEntrypoint = async (entryUri, backendRoot) => {
     const doc = await vscode.workspace.openTextDocument(entryUri);
@@ -365,9 +491,20 @@ const patchBackendEntrypoint = async (entryUri, backendRoot) => {
         await doc.save();
     }
 };
-const ensureFrontendFiles = async (frontendRoot, backendProxyPath) => {
+const ensureFrontendFiles = async (frontendRoot, backendBaseUrl, backendProxyPath) => {
     await vscode.workspace.fs.createDirectory(vscode.Uri.joinPath(frontendRoot, "src", "traceforge"));
     const browserUri = vscode.Uri.joinPath(frontendRoot, "src", "traceforge", "browser.ts");
+    const proxyUrl = (() => {
+        if (!backendBaseUrl.trim()) {
+            return backendProxyPath;
+        }
+        try {
+            return new URL(backendProxyPath, backendBaseUrl).toString();
+        }
+        catch {
+            return backendProxyPath;
+        }
+    })();
     const browserCode = `type CapturePayload = {
   message: string;
   stackTrace: string;
@@ -376,7 +513,7 @@ const ensureFrontendFiles = async (frontendRoot, backendProxyPath) => {
   payload?: Record<string, unknown>;
 };
 
-const proxyPath = "${backendProxyPath}";
+const proxyUrl = "${proxyUrl}";
 
 const normalizeError = (err: unknown) => {
   if (err instanceof Error) {
@@ -388,7 +525,7 @@ const normalizeError = (err: unknown) => {
 
 const send = async (payload: CapturePayload) => {
   try {
-    await fetch(proxyPath, {
+    await fetch(proxyUrl, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(payload)
@@ -399,6 +536,12 @@ const send = async (payload: CapturePayload) => {
 };
 
 export const initTraceForgeBrowser = () => {
+  void fetch(proxyUrl, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ type: "setup", runtime: "frontend" })
+  }).catch(() => undefined);
+
   window.addEventListener("error", (event) => {
     const normalized = normalizeError(event.error ?? event.message);
     void send({ ...normalized });
@@ -443,6 +586,13 @@ const activate = (context) => {
         });
         if (!ingestUrl)
             return;
+        const backendBaseUrl = await vscode.window.showInputBox({
+            title: "Other app backend URL (optional)",
+            value: vscode.workspace.getConfiguration("traceforge").get("backendBaseUrl") || "",
+            prompt: "Example: http://localhost:4000. Leave empty if frontend and backend share the same origin."
+        });
+        if (backendBaseUrl === undefined)
+            return;
         const projectKey = await vscode.window.showInputBox({
             title: "TraceForge Project API key",
             password: true,
@@ -452,6 +602,7 @@ const activate = (context) => {
             return;
         await context.secrets.store(SECRET_KEY, projectKey);
         await vscode.workspace.getConfiguration("traceforge").update("ingestUrl", ingestUrl, vscode.ConfigurationTarget.Workspace);
+        await vscode.workspace.getConfiguration("traceforge").update("backendBaseUrl", backendBaseUrl, vscode.ConfigurationTarget.Workspace);
         vscode.window.showInformationMessage("TraceForge configured for this workspace.");
     }));
     context.subscriptions.push(vscode.commands.registerCommand("traceforge.initialize", async () => {
@@ -459,6 +610,7 @@ const activate = (context) => {
         if (!root)
             return;
         const ingestUrl = vscode.workspace.getConfiguration("traceforge").get("ingestUrl") || "http://localhost:3001/ingest";
+        const backendBaseUrl = vscode.workspace.getConfiguration("traceforge").get("backendBaseUrl") || "";
         const backendProxyPath = vscode.workspace.getConfiguration("traceforge").get("backendProxyPath") || "/api/traceforge/ingest";
         const projectKey = (await context.secrets.get(SECRET_KEY)) || "";
         if (!projectKey) {
@@ -504,12 +656,17 @@ const activate = (context) => {
         }
         if (frontend) {
             const frontendRoot = vscode.Uri.joinPath(root.uri, frontend.rel);
-            await ensureFrontendFiles(frontendRoot, backendProxyPath);
+            await ensureFrontendFiles(frontendRoot, backendBaseUrl, backendProxyPath);
         }
         else {
             vscode.window.showWarningMessage("No frontend detected. Backend instrumentation is ready.");
         }
-        vscode.window.showInformationMessage("TraceForge initialized in this workspace.");
+        const configurationResult = await markProjectConfigured(ingestUrl, projectKey);
+        if (!configurationResult.ok) {
+            vscode.window.showWarningMessage("TraceForge initialized in this workspace, but the setup handshake could not reach your TraceForge backend yet.");
+            return;
+        }
+        vscode.window.showInformationMessage("TraceForge initialized in this workspace and marked as configured.");
     }));
 };
 exports.activate = activate;

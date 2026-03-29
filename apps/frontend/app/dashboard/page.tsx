@@ -20,7 +20,6 @@ const dismissedJoinRequestsKey = "traceforge_dismissed_join_requests";
 const dismissedInviteNotificationsKey = "traceforge_dismissed_invite_notifications";
 const postAuthToastKey = "traceforge_post_auth_toast";
 const dashboardPrefsKey = "traceforge_dashboard_prefs_v1";
-
 type Org = {
   id: string;
   name: string;

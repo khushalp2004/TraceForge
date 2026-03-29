@@ -11,6 +11,29 @@ export const ingestRouter = Router();
 const currentMonthKey = (now: Date) =>
   `${now.getUTCFullYear()}-${String(now.getUTCMonth() + 1).padStart(2, "0")}`;
 
+ingestRouter.post("/setup", requireProjectApiKey, async (req, res) => {
+  const projectId = req.project?.id;
+  if (!projectId) {
+    return res.status(401).json({ error: "Unauthorized" });
+  }
+
+  const now = new Date();
+  const project = await prisma.project.findUnique({
+    where: { id: projectId },
+    select: { configuredAt: true }
+  });
+
+  await prisma.project.update({
+    where: { id: projectId },
+    data: {
+      configuredAt: project?.configuredAt ?? now,
+      lastConfiguredAt: now
+    }
+  });
+
+  return res.json({ status: "configured", configuredAt: now.toISOString() });
+});
+
 ingestRouter.post("/", requireProjectApiKey, ingestRateLimit(), async (req, res) => {
   const { message, stackTrace, environment, payload, release } = req.body as {
     message?: string;

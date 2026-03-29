@@ -187,13 +187,15 @@ model OrgJoinRequest {
 }
 
 model Project {
-  id         String   @id @default(cuid())
-  userId     String
-  orgId      String?
-  name       String
-  apiKey     String   @unique
-  createdAt  DateTime @default(now())
-  archivedAt DateTime?
+  id               String    @id @default(cuid())
+  userId           String
+  orgId            String?
+  name             String
+  apiKey           String    @unique
+  createdAt        DateTime  @default(now())
+  archivedAt       DateTime?
+  configuredAt     DateTime?
+  lastConfiguredAt DateTime?
 
   user   User          @relation(fields: [userId], references: [id])
   org    Organization? @relation(fields: [orgId], references: [id])

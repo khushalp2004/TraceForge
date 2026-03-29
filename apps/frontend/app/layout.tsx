@@ -5,7 +5,6 @@ import { LayoutProvider } from "../context/LayoutContext";
 import { ThemeProvider } from "../context/ThemeContext";
 import { GlobalSearchProvider } from "./components/GlobalSearchProvider";
 import MarketingShell from "./components/MarketingShell";
-import TraceForgeBrowserInit from "./components/TraceForgeBrowserInit";
 import { SITE_DESCRIPTION, SITE_KEYWORDS, SITE_NAME, siteUrl } from "./seo";
 import { DEFAULT_THEME, isDarkTheme, THEME_STORAGE_KEY } from "./theme";
 import { DEFAULT_LAYOUT, LAYOUT_STORAGE_KEY } from "./layoutPreference";
@@ -109,7 +108,6 @@ export default function RootLayout({
         <script dangerouslySetInnerHTML={{ __html: themeBootScript }} />
         <script dangerouslySetInnerHTML={{ __html: layoutBootScript }} />
         <ThemeProvider>
-          <TraceForgeBrowserInit />
           <LayoutProvider>
             <AuthProvider>
               <GlobalSearchProvider>

@@ -2298,6 +2298,9 @@ body{
 .border-amber-200\/90{
   border-color: rgb(253 230 138 / 0.9);
 }
+.border-amber-500\/25{
+  border-color: rgb(245 158 11 / 0.25);
+}
 .border-black\/5{
   border-color: rgb(0 0 0 / 0.05);
 }
@@ -2319,6 +2322,9 @@ body{
 }
 .border-emerald-200\/90{
   border-color: rgb(167 243 208 / 0.9);
+}
+.border-emerald-500\/25{
+  border-color: rgb(16 185 129 / 0.25);
 }
 .border-input{
   border-color: hsl(var(--input));
@@ -3556,6 +3562,16 @@ body{
 
 .data-\[state\=selected\]\:bg-secondary\/30[data-state="selected"]{
   background-color: hsl(var(--secondary) / 0.3);
+}
+
+.dark\:text-amber-300:is(.dark *){
+  --tw-text-opacity: 1;
+  color: rgb(252 211 77 / var(--tw-text-opacity, 1));
+}
+
+.dark\:text-emerald-300:is(.dark *){
+  --tw-text-opacity: 1;
+  color: rgb(110 231 183 / var(--tw-text-opacity, 1));
 }
 
 @media (max-width: 639px){

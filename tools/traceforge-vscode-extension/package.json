@@ -42,6 +42,11 @@
           "type": "string",
           "default": "/api/traceforge/ingest",
           "description": "Backend proxy path used by the frontend integration."
+        },
+        "traceforge.backendBaseUrl": {
+          "type": "string",
+          "default": "",
+          "description": "Optional absolute backend app URL for frontend-to-backend TraceForge proxy requests in split-origin setups."
         }
       }
     }

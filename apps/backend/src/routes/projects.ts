@@ -7,6 +7,65 @@ export const projectsRouter = Router();
 
 projectsRouter.use(requireAuth);
 
+const projectSelect = {
+  id: true,
+  name: true,
+  apiKey: true,
+  createdAt: true,
+  archivedAt: true,
+  configuredAt: true,
+  lastConfiguredAt: true,
+  orgId: true,
+  errors: {
+    where: { archivedAt: null },
+    orderBy: { lastSeen: "desc" as const },
+    take: 1,
+    select: { lastSeen: true }
+  },
+  _count: {
+    select: {
+      errors: {
+        where: { archivedAt: null }
+      }
+    }
+  }
+} as const;
+
+const serializeProject = <
+  T extends {
+    id: string;
+    name: string;
+    apiKey: string;
+    createdAt: Date;
+    archivedAt: Date | null;
+    configuredAt: Date | null;
+    lastConfiguredAt: Date | null;
+    orgId: string | null;
+    errors: Array<{ lastSeen: Date }>;
+    _count: { errors: number };
+  }
+>(
+  project: T
+ ) => {
+  const legacyConfigured = project._count.errors > 0;
+  const isConfigured = Boolean(project.configuredAt || legacyConfigured);
+
+  return {
+  id: project.id,
+  name: project.name,
+  apiKey: project.apiKey,
+  createdAt: project.createdAt,
+  archivedAt: project.archivedAt,
+  configuredAt: project.configuredAt ?? (legacyConfigured ? project.errors[0]?.lastSeen ?? null : null),
+  lastConfiguredAt: project.lastConfiguredAt ?? (legacyConfigured ? project.errors[0]?.lastSeen ?? null : null),
+  orgId: project.orgId,
+  telemetryStatus: isConfigured ? "configured" : "not_configured",
+  configurationSource: project.configuredAt ? "handshake" : legacyConfigured ? "legacy_telemetry" : "pending",
+  lastEventAt: project.errors[0]?.lastSeen ?? null,
+  eventCount: project._count.errors
+  };
+};
+
 const getUserOrgIds = async (userId: string) => {
   const memberships = await prisma.organizationMember.findMany({
     where: { userId },
@@ -30,10 +89,10 @@ projectsRouter.get("/", async (req, res) => {
       OR: [{ userId }, { orgId: { in: orgIds } }]
     },
     orderBy: { createdAt: "desc" },
-    select: { id: true, name: true, apiKey: true, createdAt: true, archivedAt: true, orgId: true }
+    select: projectSelect
   });
 
-  return res.json({ projects });
+  return res.json({ projects: projects.map(serializeProject) });
 });
 
 projectsRouter.post("/", async (req, res) => {
@@ -96,10 +155,10 @@ projectsRouter.post("/", async (req, res) => {
       apiKey,
       orgId: normalizedOrgId ?? null
     },
-    select: { id: true, name: true, apiKey: true, createdAt: true, archivedAt: true, orgId: true }
+    select: projectSelect
   });
 
-  return res.status(201).json({ project });
+  return res.status(201).json({ project: serializeProject(project) });
 });
 
 projectsRouter.post("/:id/rotate-key", async (req, res) => {
@@ -144,10 +203,10 @@ projectsRouter.post("/:id/rotate-key", async (req, res) => {
   const updated = await prisma.project.update({
     where: { id: projectId },
     data: { apiKey: newKey },
-    select: { id: true, name: true, apiKey: true, createdAt: true, archivedAt: true, orgId: true }
+    select: projectSelect
   });
 
-  return res.json({ project: updated });
+  return res.json({ project: serializeProject(updated) });
 });
 
 projectsRouter.post("/:id/restore", async (req, res) => {
@@ -186,10 +245,10 @@ projectsRouter.post("/:id/restore", async (req, res) => {
   const updated = await prisma.project.update({
     where: { id: projectId },
     data: { archivedAt: null },
-    select: { id: true, name: true, apiKey: true, createdAt: true, archivedAt: true, orgId: true }
+    select: projectSelect
   });
 
-  return res.json({ project: updated });
+  return res.json({ project: serializeProject(updated) });
 });
 
 projectsRouter.delete("/:id", async (req, res) => {
@@ -233,8 +292,8 @@ projectsRouter.delete("/:id", async (req, res) => {
   const updated = await prisma.project.update({
     where: { id: projectId },
     data: { archivedAt: new Date() },
-    select: { id: true, name: true, apiKey: true, createdAt: true, archivedAt: true, orgId: true }
+    select: projectSelect
   });
 
-  return res.json({ project: updated });
+  return res.json({ project: serializeProject(updated) });
 });

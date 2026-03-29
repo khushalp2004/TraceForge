@@ -21,12 +21,31 @@ type Project = {
   createdAt: string;
   orgId?: string | null;
   archivedAt?: string | null;
+  configuredAt?: string | null;
+  lastConfiguredAt?: string | null;
+  telemetryStatus: "configured" | "not_configured";
+  configurationSource: "handshake" | "legacy_telemetry" | "pending";
+  lastEventAt?: string | null;
+  eventCount: number;
 };
 
 type Toast = {
   message: string;
   tone: "success" | "error";
 };
+
+const getProjectStatusMeta = (project: Project) =>
+  project.telemetryStatus === "configured"
+    ? {
+        label: "Configured",
+        className:
+          "border-emerald-500/25 bg-emerald-500/12 text-emerald-700 dark:text-emerald-300"
+      }
+    : {
+        label: "Not configured",
+        className:
+          "border-amber-500/25 bg-amber-500/12 text-amber-700 dark:text-amber-300"
+      };
 
 export default function ProjectSettingsPage() {
   const [projects, setProjects] = useState<Project[]>([]);
@@ -284,6 +303,9 @@ export default function ProjectSettingsPage() {
             <p className="mt-2 text-sm text-text-secondary">
               Rotate keys and archive projects you no longer need.
             </p>
+            <p className="mt-2 text-xs text-text-secondary">
+              New projects use setup detection. Older projects with existing telemetry stay marked as configured too.
+            </p>
           </div>
           <div className="flex flex-wrap items-center gap-3">
             <label className="flex items-center gap-2 rounded-full border border-border bg-card/90 px-3 py-2 text-xs font-semibold text-text-secondary">
@@ -330,6 +352,25 @@ export default function ProjectSettingsPage() {
         <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
           {activeProjects.map((project) => (
             <div key={project.id} className="tf-card p-5">
+              {(() => {
+                const status = getProjectStatusMeta(project);
+                return (
+                  <div className="mb-4 flex items-center justify-between gap-3">
+                    <span
+                      className={`inline-flex rounded-full border px-2.5 py-1 text-[11px] font-semibold ${status.className}`}
+                    >
+                      {status.label}
+                    </span>
+                    <span className="text-[11px] text-text-secondary">
+                      {project.lastConfiguredAt
+                        ? project.configurationSource === "legacy_telemetry"
+                          ? `Legacy activity ${new Date(project.lastConfiguredAt).toLocaleDateString()}`
+                          : `Detected ${new Date(project.lastConfiguredAt).toLocaleDateString()}`
+                        : "Waiting for setup handshake"}
+                    </span>
+                  </div>
+                );
+              })()}
               <div className="flex items-start justify-between gap-3">
                 <div>
                   <h2 className="text-base font-semibold text-text-primary">{project.name}</h2>
@@ -355,6 +396,11 @@ export default function ProjectSettingsPage() {
                     ? project.apiKey
                     : project.apiKey.replace(/.(?=.{6})/g, "•")}
                 </p>
+              </div>
+              <div className="mt-3 flex flex-wrap items-center gap-2 text-[11px] text-text-secondary">
+                <span className="rounded-full border border-border bg-secondary/60 px-2.5 py-1">
+                  {project.eventCount} {project.eventCount === 1 ? "issue group" : "issue groups"}
+                </span>
               </div>
               <div className="mt-3 flex flex-wrap items-center gap-2">
                 <button className="tf-pill" onClick={() => copyApiKey(project.apiKey)}>
