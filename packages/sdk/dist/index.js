@@ -1,6 +1,16 @@
 let config = null;
 let autoCaptureInitialized = false;
+let setupHandshakeSent = false;
 const defaultEndpoint = "http://localhost:3001/ingest";
+const getIngestEndpoint = () => config?.endpoint || defaultEndpoint;
+const getSetupEndpoint = () => {
+    const endpoint = getIngestEndpoint();
+    const normalized = endpoint.replace(/\/+$/, "");
+    if (normalized.endsWith("/setup")) {
+        return normalized;
+    }
+    return `${normalized}/setup`;
+};
 const ensureConfig = () => {
     if (!config) {
         throw new Error("TraceForge not initialized. Call TraceForge.init({ apiKey }) first.");
@@ -39,6 +49,7 @@ const buildEvent = (error, extras) => {
         message,
         stackTrace,
         environment: extras?.environment || config?.environment,
+        release: extras?.release || config?.release,
         payload: extras?.payload,
         tags: { ...config?.tags, ...extras?.tags }
     };
@@ -51,7 +62,7 @@ const sendEvent = async (event) => {
     if (!processed) {
         return;
     }
-    await fetch(config.endpoint || defaultEndpoint, {
+    await fetch(getIngestEndpoint(), {
         method: "POST",
         headers: {
             "Content-Type": "application/json",
@@ -64,6 +75,29 @@ const capture = async (error, extras) => {
     ensureConfig();
     const event = buildEvent(error, extras);
     await sendEvent(event);
+};
+const sendSetupHandshake = async () => {
+    if (!config?.apiKey || setupHandshakeSent) {
+        return;
+    }
+    setupHandshakeSent = true;
+    try {
+        await fetch(getSetupEndpoint(), {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "X-Traceforge-Key": config.apiKey
+            },
+            body: JSON.stringify({
+                environment: config.environment,
+                release: config.release,
+                tags: config.tags
+            })
+        });
+    }
+    catch {
+        setupHandshakeSent = false;
+    }
 };
 const setupAutoCapture = () => {
     if (autoCaptureInitialized)
@@ -87,11 +121,18 @@ const setupAutoCapture = () => {
 };
 const TraceForge = {
     init: (options) => {
+        const previousApiKey = config?.apiKey ?? null;
+        const previousEndpoint = config?.endpoint ?? defaultEndpoint;
         config = {
             endpoint: defaultEndpoint,
             autoCapture: false,
             ...options
         };
+        const currentEndpoint = config.endpoint || defaultEndpoint;
+        if (previousApiKey !== config.apiKey || previousEndpoint !== currentEndpoint) {
+            setupHandshakeSent = false;
+        }
+        void sendSetupHandshake();
         if (config.autoCapture) {
             setupAutoCapture();
         }
@@ -100,4 +141,11 @@ const TraceForge = {
         await capture(error, extras);
     }
 };
+const init = (options) => {
+    TraceForge.init(options);
+};
+const captureException = async (error, extras) => {
+    await TraceForge.captureException(error, extras);
+};
 export default TraceForge;
+export { init, captureException };

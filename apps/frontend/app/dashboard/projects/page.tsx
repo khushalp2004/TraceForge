@@ -24,7 +24,7 @@ type Project = {
   configuredAt?: string | null;
   lastConfiguredAt?: string | null;
   telemetryStatus: "configured" | "not_configured";
-  configurationSource: "handshake" | "legacy_telemetry" | "pending";
+  configurationSource: "handshake" | "legacy_telemetry" | "stale" | "pending";
   lastEventAt?: string | null;
   eventCount: number;
 };
@@ -304,7 +304,7 @@ export default function ProjectSettingsPage() {
               Rotate keys and archive projects you no longer need.
             </p>
             <p className="mt-2 text-xs text-text-secondary">
-              New projects use setup detection. Older projects with existing telemetry stay marked as configured too.
+              Projects stay configured while recent setup or telemetry signals are still being received.
             </p>
           </div>
           <div className="flex flex-wrap items-center gap-3">
@@ -363,9 +363,11 @@ export default function ProjectSettingsPage() {
                     </span>
                     <span className="text-[11px] text-text-secondary">
                       {project.lastConfiguredAt
-                        ? project.configurationSource === "legacy_telemetry"
-                          ? `Legacy activity ${new Date(project.lastConfiguredAt).toLocaleDateString()}`
-                          : `Detected ${new Date(project.lastConfiguredAt).toLocaleDateString()}`
+                        ? project.telemetryStatus === "configured"
+                          ? project.configurationSource === "legacy_telemetry"
+                            ? `Legacy activity ${new Date(project.lastConfiguredAt).toLocaleDateString()}`
+                            : `Detected ${new Date(project.lastConfiguredAt).toLocaleDateString()}`
+                          : `Last detected ${new Date(project.lastConfiguredAt).toLocaleDateString()}`
                         : "Waiting for setup handshake"}
                     </span>
                   </div>

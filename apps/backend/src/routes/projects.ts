@@ -31,6 +31,10 @@ const projectSelect = {
   }
 } as const;
 
+const PROJECT_CONFIGURATION_STALE_DAYS = 30;
+const PROJECT_CONFIGURATION_STALE_MS =
+  PROJECT_CONFIGURATION_STALE_DAYS * 24 * 60 * 60 * 1000;
+
 const serializeProject = <
   T extends {
     id: string;
@@ -47,8 +51,24 @@ const serializeProject = <
 >(
   project: T
  ) => {
-  const legacyConfigured = project._count.errors > 0;
-  const isConfigured = Boolean(project.configuredAt || legacyConfigured);
+  const now = Date.now();
+  const lastEventAt = project.errors[0]?.lastSeen ?? null;
+  const lastSignalAt = project.lastConfiguredAt ?? project.configuredAt ?? lastEventAt;
+  const handshakeFresh = Boolean(
+    project.lastConfiguredAt &&
+      now - project.lastConfiguredAt.getTime() <= PROJECT_CONFIGURATION_STALE_MS
+  );
+  const legacyConfigured = Boolean(
+    lastEventAt && now - lastEventAt.getTime() <= PROJECT_CONFIGURATION_STALE_MS
+  );
+  const isConfigured = handshakeFresh || legacyConfigured;
+  const configurationSource = isConfigured
+    ? handshakeFresh
+      ? "handshake"
+      : "legacy_telemetry"
+    : lastSignalAt
+      ? "stale"
+      : "pending";
 
   return {
   id: project.id,
@@ -56,12 +76,12 @@ const serializeProject = <
   apiKey: project.apiKey,
   createdAt: project.createdAt,
   archivedAt: project.archivedAt,
-  configuredAt: project.configuredAt ?? (legacyConfigured ? project.errors[0]?.lastSeen ?? null : null),
-  lastConfiguredAt: project.lastConfiguredAt ?? (legacyConfigured ? project.errors[0]?.lastSeen ?? null : null),
+  configuredAt: project.configuredAt ?? lastEventAt,
+  lastConfiguredAt: project.lastConfiguredAt ?? lastEventAt,
   orgId: project.orgId,
   telemetryStatus: isConfigured ? "configured" : "not_configured",
-  configurationSource: project.configuredAt ? "handshake" : legacyConfigured ? "legacy_telemetry" : "pending",
-  lastEventAt: project.errors[0]?.lastSeen ?? null,
+  configurationSource,
+  lastEventAt,
   eventCount: project._count.errors
   };
 };

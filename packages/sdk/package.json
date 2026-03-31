@@ -1,11 +1,29 @@
 {
-  "name": "traceforge-js",
-  "version": "0.1.0",
+  "name": "usetraceforge",
+  "version": "0.1.5",
   "private": false,
+  "description": "TraceForge JavaScript SDK for sending errors to a TraceForge ingest endpoint.",
   "type": "module",
   "main": "dist/index.js",
   "module": "dist/index.js",
   "types": "dist/index.d.ts",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/khushalp2004/TraceForge.git",
+    "directory": "packages/sdk"
+  },
+  "homepage": "https://usetraceforge.com/docs",
+  "bugs": {
+    "url": "https://github.com/khushalp2004/TraceForge/issues"
+  },
+  "keywords": [
+    "traceforge",
+    "monitoring",
+    "error-tracking",
+    "observability",
+    "javascript",
+    "sdk"
+  ],
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
@@ -18,10 +36,14 @@
   "scripts": {
     "build": "npx tsc -p tsconfig.json",
     "dev": "tsx src/index.ts",
-    "prepack": "npm run build"
+    "prepack": "npm run build",
+    "publish:public": "npm publish --access public"
   },
   "license": "MIT",
   "sideEffects": false,
+  "publishConfig": {
+    "access": "public"
+  },
   "dependencies": {},
   "devDependencies": {
     "typescript": "^5.5.4",

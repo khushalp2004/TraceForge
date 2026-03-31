@@ -73,25 +73,57 @@ curl -X POST http://localhost:3001/ingest \
   }'
 ```
 
-## SDK (Local Publish Workflow)
-Build and pack the SDK locally:
+## SDK (Local Pack Workflow)
+Build and test the SDK locally before publishing:
 
 ```bash
 cd packages/sdk
+npm run build
 npm pack
 ```
 
 Install the generated tarball in a local app:
 
 ```bash
-npm install /path/to/traceforge-js-0.1.0.tgz
+npm install /path/to/usetraceforge-0.1.4.tgz
+```
+
+## SDK (npm Publish Workflow)
+Publish the SDK so users can install it with `npm install usetraceforge`:
+
+```bash
+cd packages/sdk
+npm login
+npm run build
+npm version patch
+npm publish --access public
+```
+
+After publish, consumers can install it in any app with:
+
+```bash
+npm install usetraceforge
+```
+
+Basic usage:
+
+```ts
+import TraceForge from "usetraceforge";
+
+TraceForge.init({
+  apiKey: process.env.TRACEFORGE_API_KEY!,
+  endpoint: process.env.TRACEFORGE_INGEST_URL,
+  autoCapture: true,
+  environment: process.env.TRACEFORGE_ENV,
+  release: process.env.TRACEFORGE_RELEASE
+});
 ```
 
 ## Project Layout
 - `apps/backend` - Express API (TypeScript)
 - `apps/frontend` - Next.js UI (Tailwind)
 - `apps/worker` - AI worker service (TypeScript)
-- `packages/sdk` - SDK (scaffold)
+- `packages/sdk` - publishable TraceForge SDK
 - `packages/shared` - shared types/utilities (scaffold)
 - `docker/postgres` - DB init scripts
 
@@ -112,12 +144,3 @@ curl -X POST http://localhost:3001/ingest \\
   -H "X-Traceforge-Key: YOUR_API_KEY" \\
   -d '{\"message\":\"Test error\",\"stackTrace\":\"at test.js:42\"}'
 ```
-
-## SDK
-```
-cd packages/sdk && npm pack
-# Install tgz in your app: npm i traceforge-js-0.1.0.tgz
-```
-
-**Deploy Next?** AWS ECS + RDS + S3.
-# TraceForge
