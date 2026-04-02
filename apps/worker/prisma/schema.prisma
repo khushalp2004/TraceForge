@@ -143,6 +143,7 @@ model Project {
   orgId           String?
   name            String
   apiKey          String          @unique
+  aiModel         String          @default("groq/compound")
   createdAt       DateTime        @default(now())
   archivedAt      DateTime?
 
@@ -167,6 +168,10 @@ model Error {
   lastSeen        DateTime        @default(now())
   count           Int             @default(1)
   archivedAt      DateTime?
+  aiStatus        ErrorAiStatus   @default(PENDING)
+  aiLastError     String?
+  aiRequestedAt   DateTime?
+  aiCompletedAt   DateTime?
 
   project         Project         @relation(fields: [projectId], references: [id])
   events          ErrorEvent[]
@@ -202,6 +207,13 @@ model ErrorAnalysis {
   createdAt     DateTime @default(now())
 
   error Error @relation(fields: [errorId], references: [id])
+}
+
+enum ErrorAiStatus {
+  PENDING
+  PROCESSING
+  READY
+  FAILED
 }
 
 enum AlertSeverity {

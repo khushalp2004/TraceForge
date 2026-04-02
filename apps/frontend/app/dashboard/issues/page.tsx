@@ -23,8 +23,12 @@ type Issue = {
   stackTrace: string;
   count: number;
   lastSeen: string;
+  aiStatus: "PENDING" | "PROCESSING" | "READY" | "FAILED";
+  aiRequestedAt?: string | null;
+  aiLastError?: string | null;
   analysis?: {
     aiExplanation: string;
+    suggestedFix?: string | null;
   } | null;
 };
 
@@ -74,6 +78,19 @@ const formatRelative = (value: string) => {
 
   const diffDays = Math.round(diffHours / 24);
   return `${diffDays}d ago`;
+};
+
+const wait = (ms: number) => new Promise((resolve) => window.setTimeout(resolve, ms));
+const hasAiResult = (issue: Pick<Issue, "analysis">) => Boolean(issue.analysis?.aiExplanation);
+const hasAiRequest = (issue: Pick<Issue, "aiRequestedAt" | "analysis">) =>
+  Boolean(issue.aiRequestedAt || issue.analysis?.aiExplanation);
+const getAiSummary = (issue: Pick<Issue, "analysis">) => issue.analysis?.aiExplanation?.trim() ?? "";
+const getAiBadgeLabel = (issue: Pick<Issue, "aiStatus" | "aiRequestedAt" | "analysis">) => {
+  if (hasAiResult(issue)) return "AI solution ready";
+  if (issue.aiStatus === "FAILED" && hasAiRequest(issue)) return "AI failed";
+  if (issue.aiStatus === "PROCESSING") return "AI generating";
+  if (issue.aiStatus === "PENDING" && hasAiRequest(issue)) return "AI queued";
+  return "AI not generated";
 };
 
 export default function IssuesPage() {
@@ -307,12 +324,53 @@ function IssuesPageInner() {
 
       const data = await res.json();
       if (!res.ok) {
-        throw new Error(data.error || "Failed to regenerate AI");
+        throw new Error(data.error || "Failed to generate AI solution");
       }
 
-      showToast("AI regeneration queued", "success");
+      let ready = false;
+      let failed = false;
+      const queueDepth = typeof data.queueDepth === "number" ? data.queueDepth : 0;
+      for (let attempt = 0; attempt < 8; attempt += 1) {
+        await wait(1200);
+
+        const detailRes = await fetch(`${API_URL}/errors/${issueId}`, {
+          headers: {
+            Authorization: `Bearer ${token}`
+          }
+        });
+
+        if (!detailRes.ok) {
+          continue;
+        }
+
+        const detailData = await detailRes.json();
+        if (
+          detailData.error?.aiStatus === "READY" &&
+          detailData.error?.analysis?.aiExplanation
+        ) {
+          ready = true;
+          break;
+        }
+
+        if (detailData.error?.aiStatus === "FAILED") {
+          failed = true;
+          break;
+        }
+      }
+
+      await loadIssues(token);
+      showToast(
+        ready
+          ? "AI solution ready"
+          : failed
+          ? "AI solution failed. Check the issue for details."
+          : queueDepth > 1
+          ? `Your AI request is in queue (${queueDepth} pending). It will appear when processing finishes.`
+          : "Your AI request is in queue. It will appear when processing finishes.",
+        failed ? "error" : "success"
+      );
     } catch (err) {
-      showToast(err instanceof Error ? err.message : "Failed to regenerate AI", "error");
+      showToast(err instanceof Error ? err.message : "Failed to generate AI solution", "error");
     } finally {
       setRegeneratingId(null);
     }
@@ -666,7 +724,7 @@ function IssuesPageInner() {
                             {project?.name ?? "Unknown project"}
                           </span>
                           <span className="rounded-full border border-border bg-card px-2.5 py-1 text-xs font-semibold text-text-secondary">
-                            {issue.analysis ? "AI analyzed" : "AI pending"}
+                            {getAiBadgeLabel(issue)}
                           </span>
                         </div>
 
@@ -681,11 +739,26 @@ function IssuesPageInner() {
                         {issue.analysis?.aiExplanation && (
                           <div className="mt-4 rounded-2xl border border-border bg-secondary/50 px-4 py-3">
                             <p className="text-xs font-semibold uppercase tracking-[0.14em] text-text-secondary">
-                              AI summary
+                              Summary
                             </p>
                             <p className="mt-2 text-sm text-text-secondary">
-                              {issue.analysis.aiExplanation}
+                              {getAiSummary(issue)}
                             </p>
+                            <Link
+                              className="mt-3 inline-flex items-center rounded-full border border-primary/20 bg-accent-soft px-3 py-1.5 text-xs font-semibold text-primary transition hover:border-primary/35 hover:bg-accent-soft/80"
+                              href={`/dashboard/errors/${issue.id}`}
+                            >
+                              View in detail
+                            </Link>
+                          </div>
+                        )}
+
+                        {issue.aiStatus === "FAILED" && hasAiRequest(issue) && issue.aiLastError && (
+                          <div className="mt-4 rounded-2xl border border-red-200 bg-red-50 px-4 py-3">
+                            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-red-700">
+                              AI generation failed
+                            </p>
+                            <p className="mt-2 text-sm text-red-700">{issue.aiLastError}</p>
                           </div>
                         )}
                       </div>
@@ -732,26 +805,40 @@ function IssuesPageInner() {
 
                             <div className="grid gap-2 sm:grid-cols-2">
                               <button
-                                className="inline-flex w-full items-center justify-center gap-2 rounded-full border border-border bg-card px-4 py-2.5 text-sm font-semibold text-text-secondary transition hover:bg-secondary/70 hover:text-text-primary"
+                                className="tf-button-ghost inline-flex h-10 w-full items-center justify-center gap-1.5 px-3 py-2 text-[13px]"
                                 onClick={() => copyStackTrace(issue.stackTrace)}
                               >
-                                <Copy className="h-4 w-4" />
-                                Copy stack
+                                <Copy className="h-3.5 w-3.5" />
+                                Copy
                               </button>
 
                               {viewMode === "active" ? (
                                 <button
-                                  className="inline-flex w-full items-center justify-center gap-2 rounded-full border border-border bg-card px-4 py-2.5 text-sm font-semibold text-text-secondary transition hover:bg-secondary/70 hover:text-text-primary"
+                                  className="tf-button inline-flex h-10 w-full items-center justify-center gap-1.5 px-3 py-2 text-[13px] text-center"
                                   onClick={() => regenerateIssue(issue.id)}
                                   disabled={regeneratingId === issue.id}
                                 >
-                                  <Sparkles className="h-4 w-4" />
-                                  {regeneratingId === issue.id ? "Regenerating..." : "Regenerate AI"}
+                                  {regeneratingId === issue.id ? (
+                                    <Sparkles className="h-3.5 w-3.5 shrink-0 animate-pulse" />
+                                  ) : issue.aiStatus === "FAILED" && hasAiRequest(issue) ? (
+                                    <RotateCcw className="h-3.5 w-3.5 shrink-0" />
+                                  ) : hasAiResult(issue) ? (
+                                    <RotateCcw className="h-3.5 w-3.5 shrink-0" />
+                                  ) : (
+                                    <Sparkles className="h-3.5 w-3.5 shrink-0" />
+                                  )}
+                                  {regeneratingId === issue.id
+                                    ? "Generating..."
+                                    : issue.aiStatus === "FAILED" && hasAiRequest(issue)
+                                    ? "Regenerate"
+                                    : hasAiResult(issue)
+                                    ? "Regenerate"
+                                    : "Generate"}
                                 </button>
                               ) : (
                                 <button
                                   type="button"
-                                  className="inline-flex w-full items-center justify-center gap-2 rounded-full border border-border bg-card px-4 py-2.5 text-sm font-semibold text-text-secondary transition hover:bg-secondary/70 hover:text-text-primary"
+                                  className="tf-button-ghost inline-flex h-11 w-full items-center justify-center gap-2 px-4 py-2 text-sm"
                                   onClick={() => restoreIssue(issue.id)}
                                   disabled={restoringIssueId === issue.id}
                                 >
@@ -889,8 +976,8 @@ function IssuesPageInner() {
                 </p>
               </div>
 
-              <div className="rounded-2xl border border-dashed border-amber-200 bg-amber-50/70 px-4 py-3">
-                <p className="text-sm font-medium text-amber-800">
+              <div className="rounded-2xl border border-dashed border-amber-500/25 bg-amber-500/12 px-4 py-3">
+                <p className="text-sm font-medium text-amber-700 dark:text-amber-300">
                   Archived issues stay in the system, but they no longer appear in the active
                   issues inbox.
                 </p>
@@ -900,7 +987,7 @@ function IssuesPageInner() {
             <div className="mt-5 flex items-center justify-end gap-3">
               <button
                 type="button"
-                className="min-w-[144px] rounded-full border border-border bg-white px-4 py-2 text-sm font-semibold text-text-secondary transition hover:bg-secondary/50 hover:text-text-primary"
+                className="tf-button-ghost inline-flex min-w-[144px] items-center justify-center px-4 py-2 text-sm"
                 onClick={() => setArchiveTarget(null)}
                 disabled={archivingIssueId === archiveTarget.id}
               >

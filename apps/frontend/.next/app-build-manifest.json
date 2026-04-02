@@ -11,6 +11,16 @@
       "static/css/app/layout.css",
       "static/chunks/app/layout.js"
     ],
+    "/dashboard/page": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/dashboard/page.js"
+    ],
+    "/dashboard/layout": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/dashboard/layout.js"
+    ],
     "/signin/page": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
@@ -26,55 +36,35 @@
       "static/chunks/main-app.js",
       "static/chunks/app/verify/page.js"
     ],
-    "/dashboard/page": [
+    "/dashboard/errors/[id]/page": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
-      "static/chunks/app/dashboard/page.js"
-    ],
-    "/dashboard/layout": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/chunks/app/dashboard/layout.js"
+      "static/chunks/app/dashboard/errors/[id]/page.js"
     ],
     "/dashboard/projects/page": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
       "static/chunks/app/dashboard/projects/page.js"
     ],
-    "/dashboard/releases/page": [
+    "/dashboard/issues/page": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
-      "static/chunks/app/dashboard/releases/page.js"
+      "static/chunks/app/dashboard/issues/page.js"
     ],
-    "/docs/page": [
+    "/dashboard/alerts/page": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
-      "static/chunks/app/docs/page.js"
+      "static/chunks/app/dashboard/alerts/page.js"
     ],
-    "/docs/reference/page": [
+    "/dashboard/orgs/page": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
-      "static/chunks/app/docs/reference/page.js"
+      "static/chunks/app/dashboard/orgs/page.js"
     ],
     "/dashboard/insights/page": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
       "static/chunks/app/dashboard/insights/page.js"
-    ],
-    "/dashboard/billing/page": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/chunks/app/dashboard/billing/page.js"
-    ],
-    "/dashboard/errors/[id]/page": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/chunks/app/dashboard/errors/[id]/page.js"
-    ],
-    "/dashboard/issues/page": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/chunks/app/dashboard/issues/page.js"
     ]
   }
 }

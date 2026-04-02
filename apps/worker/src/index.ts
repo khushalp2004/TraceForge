@@ -8,20 +8,40 @@ const RETENTION_DAYS = 15;
 const CLEANUP_INTERVAL_MS = 60 * 60 * 1000;
 const currentMonthKey = (now: Date) =>
   `${now.getUTCFullYear()}-${String(now.getUTCMonth() + 1).padStart(2, "0")}`;
+const formatDetailedSolution = (input: {
+  rootCause: string;
+  recommendedFix: string;
+  nextSteps: string[];
+}) =>
+  [
+    `Root cause\n${input.rootCause}`,
+    `Recommended fix\n${input.recommendedFix}`,
+    `Next steps\n${input.nextSteps.map((step) => `• ${step}`).join("\n")}`
+  ].join("\n\n");
 
 const processError = async (errorId: string) => {
   const errorRecord = await prisma.error.findUnique({
     where: { id: errorId },
-    include: { analysis: true, project: { select: { userId: true } } }
+    include: { analysis: true, project: { select: { userId: true, aiModel: true } } }
   });
 
   if (!errorRecord) {
     return;
   }
 
-  if (errorRecord.analysis) {
+  if (errorRecord.analysis && errorRecord.aiStatus === "READY") {
     return;
   }
+
+  await prisma.error.update({
+    where: { id: errorRecord.id },
+    data: {
+      aiStatus: "PROCESSING",
+      aiLastError: null,
+      aiRequestedAt: errorRecord.aiRequestedAt ?? new Date(),
+      aiCompletedAt: null
+    }
+  });
 
   const ownerId = errorRecord.project.userId;
   const now = new Date();
@@ -45,6 +65,14 @@ const processError = async (errorId: string) => {
 
       if (current > limit) {
         await redis.decr(usageKey);
+        await prisma.error.update({
+          where: { id: errorRecord.id },
+          data: {
+            aiStatus: "FAILED",
+            aiLastError: "Monthly AI analysis limit reached for this account.",
+            aiCompletedAt: new Date()
+          }
+        });
         return;
       }
     } else {
@@ -61,22 +89,59 @@ const processError = async (errorId: string) => {
       });
 
       if (used >= limit) {
+        await prisma.error.update({
+          where: { id: errorRecord.id },
+          data: {
+            aiStatus: "FAILED",
+            aiLastError: "Monthly AI analysis limit reached for this account.",
+            aiCompletedAt: new Date()
+          }
+        });
         return;
       }
     }
   }
 
-  const explanation = await generateExplanation({
-    message: errorRecord.message,
-    stackTrace: errorRecord.stackTrace
-  });
+  try {
+    const explanation = await generateExplanation({
+      message: errorRecord.message,
+      stackTrace: errorRecord.stackTrace,
+      model: errorRecord.project.aiModel
+    });
 
-  await prisma.errorAnalysis.create({
-    data: {
-      errorId: errorRecord.id,
-      aiExplanation: explanation
-    }
-  });
+    await prisma.errorAnalysis.upsert({
+      where: { errorId: errorRecord.id },
+      update: {
+        aiExplanation: explanation.summary,
+        suggestedFix: formatDetailedSolution(explanation)
+      },
+      create: {
+        errorId: errorRecord.id,
+        aiExplanation: explanation.summary,
+        suggestedFix: formatDetailedSolution(explanation)
+      }
+    });
+
+    await prisma.error.update({
+      where: { id: errorRecord.id },
+      data: {
+        aiStatus: "READY",
+        aiLastError: null,
+        aiCompletedAt: new Date()
+      }
+    });
+  } catch (error) {
+    await prisma.error.update({
+      where: { id: errorRecord.id },
+      data: {
+        aiStatus: "FAILED",
+        aiLastError: error instanceof Error ? error.message : "AI generation failed.",
+        aiCompletedAt: new Date()
+      }
+    });
+
+    throw error;
+  }
 };
 
 const cleanupArchivedData = async () => {
@@ -240,7 +305,7 @@ const start = async () => {
         continue;
       }
 
-      const [, errorId] = result;
+      const errorId = result.element;
       await processError(errorId);
     } catch (error) {
       console.error("Worker error", error);

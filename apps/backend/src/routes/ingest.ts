@@ -140,14 +140,13 @@ ingestRouter.post("/", requireProjectApiKey, ingestRateLimit(), async (req, res)
         hash,
         firstSeen: now,
         lastSeen: now,
-        count: 1
+        count: 1,
+        aiStatus: "PENDING",
+        aiLastError: null,
+        aiRequestedAt: null,
+        aiCompletedAt: null
       }
     });
-
-    // Enqueue for AI analysis
-    if (redis.isOpen) {
-      await redis.lPush("ai:queue", errorRecord.id);
-    }
   }
 
   let releaseRecord = null;

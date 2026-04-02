@@ -2,6 +2,12 @@ import { Router } from "express";
 import crypto from "crypto";
 import prisma from "../db/prisma.js";
 import { requireAuth } from "../middleware/auth.js";
+import {
+  defaultAiModel,
+  isSupportedAiModel,
+  resolveAiModel,
+  supportedAiModels
+} from "../utils/aiModels.js";
 
 export const projectsRouter = Router();
 
@@ -11,6 +17,7 @@ const projectSelect = {
   id: true,
   name: true,
   apiKey: true,
+  aiModel: true,
   createdAt: true,
   archivedAt: true,
   configuredAt: true,
@@ -40,6 +47,7 @@ const serializeProject = <
     id: string;
     name: string;
     apiKey: string;
+    aiModel: string;
     createdAt: Date;
     archivedAt: Date | null;
     configuredAt: Date | null;
@@ -74,6 +82,7 @@ const serializeProject = <
   id: project.id,
   name: project.name,
   apiKey: project.apiKey,
+  aiModel: resolveAiModel(project.aiModel),
   createdAt: project.createdAt,
   archivedAt: project.archivedAt,
   configuredAt: project.configuredAt ?? lastEventAt,
@@ -112,13 +121,22 @@ projectsRouter.get("/", async (req, res) => {
     select: projectSelect
   });
 
-  return res.json({ projects: projects.map(serializeProject) });
+  return res.json({
+    projects: projects.map(serializeProject),
+    availableAiModels: supportedAiModels,
+    defaultAiModel
+  });
 });
 
 projectsRouter.post("/", async (req, res) => {
   const userId = req.user?.id;
-  const { name, orgId } = req.body as { name?: string; orgId?: string };
+  const { name, orgId, aiModel } = req.body as {
+    name?: string;
+    orgId?: string;
+    aiModel?: string;
+  };
   const normalizedOrgId = orgId?.trim() || undefined;
+  const normalizedAiModel = aiModel?.trim() || defaultAiModel;
 
   if (!userId) {
     return res.status(401).json({ error: "Unauthorized" });
@@ -126,6 +144,10 @@ projectsRouter.post("/", async (req, res) => {
 
   if (!name || name.trim().length < 2) {
     return res.status(400).json({ error: "Project name is required" });
+  }
+
+  if (!isSupportedAiModel(normalizedAiModel)) {
+    return res.status(400).json({ error: "Unsupported AI model" });
   }
 
   if (normalizedOrgId) {
@@ -173,7 +195,8 @@ projectsRouter.post("/", async (req, res) => {
       userId,
       name: name.trim(),
       apiKey,
-      orgId: normalizedOrgId ?? null
+      orgId: normalizedOrgId ?? null,
+      aiModel: normalizedAiModel
     },
     select: projectSelect
   });
@@ -223,6 +246,57 @@ projectsRouter.post("/:id/rotate-key", async (req, res) => {
   const updated = await prisma.project.update({
     where: { id: projectId },
     data: { apiKey: newKey },
+    select: projectSelect
+  });
+
+  return res.json({ project: serializeProject(updated) });
+});
+
+projectsRouter.post("/:id/ai-model", async (req, res) => {
+  const userId = req.user?.id;
+  const projectId = req.params.id;
+  const { aiModel } = req.body as { aiModel?: string };
+
+  if (!userId) {
+    return res.status(401).json({ error: "Unauthorized" });
+  }
+
+  if (!aiModel || !isSupportedAiModel(aiModel)) {
+    return res.status(400).json({ error: "Unsupported AI model" });
+  }
+
+  const project = await prisma.project.findUnique({
+    where: { id: projectId }
+  });
+
+  if (!project) {
+    return res.status(404).json({ error: "Project not found" });
+  }
+
+  if (project.orgId) {
+    const membership = await prisma.organizationMember.findUnique({
+      where: {
+        organizationId_userId: {
+          organizationId: project.orgId,
+          userId
+        }
+      }
+    });
+
+    if (!membership || membership.role !== "OWNER") {
+      return res.status(403).json({ error: "Only org owners can update AI model" });
+    }
+  } else if (project.userId !== userId) {
+    return res.status(403).json({ error: "Forbidden" });
+  }
+
+  if (project.archivedAt) {
+    return res.status(400).json({ error: "Archived project cannot update AI model" });
+  }
+
+  const updated = await prisma.project.update({
+    where: { id: projectId },
+    data: { aiModel },
     select: projectSelect
   });
 

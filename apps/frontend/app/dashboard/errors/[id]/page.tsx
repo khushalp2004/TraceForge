@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import { Copy, RotateCcw, Sparkles } from "lucide-react";
 import { useDebouncedValue } from "../../../hooks/useDebouncedValue";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
@@ -21,6 +22,9 @@ type ErrorDetail = {
   count: number;
   firstSeen: string;
   lastSeen: string;
+  aiStatus: "PENDING" | "PROCESSING" | "READY" | "FAILED";
+  aiRequestedAt?: string | null;
+  aiLastError?: string | null;
   analysis?: { aiExplanation: string; suggestedFix?: string | null } | null;
   events: ErrorEvent[];
   project: { id: string; name: string };
@@ -50,6 +54,15 @@ const parseStack = (stackTrace: string): Frame[] => {
     });
 };
 
+const wait = (ms: number) => new Promise((resolve) => window.setTimeout(resolve, ms));
+const hasAiResult = (detail: Pick<ErrorDetail, "analysis">) => Boolean(detail.analysis?.aiExplanation);
+const hasAiRequest = (detail: Pick<ErrorDetail, "aiRequestedAt" | "analysis">) =>
+  Boolean(detail.aiRequestedAt || detail.analysis?.aiExplanation);
+const getAiSummary = (detail: Pick<ErrorDetail, "analysis">) =>
+  detail.analysis?.aiExplanation?.trim() ?? "";
+const getAiDetail = (detail: Pick<ErrorDetail, "analysis">) =>
+  detail.analysis?.suggestedFix?.trim() ?? "";
+
 export default function ErrorDetailPage({ params }: { params: { id: string } }) {
   const [errorDetail, setErrorDetail] = useState<ErrorDetail | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -59,6 +72,8 @@ export default function ErrorDetailPage({ params }: { params: { id: string } }) 
   const [showAllFrames, setShowAllFrames] = useState(false);
   const [copyStatus, setCopyStatus] = useState<string | null>(null);
   const [regenerating, setRegenerating] = useState(false);
+  const [aiStatus, setAiStatus] = useState<string | null>(null);
+  const [showAiDetail, setShowAiDetail] = useState(false);
   const debouncedPayloadSearch = useDebouncedValue(payloadSearch, 200);
 
   const loadDetail = async () => {
@@ -66,7 +81,7 @@ export default function ErrorDetailPage({ params }: { params: { id: string } }) 
     if (!token) {
       setError("Missing auth token. Please log in again.");
       setLoading(false);
-      return;
+      return null;
     }
 
     try {
@@ -80,8 +95,13 @@ export default function ErrorDetailPage({ params }: { params: { id: string } }) 
       }
 
       setErrorDetail(data.error);
+      if (!data.error?.analysis?.suggestedFix) {
+        setShowAiDetail(false);
+      }
+      return data.error as ErrorDetail;
     } catch (err) {
       setError(err instanceof Error ? err.message : "Unexpected error");
+      return null;
     } finally {
       setLoading(false);
     }
@@ -108,6 +128,7 @@ export default function ErrorDetailPage({ params }: { params: { id: string } }) 
     if (!token) return;
 
     setRegenerating(true);
+    setAiStatus(null);
     try {
       const res = await fetch(`${API_URL}/errors/${params.id}/regenerate`, {
         method: "POST",
@@ -116,10 +137,35 @@ export default function ErrorDetailPage({ params }: { params: { id: string } }) 
 
       const data = await res.json();
       if (!res.ok) {
-        throw new Error(data.error || "Failed to regenerate explanation");
+        throw new Error(data.error || "Failed to generate AI solution");
       }
 
-      await loadDetail();
+      let ready = false;
+      let failed = false;
+      const queueDepth = typeof data.queueDepth === "number" ? data.queueDepth : 0;
+      for (let attempt = 0; attempt < 8; attempt += 1) {
+        await wait(1200);
+        const detail = await loadDetail();
+        if (detail?.aiStatus === "READY" && detail?.analysis?.aiExplanation) {
+          ready = true;
+          break;
+        }
+
+        if (detail?.aiStatus === "FAILED") {
+          failed = true;
+          break;
+        }
+      }
+
+      setAiStatus(
+        ready
+          ? "AI solution ready."
+          : failed
+          ? "AI solution failed. Check the details below."
+          : queueDepth > 1
+          ? `Your AI request is under queue (${queueDepth} pending). It will appear when processing finishes.`
+          : "Your AI request is under queue. It will appear when processing finishes."
+      );
     } catch (err) {
       setError(err instanceof Error ? err.message : "Unexpected error");
     } finally {
@@ -173,6 +219,7 @@ export default function ErrorDetailPage({ params }: { params: { id: string } }) 
   const frames = parseStack(errorDetail.stackTrace);
   const visibleFrames = showAllFrames ? frames : frames.slice(0, 6);
   const payloadEventCount = errorDetail.events.filter((event) => !!event.payload).length;
+  const aiAnalysis = errorDetail.analysis;
 
   return (
     <main className="tf-page tf-dashboard-page">
@@ -192,18 +239,37 @@ export default function ErrorDetailPage({ params }: { params: { id: string } }) 
               </p>
             </div>
             <div className="flex flex-wrap items-center gap-3">
+              {aiStatus && (
+                <span className="text-xs font-semibold text-text-secondary">{aiStatus}</span>
+              )}
               <button
-                className="tf-button-ghost px-4 py-2 text-sm"
+                className="tf-button-ghost inline-flex items-center gap-2 px-4 py-2 text-sm"
                 onClick={handleCopyStack}
               >
+                <Copy className="h-4 w-4" />
                 {copyStatus ?? "Copy stack"}
               </button>
               <button
-                className="tf-button px-4 py-2 text-sm"
+                className="tf-button inline-flex items-center gap-2 px-4 py-2 text-sm"
                 onClick={handleRegenerate}
                 disabled={regenerating}
               >
-                {regenerating ? "Regenerating..." : "Regenerate AI"}
+                {regenerating ? (
+                  <Sparkles className="h-4 w-4 animate-pulse" />
+                ) : errorDetail.aiStatus === "FAILED" && hasAiRequest(errorDetail) ? (
+                  <RotateCcw className="h-4 w-4" />
+                ) : hasAiResult(errorDetail) ? (
+                  <RotateCcw className="h-4 w-4" />
+                ) : (
+                  <Sparkles className="h-4 w-4" />
+                )}
+                {regenerating
+                  ? "Generating..."
+                  : errorDetail.aiStatus === "FAILED" && hasAiRequest(errorDetail)
+                  ? "Retry AI solution"
+                  : hasAiResult(errorDetail)
+                  ? "Regenerate AI solution"
+                  : "Generate AI solution"}
               </button>
             </div>
           </div>
@@ -373,33 +439,64 @@ export default function ErrorDetailPage({ params }: { params: { id: string } }) 
           <div className="space-y-6">
             <section className="rounded-3xl border border-border bg-card/95 p-6 shadow-sm">
               <p className="text-xs font-semibold uppercase tracking-[0.14em] text-text-secondary">
-                AI summary
+                AI solution
               </p>
               <h2 className="mt-2 text-xl font-semibold text-text-primary">
-                Suggested debugging direction
+                Suggested solution and debugging direction
               </h2>
-              {errorDetail.analysis?.aiExplanation ? (
+              {hasAiResult(errorDetail) && aiAnalysis ? (
                 <>
-                  <p className="mt-4 text-sm leading-7 text-text-secondary">
-                    {errorDetail.analysis.aiExplanation}
-                  </p>
-                  {errorDetail.analysis.suggestedFix && (
-                    <div className="mt-4 rounded-2xl border border-primary/20 bg-accent-soft px-4 py-4">
-                      <p className="text-xs font-semibold uppercase tracking-[0.14em] text-primary">
-                        Suggested fix
+                  <div className="mt-4 grid gap-4">
+                    <div className="rounded-2xl border border-border bg-secondary/20 px-4 py-4">
+                      <p className="text-xs font-semibold uppercase tracking-[0.14em] text-text-secondary">
+                        Summary
                       </p>
-                      <p className="mt-2 text-sm text-text-primary">
-                        {errorDetail.analysis.suggestedFix}
+                      <p className="mt-2 text-sm leading-7 text-text-secondary">
+                        {getAiSummary(errorDetail)}
                       </p>
                     </div>
-                  )}
+                    {getAiDetail(errorDetail) && (
+                      <div className="rounded-2xl border border-primary/20 bg-accent-soft px-4 py-4">
+                        <div className="flex flex-wrap items-center justify-between gap-3">
+                          <div>
+                            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-primary">
+                              Detailed solution
+                            </p>
+                            <p className="mt-1 text-sm text-text-secondary">
+                              Open the full AI reasoning only when you need deeper debugging help.
+                            </p>
+                          </div>
+                          <button
+                            type="button"
+                            className="rounded-full border border-primary/20 bg-card px-3 py-1.5 text-xs font-semibold text-primary transition hover:border-primary/35 hover:bg-card/80"
+                            onClick={() => setShowAiDetail(true)}
+                          >
+                            View in detail
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
                 </>
               ) : (
                 <div className="mt-4 rounded-2xl border border-dashed border-border bg-secondary/20 px-4 py-4">
-                  <p className="text-sm font-semibold text-text-primary">AI summary pending</p>
-                  <p className="mt-1 text-sm text-text-secondary">
-                    Regenerate the summary when you want a fresh explanation for this grouped issue.
+                  <p className="text-sm font-semibold text-text-primary">
+                    {hasAiRequest(errorDetail) ? "AI solution queued" : "AI solution not generated"}
                   </p>
+                  <p className="mt-1 text-sm text-text-secondary">
+                    {hasAiRequest(errorDetail)
+                      ? "Your request is under queue or currently generating. Refresh shortly if the result does not appear automatically."
+                      : "Generate an AI solution when you want a fresh explanation and suggested fix for this grouped issue."}
+                  </p>
+                </div>
+              )}
+
+              {errorDetail.aiStatus === "FAILED" && hasAiRequest(errorDetail) && errorDetail.aiLastError && (
+                <div className="mt-4 rounded-2xl border border-red-200 bg-red-50 px-4 py-4">
+                  <p className="text-xs font-semibold uppercase tracking-[0.14em] text-red-700">
+                    AI generation failed
+                  </p>
+                  <p className="mt-2 text-sm text-red-700">{errorDetail.aiLastError}</p>
                 </div>
               )}
             </section>
@@ -420,24 +517,71 @@ export default function ErrorDetailPage({ params }: { params: { id: string } }) 
                 </Link>
                 <button
                   type="button"
-                  className="tf-button-ghost flex w-full items-center justify-center px-4 py-2 text-sm"
+                  className="tf-button-ghost flex w-full items-center justify-center gap-2 px-4 py-2 text-sm"
                   onClick={handleCopyStack}
                 >
+                  <Copy className="h-4 w-4" />
                   {copyStatus ?? "Copy full stack trace"}
                 </button>
                 <button
                   type="button"
-                  className="tf-button-ghost flex w-full items-center justify-center px-4 py-2 text-sm"
+                  className="tf-button-ghost flex w-full items-center justify-center gap-2 px-4 py-2 text-sm"
                   onClick={handleRegenerate}
                   disabled={regenerating}
                 >
-                  {regenerating ? "Regenerating..." : "Regenerate AI summary"}
+                  {regenerating ? (
+                    <Sparkles className="h-4 w-4 animate-pulse" />
+                  ) : errorDetail.aiStatus === "FAILED" && hasAiRequest(errorDetail) ? (
+                    <RotateCcw className="h-4 w-4" />
+                  ) : hasAiResult(errorDetail) ? (
+                    <RotateCcw className="h-4 w-4" />
+                  ) : (
+                    <Sparkles className="h-4 w-4" />
+                  )}
+                  {regenerating
+                    ? "Generating..."
+                    : errorDetail.aiStatus === "FAILED" && hasAiRequest(errorDetail)
+                    ? "Retry AI solution"
+                    : hasAiResult(errorDetail)
+                    ? "Regenerate AI solution"
+                    : "Generate AI solution"}
                 </button>
               </div>
             </section>
           </div>
         </section>
       </div>
+
+      {showAiDetail && getAiDetail(errorDetail) && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 px-6">
+          <div className="w-full max-w-2xl rounded-[28px] border border-border bg-card/95 p-6 shadow-xl backdrop-blur">
+            <div className="flex flex-wrap items-start justify-between gap-4">
+              <div>
+                <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-primary">
+                  AI Solution
+                </p>
+                <h3 className="mt-2 font-display text-lg font-semibold text-text-primary">
+                  Detailed debugging guidance
+                </h3>
+                <p className="mt-2 text-sm text-text-secondary">
+                  Review the full AI reasoning without expanding the main issue page layout.
+                </p>
+              </div>
+              <button
+                type="button"
+                className="tf-button-ghost px-4 py-2 text-sm"
+                onClick={() => setShowAiDetail(false)}
+              >
+                Close
+              </button>
+            </div>
+
+            <div className="mt-5 whitespace-pre-wrap rounded-2xl border border-primary/15 bg-secondary/20 px-4 py-4 text-sm leading-7 text-text-primary">
+              {getAiDetail(errorDetail)}
+            </div>
+          </div>
+        </div>
+      )}
     </main>
   );
 }

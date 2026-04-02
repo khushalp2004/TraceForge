@@ -262,9 +262,10 @@ export default function AccountDetailsPage() {
 
       const data = await res.json();
       if (!res.ok) {
-        const blockers = data.blockers
-          ? ` Projects: ${data.blockers.projects}. Organizations: ${data.blockers.memberships}.`
-          : "";
+        const blockers =
+          data.blockers?.organizations && Array.isArray(data.blockers.organizations)
+            ? ` Organizations requiring handoff: ${data.blockers.organizations.join(", ")}.`
+            : "";
         throw new Error((data.error || "Failed to delete account") + blockers);
       }
 
@@ -702,8 +703,9 @@ export default function AccountDetailsPage() {
               Delete account permanently
             </h3>
             <p className="mt-2 text-sm text-text-secondary">
-              This action cannot be undone. If you still belong to organizations or still own
-              projects, deletion will be blocked until those are resolved first.
+              This action cannot be undone. Personal projects will be removed automatically.
+              Organization projects are reassigned to another member when possible. Deletion is
+              only blocked when an organization has nobody else to hand work off to.
             </p>
 
             <div className="mt-5 rounded-2xl border border-[hsl(var(--destructive)/0.25)] bg-[hsl(var(--destructive)/0.08)] px-4 py-4">

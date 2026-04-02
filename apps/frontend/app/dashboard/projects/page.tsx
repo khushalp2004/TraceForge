@@ -18,6 +18,7 @@ type Project = {
   id: string;
   name: string;
   apiKey: string;
+  aiModel: string;
   createdAt: string;
   orgId?: string | null;
   archivedAt?: string | null;
@@ -32,6 +33,12 @@ type Project = {
 type Toast = {
   message: string;
   tone: "success" | "error";
+};
+
+type AiModelOption = {
+  id: string;
+  label: string;
+  description: string;
 };
 
 const getProjectStatusMeta = (project: Project) =>
@@ -60,6 +67,10 @@ export default function ProjectSettingsPage() {
   const [revealedProjectId, setRevealedProjectId] = useState<string | null>(null);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [newProjectName, setNewProjectName] = useState("");
+  const [availableAiModels, setAvailableAiModels] = useState<AiModelOption[]>([]);
+  const [defaultAiModel, setDefaultAiModel] = useState("groq/compound");
+  const [newProjectAiModel, setNewProjectAiModel] = useState("groq/compound");
+  const [updatingAiModelProjectId, setUpdatingAiModelProjectId] = useState<string | null>(null);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -127,6 +138,9 @@ export default function ProjectSettingsPage() {
       }
 
       setProjects(projectsData.projects || []);
+      setAvailableAiModels(projectsData.availableAiModels || []);
+      setDefaultAiModel(projectsData.defaultAiModel || "groq/compound");
+      setNewProjectAiModel(projectsData.defaultAiModel || "groq/compound");
       if (orgsRes.ok) {
         setOrgs(orgsData.orgs || []);
       }
@@ -265,7 +279,11 @@ export default function ProjectSettingsPage() {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`
         },
-        body: JSON.stringify({ name: newProjectName, orgId: selectedOrgId || undefined })
+        body: JSON.stringify({
+          name: newProjectName,
+          orgId: selectedOrgId || undefined,
+          aiModel: newProjectAiModel || defaultAiModel
+        })
       });
 
       const data = await res.json();
@@ -275,6 +293,7 @@ export default function ProjectSettingsPage() {
 
       setProjects((prev) => [data.project, ...prev]);
       setNewProjectName("");
+      setNewProjectAiModel(defaultAiModel);
       setShowCreateModal(false);
       showToast("Project created", "success");
     } catch (err) {
@@ -282,6 +301,39 @@ export default function ProjectSettingsPage() {
       showToast("Failed to create project", "error");
     } finally {
       setLoading(false);
+    }
+  };
+
+  const updateProjectAiModel = async (projectId: string, aiModel: string) => {
+    const token = localStorage.getItem(tokenKey);
+    if (!token) return;
+
+    setUpdatingAiModelProjectId(projectId);
+    try {
+      const res = await fetch(`${API_URL}/projects/${projectId}/ai-model`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({ aiModel })
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || "Failed to update AI model");
+      }
+
+      setProjects((prev) =>
+        prev.map((project) => (project.id === projectId ? data.project : project))
+      );
+      showToast("AI model updated", "success");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Unexpected error");
+      showToast("Failed to update AI model", "error");
+      await loadProjects();
+    } finally {
+      setUpdatingAiModelProjectId(null);
     }
   };
 
@@ -404,6 +456,29 @@ export default function ProjectSettingsPage() {
                   {project.eventCount} {project.eventCount === 1 ? "issue group" : "issue groups"}
                 </span>
               </div>
+              <div className="mt-4 rounded-xl border border-border bg-card/70 px-3 py-3">
+                <label className="block">
+                  <span className="text-[11px] font-semibold uppercase tracking-[0.14em] text-text-secondary">
+                    AI model
+                  </span>
+                  <select
+                    className="tf-select mt-2 w-full"
+                    value={project.aiModel}
+                    onChange={(event) => updateProjectAiModel(project.id, event.target.value)}
+                    disabled={loading || updatingAiModelProjectId === project.id}
+                  >
+                    {availableAiModels.map((model) => (
+                      <option key={model.id} value={model.id}>
+                        {model.label}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <p className="mt-2 text-xs text-text-secondary">
+                  {availableAiModels.find((model) => model.id === project.aiModel)?.description ||
+                    "Choose the AI model used for solutions in this project."}
+                </p>
+              </div>
               <div className="mt-3 flex flex-wrap items-center gap-2">
                 <button className="tf-pill" onClick={() => copyApiKey(project.apiKey)}>
                   Copy
@@ -491,6 +566,26 @@ export default function ProjectSettingsPage() {
               value={newProjectName}
               onChange={(event) => setNewProjectName(event.target.value)}
             />
+            <label className="mt-4 block">
+              <span className="text-xs font-semibold uppercase tracking-[0.14em] text-text-secondary">
+                AI model
+              </span>
+              <select
+                className="tf-select mt-2 w-full"
+                value={newProjectAiModel}
+                onChange={(event) => setNewProjectAiModel(event.target.value)}
+              >
+                {availableAiModels.map((model) => (
+                  <option key={model.id} value={model.id}>
+                    {model.label}
+                  </option>
+                ))}
+              </select>
+              <p className="mt-2 text-xs text-text-secondary">
+                {availableAiModels.find((model) => model.id === newProjectAiModel)?.description ||
+                  "Choose the default AI model for this project."}
+              </p>
+            </label>
             {error && <p className="mt-3 text-xs text-red-500">{error}</p>}
             <div className="mt-5 flex items-center justify-end gap-3">
               <button

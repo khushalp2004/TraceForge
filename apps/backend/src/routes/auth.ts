@@ -18,6 +18,9 @@ const passwordPolicyMessage =
   "Password must be 10-64 characters and include uppercase, lowercase, number, and special character.";
 const isStrongEnoughPassword = (password: string) => passwordPolicy.test(password);
 const normalizeEmail = (email: string) => email.trim().toLowerCase();
+const chooseTransferTarget = (
+  members: Array<{ userId: string; role: "OWNER" | "MEMBER" }>
+) => members.find((member) => member.role === "OWNER") ?? members[0] ?? null;
 
 authRouter.get("/me", requireAuth, async (req, res) => {
   const userId = req.user?.id;
@@ -387,54 +390,221 @@ authRouter.delete("/account", requireAuth, async (req, res) => {
     return res.status(401).json({ error: "Password confirmation is incorrect" });
   }
 
-  const [projectCount, membershipCount] = await Promise.all([
-    prisma.project.count({
-      where: { userId }
-    }),
-    prisma.organizationMember.count({
-      where: { userId }
-    })
-  ]);
+  const memberships = await prisma.organizationMember.findMany({
+    where: { userId },
+    include: {
+      organization: {
+        select: {
+          id: true,
+          name: true
+        }
+      }
+    }
+  });
 
-  if (projectCount > 0 || membershipCount > 0) {
+  const orgIds = memberships.map((membership) => membership.organizationId);
+  const otherMembers = orgIds.length
+    ? await prisma.organizationMember.findMany({
+        where: {
+          organizationId: { in: orgIds },
+          userId: { not: userId }
+        },
+        select: {
+          organizationId: true,
+          userId: true,
+          role: true
+        }
+      })
+    : [];
+
+  const transferTargetByOrg = new Map<string, { userId: string; role: "OWNER" | "MEMBER" }>();
+  const blockingOrganizations: string[] = [];
+
+  for (const membership of memberships) {
+    const candidates = otherMembers.filter(
+      (entry) => entry.organizationId === membership.organizationId
+    );
+    const transferTarget = chooseTransferTarget(candidates);
+
+    if (!transferTarget) {
+      blockingOrganizations.push(membership.organization.name);
+      continue;
+    }
+
+    transferTargetByOrg.set(membership.organizationId, transferTarget);
+  }
+
+  if (blockingOrganizations.length > 0) {
     return res.status(409).json({
       error:
-        "Leave organizations and remove or transfer your projects before deleting this account.",
+        "Leave or reassign organizations that do not have another member before deleting this account.",
       blockers: {
-        projects: projectCount,
-        memberships: membershipCount
+        organizations: blockingOrganizations
       }
     });
   }
 
-  await prisma.$transaction([
-    prisma.passwordResetToken.deleteMany({
+  await prisma.$transaction(async (tx) => {
+    for (const membership of memberships) {
+      const transferTarget = transferTargetByOrg.get(membership.organizationId);
+      if (!transferTarget) {
+        continue;
+      }
+
+      if (membership.role === "OWNER" && transferTarget.role !== "OWNER") {
+        await tx.organizationMember.update({
+          where: {
+            organizationId_userId: {
+              organizationId: membership.organizationId,
+              userId: transferTarget.userId
+            }
+          },
+          data: {
+            role: "OWNER"
+          }
+        });
+      }
+
+      await tx.project.updateMany({
+        where: {
+          userId,
+          orgId: membership.organizationId
+        },
+        data: {
+          userId: transferTarget.userId
+        }
+      });
+    }
+
+    const personalProjects = await tx.project.findMany({
+      where: {
+        userId,
+        orgId: null
+      },
+      select: {
+        id: true
+      }
+    });
+
+    const personalProjectIds = personalProjects.map((project) => project.id);
+
+    if (personalProjectIds.length > 0) {
+      const personalErrors = await tx.error.findMany({
+        where: {
+          projectId: {
+            in: personalProjectIds
+          }
+        },
+        select: {
+          id: true
+        }
+      });
+
+      const personalErrorIds = personalErrors.map((error) => error.id);
+
+      await tx.alertDelivery.deleteMany({
+        where: {
+          OR: [
+            {
+              projectId: {
+                in: personalProjectIds
+              }
+            },
+            personalErrorIds.length > 0
+              ? {
+                  errorId: {
+                    in: personalErrorIds
+                  }
+                }
+              : undefined
+          ].filter(Boolean) as Array<Record<string, unknown>>
+        }
+      });
+
+      if (personalErrorIds.length > 0) {
+        await tx.errorAnalysis.deleteMany({
+          where: {
+            errorId: {
+              in: personalErrorIds
+            }
+          }
+        });
+
+        await tx.errorEvent.deleteMany({
+          where: {
+            errorId: {
+              in: personalErrorIds
+            }
+          }
+        });
+
+        await tx.error.deleteMany({
+          where: {
+            id: {
+              in: personalErrorIds
+            }
+          }
+        });
+      }
+
+      await tx.release.deleteMany({
+        where: {
+          projectId: {
+            in: personalProjectIds
+          }
+        }
+      });
+
+      await tx.alertRule.deleteMany({
+        where: {
+          projectId: {
+            in: personalProjectIds
+          }
+        }
+      });
+
+      await tx.project.deleteMany({
+        where: {
+          id: {
+            in: personalProjectIds
+          }
+        }
+      });
+    }
+
+    await tx.passwordResetToken.deleteMany({
       where: { userId }
-    }),
-    prisma.emailVerificationCode.deleteMany({
+    });
+    await tx.emailVerificationCode.deleteMany({
       where: { userId }
-    }),
-    prisma.organizationInvite.deleteMany({
+    });
+    await tx.organizationInvite.deleteMany({
       where: { createdById: userId }
-    }),
-    prisma.orgJoinRequest.deleteMany({
+    });
+    await tx.orgJoinRequest.deleteMany({
       where: { requesterId: userId }
-    }),
-    prisma.orgJoinRequest.updateMany({
+    });
+    await tx.orgJoinRequest.updateMany({
       where: { resolvedById: userId },
       data: { resolvedById: null }
-    }),
-    prisma.orgAuditLog.updateMany({
+    });
+    await tx.orgAuditLog.updateMany({
       where: { actorId: userId },
       data: { actorId: null }
-    }),
-    prisma.alertRule.deleteMany({
+    });
+    await tx.alertRule.deleteMany({
       where: { userId }
-    }),
-    prisma.user.delete({
+    });
+    await tx.payment.deleteMany({
+      where: { userId }
+    });
+    await tx.organizationMember.deleteMany({
+      where: { userId }
+    });
+    await tx.user.delete({
       where: { id: userId }
-    })
-  ]);
+    });
+  });
 
   return res.json({ status: "deleted" });
 });

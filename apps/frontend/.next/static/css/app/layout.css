@@ -2129,6 +2129,9 @@ body{
 .gap-8{
   gap: 2rem;
 }
+.gap-1\.5{
+  gap: 0.375rem;
+}
 .gap-x-3{
   -moz-column-gap: 0.75rem;
        column-gap: 0.75rem;
@@ -2401,9 +2404,6 @@ body{
   --tw-bg-opacity: 1;
   background-color: rgb(255 251 235 / var(--tw-bg-opacity, 1));
 }
-.bg-amber-50\/70{
-  background-color: rgb(255 251 235 / 0.7);
-}
 .bg-amber-50\/95{
   background-color: rgb(255 251 235 / 0.95);
 }
@@ -2552,10 +2552,6 @@ body{
 }
 .bg-transparent{
   background-color: transparent;
-}
-.bg-white{
-  --tw-bg-opacity: 1;
-  background-color: rgb(255 255 255 / var(--tw-bg-opacity, 1));
 }
 .bg-\[linear-gradient\(90deg\2c rgba\(226\2c 232\2c 240\2c 0\)\2c rgba\(226\2c 232\2c 240\2c 1\)\)\]{
   background-image: linear-gradient(90deg,rgba(226,232,240,0),rgba(226,232,240,1));
@@ -2903,10 +2899,6 @@ body{
 .text-amber-700{
   --tw-text-opacity: 1;
   color: rgb(180 83 9 / var(--tw-text-opacity, 1));
-}
-.text-amber-800{
-  --tw-text-opacity: 1;
-  color: rgb(146 64 14 / var(--tw-text-opacity, 1));
 }
 .text-destructive-foreground{
   color: hsl(var(--destructive-foreground));
@@ -3354,6 +3346,10 @@ body{
   border-color: hsl(var(--primary) / 0.3);
 }
 
+.hover\:border-primary\/35:hover{
+  border-color: hsl(var(--primary) / 0.35);
+}
+
 .hover\:border-primary\/40:hover{
   border-color: hsl(var(--primary) / 0.4);
 }
@@ -3374,8 +3370,16 @@ body{
   background-color: hsl(var(--accent-soft));
 }
 
+.hover\:bg-accent-soft\/80:hover{
+  background-color: hsl(var(--accent-soft) / 0.8);
+}
+
 .hover\:bg-card:hover{
   background-color: hsl(var(--card));
+}
+
+.hover\:bg-card\/80:hover{
+  background-color: hsl(var(--card) / 0.8);
 }
 
 .hover\:bg-card\/90:hover{

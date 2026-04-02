@@ -262,11 +262,34 @@ errorsRouter.post("/:id/regenerate", async (req, res) => {
     where: { errorId }
   });
 
-  if (redis.isOpen) {
-    await redis.lPush("ai:queue", errorId);
+  if (!redis.isOpen) {
+    await prisma.error.update({
+      where: { id: errorId },
+      data: {
+        aiStatus: "FAILED",
+        aiLastError: "AI worker queue is unavailable.",
+        aiRequestedAt: new Date(),
+        aiCompletedAt: null
+      }
+    });
+
+    return res.status(503).json({ error: "AI worker queue is unavailable. Try again shortly." });
   }
 
-  return res.status(202).json({ status: "queued" });
+  await prisma.error.update({
+    where: { id: errorId },
+    data: {
+      aiStatus: "PENDING",
+      aiLastError: null,
+      aiRequestedAt: new Date(),
+      aiCompletedAt: null
+    }
+  });
+
+  await redis.lPush("ai:queue", errorId);
+  const queueDepth = await redis.lLen("ai:queue");
+
+  return res.status(202).json({ status: "queued", queueDepth });
 });
 
 errorsRouter.post("/:id/archive", async (req, res) => {
