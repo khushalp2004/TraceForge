@@ -36,7 +36,6 @@ type RealtimeNotificationPayload = {
   title?: string;
   message?: string;
   createdAt?: string;
-  isTest?: boolean;
 };
 
 type ShellToast = {
@@ -125,30 +124,14 @@ function DashboardShellInner({ children }: { children: React.ReactNode }) {
 
         return {
           id: `alert:${payload.createdAt}:${payload.message}`,
-          title:
-            payload.type === "alert.triggered" && payload.isTest
-              ? "Alert notified to team"
-              : payload.title || "Alert triggered",
-          message:
-            payload.type === "alert.triggered" && payload.isTest
-              ? "A test alert notification was delivered to the team."
-              : payload.message,
-          tone:
-            payload.type === "alert.triggered"
-              ? payload.isTest
-                ? "warning"
-                : "error"
-              : "warning",
+          title: payload.title || "Alert triggered",
+          message: payload.message || "An alert was triggered.",
+          tone: payload.type === "alert.triggered" ? "error" : "warning",
           actionLabel:
             payload.type === "alert.created"
               ? "View alert"
-              : payload.isTest
-              ? "Open alerts"
               : "Open issues",
-          href:
-            payload.type === "alert.triggered" && payload.isTest
-              ? "/dashboard/alerts"
-              : "/dashboard?notifications=open&focus=alerts"
+          href: "/dashboard?notifications=open&focus=alerts"
         };
       }
     }),
@@ -242,6 +225,7 @@ function DashboardShellInner({ children }: { children: React.ReactNode }) {
         {effectiveLayout === "topbar" ? <DashboardTopNav /> : null}
         {effectiveLayout === "topbar" ? <div className="hidden h-[72px] lg:block" /> : null}
         <DashboardMobileNav />
+        <div className="h-[73px] lg:hidden" />
         <main className="min-w-0 flex-1 overflow-x-hidden pb-24 lg:pb-0">{children}</main>
       </div>
       {!!notificationToasts.length && (

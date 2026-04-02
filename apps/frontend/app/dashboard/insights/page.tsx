@@ -3,12 +3,18 @@
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { SparkAreaChart } from "../components/SparkAreaChart";
+import { DashboardPagination } from "../components/DashboardPagination";
 import { useLayout } from "../../../context/LayoutContext";
 import { useMediaQuery } from "../../hooks/useMediaQuery";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
 const tokenKey = "traceforge_token";
 const insightsPrefsKey = "traceforge_insights_prefs_v1";
+const INSIGHTS_PAGE_SIZE_OPTIONS = [
+  { value: 5, label: "5 / page" },
+  { value: 10, label: "10 / page" },
+  { value: 15, label: "15 / page" }
+];
 
 type Project = {
   id: string;
@@ -44,6 +50,7 @@ type TopIssue = {
 type AlertCorrelationItem = {
   errorId: string;
   message: string;
+  projectId: string;
   projectName: string;
   alertCount: number;
   lastTriggeredAt: string;
@@ -77,6 +84,25 @@ type InsightsComparison = {
   activeIssues: ComparisonMetric;
   productionEvents: ComparisonMetric;
 };
+
+function useInsightsPagination(totalItems: number) {
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(5);
+  const totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
+
+  useEffect(() => {
+    setPage((current) => Math.min(current, totalPages));
+  }, [totalPages]);
+
+  return {
+    page,
+    pageSize,
+    totalPages,
+    showPagination: totalItems > 5,
+    setPage,
+    setPageSize
+  };
+}
 
 function ChartSkeleton({ className = "" }: { className?: string }) {
   return (
@@ -122,13 +148,13 @@ function InsightLineCard({
           <p className="mt-1 text-sm text-text-secondary">{description}</p>
         </div>
         <div className="flex flex-wrap items-center justify-end gap-2">
-          <span className="rounded-full border border-border bg-card px-3 py-1 text-xs font-semibold text-text-secondary">
+          <span className="whitespace-nowrap rounded-full border border-border bg-card px-3 py-1 text-xs font-semibold text-text-secondary">
             {total} events
           </span>
           {ctaHref && (
             <Link
               href={ctaHref}
-              className="inline-flex rounded-full border border-border bg-card px-3 py-1 text-xs font-semibold text-text-secondary transition hover:bg-secondary/70 hover:text-text-primary"
+              className="inline-flex whitespace-nowrap rounded-full border border-border bg-card px-3 py-1 text-xs font-semibold text-text-secondary transition hover:bg-secondary/70 hover:text-text-primary"
             >
               {ctaLabel || "Open"}
             </Link>
@@ -169,7 +195,7 @@ function EmptyChartCard({
           <h2 className="text-base font-semibold text-text-primary">{title}</h2>
           <p className="mt-1 text-sm text-text-secondary">{description}</p>
         </div>
-        <span className="rounded-full border border-border bg-card px-3 py-1 text-xs font-semibold text-text-secondary">
+        <span className="whitespace-nowrap rounded-full border border-border bg-card px-3 py-1 text-xs font-semibold text-text-secondary">
           No data
         </span>
       </div>
@@ -205,12 +231,12 @@ function BreakdownCard<T extends BreakdownItem>({
 
   return (
     <div className="rounded-2xl border border-border bg-card/90 p-6">
-      <div className="flex items-start justify-between gap-4">
-        <div>
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+        <div className="min-w-0">
           <h2 className="text-base font-semibold text-text-primary">{title}</h2>
           <p className="mt-1 text-sm text-text-secondary">{description}</p>
         </div>
-        <span className="rounded-full border border-border bg-card px-3 py-1 text-xs font-semibold text-text-secondary">
+        <span className="w-fit whitespace-nowrap rounded-full border border-border bg-card px-3 py-1 text-xs font-semibold text-text-secondary">
           {items.length} groups
         </span>
       </div>
@@ -221,12 +247,14 @@ function BreakdownCard<T extends BreakdownItem>({
             const href = getItemHref?.(item) || "";
             const content = (
               <>
-                <div className="flex items-center justify-between gap-3">
-                  <p className="min-w-0 truncate text-sm font-semibold text-text-primary">{item.label}</p>
-                  <div className="flex items-center gap-2">
+                <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between sm:gap-3">
+                  <p className="min-w-0 break-words text-sm font-semibold text-text-primary sm:truncate">
+                    {item.label}
+                  </p>
+                  <div className="flex items-center justify-between gap-2 sm:justify-end">
                     <span className="text-sm font-semibold text-text-primary">{item.count}</span>
                     {href && (
-                      <span className="shrink-0 rounded-full border border-border bg-card px-2.5 py-1 text-[11px] font-semibold text-text-secondary">
+                      <span className="shrink-0 whitespace-nowrap rounded-full border border-border bg-card px-2.5 py-1 text-[11px] font-semibold text-text-secondary">
                         {itemActionLabel}
                       </span>
                     )}
@@ -274,9 +302,9 @@ function SeverityInsightsCard({
 }) {
   const total = items.reduce((sum, item) => sum + item.count, 0);
   const toneClasses: Record<SeverityBreakdownItem["tone"], string> = {
-    critical: "border-red-200 bg-red-50 text-red-700",
-    warning: "border-amber-200 bg-amber-50 text-amber-700",
-    info: "border-border bg-card text-text-secondary"
+    critical: "tf-danger-tag",
+    warning: "tf-warning-tag",
+    info: "tf-muted-tag"
   };
 
   return (
@@ -288,7 +316,7 @@ function SeverityInsightsCard({
             Error volume split by severity across the selected scope.
           </p>
         </div>
-        <span className="rounded-full border border-border bg-card px-3 py-1 text-xs font-semibold text-text-secondary">
+        <span className="whitespace-nowrap rounded-full border border-border bg-card px-3 py-1 text-xs font-semibold text-text-secondary">
           {total} total hits
         </span>
       </div>
@@ -301,7 +329,7 @@ function SeverityInsightsCard({
           const content = (
             <>
               <div className="flex items-center justify-between gap-3">
-                <span className={`rounded-full border px-2.5 py-1 text-xs font-semibold ${toneClasses[item.tone]}`}>
+                <span className={`whitespace-nowrap rounded-full border px-2.5 py-1 text-xs font-semibold ${toneClasses[item.tone]}`}>
                   {item.label}
                 </span>
                 <span className="text-xs font-semibold text-text-secondary">{share}%</span>
@@ -315,7 +343,7 @@ function SeverityInsightsCard({
                   : "Lower-severity noise"}
               </p>
               {href && (
-                <span className="mt-3 inline-flex rounded-full border border-border bg-card px-2.5 py-1 text-[11px] font-semibold text-text-secondary">
+                <span className="mt-3 inline-flex whitespace-nowrap rounded-full border border-border bg-card px-2.5 py-1 text-[11px] font-semibold text-text-secondary">
                   Drill down
                 </span>
               )}
@@ -342,42 +370,51 @@ function SeverityInsightsCard({
 }
 
 function TopIssuesCard({ items }: { items: TopIssue[] }) {
+  const { page, pageSize, totalPages, showPagination, setPage, setPageSize } =
+    useInsightsPagination(items.length);
+  const paginatedItems = useMemo(
+    () => items.slice((page - 1) * pageSize, page * pageSize),
+    [items, page, pageSize]
+  );
+
   return (
     <div className="rounded-2xl border border-border bg-card/90 p-6">
-      <div className="flex items-start justify-between gap-4">
-        <div>
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+        <div className="min-w-0">
           <h2 className="text-base font-semibold text-text-primary">Top recurring issues</h2>
           <p className="mt-1 text-sm text-text-secondary">
             The noisiest issues across your tracked projects.
           </p>
         </div>
-        <span className="rounded-full border border-border bg-card px-3 py-1 text-xs font-semibold text-text-secondary">
+        <span className="w-fit whitespace-nowrap rounded-full border border-border bg-card px-3 py-1 text-xs font-semibold text-text-secondary">
           {items.length} issues
         </span>
       </div>
 
       <div className="mt-6 space-y-3">
         {items.length ? (
-          items.map((item) => (
+          paginatedItems.map((item) => (
             <div
               key={item.id}
               className="rounded-2xl border border-border bg-secondary/25 px-4 py-4"
             >
-              <div className="flex items-start justify-between gap-3">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                 <div className="min-w-0">
-                  <p className="truncate text-sm font-semibold text-text-primary">{item.message}</p>
+                  <p className="break-words text-sm font-semibold text-text-primary sm:truncate">
+                    {item.message}
+                  </p>
                   <p className="mt-1 text-xs text-text-secondary">
                     {item.projectName} · Last seen {new Date(item.lastSeen).toLocaleString()}
                   </p>
                 </div>
-                <span className="shrink-0 rounded-full border border-border bg-card px-2.5 py-1 text-xs font-semibold text-text-secondary">
+                <span className="w-fit shrink-0 whitespace-nowrap rounded-full border border-border bg-card px-2.5 py-1 text-xs font-semibold text-text-secondary">
                   {item.count}
                 </span>
               </div>
               <div className="mt-3">
                 <Link
                   href={`/dashboard/errors/${item.id}`}
-                  className="inline-flex rounded-full border border-border px-3 py-1.5 text-xs font-semibold text-text-secondary transition hover:bg-secondary/70 hover:text-text-primary"
+                  className="inline-flex w-full justify-center whitespace-nowrap rounded-full border border-border px-3 py-1.5 text-xs font-semibold text-text-secondary transition hover:bg-secondary/70 hover:text-text-primary sm:w-auto"
                 >
                   Open issue
                 </Link>
@@ -395,6 +432,20 @@ function TopIssuesCard({ items }: { items: TopIssue[] }) {
           </div>
         )}
       </div>
+
+      {showPagination && (
+        <DashboardPagination
+          page={page}
+          totalPages={totalPages}
+          pageSize={pageSize}
+          pageSizeOptions={INSIGHTS_PAGE_SIZE_OPTIONS}
+          onPageChange={setPage}
+          onPageSizeChange={(nextSize) => {
+            setPage(1);
+            setPageSize(nextSize);
+          }}
+        />
+      )}
     </div>
   );
 }
@@ -406,10 +457,16 @@ function ReleaseImpactCard({
   items: ReleaseImpactItem[];
   getReleaseHref?: (item: ReleaseImpactItem) => string | null;
 }) {
+  const { page, pageSize, totalPages, showPagination, setPage, setPageSize } =
+    useInsightsPagination(items.length);
+  const paginatedItems = useMemo(
+    () => items.slice((page - 1) * pageSize, page * pageSize),
+    [items, page, pageSize]
+  );
   const healthTone: Record<ReleaseImpactItem["health"], string> = {
-    healthy: "border-emerald-200 bg-emerald-50 text-emerald-700",
-    monitoring: "border-amber-200 bg-amber-50 text-amber-700",
-    regression: "border-red-200 bg-red-50 text-red-700"
+    healthy: "tf-success-tag",
+    monitoring: "tf-warning-tag",
+    regression: "tf-danger-tag"
   };
 
   return (
@@ -423,7 +480,7 @@ function ReleaseImpactCard({
         </div>
         <Link
           href="/dashboard/releases"
-          className="inline-flex rounded-full border border-border px-3 py-1.5 text-xs font-semibold text-text-secondary transition hover:bg-secondary/70 hover:text-text-primary"
+          className="inline-flex whitespace-nowrap rounded-full border border-border px-3 py-1.5 text-xs font-semibold text-text-secondary transition hover:bg-secondary/70 hover:text-text-primary"
         >
           Open releases
         </Link>
@@ -431,7 +488,7 @@ function ReleaseImpactCard({
 
       <div className="mt-6 space-y-3">
         {items.length ? (
-          items.map((item) => (
+          paginatedItems.map((item) => (
             <Link
               key={item.id}
               href={getReleaseHref?.(item) || "/dashboard/releases"}
@@ -441,10 +498,10 @@ function ReleaseImpactCard({
                 <div className="min-w-0">
                   <div className="flex flex-wrap items-center gap-2">
                     <p className="text-sm font-semibold text-text-primary">{item.version}</p>
-                    <span className={`rounded-full border px-2.5 py-1 text-xs font-semibold ${healthTone[item.health]}`}>
+                    <span className={`whitespace-nowrap rounded-full border px-2.5 py-1 text-xs font-semibold ${healthTone[item.health]}`}>
                       {item.health}
                     </span>
-                    <span className="rounded-full border border-border bg-card px-2.5 py-1 text-[11px] font-semibold text-text-secondary">
+                    <span className="whitespace-nowrap rounded-full border border-border bg-card px-2.5 py-1 text-[11px] font-semibold text-text-secondary">
                       Drill down
                     </span>
                   </div>
@@ -473,6 +530,20 @@ function ReleaseImpactCard({
           </div>
         )}
       </div>
+
+      {showPagination && (
+        <DashboardPagination
+          page={page}
+          totalPages={totalPages}
+          pageSize={pageSize}
+          pageSizeOptions={INSIGHTS_PAGE_SIZE_OPTIONS}
+          onPageChange={setPage}
+          onPageSizeChange={(nextSize) => {
+            setPage(1);
+            setPageSize(nextSize);
+          }}
+        />
+      )}
     </div>
   );
 }
@@ -484,10 +555,16 @@ function AlertCorrelationCard({
   items: AlertCorrelationItem[];
   getAlertsHref?: (item: AlertCorrelationItem) => string | null;
 }) {
+  const { page, pageSize, totalPages, showPagination, setPage, setPageSize } =
+    useInsightsPagination(items.length);
+  const paginatedItems = useMemo(
+    () => items.slice((page - 1) * pageSize, page * pageSize),
+    [items, page, pageSize]
+  );
   const severityTone: Record<AlertCorrelationItem["severity"], string> = {
-    CRITICAL: "border-red-200 bg-red-50 text-red-700",
-    WARNING: "border-amber-200 bg-amber-50 text-amber-700",
-    INFO: "border-border bg-card text-text-secondary"
+    CRITICAL: "tf-danger-tag",
+    WARNING: "tf-warning-tag",
+    INFO: "tf-muted-tag"
   };
 
   return (
@@ -501,7 +578,7 @@ function AlertCorrelationCard({
         </div>
         <Link
           href="/dashboard/alerts"
-          className="inline-flex rounded-full border border-border px-3 py-1.5 text-xs font-semibold text-text-secondary transition hover:bg-secondary/70 hover:text-text-primary"
+          className="inline-flex whitespace-nowrap rounded-full border border-border px-3 py-1.5 text-xs font-semibold text-text-secondary transition hover:bg-secondary/70 hover:text-text-primary"
         >
           Open alerts
         </Link>
@@ -509,13 +586,13 @@ function AlertCorrelationCard({
 
       <div className="mt-6 space-y-3">
         {items.length ? (
-          items.map((item) => (
+          paginatedItems.map((item) => (
             <div key={item.errorId} className="rounded-2xl border border-border bg-secondary/20 px-4 py-4">
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div className="min-w-0">
                   <div className="flex flex-wrap items-center gap-2">
                     <p className="truncate text-sm font-semibold text-text-primary">{item.message}</p>
-                    <span className={`rounded-full border px-2.5 py-1 text-xs font-semibold ${severityTone[item.severity]}`}>
+                    <span className={`whitespace-nowrap rounded-full border px-2.5 py-1 text-xs font-semibold ${severityTone[item.severity]}`}>
                       {item.severity}
                     </span>
                   </div>
@@ -534,13 +611,13 @@ function AlertCorrelationCard({
               <div className="mt-3 flex flex-wrap gap-2">
                 <Link
                   href={`/dashboard/errors/${item.errorId}`}
-                  className="inline-flex rounded-full border border-border px-3 py-1.5 text-xs font-semibold text-text-secondary transition hover:bg-secondary/70 hover:text-text-primary"
+                  className="inline-flex whitespace-nowrap rounded-full border border-border px-3 py-1.5 text-xs font-semibold text-text-secondary transition hover:bg-secondary/70 hover:text-text-primary"
                 >
                   Open issue
                 </Link>
                 <Link
                   href={getAlertsHref?.(item) || "/dashboard/alerts"}
-                  className="inline-flex rounded-full border border-border px-3 py-1.5 text-xs font-semibold text-text-secondary transition hover:bg-secondary/70 hover:text-text-primary"
+                  className="inline-flex whitespace-nowrap rounded-full border border-border px-3 py-1.5 text-xs font-semibold text-text-secondary transition hover:bg-secondary/70 hover:text-text-primary"
                 >
                   Open alerts
                 </Link>
@@ -556,6 +633,20 @@ function AlertCorrelationCard({
           </div>
         )}
       </div>
+
+      {showPagination && (
+        <DashboardPagination
+          page={page}
+          totalPages={totalPages}
+          pageSize={pageSize}
+          pageSizeOptions={INSIGHTS_PAGE_SIZE_OPTIONS}
+          onPageChange={setPage}
+          onPageSizeChange={(nextSize) => {
+            setPage(1);
+            setPageSize(nextSize);
+          }}
+        />
+      )}
     </div>
   );
 }
@@ -586,10 +677,10 @@ function ComparisonCard({
 }) {
   const deltaTone =
     metric.direction === "up"
-      ? "border-amber-200 bg-amber-50 text-amber-700"
+      ? "tf-warning-tag"
       : metric.direction === "down"
-      ? "border-emerald-200 bg-emerald-50 text-emerald-700"
-      : "border-border bg-card text-text-secondary";
+      ? "tf-success-tag"
+      : "tf-muted-tag";
 
   return (
     <div className="rounded-2xl border border-border bg-card/90 px-4 py-4 shadow-sm">
@@ -601,13 +692,13 @@ function ComparisonCard({
           <p className="mt-1 text-sm text-text-secondary">{description}</p>
         </div>
         <div className="flex flex-wrap items-center justify-end gap-2">
-          <span className={`rounded-full border px-2.5 py-1 text-xs font-semibold ${deltaTone}`}>
+          <span className={`whitespace-nowrap rounded-full border px-2.5 py-1 text-xs font-semibold ${deltaTone}`}>
             {formatDelta(metric)}
           </span>
           {href && (
             <Link
               href={href}
-              className="inline-flex rounded-full border border-border bg-card px-2.5 py-1 text-xs font-semibold text-text-secondary transition hover:bg-secondary/70 hover:text-text-primary"
+              className="inline-flex whitespace-nowrap rounded-full border border-border bg-card px-2.5 py-1 text-xs font-semibold text-text-secondary transition hover:bg-secondary/70 hover:text-text-primary"
             >
               {hrefLabel}
             </Link>
@@ -689,19 +780,19 @@ function HighlightsCard({
         <div className="flex flex-wrap items-center gap-2">
           <Link
             href={scopedHref("/dashboard/issues")}
-            className="inline-flex rounded-full border border-border px-3 py-1.5 text-xs font-semibold text-text-secondary transition hover:bg-secondary/70 hover:text-text-primary"
+            className="inline-flex whitespace-nowrap rounded-full border border-border px-3 py-1.5 text-xs font-semibold text-text-secondary transition hover:bg-secondary/70 hover:text-text-primary"
           >
             Open issues
           </Link>
           <Link
             href={scopedHref("/dashboard/alerts")}
-            className="inline-flex rounded-full border border-border px-3 py-1.5 text-xs font-semibold text-text-secondary transition hover:bg-secondary/70 hover:text-text-primary"
+            className="inline-flex whitespace-nowrap rounded-full border border-border px-3 py-1.5 text-xs font-semibold text-text-secondary transition hover:bg-secondary/70 hover:text-text-primary"
           >
             Open alerts
           </Link>
           <Link
             href={scopedHref("/dashboard/releases")}
-            className="inline-flex rounded-full border border-border px-3 py-1.5 text-xs font-semibold text-text-secondary transition hover:bg-secondary/70 hover:text-text-primary"
+            className="inline-flex whitespace-nowrap rounded-full border border-border px-3 py-1.5 text-xs font-semibold text-text-secondary transition hover:bg-secondary/70 hover:text-text-primary"
           >
             Open releases
           </Link>
@@ -747,7 +838,7 @@ function HighlightsCard({
               {topAlertIssue && (
                 <Link
                   href={`/dashboard/errors/${topAlertIssue.errorId}`}
-                  className="inline-flex rounded-full border border-border px-2.5 py-1 text-xs font-semibold text-text-secondary transition hover:bg-secondary/70 hover:text-text-primary"
+                  className="inline-flex whitespace-nowrap rounded-full border border-border px-2.5 py-1 text-xs font-semibold text-text-secondary transition hover:bg-secondary/70 hover:text-text-primary"
                 >
                   Open
                 </Link>
@@ -1111,8 +1202,9 @@ export default function InsightsPage() {
       items={alertCorrelation}
       getAlertsHref={(item) =>
         buildAlertsHref({
-          q: item.message,
-          severity: item.severity
+          q: item.ruleNames[0] || item.message,
+          severity: item.severity,
+          projectId: item.projectId
         })
       }
     />
@@ -1166,7 +1258,7 @@ export default function InsightsPage() {
               <div className="flex items-center rounded-full border border-border bg-card/90 p-1 text-xs font-semibold text-text-secondary shadow-sm">
                 <button
                   type="button"
-                  className={`rounded-full px-3 py-1 transition ${
+                  className={`whitespace-nowrap rounded-full px-3 py-1 transition ${
                     chartVariant === "area"
                       ? "bg-accent-soft text-text-primary"
                       : "hover:bg-secondary/70 hover:text-text-primary"
@@ -1177,7 +1269,7 @@ export default function InsightsPage() {
                 </button>
                 <button
                   type="button"
-                  className={`rounded-full px-3 py-1 transition ${
+                  className={`whitespace-nowrap rounded-full px-3 py-1 transition ${
                     chartVariant === "bar"
                       ? "bg-accent-soft text-text-primary"
                       : "hover:bg-secondary/70 hover:text-text-primary"
@@ -1206,10 +1298,10 @@ export default function InsightsPage() {
 
         {!loading && (
           <div className="mt-6 flex flex-wrap items-center gap-3">
-            <span className="rounded-full border border-border bg-card px-3 py-1 text-xs font-semibold text-text-secondary">
+            <span className="whitespace-nowrap rounded-full border border-border bg-card px-3 py-1 text-xs font-semibold text-text-secondary">
               Viewing: {scopeLabel}
             </span>
-            <span className="rounded-full border border-border bg-card px-3 py-1 text-xs font-semibold text-text-secondary">
+            <span className="whitespace-nowrap rounded-full border border-border bg-card px-3 py-1 text-xs font-semibold text-text-secondary">
               {selectedProject ? "Project-specific view" : "Overall account view"}
             </span>
           </div>

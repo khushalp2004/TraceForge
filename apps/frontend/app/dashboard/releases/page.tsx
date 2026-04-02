@@ -3,6 +3,7 @@
 import { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
+import { DashboardPagination } from "../components/DashboardPagination";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
 const tokenKey = "traceforge_token";
@@ -51,10 +52,16 @@ type Toast = {
 };
 
 const healthClasses: Record<ReleaseHealth, string> = {
-  healthy: "border-emerald-200 bg-emerald-50 text-emerald-700",
-  monitoring: "border-amber-200 bg-amber-50 text-amber-700",
-  regression: "border-red-200 bg-red-50 text-red-700"
+  healthy: "tf-success-tag",
+  monitoring: "tf-warning-tag",
+  regression: "tf-danger-tag"
 };
+
+const RELEASE_PAGE_SIZE_OPTIONS = [
+  { value: 5, label: "5 / page" },
+  { value: 10, label: "10 / page" },
+  { value: 15, label: "15 / page" }
+];
 
 export default function ReleasesPage() {
   return (
@@ -88,11 +95,19 @@ function ReleasesPageInner() {
   const [notes, setNotes] = useState("");
   const [releasedAt, setReleasedAt] = useState("");
   const [highlightReleaseId, setHighlightReleaseId] = useState("");
+  const [releasesPage, setReleasesPage] = useState(1);
+  const [releasesPageSize, setReleasesPageSize] = useState(5);
 
   const showToast = (message: string, tone: Toast["tone"]) => {
     setToast({ message, tone });
     window.setTimeout(() => setToast(null), 2400);
   };
+
+  const releasesTotalPages = Math.max(1, Math.ceil(releases.length / releasesPageSize));
+  const paginatedReleases = useMemo(() => {
+    const start = (releasesPage - 1) * releasesPageSize;
+    return releases.slice(start, start + releasesPageSize);
+  }, [releases, releasesPage, releasesPageSize]);
 
   useEffect(() => {
     if (hydratedFromQuery.current) return;
@@ -163,6 +178,14 @@ function ReleasesPageInner() {
 
     void loadData();
   }, [selectedProjectId, environmentFilter]);
+
+  useEffect(() => {
+    setReleasesPage(1);
+  }, [selectedProjectId, environmentFilter]);
+
+  useEffect(() => {
+    setReleasesPage((current) => Math.min(current, releasesTotalPages));
+  }, [releasesTotalPages]);
 
   useEffect(() => {
     if (loading) return;
@@ -369,7 +392,7 @@ function ReleasesPageInner() {
           )}
 
           {!loading &&
-            releases.map((release) => (
+            paginatedReleases.map((release) => (
               <article
                 key={release.id}
                 data-release-id={release.id}
@@ -479,11 +502,25 @@ function ReleasesPageInner() {
               </article>
             ))}
         </section>
+
+        {releases.length > 5 && !loading && (
+          <DashboardPagination
+            page={releasesPage}
+            totalPages={releasesTotalPages}
+            pageSize={releasesPageSize}
+            pageSizeOptions={RELEASE_PAGE_SIZE_OPTIONS}
+            onPageChange={setReleasesPage}
+            onPageSizeChange={(nextSize) => {
+              setReleasesPage(1);
+              setReleasesPageSize(nextSize);
+            }}
+          />
+        )}
       </div>
 
       {showCreateModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-6">
-          <div className="w-full max-w-lg rounded-[28px] border border-border bg-card/95 p-6 shadow-xl backdrop-blur">
+        <div className="fixed inset-x-0 top-[73px] bottom-[calc(env(safe-area-inset-bottom)+5.75rem)] z-50 flex items-start justify-center overflow-y-auto bg-black/40 px-4 py-4 sm:inset-0 sm:items-center sm:px-6 sm:py-6">
+          <div className="w-full max-w-lg rounded-[28px] border border-border bg-card/95 p-4 shadow-xl backdrop-blur sm:p-6 max-h-full overflow-y-auto sm:max-h-[calc(100dvh-3rem)]">
             <div>
               <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-primary">
                 New Release
@@ -542,7 +579,7 @@ function ReleasesPageInner() {
               />
             </div>
 
-            <div className="mt-5 flex items-center justify-end gap-3">
+            <div className="mt-5 flex flex-col-reverse gap-3 sm:flex-row sm:items-center sm:justify-end">
               <button
                 type="button"
                 className="tf-button-ghost px-4 py-2 text-sm"
@@ -571,7 +608,7 @@ function ReleasesPageInner() {
 
       {toast && (
         <div
-          className={`fixed bottom-6 right-6 z-50 rounded-full px-4 py-2 text-sm font-semibold text-white shadow-lg ${
+          className={`tf-dashboard-toast ${
             toast.tone === "success" ? "bg-emerald-600" : "bg-red-600"
           }`}
         >

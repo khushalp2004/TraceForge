@@ -17,7 +17,6 @@ export type RealtimeNotification = {
   errorId?: string;
   environment?: string | null;
   severity?: "INFO" | "WARNING" | "CRITICAL";
-  isTest?: boolean;
   createdAt: string;
 };
 

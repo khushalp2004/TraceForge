@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { DashboardPagination } from "../components/DashboardPagination";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
 const tokenKey = "traceforge_token";
@@ -69,6 +70,12 @@ type VerifyResponse = {
   expiresAt: string;
 };
 
+const BILLING_PAGE_SIZE_OPTIONS = [
+  { value: 5, label: "5 / page" },
+  { value: 10, label: "10 / page" },
+  { value: 15, label: "15 / page" }
+];
+
 const loadRazorpay = () =>
   new Promise<boolean>((resolve) => {
     if (typeof window === "undefined") return resolve(false);
@@ -89,6 +96,10 @@ export default function BillingPage() {
   const [toast, setToast] = useState<Toast | null>(null);
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [payments, setPayments] = useState<PaymentRow[]>([]);
+  const [invoicesPage, setInvoicesPage] = useState(1);
+  const [invoicesPageSize, setInvoicesPageSize] = useState(5);
+  const [paymentsPage, setPaymentsPage] = useState(1);
+  const [paymentsPageSize, setPaymentsPageSize] = useState(5);
 
   const showToast = (message: string, tone: Toast["tone"]) => {
     setToast({ message, tone });
@@ -171,6 +182,25 @@ export default function BillingPage() {
     if (!user.planExpiresAt) return true;
     return new Date(user.planExpiresAt).getTime() > Date.now();
   }, [user]);
+
+  const invoicesTotalPages = Math.max(1, Math.ceil(invoices.length / invoicesPageSize));
+  const paymentsTotalPages = Math.max(1, Math.ceil(payments.length / paymentsPageSize));
+  const paginatedInvoices = useMemo(() => {
+    const start = (invoicesPage - 1) * invoicesPageSize;
+    return invoices.slice(start, start + invoicesPageSize);
+  }, [invoices, invoicesPage, invoicesPageSize]);
+  const paginatedPayments = useMemo(() => {
+    const start = (paymentsPage - 1) * paymentsPageSize;
+    return payments.slice(start, start + paymentsPageSize);
+  }, [payments, paymentsPage, paymentsPageSize]);
+
+  useEffect(() => {
+    setInvoicesPage((current) => Math.min(current, invoicesTotalPages));
+  }, [invoicesTotalPages]);
+
+  useEffect(() => {
+    setPaymentsPage((current) => Math.min(current, paymentsTotalPages));
+  }, [paymentsTotalPages]);
 
   const startCheckout = async () => {
     const token = localStorage.getItem(tokenKey);
@@ -533,7 +563,7 @@ export default function BillingPage() {
             ) : null}
 
             <div className="mt-4 space-y-3">
-              {(billingLoading ? Array.from({ length: 3 }) : invoices.slice(0, 8)).map((invoice, idx) => {
+              {(billingLoading ? Array.from({ length: 3 }) : paginatedInvoices).map((invoice, idx) => {
                 const row = invoice as Invoice | undefined;
                 return (
                   <div
@@ -572,6 +602,20 @@ export default function BillingPage() {
                 );
               })}
             </div>
+
+            {invoices.length > 5 && !billingLoading && (
+              <DashboardPagination
+                page={invoicesPage}
+                totalPages={invoicesTotalPages}
+                pageSize={invoicesPageSize}
+                pageSizeOptions={BILLING_PAGE_SIZE_OPTIONS}
+                onPageChange={setInvoicesPage}
+                onPageSizeChange={(nextSize) => {
+                  setInvoicesPage(1);
+                  setInvoicesPageSize(nextSize);
+                }}
+              />
+            )}
           </div>
 
           <div className="rounded-3xl border border-border bg-card/95 p-6 shadow-sm">
@@ -594,7 +638,7 @@ export default function BillingPage() {
             ) : null}
 
             <div className="mt-4 space-y-3">
-              {(billingLoading ? Array.from({ length: 3 }) : payments.slice(0, 8)).map((payment, idx) => {
+              {(billingLoading ? Array.from({ length: 3 }) : paginatedPayments).map((payment, idx) => {
                 const row = payment as PaymentRow | undefined;
                 const primaryId = row?.razorpayPaymentId || row?.razorpaySubscriptionId || row?.razorpayOrderId;
                 return (
@@ -623,6 +667,20 @@ export default function BillingPage() {
                 );
               })}
             </div>
+
+            {payments.length > 5 && !billingLoading && (
+              <DashboardPagination
+                page={paymentsPage}
+                totalPages={paymentsTotalPages}
+                pageSize={paymentsPageSize}
+                pageSizeOptions={BILLING_PAGE_SIZE_OPTIONS}
+                onPageChange={setPaymentsPage}
+                onPageSizeChange={(nextSize) => {
+                  setPaymentsPage(1);
+                  setPaymentsPageSize(nextSize);
+                }}
+              />
+            )}
           </div>
         </section>
 
@@ -654,7 +712,7 @@ export default function BillingPage() {
 
       {toast && (
         <div
-          className={`fixed bottom-6 right-6 z-50 rounded-full px-4 py-2 text-sm font-semibold text-white shadow-lg ${
+          className={`tf-dashboard-toast ${
             toast.tone === "success" ? "bg-emerald-600" : "bg-red-600"
           }`}
         >

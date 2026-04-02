@@ -8,6 +8,7 @@ import {
   resolveAiModel,
   supportedAiModels
 } from "../utils/aiModels.js";
+import { deleteProjectGraph } from "../utils/projectDeletion.js";
 
 export const projectsRouter = Router();
 
@@ -204,6 +205,53 @@ projectsRouter.post("/", async (req, res) => {
   return res.status(201).json({ project: serializeProject(project) });
 });
 
+projectsRouter.patch("/:id", async (req, res) => {
+  const userId = req.user?.id;
+  const projectId = req.params.id;
+  const { name } = req.body as { name?: string };
+
+  if (!userId) {
+    return res.status(401).json({ error: "Unauthorized" });
+  }
+
+  if (!name || name.trim().length < 2) {
+    return res.status(400).json({ error: "Project name is required" });
+  }
+
+  const project = await prisma.project.findUnique({
+    where: { id: projectId }
+  });
+
+  if (!project) {
+    return res.status(404).json({ error: "Project not found" });
+  }
+
+  if (project.orgId) {
+    const membership = await prisma.organizationMember.findUnique({
+      where: {
+        organizationId_userId: {
+          organizationId: project.orgId,
+          userId
+        }
+      }
+    });
+
+    if (!membership || membership.role !== "OWNER") {
+      return res.status(403).json({ error: "Only org owners can rename projects" });
+    }
+  } else if (project.userId !== userId) {
+    return res.status(403).json({ error: "Forbidden" });
+  }
+
+  const updated = await prisma.project.update({
+    where: { id: projectId },
+    data: { name: name.trim() },
+    select: projectSelect
+  });
+
+  return res.json({ project: serializeProject(updated) });
+});
+
 projectsRouter.post("/:id/rotate-key", async (req, res) => {
   const userId = req.user?.id;
   const projectId = req.params.id;
@@ -390,4 +438,53 @@ projectsRouter.delete("/:id", async (req, res) => {
   });
 
   return res.json({ project: serializeProject(updated) });
+});
+
+projectsRouter.delete("/:id/permanent", async (req, res) => {
+  const userId = req.user?.id;
+  const projectId = req.params.id;
+  const { name } = req.body as { name?: string };
+
+  if (!userId) {
+    return res.status(401).json({ error: "Unauthorized" });
+  }
+
+  const project = await prisma.project.findUnique({
+    where: { id: projectId }
+  });
+
+  if (!project) {
+    return res.status(404).json({ error: "Project not found" });
+  }
+
+  if (project.orgId) {
+    const membership = await prisma.organizationMember.findUnique({
+      where: {
+        organizationId_userId: {
+          organizationId: project.orgId,
+          userId
+        }
+      }
+    });
+
+    if (!membership || membership.role !== "OWNER") {
+      return res.status(403).json({ error: "Only org owners can delete projects" });
+    }
+  } else if (project.userId !== userId) {
+    return res.status(403).json({ error: "Forbidden" });
+  }
+
+  if (!project.archivedAt) {
+    return res.status(400).json({ error: "Archive the project before deleting it permanently" });
+  }
+
+  if (!name || name.trim() !== project.name) {
+    return res.status(400).json({ error: "Project name confirmation does not match" });
+  }
+
+  await prisma.$transaction(async (tx) => {
+    await deleteProjectGraph(tx, projectId);
+  });
+
+  return res.json({ status: "deleted" });
 });

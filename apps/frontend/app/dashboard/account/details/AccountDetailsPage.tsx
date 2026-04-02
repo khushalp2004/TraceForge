@@ -738,7 +738,7 @@ export default function AccountDetailsPage() {
 
       {toast && (
         <div
-          className={`fixed bottom-6 right-6 z-50 rounded-full px-4 py-2 text-sm font-semibold text-white shadow-lg ${
+          className={`tf-dashboard-toast ${
             toast.tone === "success" ? "bg-emerald-600" : "bg-red-600"
           }`}
         >

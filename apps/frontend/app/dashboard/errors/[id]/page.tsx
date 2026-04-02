@@ -22,6 +22,7 @@ type ErrorDetail = {
   count: number;
   firstSeen: string;
   lastSeen: string;
+  isManualAlertIssue?: boolean;
   aiStatus: "PENDING" | "PROCESSING" | "READY" | "FAILED";
   aiRequestedAt?: string | null;
   aiLastError?: string | null;
@@ -228,49 +229,52 @@ export default function ErrorDetailPage({ params }: { params: { id: string } }) 
           ← Back to issues
         </Link>
 
-        <header className="mt-4 rounded-3xl border border-border bg-card/95 p-6 shadow-sm">
+        <header className="mt-4 overflow-hidden rounded-3xl border border-border bg-card/95 p-6 shadow-sm">
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div className="min-w-0">
               <p className="tf-kicker">{errorDetail.project.name}</p>
               <h1 className="tf-title mt-3 text-2xl sm:text-3xl">{errorDetail.message}</h1>
               <p className="mt-3 max-w-3xl text-sm text-text-secondary">
-                Review the grouped stack, recent event payloads, and AI guidance for this issue
-                without losing the higher-level inbox context.
+                {errorDetail.isManualAlertIssue
+                  ? "Review the grouped stack and recent event payloads for this manually triggered alert issue without losing the higher-level inbox context."
+                  : "Review the grouped stack, recent event payloads, and AI guidance for this issue without losing the higher-level inbox context."}
               </p>
             </div>
-            <div className="flex flex-wrap items-center gap-3">
+            <div className="flex w-full flex-wrap items-center gap-3 sm:w-auto sm:justify-end">
               {aiStatus && (
-                <span className="text-xs font-semibold text-text-secondary">{aiStatus}</span>
+                <span className="w-full text-xs font-semibold text-text-secondary sm:w-auto">{aiStatus}</span>
               )}
               <button
-                className="tf-button-ghost inline-flex items-center gap-2 px-4 py-2 text-sm"
+                className="tf-button-ghost inline-flex w-full items-center justify-center gap-2 px-4 py-2 text-sm sm:w-auto"
                 onClick={handleCopyStack}
               >
                 <Copy className="h-4 w-4" />
                 {copyStatus ?? "Copy stack"}
               </button>
-              <button
-                className="tf-button inline-flex items-center gap-2 px-4 py-2 text-sm"
-                onClick={handleRegenerate}
-                disabled={regenerating}
-              >
-                {regenerating ? (
-                  <Sparkles className="h-4 w-4 animate-pulse" />
-                ) : errorDetail.aiStatus === "FAILED" && hasAiRequest(errorDetail) ? (
-                  <RotateCcw className="h-4 w-4" />
-                ) : hasAiResult(errorDetail) ? (
-                  <RotateCcw className="h-4 w-4" />
-                ) : (
-                  <Sparkles className="h-4 w-4" />
-                )}
-                {regenerating
-                  ? "Generating..."
-                  : errorDetail.aiStatus === "FAILED" && hasAiRequest(errorDetail)
-                  ? "Retry AI solution"
-                  : hasAiResult(errorDetail)
-                  ? "Regenerate AI solution"
-                  : "Generate AI solution"}
-              </button>
+              {!errorDetail.isManualAlertIssue && (
+                <button
+                  className="tf-button inline-flex w-full items-center justify-center gap-2 px-4 py-2 text-sm sm:w-auto"
+                  onClick={handleRegenerate}
+                  disabled={regenerating}
+                >
+                  {regenerating ? (
+                    <Sparkles className="h-4 w-4 animate-pulse" />
+                  ) : errorDetail.aiStatus === "FAILED" && hasAiRequest(errorDetail) ? (
+                    <RotateCcw className="h-4 w-4" />
+                  ) : hasAiResult(errorDetail) ? (
+                    <RotateCcw className="h-4 w-4" />
+                  ) : (
+                    <Sparkles className="h-4 w-4" />
+                  )}
+                  {regenerating
+                    ? "Generating..."
+                    : errorDetail.aiStatus === "FAILED" && hasAiRequest(errorDetail)
+                    ? "Retry AI solution"
+                    : hasAiResult(errorDetail)
+                    ? "Regenerate AI solution"
+                    : "Generate AI solution"}
+                </button>
+              )}
             </div>
           </div>
 
@@ -312,9 +316,9 @@ export default function ErrorDetailPage({ params }: { params: { id: string } }) 
 
         <section className="mt-6 grid gap-6 xl:grid-cols-[minmax(0,1.2fr)_380px]">
           <div className="space-y-6">
-            <section className="rounded-3xl border border-border bg-card/95 p-6 shadow-sm">
-              <div className="flex flex-wrap items-center justify-between gap-3">
-                <div>
+            <section className="overflow-hidden rounded-3xl border border-border bg-card/95 p-6 shadow-sm">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <div className="min-w-0">
                   <p className="text-xs font-semibold uppercase tracking-[0.14em] text-text-secondary">
                     Stack trace
                   </p>
@@ -323,7 +327,7 @@ export default function ErrorDetailPage({ params }: { params: { id: string } }) 
                   </h2>
                 </div>
                 <button
-                  className="tf-button-ghost px-4 py-2 text-sm"
+                  className="tf-button-ghost w-full px-4 py-2 text-sm sm:w-auto"
                   onClick={() => setShowAllFrames((prev) => !prev)}
                 >
                   {showAllFrames ? "Collapse frames" : "Show all frames"}
@@ -334,11 +338,13 @@ export default function ErrorDetailPage({ params }: { params: { id: string } }) 
                 {visibleFrames.map((frame, index) => (
                   <div
                     key={`${frame.raw}-${index}`}
-                    className="rounded-2xl border border-border bg-secondary/20 px-4 py-4"
+                    className="min-w-0 overflow-hidden rounded-2xl border border-border bg-secondary/20 px-4 py-4"
                   >
-                    <p className="break-all text-sm font-medium text-text-primary">{frame.raw}</p>
+                    <div className="overflow-x-auto">
+                      <p className="min-w-0 break-all text-sm font-medium text-text-primary">{frame.raw}</p>
+                    </div>
                     {frame.file && (
-                      <p className="mt-2 text-xs text-text-secondary">
+                      <p className="mt-2 break-all text-xs text-text-secondary">
                         {frame.file}:{frame.line}:{frame.column}
                       </p>
                     )}
@@ -352,9 +358,9 @@ export default function ErrorDetailPage({ params }: { params: { id: string } }) 
               </div>
             </section>
 
-            <section className="rounded-3xl border border-border bg-card/95 p-6 shadow-sm">
-              <div className="flex flex-wrap items-center justify-between gap-3">
-                <div>
+            <section className="overflow-hidden rounded-3xl border border-border bg-card/95 p-6 shadow-sm">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <div className="min-w-0">
                   <p className="text-xs font-semibold uppercase tracking-[0.14em] text-text-secondary">
                     Recent events
                   </p>
@@ -362,7 +368,7 @@ export default function ErrorDetailPage({ params }: { params: { id: string } }) 
                     Payloads and environment snapshots
                   </h2>
                 </div>
-                <span className="rounded-full border border-border bg-card px-3 py-1 text-xs font-semibold text-text-secondary">
+                <span className="w-fit rounded-full border border-border bg-card px-3 py-1 text-xs font-semibold text-text-secondary">
                   {filteredEvents.length} events
                 </span>
               </div>
@@ -380,7 +386,7 @@ export default function ErrorDetailPage({ params }: { params: { id: string } }) 
                   <label className="tf-filter-field">
                     <span className="tf-filter-label">Payload search</span>
                     <input
-                      className="tf-input tf-filter-control"
+                      className="tf-input tf-filter-control min-w-0"
                       placeholder="Search payloads"
                       value={payloadSearch}
                       onChange={(event) => setPayloadSearch(event.target.value)}
@@ -407,18 +413,18 @@ export default function ErrorDetailPage({ params }: { params: { id: string } }) 
                 {filteredEvents.map((event) => (
                   <div
                     key={event.id}
-                    className="rounded-2xl border border-border bg-secondary/15 px-4 py-4"
+                    className="min-w-0 overflow-hidden rounded-2xl border border-border bg-secondary/15 px-4 py-4"
                   >
-                    <div className="flex flex-wrap items-center justify-between gap-3">
-                      <p className="text-sm font-semibold text-text-primary">
+                    <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
+                      <p className="break-words text-sm font-semibold text-text-primary">
                         {new Date(event.timestamp).toLocaleString()}
                       </p>
-                      <span className="rounded-full border border-border bg-card px-2.5 py-1 text-xs font-semibold text-text-secondary">
+                      <span className="w-fit rounded-full border border-border bg-card px-2.5 py-1 text-xs font-semibold text-text-secondary">
                         {event.environment ?? "unknown"}
                       </span>
                     </div>
                     {showPayloads && event.payload && (
-                      <pre className="mt-3 overflow-auto rounded-2xl bg-slate-900 p-4 text-[11px] text-slate-100">
+                      <pre className="mt-3 max-w-full overflow-x-auto rounded-2xl bg-slate-900 p-4 text-[11px] text-slate-100">
                         {JSON.stringify(event.payload, null, 2)}
                       </pre>
                     )}
@@ -437,28 +443,38 @@ export default function ErrorDetailPage({ params }: { params: { id: string } }) 
           </div>
 
           <div className="space-y-6">
-            <section className="rounded-3xl border border-border bg-card/95 p-6 shadow-sm">
+            <section className="overflow-hidden rounded-3xl border border-border bg-card/95 p-6 shadow-sm">
               <p className="text-xs font-semibold uppercase tracking-[0.14em] text-text-secondary">
                 AI solution
               </p>
               <h2 className="mt-2 text-xl font-semibold text-text-primary">
                 Suggested solution and debugging direction
               </h2>
-              {hasAiResult(errorDetail) && aiAnalysis ? (
+              {errorDetail.isManualAlertIssue ? (
+                <div className="mt-4 rounded-2xl border border-border bg-secondary/20 px-4 py-4">
+                  <p className="text-sm font-semibold text-text-primary">
+                    AI solution is unavailable
+                  </p>
+                  <p className="mt-1 text-sm text-text-secondary">
+                    Manual alert issues are created intentionally, so AI generation is hidden for
+                    these records.
+                  </p>
+                </div>
+              ) : hasAiResult(errorDetail) && aiAnalysis ? (
                 <>
                   <div className="mt-4 grid gap-4">
                     <div className="rounded-2xl border border-border bg-secondary/20 px-4 py-4">
                       <p className="text-xs font-semibold uppercase tracking-[0.14em] text-text-secondary">
                         Summary
                       </p>
-                      <p className="mt-2 text-sm leading-7 text-text-secondary">
+                      <p className="mt-2 break-words text-sm leading-7 text-text-secondary">
                         {getAiSummary(errorDetail)}
                       </p>
                     </div>
                     {getAiDetail(errorDetail) && (
                       <div className="rounded-2xl border border-primary/20 bg-accent-soft px-4 py-4">
-                        <div className="flex flex-wrap items-center justify-between gap-3">
-                          <div>
+                        <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
+                          <div className="min-w-0">
                             <p className="text-xs font-semibold uppercase tracking-[0.14em] text-primary">
                               Detailed solution
                             </p>
@@ -468,7 +484,7 @@ export default function ErrorDetailPage({ params }: { params: { id: string } }) 
                           </div>
                           <button
                             type="button"
-                            className="rounded-full border border-primary/20 bg-card px-3 py-1.5 text-xs font-semibold text-primary transition hover:border-primary/35 hover:bg-card/80"
+                            className="rounded-full border border-primary/20 bg-card px-3 py-1.5 text-xs font-semibold text-primary transition hover:border-primary/35 hover:bg-card/80 max-[639px]:w-full"
                             onClick={() => setShowAiDetail(true)}
                           >
                             View in detail
@@ -501,7 +517,7 @@ export default function ErrorDetailPage({ params }: { params: { id: string } }) 
               )}
             </section>
 
-            <section className="rounded-3xl border border-border bg-card/95 p-6 shadow-sm">
+            <section className="overflow-hidden rounded-3xl border border-border bg-card/95 p-6 shadow-sm">
               <p className="text-xs font-semibold uppercase tracking-[0.14em] text-text-secondary">
                 Quick actions
               </p>
@@ -510,42 +526,44 @@ export default function ErrorDetailPage({ params }: { params: { id: string } }) 
               </h2>
               <div className="mt-5 space-y-3">
                 <Link
-                  className="tf-button flex w-full items-center justify-center px-4 py-2 text-sm"
+                  className="tf-button flex w-full items-center justify-center px-4 py-2 text-center text-sm"
                   href="/dashboard/issues"
                 >
                   Return to issues inbox
                 </Link>
                 <button
                   type="button"
-                  className="tf-button-ghost flex w-full items-center justify-center gap-2 px-4 py-2 text-sm"
+                  className="tf-button-ghost flex w-full items-center justify-center gap-2 px-4 py-2 text-center text-sm"
                   onClick={handleCopyStack}
                 >
                   <Copy className="h-4 w-4" />
                   {copyStatus ?? "Copy full stack trace"}
                 </button>
-                <button
-                  type="button"
-                  className="tf-button-ghost flex w-full items-center justify-center gap-2 px-4 py-2 text-sm"
-                  onClick={handleRegenerate}
-                  disabled={regenerating}
-                >
-                  {regenerating ? (
-                    <Sparkles className="h-4 w-4 animate-pulse" />
-                  ) : errorDetail.aiStatus === "FAILED" && hasAiRequest(errorDetail) ? (
-                    <RotateCcw className="h-4 w-4" />
-                  ) : hasAiResult(errorDetail) ? (
-                    <RotateCcw className="h-4 w-4" />
-                  ) : (
-                    <Sparkles className="h-4 w-4" />
-                  )}
-                  {regenerating
-                    ? "Generating..."
-                    : errorDetail.aiStatus === "FAILED" && hasAiRequest(errorDetail)
-                    ? "Retry AI solution"
-                    : hasAiResult(errorDetail)
-                    ? "Regenerate AI solution"
-                    : "Generate AI solution"}
-                </button>
+                {!errorDetail.isManualAlertIssue && (
+                  <button
+                    type="button"
+                    className="tf-button-ghost flex w-full items-center justify-center gap-2 px-4 py-2 text-center text-sm"
+                    onClick={handleRegenerate}
+                    disabled={regenerating}
+                  >
+                    {regenerating ? (
+                      <Sparkles className="h-4 w-4 animate-pulse" />
+                    ) : errorDetail.aiStatus === "FAILED" && hasAiRequest(errorDetail) ? (
+                      <RotateCcw className="h-4 w-4" />
+                    ) : hasAiResult(errorDetail) ? (
+                      <RotateCcw className="h-4 w-4" />
+                    ) : (
+                      <Sparkles className="h-4 w-4" />
+                    )}
+                    {regenerating
+                      ? "Generating..."
+                      : errorDetail.aiStatus === "FAILED" && hasAiRequest(errorDetail)
+                      ? "Retry AI solution"
+                      : hasAiResult(errorDetail)
+                      ? "Regenerate AI solution"
+                      : "Generate AI solution"}
+                  </button>
+                )}
               </div>
             </section>
           </div>
@@ -553,10 +571,10 @@ export default function ErrorDetailPage({ params }: { params: { id: string } }) 
       </div>
 
       {showAiDetail && getAiDetail(errorDetail) && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 px-6">
-          <div className="w-full max-w-2xl rounded-[28px] border border-border bg-card/95 p-6 shadow-xl backdrop-blur">
-            <div className="flex flex-wrap items-start justify-between gap-4">
-              <div>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 px-4 sm:px-6">
+          <div className="max-h-[85vh] w-full max-w-2xl overflow-hidden rounded-[28px] border border-border bg-card/95 p-6 shadow-xl backdrop-blur">
+            <div className="flex flex-col gap-4 sm:flex-row sm:flex-wrap sm:items-start sm:justify-between">
+              <div className="min-w-0">
                 <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-primary">
                   AI Solution
                 </p>
@@ -569,14 +587,14 @@ export default function ErrorDetailPage({ params }: { params: { id: string } }) 
               </div>
               <button
                 type="button"
-                className="tf-button-ghost px-4 py-2 text-sm"
+                className="tf-button-ghost w-full px-4 py-2 text-sm sm:w-auto"
                 onClick={() => setShowAiDetail(false)}
               >
                 Close
               </button>
             </div>
 
-            <div className="mt-5 whitespace-pre-wrap rounded-2xl border border-primary/15 bg-secondary/20 px-4 py-4 text-sm leading-7 text-text-primary">
+            <div className="tf-scroll-rail mt-5 max-h-[60vh] overflow-y-auto whitespace-pre-wrap rounded-2xl border border-primary/15 bg-secondary/20 px-4 py-4 text-sm leading-7 text-text-primary">
               {getAiDetail(errorDetail)}
             </div>
           </div>

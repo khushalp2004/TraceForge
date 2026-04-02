@@ -1,13 +1,23 @@
 "use client";
 
-import { Suspense, useEffect, useState } from "react";
+import { Suspense, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useAuth } from "../../../../context/AuthContext";
+import { DashboardPagination } from "../../components/DashboardPagination";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
 const tokenKey = "traceforge_token";
-const AUDIT_PAGE_SIZE = 3;
+const MEMBER_PAGE_SIZE_OPTIONS = [
+  { value: 5, label: "5 / page" },
+  { value: 10, label: "10 / page" },
+  { value: 15, label: "15 / page" }
+];
+const AUDIT_PAGE_SIZE_OPTIONS = [
+  { value: 5, label: "5 / page" },
+  { value: 10, label: "10 / page" },
+  { value: 15, label: "15 / page" }
+];
 
 type Org = {
   id: string;
@@ -56,8 +66,22 @@ function OrganizationDetailPageInner({ params }: { params: { id: string } }) {
   const [showInviteModal, setShowInviteModal] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
   const [hasAccess, setHasAccess] = useState(false);
-  const [visibleAuditCount, setVisibleAuditCount] = useState(AUDIT_PAGE_SIZE);
+  const [membersPage, setMembersPage] = useState(1);
+  const [membersPageSize, setMembersPageSize] = useState(5);
+  const [auditPage, setAuditPage] = useState(1);
+  const [auditPageSize, setAuditPageSize] = useState(5);
   const searchParams = useSearchParams();
+
+  const membersTotalPages = Math.max(1, Math.ceil(members.length / membersPageSize));
+  const auditTotalPages = Math.max(1, Math.ceil(logs.length / auditPageSize));
+  const paginatedMembers = useMemo(() => {
+    const start = (membersPage - 1) * membersPageSize;
+    return members.slice(start, start + membersPageSize);
+  }, [members, membersPage, membersPageSize]);
+  const paginatedLogs = useMemo(() => {
+    const start = (auditPage - 1) * auditPageSize;
+    return logs.slice(start, start + auditPageSize);
+  }, [logs, auditPage, auditPageSize]);
 
   const loadOrg = async () => {
     const token = localStorage.getItem(tokenKey);
@@ -115,7 +139,6 @@ function OrganizationDetailPageInner({ params }: { params: { id: string } }) {
       }
 
       setLogs(data.logs || []);
-      setVisibleAuditCount(AUDIT_PAGE_SIZE);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Unexpected error");
     }
@@ -131,6 +154,14 @@ function OrganizationDetailPageInner({ params }: { params: { id: string } }) {
       loadAudit();
     }
   }, [hasAccess]);
+
+  useEffect(() => {
+    setMembersPage((current) => Math.min(current, membersTotalPages));
+  }, [membersTotalPages]);
+
+  useEffect(() => {
+    setAuditPage((current) => Math.min(current, auditTotalPages));
+  }, [auditTotalPages]);
 
   const handleInvite = async () => {
     const token = localStorage.getItem(tokenKey);
@@ -452,7 +483,7 @@ function OrganizationDetailPageInner({ params }: { params: { id: string } }) {
                   <span>Action</span>
                 </div>
 
-                {members.map((member) => {
+                {paginatedMembers.map((member) => {
                   const isSelf = user?.id === member.userId;
                   return (
                     <div
@@ -515,12 +546,26 @@ function OrganizationDetailPageInner({ params }: { params: { id: string } }) {
                   <div className="px-5 py-6 text-sm text-text-secondary">No members yet.</div>
                 )}
               </div>
+
+              {members.length > 5 && (
+                <DashboardPagination
+                  page={membersPage}
+                  totalPages={membersTotalPages}
+                  pageSize={membersPageSize}
+                  pageSizeOptions={MEMBER_PAGE_SIZE_OPTIONS}
+                  onPageChange={setMembersPage}
+                  onPageSizeChange={(nextSize) => {
+                    setMembersPage(1);
+                    setMembersPageSize(nextSize);
+                  }}
+                />
+              )}
             </div>
 
             <div className="tf-card mt-6 p-5">
               <h2 className="tf-section-title">Audit Log</h2>
               <div className="mt-4 space-y-2 text-sm text-text-secondary">
-                {logs.slice(0, visibleAuditCount).map((log) => (
+                {paginatedLogs.map((log) => (
                   <div key={log.id} className="flex flex-wrap items-center justify-between gap-2">
                     <span>{log.action}</span>
                     <span className="text-xs text-text-secondary">
@@ -529,17 +574,20 @@ function OrganizationDetailPageInner({ params }: { params: { id: string } }) {
                   </div>
                 ))}
                 {!logs.length && <p className="text-sm text-text-secondary">No audit events yet.</p>}
-                {visibleAuditCount < logs.length && (
-                  <button
-                    className="mt-3 rounded-full border border-border px-4 py-2 text-xs font-semibold text-text-secondary transition hover:bg-secondary/70"
-                    onClick={() =>
-                      setVisibleAuditCount((count) => Math.min(count + AUDIT_PAGE_SIZE, logs.length))
-                    }
-                  >
-                    Load more
-                  </button>
-                )}
               </div>
+              {logs.length > 5 && (
+                <DashboardPagination
+                  page={auditPage}
+                  totalPages={auditTotalPages}
+                  pageSize={auditPageSize}
+                  pageSizeOptions={AUDIT_PAGE_SIZE_OPTIONS}
+                  onPageChange={setAuditPage}
+                  onPageSizeChange={(nextSize) => {
+                    setAuditPage(1);
+                    setAuditPageSize(nextSize);
+                  }}
+                />
+              )}
             </div>
           </>
         )}
@@ -646,7 +694,7 @@ function OrganizationDetailPageInner({ params }: { params: { id: string } }) {
       )}
 
       {toast && (
-        <div className="fixed bottom-6 right-6 z-50 rounded-full bg-emerald-600 px-4 py-2 text-xs font-semibold text-white shadow-lg">
+        <div className="tf-dashboard-toast bg-emerald-600 text-xs">
           {toast}
         </div>
       )}

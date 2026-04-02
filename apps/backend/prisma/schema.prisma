@@ -305,6 +305,7 @@ model AlertRule {
   userId           String
   projectId        String?
   name             String
+  issueDescription String?
   environment      String?
   severity         AlertSeverity @default(CRITICAL)
   minOccurrences   Int           @default(1)

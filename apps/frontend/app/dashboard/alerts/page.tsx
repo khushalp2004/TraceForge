@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { Archive, BellRing, Pause, Play, RotateCcw } from "lucide-react";
 import { useDebouncedValue } from "../../hooks/useDebouncedValue";
+import { DashboardPagination } from "../components/DashboardPagination";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
 const tokenKey = "traceforge_token";
@@ -17,6 +18,7 @@ type Project = {
 type AlertRule = {
   id: string;
   name: string;
+  issueDescription: string | null;
   environment: string | null;
   severity: "INFO" | "WARNING" | "CRITICAL";
   minOccurrences: number;
@@ -55,9 +57,15 @@ type Toast = {
 
 const severityTone: Record<AlertRule["severity"], string> = {
   CRITICAL: "tf-danger-tag",
-  WARNING: "border-amber-200 bg-amber-50 text-amber-700",
-  INFO: "border-border bg-secondary/70 text-text-secondary"
+  WARNING: "tf-warning-tag",
+  INFO: "tf-muted-tag"
 };
+
+const ALERT_EVENT_PAGE_SIZE_OPTIONS = [
+  { value: 5, label: "5 / page" },
+  { value: 10, label: "10 / page" },
+  { value: 15, label: "15 / page" }
+];
 
 const relativeTime = (value: string | null) => {
   if (!value) return "Never";
@@ -85,13 +93,16 @@ function AlertsPageInner() {
   const [events, setEvents] = useState<AlertEvent[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [testingRuleId, setTestingRuleId] = useState<string | null>(null);
+  const [notifyingRuleId, setNotifyingRuleId] = useState<string | null>(null);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [archiveTarget, setArchiveTarget] = useState<AlertRule | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<AlertRule | null>(null);
   const [archivingRuleId, setArchivingRuleId] = useState<string | null>(null);
+  const [deletingRuleId, setDeletingRuleId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [toast, setToast] = useState<Toast | null>(null);
   const [name, setName] = useState("");
+  const [issueDescription, setIssueDescription] = useState("");
   const [projectId, setProjectId] = useState("");
   const [environment, setEnvironment] = useState("");
   const [severity, setSeverity] = useState<AlertRule["severity"]>("CRITICAL");
@@ -106,6 +117,8 @@ function AlertsPageInner() {
   const [restoringRuleId, setRestoringRuleId] = useState<string | null>(null);
   const [rulesPage, setRulesPage] = useState(1);
   const [rulesPageSize, setRulesPageSize] = useState(6);
+  const [eventsPage, setEventsPage] = useState(1);
+  const [eventsPageSize, setEventsPageSize] = useState(5);
   const debouncedSearch = useDebouncedValue(search, 250);
 
   useEffect(() => {
@@ -254,6 +267,14 @@ function AlertsPageInner() {
       return matchesSearch && matchesProject && matchesEnvironment && matchesSeverity;
     });
   }, [events, debouncedSearch, projectFilter, environmentFilter, severityFilter]);
+  const eventsTotalPages = useMemo(
+    () => Math.max(1, Math.ceil(filteredEvents.length / eventsPageSize)),
+    [filteredEvents.length, eventsPageSize]
+  );
+  const paginatedEvents = useMemo(() => {
+    const start = (eventsPage - 1) * eventsPageSize;
+    return filteredEvents.slice(start, start + eventsPageSize);
+  }, [filteredEvents, eventsPage, eventsPageSize]);
 
   const rulesTotalPages = useMemo(
     () => Math.max(1, Math.ceil(filteredRules.length / rulesPageSize)),
@@ -283,6 +304,7 @@ function AlertsPageInner() {
 
   const resetForm = () => {
     setName("");
+    setIssueDescription("");
     setProjectId(projects[0]?.id || "");
     setEnvironment("");
     setSeverity("CRITICAL");
@@ -300,11 +322,16 @@ function AlertsPageInner() {
 
   useEffect(() => {
     setRulesPage(1);
+    setEventsPage(1);
   }, [debouncedSearch, projectFilter, environmentFilter, severityFilter, statusFilter, view]);
 
   useEffect(() => {
     setRulesPage((current) => Math.min(current, rulesTotalPages));
   }, [rulesTotalPages]);
+
+  useEffect(() => {
+    setEventsPage((current) => Math.min(current, eventsTotalPages));
+  }, [eventsTotalPages]);
 
   const createRule = async () => {
     const token = localStorage.getItem(tokenKey);
@@ -330,6 +357,7 @@ function AlertsPageInner() {
         },
         body: JSON.stringify({
           name: name.trim(),
+          issueDescription: issueDescription.trim() || undefined,
           projectId: projectId || undefined,
           environment: environment || undefined,
           severity,
@@ -443,13 +471,41 @@ function AlertsPageInner() {
     }
   };
 
-  const sendTestAlert = async (ruleId: string) => {
+  const deleteRulePermanently = async () => {
+    const token = localStorage.getItem(tokenKey);
+    if (!token || !deleteTarget) return;
+
+    try {
+      setDeletingRuleId(deleteTarget.id);
+      const res = await fetch(`${API_URL}/alerts/rules/${deleteTarget.id}`, {
+        method: "DELETE",
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || "Failed to delete alert");
+      }
+
+      setArchivedRules((prev) => prev.filter((rule) => rule.id !== deleteTarget.id));
+      setDeleteTarget(null);
+      showToast("Alert deleted permanently", "success");
+    } catch (err) {
+      showToast(err instanceof Error ? err.message : "Failed to delete alert", "error");
+    } finally {
+      setDeletingRuleId(null);
+    }
+  };
+
+  const sendAlertNotification = async (ruleId: string) => {
     const token = localStorage.getItem(tokenKey);
     if (!token) return;
 
-    setTestingRuleId(ruleId);
+    setNotifyingRuleId(ruleId);
     try {
-      const res = await fetch(`${API_URL}/alerts/rules/${ruleId}/test`, {
+      const res = await fetch(`${API_URL}/alerts/rules/${ruleId}/notify`, {
         method: "POST",
         headers: {
           Authorization: `Bearer ${token}`
@@ -458,7 +514,7 @@ function AlertsPageInner() {
 
       const data = await res.json();
       if (!res.ok) {
-        throw new Error(data.error || "Failed to send test alert");
+        throw new Error(data.error || "Failed to send alert notification");
       }
 
       setRules((prev) =>
@@ -474,11 +530,11 @@ function AlertsPageInner() {
             : rule
         )
       );
-      showToast("Alert notified to team", "success");
+      showToast("Alert notification sent", "success");
     } catch (err) {
-      showToast(err instanceof Error ? err.message : "Failed to send test alert", "error");
+      showToast(err instanceof Error ? err.message : "Failed to send alert notification", "error");
     } finally {
-      setTestingRuleId(null);
+      setNotifyingRuleId(null);
     }
   };
 
@@ -721,6 +777,12 @@ function AlertsPageInner() {
                               {rule._count.deliveries === 1 ? "" : "s"}
                             </span>
                           </div>
+
+                          {rule.issueDescription && (
+                            <p className="mt-3 max-w-2xl text-sm leading-6 text-text-secondary">
+                              {rule.issueDescription}
+                            </p>
+                          )}
                         </div>
 
                         <div className="mt-4 grid gap-2.5 sm:grid-cols-2 lg:mt-0 lg:grid-cols-2">
@@ -764,11 +826,11 @@ function AlertsPageInner() {
                               <button
                                 type="button"
                                 className="tf-button flex w-full items-center justify-center gap-2 px-4 py-2 text-sm"
-                                onClick={() => sendTestAlert(rule.id)}
-                                disabled={testingRuleId === rule.id}
+                                onClick={() => sendAlertNotification(rule.id)}
+                                disabled={notifyingRuleId === rule.id}
                               >
                                 <BellRing className="h-4 w-4" />
-                                {testingRuleId === rule.id ? "Sending..." : "Notify"}
+                                {notifyingRuleId === rule.id ? "Sending..." : "Notify"}
                               </button>
                               <button
                                 type="button"
@@ -798,15 +860,25 @@ function AlertsPageInner() {
                               </button>
                             </>
                           ) : (
-                            <button
-                              type="button"
-                              className="flex w-full items-center justify-center gap-2 rounded-full border border-emerald-200 bg-emerald-50 px-4 py-2 text-sm font-semibold text-emerald-700 transition hover:bg-emerald-100"
-                              onClick={() => restoreRule(rule.id)}
-                              disabled={restoringRuleId === rule.id}
-                            >
-                              <RotateCcw className="h-4 w-4" />
-                              {restoringRuleId === rule.id ? "Restoring..." : "Restore alert"}
-                            </button>
+                            <>
+                              <button
+                                type="button"
+                                className="tf-button-ghost inline-flex w-full items-center justify-center gap-2 px-4 py-2 text-sm"
+                                onClick={() => restoreRule(rule.id)}
+                                disabled={restoringRuleId === rule.id}
+                              >
+                                <RotateCcw className="h-4 w-4" />
+                                {restoringRuleId === rule.id ? "Restoring..." : "Restore alert"}
+                              </button>
+                              <button
+                                type="button"
+                                className="tf-danger-button flex w-full items-center justify-center gap-2 rounded-full border px-4 py-2 text-sm font-semibold transition"
+                                onClick={() => setDeleteTarget(rule)}
+                                disabled={deletingRuleId === rule.id}
+                              >
+                                {deletingRuleId === rule.id ? "Deleting..." : "Delete"}
+                              </button>
+                            </>
                           )}
                         </div>
                       </div>
@@ -814,12 +886,12 @@ function AlertsPageInner() {
                   ))}
               </div>
 
-              {!loading && filteredRules.length > 0 && (
+              {!loading && filteredRules.length > 5 && (
                 <div className="rounded-2xl border border-border bg-card/90 px-4 py-4 shadow-sm">
                   <div className="tf-pagination-bar">
                     <div className="tf-pagination-size">
                       <select
-                        className="tf-select tf-pagination-select w-full sm:min-w-[102px]"
+                        className="tf-select tf-pagination-select w-full"
                         value={rulesPageSize}
                         onChange={(event) => {
                           setRulesPage(1);
@@ -911,7 +983,7 @@ function AlertsPageInner() {
                 )}
 
                 {!loading &&
-                  filteredEvents.map((event) => (
+                  paginatedEvents.map((event) => (
                     <div
                       key={event.id}
                       className="rounded-2xl border border-border bg-card px-4 py-4"
@@ -953,6 +1025,22 @@ function AlertsPageInner() {
                     </div>
                   ))}
               </div>
+
+              {!loading && filteredEvents.length > 5 && (
+                <DashboardPagination
+                  page={eventsPage}
+                  totalPages={eventsTotalPages}
+                  pageSize={eventsPageSize}
+                  pageSizeOptions={ALERT_EVENT_PAGE_SIZE_OPTIONS}
+                  onPageChange={setEventsPage}
+                  onPageSizeChange={(nextSize) => {
+                    setEventsPage(1);
+                    setEventsPageSize(nextSize);
+                  }}
+                  className="mt-4"
+                  variant="compact"
+                />
+              )}
             </div>
           </div>
         </section>
@@ -992,9 +1080,41 @@ function AlertsPageInner() {
         </div>
       )}
 
-      {showCreateModal && (
+      {deleteTarget && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-6">
-          <div className="w-full max-w-xl rounded-2xl border border-border bg-card/95 p-6 shadow-xl backdrop-blur">
+          <div className="w-full max-w-md rounded-2xl border border-border bg-card/95 p-6 shadow-xl backdrop-blur">
+            <h3 className="font-display text-lg font-semibold text-text-primary">Delete alert</h3>
+            <p className="mt-2 text-sm text-text-secondary">
+              This will permanently remove the archived alert rule and its delivery history.
+            </p>
+            <p className="mt-3 rounded-2xl border border-border bg-secondary/25 px-4 py-3 text-sm text-text-primary">
+              {deleteTarget.name}
+            </p>
+            <div className="mt-5 flex w-full flex-nowrap items-center justify-end gap-3">
+              <button
+                type="button"
+                className="tf-button-ghost inline-flex h-10 min-w-0 flex-1 items-center justify-center px-3 py-0 text-sm sm:flex-none sm:px-4"
+                onClick={() => setDeleteTarget(null)}
+                disabled={deletingRuleId === deleteTarget.id}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                className="tf-danger-solid inline-flex h-10 min-w-0 flex-1 items-center justify-center whitespace-nowrap rounded-full border px-3 py-0 text-sm font-semibold transition sm:flex-none sm:px-4"
+                onClick={deleteRulePermanently}
+                disabled={deletingRuleId === deleteTarget.id}
+              >
+                {deletingRuleId === deleteTarget.id ? "Deleting..." : "Delete"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showCreateModal && (
+        <div className="fixed inset-x-0 top-[73px] bottom-[calc(env(safe-area-inset-bottom)+5.75rem)] z-50 flex items-start justify-center overflow-y-auto bg-black/40 px-4 py-4 sm:inset-0 sm:items-center sm:px-6 sm:py-6">
+          <div className="w-full max-w-xl rounded-2xl border border-border bg-card/95 p-4 shadow-xl backdrop-blur sm:p-6 max-h-full overflow-y-auto sm:max-h-[calc(100dvh-3rem)]">
             <h3 className="font-display text-lg font-semibold text-text-primary">
               Create alert rule
             </h3>
@@ -1014,6 +1134,22 @@ function AlertsPageInner() {
                   value={name}
                   onChange={(event) => setName(event.target.value)}
                 />
+              </div>
+
+              <div className="md:col-span-2">
+                <label className="mb-2 block text-sm font-semibold text-text-primary">
+                  Issue description
+                </label>
+                <textarea
+                  className="tf-input min-h-[108px] w-full resize-y rounded-2xl py-3"
+                  placeholder="Describe the issue this alert should create when you trigger it manually."
+                  value={issueDescription}
+                  onChange={(event) => setIssueDescription(event.target.value)}
+                />
+                <p className="mt-2 text-xs text-text-secondary">
+                  This description is used as the issue details when you manually notify from this
+                  alert rule.
+                </p>
               </div>
 
               <div>
@@ -1096,7 +1232,7 @@ function AlertsPageInner() {
 
             {error && <p className="mt-3 text-xs text-red-500">{error}</p>}
 
-            <div className="mt-5 flex items-center justify-end gap-3">
+            <div className="mt-5 flex flex-col-reverse gap-3 sm:flex-row sm:items-center sm:justify-end">
               <button
                 type="button"
                 className="tf-button-ghost px-4 py-2 text-sm"
@@ -1124,7 +1260,7 @@ function AlertsPageInner() {
 
       {toast && (
         <div
-          className={`fixed bottom-6 right-6 z-50 rounded-full px-4 py-2 text-sm font-semibold text-white shadow-lg ${
+          className={`tf-dashboard-toast ${
             toast.tone === "success" ? "bg-emerald-600" : "bg-red-600"
           }`}
         >

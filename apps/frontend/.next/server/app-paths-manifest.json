@@ -1,9 +1,0 @@
-{
-  "/manifest.webmanifest/route": "app/manifest.webmanifest/route.js",
-  "/dashboard/alerts/page": "app/dashboard/alerts/page.js",
-  "/dashboard/projects/page": "app/dashboard/projects/page.js",
-  "/dashboard/issues/page": "app/dashboard/issues/page.js",
-  "/dashboard/errors/[id]/page": "app/dashboard/errors/[id]/page.js",
-  "/dashboard/insights/page": "app/dashboard/insights/page.js",
-  "/dashboard/page": "app/dashboard/page.js"
-}

@@ -8,6 +8,20 @@ export const errorsRouter = Router();
 
 errorsRouter.use(requireAuth);
 
+const isManualAlertPayload = (payload: Prisma.JsonValue | null | undefined) => {
+  if (!payload || typeof payload !== "object" || Array.isArray(payload)) {
+    return false;
+  }
+
+  return (payload as Record<string, unknown>).source === "manual-alert-trigger";
+};
+
+const hasManualAlertSource = (
+  events: Array<{
+    payload: Prisma.JsonValue | null;
+  }>
+) => events.some((event) => isManualAlertPayload(event.payload));
+
 const getUserOrgIds = async (userId: string) => {
   const memberships = await prisma.organizationMember.findMany({
     where: { userId },
@@ -143,14 +157,26 @@ errorsRouter.get("/", async (req, res) => {
       skip: (currentPage - 1) * perPage,
       take: perPage,
       include: {
-        analysis: true
+        analysis: true,
+        events: {
+          select: {
+            payload: true
+          },
+          orderBy: {
+            timestamp: "desc"
+          },
+          take: 10
+        }
       }
     }),
     prisma.error.count({ where })
   ]);
 
   return res.json({
-    errors,
+    errors: errors.map((errorRecord) => ({
+      ...errorRecord,
+      isManualAlertIssue: hasManualAlertSource(errorRecord.events)
+    })),
     pagination: {
       page: currentPage,
       pageSize: perPage,
@@ -211,7 +237,12 @@ errorsRouter.get("/:id", async (req, res) => {
     }
   }
 
-  return res.json({ error: errorRecord });
+  return res.json({
+    error: {
+      ...errorRecord,
+      isManualAlertIssue: hasManualAlertSource(errorRecord.events)
+    }
+  });
 });
 
 errorsRouter.post("/:id/regenerate", async (req, res) => {
@@ -224,7 +255,18 @@ errorsRouter.post("/:id/regenerate", async (req, res) => {
 
   const errorRecord = await prisma.error.findUnique({
     where: { id: errorId },
-    include: { project: true }
+    include: {
+      project: true,
+      events: {
+        select: {
+          payload: true
+        },
+        orderBy: {
+          timestamp: "desc"
+        },
+        take: 10
+      }
+    }
   });
 
   if (!errorRecord) {
@@ -256,6 +298,12 @@ errorsRouter.post("/:id/regenerate", async (req, res) => {
     if (!membership) {
       return res.status(403).json({ error: "Forbidden" });
     }
+  }
+
+  if (hasManualAlertSource(errorRecord.events)) {
+    return res
+      .status(400)
+      .json({ error: "AI solution is not available for manual alert issues" });
   }
 
   await prisma.errorAnalysis.deleteMany({
@@ -394,4 +442,54 @@ errorsRouter.post("/:id/restore", async (req, res) => {
   });
 
   return res.status(200).json({ status: "restored" });
+});
+
+errorsRouter.delete("/:id", async (req, res) => {
+  const userId = req.user?.id;
+  if (!userId) {
+    return res.status(401).json({ error: "Unauthorized" });
+  }
+
+  const errorId = req.params.id;
+
+  const errorRecord = await prisma.error.findUnique({
+    where: { id: errorId },
+    include: { project: true }
+  });
+
+  if (!errorRecord) {
+    return res.status(404).json({ error: "Not found" });
+  }
+
+  if (!errorRecord.archivedAt) {
+    return res.status(400).json({ error: "Archive the issue before deleting it permanently" });
+  }
+
+  if (errorRecord.project.userId !== userId) {
+    if (!errorRecord.project.orgId) {
+      return res.status(403).json({ error: "Forbidden" });
+    }
+
+    const membership = await prisma.organizationMember.findUnique({
+      where: {
+        organizationId_userId: {
+          organizationId: errorRecord.project.orgId,
+          userId
+        }
+      }
+    });
+
+    if (!membership) {
+      return res.status(403).json({ error: "Forbidden" });
+    }
+  }
+
+  await prisma.$transaction([
+    prisma.alertDelivery.deleteMany({ where: { errorId } }),
+    prisma.errorAnalysis.deleteMany({ where: { errorId } }),
+    prisma.errorEvent.deleteMany({ where: { errorId } }),
+    prisma.error.delete({ where: { id: errorId } })
+  ]);
+
+  return res.status(200).json({ status: "deleted" });
 });

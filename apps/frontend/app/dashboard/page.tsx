@@ -10,6 +10,7 @@ import { useLayout } from "../../context/LayoutContext";
 import { useTheme } from "../../context/ThemeContext";
 import { useMediaQuery } from "../hooks/useMediaQuery";
 import { SparkAreaChart } from "./components/SparkAreaChart";
+import { DashboardPagination } from "./components/DashboardPagination";
 import { LAYOUTS } from "../layoutPreference";
 import { THEMES } from "../theme";
 
@@ -50,7 +51,6 @@ type AlertNotification = {
   message: string;
   environment: string | null;
   triggeredAt: string;
-  isTest?: boolean;
   project: {
     id: string;
     name: string;
@@ -75,7 +75,6 @@ type RealtimeAlertPayload = {
   errorId?: string;
   environment?: string | null;
   severity?: "INFO" | "WARNING" | "CRITICAL";
-  isTest?: boolean;
   createdAt: string;
 };
 
@@ -160,27 +159,13 @@ const severityForMessage = (message: string) => {
   return "info";
 };
 
-const isTestAlertMessage = (message: string) => message.startsWith("[Test alert]");
-
-const normalizeAlertNotification = (notification: AlertNotification): AlertNotification => {
-  if (!isTestAlertMessage(notification.message)) {
-    return notification;
-  }
-
-  return {
-    ...notification,
-    isTest: true,
-    message: "Alert notified to team."
-  };
-};
-
 const SeverityTag = ({ severity }: { severity: "critical" | "warning" | "info" }) => {
   const styles =
     severity === "critical"
-      ? "bg-red-50 text-red-700 border-red-200"
+      ? "tf-danger-tag"
       : severity === "warning"
-      ? "bg-amber-50 text-amber-700 border-amber-200"
-      : "bg-secondary/70 text-text-secondary border-border";
+      ? "tf-warning-tag"
+      : "tf-muted-tag";
   const label = severity === "critical" ? "Critical" : severity === "warning" ? "Warning" : "Info";
   return (
     <span className={`rounded-full border px-2.5 py-1 text-xs font-semibold ${styles}`}>
@@ -487,10 +472,10 @@ function DashboardPageInner() {
 
           const eventNotifications = ((alertEventsData.events || []) as AlertNotification[]).map(
             (event) =>
-              normalizeAlertNotification({
+              ({
                 ...event,
                 kind: "event"
-              })
+              }) satisfies AlertNotification
           );
 
           const incoming = [...ruleNotifications, ...eventNotifications];
@@ -843,13 +828,12 @@ function DashboardPageInner() {
           payload.message
         ) {
           setAlertNotifications((prev) => {
-            const nextItem = normalizeAlertNotification({
+            const nextItem: AlertNotification = {
               kind: "event",
               id: `${payload.ruleId || "alert"}:${payload.errorId || payload.message}:${payload.createdAt}`,
               message: payload.message,
               environment: payload.environment ?? null,
               triggeredAt: payload.createdAt,
-              isTest: payload.isTest,
               project: {
                 id: payload.projectId || "",
                 name: payload.projectName || "Organization project"
@@ -862,7 +846,7 @@ function DashboardPageInner() {
                 name: payload.title || "Alert triggered",
                 severity: payload.severity ?? "CRITICAL"
               }
-            });
+            };
 
             const filtered = prev.filter((item) => item.id !== nextItem.id);
             if (dismissedAlertNotificationIds.includes(nextItem.id)) {
@@ -1147,24 +1131,6 @@ function DashboardPageInner() {
   const isInitialLoading = dashboardLoading && !projects.length && !errors.length;
   const isTopbarLayout = effectiveLayout === "topbar";
   const isCompactLayout = effectiveLayout === "compact";
-  const visibleRecentErrorPages = (() => {
-    const totalPages = recentErrorsPagination.totalPages;
-    const current = recentErrorsPagination.page;
-
-    if (totalPages <= 5) {
-      return Array.from({ length: totalPages }, (_, index) => index + 1);
-    }
-
-    if (current <= 3) {
-      return [1, 2, 3, 4, totalPages];
-    }
-
-    if (current >= totalPages - 2) {
-      return [1, totalPages - 3, totalPages - 2, totalPages - 1, totalPages];
-    }
-
-    return [1, current - 1, current, current + 1, totalPages];
-  })();
   const frequencyTotal = frequency.reduce((sum, item) => sum + item.count, 0);
   const frequencyPeak = Math.max(0, ...frequency.map((item) => item.count));
   const frequencyAvg = Math.round(frequencyTotal / Math.max(1, frequency.length));
@@ -1186,11 +1152,11 @@ function DashboardPageInner() {
               </Link>
               <p className="text-sm text-text-secondary">{authUser?.email}</p>
             </div>
-            <div className="flex flex-wrap items-center gap-2">
+            <div className="flex w-full flex-wrap items-center justify-end gap-2 sm:w-auto">
               <button
                 type="button"
                 onClick={rollStyle}
-                className="group relative inline-flex items-center justify-center rounded-full border border-border bg-card/90 px-3.5 py-2 text-text-secondary shadow-sm transition hover:border-primary/40 hover:bg-secondary/70 hover:text-text-primary"
+                className="group relative inline-flex h-10 w-10 items-center justify-center rounded-full border border-border bg-card/90 text-text-secondary shadow-sm transition hover:border-primary/40 hover:bg-secondary/70 hover:text-text-primary"
                 aria-label="Surprise me (random theme + layout)"
               >
                 <Dices className={`h-4 w-4 transition ${diceRolling ? "tf-dice-roll" : "group-hover:rotate-12"}`} />
@@ -1200,7 +1166,7 @@ function DashboardPageInner() {
               </button>
               <div className="relative" ref={notificationsRef}>
                 <button
-                  className="relative inline-flex items-center gap-2.5 rounded-full border border-border bg-card/90 px-4 py-2 text-sm font-semibold text-text-secondary shadow-sm transition hover:border-primary/40 hover:bg-secondary/70 hover:text-text-primary"
+                  className="relative inline-flex h-10 items-center gap-2 rounded-full border border-border bg-card/90 px-3 sm:gap-2.5 sm:px-4 py-2 text-sm font-semibold text-text-secondary shadow-sm transition hover:border-primary/40 hover:bg-secondary/70 hover:text-text-primary"
                   onClick={() => setShowRequests((prev) => !prev)}
                   aria-label="Notifications"
                 >
@@ -1219,16 +1185,16 @@ function DashboardPageInner() {
                       <path d="M9.5 17a2.5 2.5 0 0 0 5 0" />
                     </svg>
                   </span>
-                  Notifications
+                  <span className="hidden sm:inline">Notifications</span>
                   {joinRequests.length + pendingInvites.length + alertNotifications.length > 0 && (
-                    <span className="rounded-full bg-primary px-2.5 py-0.5 text-xs font-semibold text-white shadow-sm">
+                    <span className="absolute -right-1 -top-1 rounded-full bg-primary px-2 py-0.5 text-[11px] font-semibold text-white shadow-sm sm:static sm:px-2.5 sm:text-xs">
                       {joinRequests.length + pendingInvites.length + alertNotifications.length}
                     </span>
                   )}
                 </button>
                 {showRequests && (
                   <div
-                    className={`absolute right-0 top-full z-30 mt-3 rounded-2xl border border-border bg-card p-4 shadow-lg max-[639px]:left-0 max-[639px]:right-0 max-[639px]:w-[calc(100vw-2rem)] max-[639px]:max-w-none ${
+                    className={`absolute right-0 top-full z-30 mt-3 rounded-2xl border border-border bg-card p-4 shadow-lg max-[639px]:fixed max-[639px]:left-4 max-[639px]:right-4 max-[639px]:top-[5.5rem] max-[639px]:mt-0 max-[639px]:w-auto max-[639px]:max-w-none ${
                       notificationsExpanded ? "w-[28rem]" : "w-72"
                     }`}
                   >
@@ -1390,10 +1356,10 @@ function DashboardPageInner() {
                             <div className="mt-2 flex gap-2">
                               <Link
                                 className="rounded-full border border-border px-2 py-1 text-xs"
-                                href={alert.isTest ? "/dashboard/alerts" : "/dashboard/issues"}
+                                href="/dashboard/issues"
                                 onClick={() => setShowRequests(false)}
                               >
-                                {alert.isTest ? "Open alerts" : "Open issues"}
+                                Open issues
                               </Link>
                             </div>
                           </div>
@@ -1504,7 +1470,7 @@ function DashboardPageInner() {
               <label className="tf-filter-field">
                 <span className="tf-filter-label">Search</span>
                 <input
-                  className="tf-input tf-filter-control flex-1 sm:min-w-[180px] max-[639px]:basis-full max-[639px]:w-full"
+                  className="tf-input tf-filter-control !h-10 min-h-[2.5rem] flex-1 !py-0 leading-none sm:min-w-[180px] max-[639px]:basis-full max-[639px]:w-full"
                   placeholder="Search errors"
                   value={search}
                   onChange={(event) => setSearch(event.target.value)}
@@ -1580,7 +1546,7 @@ function DashboardPageInner() {
               </div>
             </div>
           )}
-          <div className="tf-card p-5">
+          <div className="tf-card overflow-hidden p-5">
             {isInitialLoading ? (
               <Skeleton className="h-20" />
             ) : (
@@ -1590,7 +1556,7 @@ function DashboardPageInner() {
                   { label: "Total errors", value: totalErrors },
                   { label: "Organizations", value: orgs.length }
                 ].map((stat) => (
-                  <div key={stat.label} className="rounded-xl border border-border bg-card/80 px-4 py-3">
+                  <div key={stat.label} className="min-w-0 rounded-xl border border-border bg-card/80 px-4 py-3">
                     <p className="text-xs font-semibold text-text-secondary">{stat.label}</p>
                     <p className="mt-1 text-xl font-semibold text-text-primary">{stat.value}</p>
                   </div>
@@ -1598,9 +1564,9 @@ function DashboardPageInner() {
               </div>
             )}
           </div>
-          <div className="tf-card p-5" id="analytics">
+          <div className="tf-card overflow-hidden p-5" id="analytics">
             <div className="flex flex-wrap items-center justify-between gap-2">
-              <div>
+              <div className="min-w-0">
                 <h2 className="text-sm font-semibold text-text-secondary">Project</h2>
                 <p className="text-xs text-text-secondary">
                   Select a project to reveal its API key and shortcuts.
@@ -1613,9 +1579,9 @@ function DashboardPageInner() {
                 Manage projects
               </Link>
             </div>
-            <div className="mt-3 flex flex-wrap items-center gap-2">
-              <select
-                className="tf-select w-full flex-1 sm:min-w-[180px]"
+              <div className="mt-3 flex flex-wrap items-center gap-2">
+                <select
+                className="tf-select min-w-0 w-full flex-1 sm:min-w-[180px]"
                 value={selectedProject}
                 onChange={(event) => setSelectedProject(event.target.value)}
               >
@@ -1646,7 +1612,7 @@ function DashboardPageInner() {
                 <p className="text-xs font-semibold text-text-secondary">Create Project</p>
                 <div className="mt-2 flex flex-wrap gap-2">
                   <input
-                    className="tf-input flex-1"
+                    className="tf-input min-w-0 flex-1"
                     placeholder="Project name"
                     value={projectName}
                     onChange={(event) => setProjectName(event.target.value)}
@@ -1664,7 +1630,7 @@ function DashboardPageInner() {
                 <p className="text-xs font-semibold text-text-secondary">Create Organization</p>
                 <div className="mt-2 flex flex-wrap gap-2">
                   <input
-                    className="tf-input flex-1"
+                    className="tf-input min-w-0 flex-1"
                     placeholder="Organization name"
                     value={orgName}
                     onChange={(event) => setOrgName(event.target.value)}
@@ -1691,13 +1657,13 @@ function DashboardPageInner() {
                 : "space-y-6"
             }
           >
-            <div className="tf-card p-6">
+            <div className="tf-card overflow-hidden p-6">
               <div className="flex flex-wrap items-center justify-between gap-4">
                 <div>
                   <h2 className="text-lg font-semibold text-text-primary">Analytics</h2>
                   <p className="text-sm text-text-secondary">Last {days} days</p>
                 </div>
-                <div className="flex items-center gap-3">
+                <div className="flex w-full flex-wrap items-center gap-3 sm:w-auto sm:justify-end">
                   <div className="inline-flex items-center rounded-full border border-border bg-card/90 p-1 text-xs font-semibold text-text-secondary shadow-sm">
                     <button
                       type="button"
@@ -1725,7 +1691,7 @@ function DashboardPageInner() {
                     </button>
                   </div>
                   <select
-                    className="tf-select"
+                    className="tf-select min-w-0 max-[639px]:flex-1"
                     value={days}
                     onChange={(event) => setDays(Number(event.target.value))}
                   >
@@ -1734,7 +1700,7 @@ function DashboardPageInner() {
                     <option value={30}>30 days</option>
                   </select>
                   <button
-                    className="rounded-full border border-border px-3 py-1 text-xs font-semibold text-text-secondary"
+                    className="rounded-full border border-border px-3 py-1 text-xs font-semibold text-text-secondary max-[639px]:flex-1"
                     onClick={() => setRefreshTick((value) => value + 1)}
                   >
                     Refresh
@@ -1743,13 +1709,13 @@ function DashboardPageInner() {
               </div>
 
               <div className="mt-6 grid gap-6 md:grid-cols-2">
-                <div className="rounded-2xl border border-border bg-card/70 p-4">
-                  <div className="flex items-start justify-between gap-3">
-                    <div>
+                <div className="min-w-0 rounded-2xl border border-border bg-card/70 p-4">
+                  <div className="flex flex-wrap items-start justify-between gap-3">
+                    <div className="min-w-0">
                       <p className="text-xs font-semibold uppercase tracking-[0.2em] text-text-secondary">
                         Error Frequency
                       </p>
-                      <p className="mt-1 text-xs text-text-secondary">Total {frequencyTotal} · Avg {frequencyAvg}/day · Peak {frequencyPeak}</p>
+                      <p className="mt-1 break-words text-xs text-text-secondary">Total {frequencyTotal} · Avg {frequencyAvg}/day · Peak {frequencyPeak}</p>
                     </div>
                     <Link
                       href="/dashboard/insights"
@@ -1774,13 +1740,13 @@ function DashboardPageInner() {
                   </div>
                 </div>
 
-                <div className="rounded-2xl border border-border bg-card/70 p-4">
-                  <div className="flex items-start justify-between gap-3">
-                    <div>
+                <div className="min-w-0 rounded-2xl border border-border bg-card/70 p-4">
+                  <div className="flex flex-wrap items-start justify-between gap-3">
+                    <div className="min-w-0">
                       <p className="text-xs font-semibold uppercase tracking-[0.2em] text-text-secondary">
                         Errors Last Seen
                       </p>
-                      <p className="mt-1 text-xs text-text-secondary">Total {lastSeenTotal} · Avg {lastSeenAvg}/day · Peak {lastSeenPeak}</p>
+                      <p className="mt-1 break-words text-xs text-text-secondary">Total {lastSeenTotal} · Avg {lastSeenAvg}/day · Peak {lastSeenPeak}</p>
                     </div>
                     <Link
                       href="/dashboard/issues"
@@ -1840,10 +1806,10 @@ function DashboardPageInner() {
                       className="rounded-xl border border-border px-4 py-4 transition hover:border-primary/30 hover:bg-accent-soft"
                     >
                       <div className="flex flex-wrap items-start justify-between gap-4">
-                        <div>
+                        <div className="min-w-0">
                           <div className="flex flex-wrap items-center gap-2">
                             <SeverityTag severity={severity} />
-                            <p className="text-sm font-semibold text-text-primary">{item.message}</p>
+                            <p className="break-words text-sm font-semibold text-text-primary">{item.message}</p>
                           </div>
                           <p className="mt-1 text-xs text-text-secondary">
                             Last seen {new Date(item.lastSeen).toLocaleString()}
@@ -1900,86 +1866,32 @@ function DashboardPageInner() {
                 )}
               </div>
 
-              {!dashboardLoading && recentErrorsPagination.totalPages > 1 && (
-                <div className="mt-5 rounded-2xl border border-border bg-card/90 px-4 py-4">
-                  <div className="tf-pagination-bar">
-                    <div className="tf-pagination-size">
-                      <select
-                        className="tf-select tf-pagination-select w-full sm:min-w-[98px]"
-                        value={recentErrorsPagination.pageSize}
-                        onChange={(event) =>
-                          setRecentErrorsPagination((prev) => ({
-                            ...prev,
-                            page: 1,
-                            pageSize: Number(event.target.value)
-                          }))
-                        }
-                      >
-                        <option value="5">5 / page</option>
-                        <option value="10">10 / page</option>
-                        <option value="20">20 / page</option>
-                      </select>
-                    </div>
-                    <div className="tf-pagination-controls">
-                      <button
-                        type="button"
-                        className="tf-pagination-button"
-                        onClick={() =>
-                          setRecentErrorsPagination((prev) => ({
-                            ...prev,
-                            page: Math.max(1, prev.page - 1)
-                          }))
-                        }
-                        disabled={recentErrorsPagination.page === 1}
-                      >
-                        Prev
-                      </button>
-                      <div className="flex flex-wrap items-center justify-end gap-2">
-                        {visibleRecentErrorPages.map((pageNumber, index) => {
-                          const previous = visibleRecentErrorPages[index - 1];
-                          const showGap = previous && pageNumber - previous > 1;
-
-                          return (
-                            <div key={pageNumber} className="flex items-center gap-2">
-                              {showGap && (
-                                <span className="tf-pagination-gap">...</span>
-                              )}
-                              <button
-                                type="button"
-                                className={`tf-pagination-page ${
-                                  recentErrorsPagination.page === pageNumber
-                                    ? "tf-pagination-page-active"
-                                    : "tf-pagination-page-idle"
-                                }`}
-                                onClick={() =>
-                                  setRecentErrorsPagination((prev) => ({
-                                    ...prev,
-                                    page: pageNumber
-                                  }))
-                                }
-                              >
-                                {pageNumber}
-                              </button>
-                            </div>
-                          );
-                        })}
-                      </div>
-                      <button
-                        type="button"
-                        className="tf-pagination-button"
-                        onClick={() =>
-                          setRecentErrorsPagination((prev) => ({
-                            ...prev,
-                            page: Math.min(prev.totalPages, prev.page + 1)
-                          }))
-                        }
-                        disabled={recentErrorsPagination.page >= recentErrorsPagination.totalPages}
-                      >
-                        Next
-                      </button>
-                    </div>
-                  </div>
-                </div>
+              {!dashboardLoading && recentErrorsPagination.total > 5 && (
+                <DashboardPagination
+                  page={recentErrorsPagination.page}
+                  totalPages={recentErrorsPagination.totalPages}
+                  pageSize={recentErrorsPagination.pageSize}
+                  pageSizeOptions={[
+                    { value: 5, label: "5 / page" },
+                    { value: 10, label: "10 / page" },
+                    { value: 20, label: "20 / page" }
+                  ]}
+                  onPageChange={(page) =>
+                    setRecentErrorsPagination((prev) => ({
+                      ...prev,
+                      page
+                    }))
+                  }
+                  onPageSizeChange={(pageSize) =>
+                    setRecentErrorsPagination((prev) => ({
+                      ...prev,
+                      page: 1,
+                      pageSize
+                    }))
+                  }
+                  className="mt-5"
+                  variant={isDesktop ? "full" : "compact"}
+                />
               )}
             </div>
           </div>
@@ -1987,7 +1899,7 @@ function DashboardPageInner() {
       </div>
       {toast && (
         <div
-          className="fixed bottom-6 right-6 z-50 rounded-full px-4 py-2 text-sm font-semibold text-white shadow-lg"
+          className="tf-dashboard-toast"
           style={{
             background: toast.tone === "success" ? "#16a34a" : "#dc2626"
           }}

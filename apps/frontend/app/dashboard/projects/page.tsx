@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import { DashboardPagination } from "../components/DashboardPagination";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
 const tokenKey = "traceforge_token";
@@ -41,17 +42,21 @@ type AiModelOption = {
   description: string;
 };
 
+const PROJECT_PAGE_SIZE_OPTIONS = [
+  { value: 6, label: "6 / page" },
+  { value: 12, label: "12 / page" },
+  { value: 18, label: "18 / page" }
+];
+
 const getProjectStatusMeta = (project: Project) =>
   project.telemetryStatus === "configured"
     ? {
         label: "Configured",
-        className:
-          "border-emerald-500/25 bg-emerald-500/12 text-emerald-700 dark:text-emerald-300"
+        className: "tf-success-tag"
       }
     : {
         label: "Not configured",
-        className:
-          "border-amber-500/25 bg-amber-500/12 text-amber-700 dark:text-amber-300"
+        className: "tf-warning-tag"
       };
 
 export default function ProjectSettingsPage() {
@@ -62,6 +67,10 @@ export default function ProjectSettingsPage() {
   const [loading, setLoading] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<Project | null>(null);
   const [deleteInput, setDeleteInput] = useState("");
+  const [permanentDeleteTarget, setPermanentDeleteTarget] = useState<Project | null>(null);
+  const [permanentDeleteInput, setPermanentDeleteInput] = useState("");
+  const [renameTarget, setRenameTarget] = useState<Project | null>(null);
+  const [renameInput, setRenameInput] = useState("");
   const [toast, setToast] = useState<Toast | null>(null);
   const [showArchived, setShowArchived] = useState(false);
   const [revealedProjectId, setRevealedProjectId] = useState<string | null>(null);
@@ -71,6 +80,10 @@ export default function ProjectSettingsPage() {
   const [defaultAiModel, setDefaultAiModel] = useState("groq/compound");
   const [newProjectAiModel, setNewProjectAiModel] = useState("groq/compound");
   const [updatingAiModelProjectId, setUpdatingAiModelProjectId] = useState<string | null>(null);
+  const [activeProjectsPage, setActiveProjectsPage] = useState(1);
+  const [activeProjectsPageSize, setActiveProjectsPageSize] = useState(6);
+  const [archivedProjectsPage, setArchivedProjectsPage] = useState(1);
+  const [archivedProjectsPageSize, setArchivedProjectsPageSize] = useState(6);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -249,6 +262,81 @@ export default function ProjectSettingsPage() {
     }
   };
 
+  const renameProject = async () => {
+    const token = localStorage.getItem(tokenKey);
+    if (!token || !renameTarget) return;
+
+    if (!renameInput.trim()) {
+      setError("Project name is required.");
+      return;
+    }
+
+    setLoading(true);
+    setError(null);
+
+    try {
+      const res = await fetch(`${API_URL}/projects/${renameTarget.id}`, {
+        method: "PATCH",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({ name: renameInput.trim() })
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || "Failed to rename project");
+      }
+
+      setProjects((prev) =>
+        prev.map((project) => (project.id === renameTarget.id ? data.project : project))
+      );
+      setRenameTarget(null);
+      setRenameInput("");
+      showToast("Project renamed", "success");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Unexpected error");
+      showToast("Failed to rename project", "error");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const deleteProjectPermanently = async () => {
+    const token = localStorage.getItem(tokenKey);
+    if (!token || !permanentDeleteTarget) return;
+
+    setLoading(true);
+    setError(null);
+
+    try {
+      const res = await fetch(`${API_URL}/projects/${permanentDeleteTarget.id}/permanent`, {
+        method: "DELETE",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({ name: permanentDeleteInput })
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || "Failed to delete project");
+      }
+
+      setProjects((prev) => prev.filter((project) => project.id !== permanentDeleteTarget.id));
+      setPermanentDeleteTarget(null);
+      setPermanentDeleteInput("");
+      showToast("Project deleted permanently", "success");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Unexpected error");
+      showToast("Failed to delete project", "error");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const copyApiKey = async (apiKey: string) => {
     try {
       await navigator.clipboard.writeText(apiKey);
@@ -342,6 +430,35 @@ export default function ProjectSettingsPage() {
     : projects.filter((project) => !project.orgId);
   const activeProjects = scopedProjects.filter((project) => !project.archivedAt);
   const archivedProjects = scopedProjects.filter((project) => project.archivedAt);
+  const activeProjectsTotalPages = Math.max(
+    1,
+    Math.ceil(activeProjects.length / activeProjectsPageSize)
+  );
+  const archivedProjectsTotalPages = Math.max(
+    1,
+    Math.ceil(archivedProjects.length / archivedProjectsPageSize)
+  );
+  const paginatedActiveProjects = useMemo(() => {
+    const start = (activeProjectsPage - 1) * activeProjectsPageSize;
+    return activeProjects.slice(start, start + activeProjectsPageSize);
+  }, [activeProjects, activeProjectsPage, activeProjectsPageSize]);
+  const paginatedArchivedProjects = useMemo(() => {
+    const start = (archivedProjectsPage - 1) * archivedProjectsPageSize;
+    return archivedProjects.slice(start, start + archivedProjectsPageSize);
+  }, [archivedProjects, archivedProjectsPage, archivedProjectsPageSize]);
+
+  useEffect(() => {
+    setActiveProjectsPage(1);
+    setArchivedProjectsPage(1);
+  }, [selectedOrgId, showArchived]);
+
+  useEffect(() => {
+    setActiveProjectsPage((current) => Math.min(current, activeProjectsTotalPages));
+  }, [activeProjectsTotalPages]);
+
+  useEffect(() => {
+    setArchivedProjectsPage((current) => Math.min(current, archivedProjectsTotalPages));
+  }, [archivedProjectsTotalPages]);
 
   return (
     <main className="tf-page tf-dashboard-page">
@@ -359,7 +476,7 @@ export default function ProjectSettingsPage() {
               Projects stay configured while recent setup or telemetry signals are still being received.
             </p>
           </div>
-          <div className="flex flex-wrap items-center gap-3">
+          <div className="flex w-full items-center gap-2 sm:w-auto sm:justify-end sm:gap-3">
             <label className="flex items-center gap-2 rounded-full border border-border bg-card/90 px-3 py-2 text-xs font-semibold text-text-secondary">
               <span>Org</span>
               <select
@@ -378,7 +495,7 @@ export default function ProjectSettingsPage() {
             </label>
             <button
               type="button"
-              className={`rounded-full border px-4 py-2 text-sm font-semibold transition ${
+              className={`inline-flex min-w-0 flex-1 items-center justify-center whitespace-nowrap rounded-full border px-3.5 py-2 text-sm font-semibold transition max-[639px]:text-[12px] max-[639px]:leading-none ${
                 showArchived
                   ? "border-primary/40 bg-accent-soft text-text-primary"
                   : "border-border text-text-secondary hover:bg-secondary/70"
@@ -388,7 +505,7 @@ export default function ProjectSettingsPage() {
               {showArchived ? "Hide archived" : "Show archived"}
             </button>
             <button
-              className="tf-button px-4 py-2 text-sm"
+              className="tf-button inline-flex min-w-0 flex-1 items-center justify-center whitespace-nowrap px-3.5 py-2 text-sm max-[639px]:text-[12px] max-[639px]:leading-none"
               onClick={() => setShowCreateModal(true)}
             >
               Create project
@@ -402,7 +519,7 @@ export default function ProjectSettingsPage() {
         {loading && <p className="text-sm text-text-secondary">Working...</p>}
 
         <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-          {activeProjects.map((project) => (
+          {paginatedActiveProjects.map((project) => (
             <div key={project.id} className="tf-card p-5">
               {(() => {
                 const status = getProjectStatusMeta(project);
@@ -485,6 +602,16 @@ export default function ProjectSettingsPage() {
                 </button>
                 <button
                   className="tf-pill"
+                  onClick={() => {
+                    setError(null);
+                    setRenameTarget(project);
+                    setRenameInput(project.name);
+                  }}
+                >
+                  Rename
+                </button>
+                <button
+                  className="tf-pill"
                   onClick={() => rotateKey(project.id)}
                   disabled={loading}
                 >
@@ -509,6 +636,20 @@ export default function ProjectSettingsPage() {
           )}
         </div>
 
+        {activeProjects.length > 5 && (
+          <DashboardPagination
+            page={activeProjectsPage}
+            totalPages={activeProjectsTotalPages}
+            pageSize={activeProjectsPageSize}
+            pageSizeOptions={PROJECT_PAGE_SIZE_OPTIONS}
+            onPageChange={setActiveProjectsPage}
+            onPageSizeChange={(nextSize) => {
+              setActiveProjectsPage(1);
+              setActiveProjectsPageSize(nextSize);
+            }}
+          />
+        )}
+
         {showArchived && (
           <div className="mt-8 space-y-4">
             <div className="flex items-center justify-between">
@@ -520,8 +661,9 @@ export default function ProjectSettingsPage() {
               </p>
             </div>
             {!!archivedProjects.length && (
-              <div className="grid gap-3 sm:grid-cols-2">
-                {archivedProjects.map((project) => (
+              <>
+                <div className="grid gap-3 sm:grid-cols-2">
+                  {paginatedArchivedProjects.map((project) => (
                   <div key={project.id} className="tf-card p-5">
                     <div className="flex items-start justify-between gap-3">
                       <div>
@@ -535,17 +677,55 @@ export default function ProjectSettingsPage() {
                             : ""}
                         </p>
                       </div>
-                      <button
-                        className="rounded-full border border-border px-3 py-1 text-[11px] font-semibold text-text-secondary transition hover:bg-secondary/70"
-                        onClick={() => restoreProject(project.id)}
-                        disabled={loading}
-                      >
-                        Restore
-                      </button>
+                      <div className="flex flex-wrap items-center justify-end gap-2">
+                        <button
+                          className="rounded-full border border-border px-3 py-1 text-[11px] font-semibold text-text-secondary transition hover:bg-secondary/70"
+                          onClick={() => {
+                            setError(null);
+                            setRenameTarget(project);
+                            setRenameInput(project.name);
+                          }}
+                          disabled={loading}
+                        >
+                          Rename
+                        </button>
+                        <button
+                          className="rounded-full border border-border px-3 py-1 text-[11px] font-semibold text-text-secondary transition hover:bg-secondary/70"
+                          onClick={() => restoreProject(project.id)}
+                          disabled={loading}
+                        >
+                          Restore
+                        </button>
+                        <button
+                          className="tf-danger-button rounded-full border px-3 py-1 text-[11px] font-semibold transition"
+                          onClick={() => {
+                            setError(null);
+                            setPermanentDeleteTarget(project);
+                            setPermanentDeleteInput("");
+                          }}
+                          disabled={loading}
+                        >
+                          Delete
+                        </button>
+                      </div>
                     </div>
                   </div>
-                ))}
-              </div>
+                  ))}
+                </div>
+                {archivedProjects.length > 5 && (
+                  <DashboardPagination
+                    page={archivedProjectsPage}
+                    totalPages={archivedProjectsTotalPages}
+                    pageSize={archivedProjectsPageSize}
+                    pageSizeOptions={PROJECT_PAGE_SIZE_OPTIONS}
+                    onPageChange={setArchivedProjectsPage}
+                    onPageSizeChange={(nextSize) => {
+                      setArchivedProjectsPage(1);
+                      setArchivedProjectsPageSize(nextSize);
+                    }}
+                  />
+                )}
+              </>
             )}
           </div>
         )}
@@ -607,6 +787,43 @@ export default function ProjectSettingsPage() {
         </div>
       )}
 
+      {renameTarget && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-6">
+          <div className="w-full max-w-md rounded-2xl border border-border bg-card/95 p-6 shadow-xl backdrop-blur">
+            <h3 className="font-display text-lg font-semibold text-text-primary">Rename Project</h3>
+            <p className="mt-2 text-sm text-text-secondary">
+              Update the project name everywhere it appears in the dashboard.
+            </p>
+            <input
+              className="tf-input mt-4 w-full"
+              placeholder="Project name"
+              value={renameInput}
+              onChange={(event) => setRenameInput(event.target.value)}
+            />
+            {error && <p className="mt-3 text-xs text-red-500">{error}</p>}
+            <div className="mt-5 flex items-center justify-end gap-3">
+              <button
+                className="tf-button-ghost"
+                onClick={() => {
+                  setRenameTarget(null);
+                  setRenameInput("");
+                }}
+                disabled={loading}
+              >
+                Cancel
+              </button>
+              <button
+                className="tf-button px-4 py-2 text-sm font-semibold"
+                onClick={renameProject}
+                disabled={loading || !renameInput.trim()}
+              >
+                {loading ? "Saving..." : "Save name"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
         {deleteTarget && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-6">
             <div className="w-full max-w-md rounded-2xl border border-border bg-card/95 p-6 shadow-xl backdrop-blur">
@@ -642,9 +859,48 @@ export default function ProjectSettingsPage() {
           </div>
         )}
 
+      {permanentDeleteTarget && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-6">
+          <div className="w-full max-w-md rounded-2xl border border-border bg-card/95 p-6 shadow-xl backdrop-blur">
+            <h3 className="font-display text-lg font-semibold text-text-primary">Delete Project</h3>
+            <p className="mt-2 text-sm text-text-secondary">
+              This will permanently delete{" "}
+              <span className="font-semibold">{permanentDeleteTarget.name}</span> and all related
+              issues, releases, and alert rules. Type the project name to confirm.
+            </p>
+            <input
+              className="tf-input mt-4 w-full"
+              placeholder="Project name"
+              value={permanentDeleteInput}
+              onChange={(event) => setPermanentDeleteInput(event.target.value)}
+            />
+            {error && <p className="mt-3 text-xs text-red-500">{error}</p>}
+            <div className="mt-5 flex w-full flex-nowrap items-center justify-end gap-3">
+              <button
+                className="tf-button-ghost inline-flex min-w-0 flex-1 items-center justify-center px-3 py-2 text-sm sm:flex-none sm:px-4"
+                onClick={() => {
+                  setPermanentDeleteTarget(null);
+                  setPermanentDeleteInput("");
+                }}
+                disabled={loading}
+              >
+                Cancel
+              </button>
+              <button
+                className="tf-danger-solid inline-flex min-w-0 flex-1 items-center justify-center whitespace-nowrap rounded-full border px-3 py-2 text-sm font-semibold transition disabled:opacity-50 sm:flex-none sm:px-4"
+                onClick={deleteProjectPermanently}
+                disabled={loading || permanentDeleteInput.trim() !== permanentDeleteTarget.name}
+              >
+                {loading ? "Deleting..." : "Delete"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {toast && (
         <div
-          className="fixed bottom-6 right-6 z-50 rounded-full px-4 py-2 text-sm font-semibold shadow-lg"
+          className="tf-dashboard-toast"
           style={{
             background: toast.tone === "success" ? "#16a34a" : "#dc2626",
             color: "white"

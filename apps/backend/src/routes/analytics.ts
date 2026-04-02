@@ -182,6 +182,7 @@ analyticsRouter.get("/", requireAuth, async (req, res) => {
         },
         project: {
           select: {
+            id: true,
             name: true
           }
         },
@@ -395,6 +396,7 @@ analyticsRouter.get("/", requireAuth, async (req, res) => {
     {
       errorId: string;
       message: string;
+      projectId: string;
       projectName: string;
       alertCount: number;
       lastTriggeredAt: Date;
@@ -427,6 +429,7 @@ analyticsRouter.get("/", requireAuth, async (req, res) => {
     alertCorrelationMap.set(delivery.errorId, {
       errorId: delivery.error.id,
       message: delivery.error.message,
+      projectId: delivery.project.id,
       projectName: delivery.project.name,
       alertCount: 1,
       lastTriggeredAt: delivery.triggeredAt,
@@ -446,6 +449,7 @@ analyticsRouter.get("/", requireAuth, async (req, res) => {
     .map((item) => ({
       errorId: item.errorId,
       message: item.message,
+      projectId: item.projectId,
       projectName: item.projectName,
       alertCount: item.alertCount,
       lastTriggeredAt: item.lastTriggeredAt,

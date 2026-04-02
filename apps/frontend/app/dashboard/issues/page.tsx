@@ -23,6 +23,7 @@ type Issue = {
   stackTrace: string;
   count: number;
   lastSeen: string;
+  isManualAlertIssue?: boolean;
   aiStatus: "PENDING" | "PROCESSING" | "READY" | "FAILED";
   aiRequestedAt?: string | null;
   aiLastError?: string | null;
@@ -58,9 +59,9 @@ const severityForMessage = (message: string): Severity => {
 };
 
 const severityClasses: Record<Severity, string> = {
-  critical: "border-red-200 bg-red-50 text-red-700",
-  warning: "border-amber-200 bg-amber-50 text-amber-700",
-  info: "border-border bg-secondary/70 text-text-secondary"
+  critical: "tf-danger-tag",
+  warning: "tf-warning-tag",
+  info: "tf-muted-tag"
 };
 
 const formatRelative = (value: string) => {
@@ -126,8 +127,10 @@ function IssuesPageInner() {
   const [newProjectName, setNewProjectName] = useState("");
   const [creatingProject, setCreatingProject] = useState(false);
   const [archiveTarget, setArchiveTarget] = useState<Issue | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<Issue | null>(null);
   const [archivingIssueId, setArchivingIssueId] = useState<string | null>(null);
   const [restoringIssueId, setRestoringIssueId] = useState<string | null>(null);
+  const [deletingIssueId, setDeletingIssueId] = useState<string | null>(null);
   const deferredSearch = useDebouncedValue(search, 300);
 
   useEffect(() => {
@@ -479,6 +482,36 @@ function IssuesPageInner() {
     }
   };
 
+  const deleteIssuePermanently = async () => {
+    const token = localStorage.getItem(tokenKey);
+    if (!token || !deleteTarget) {
+      return;
+    }
+
+    setDeletingIssueId(deleteTarget.id);
+    try {
+      const res = await fetch(`${API_URL}/errors/${deleteTarget.id}`, {
+        method: "DELETE",
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || "Failed to delete issue");
+      }
+
+      setIssues((prev) => prev.filter((issue) => issue.id !== deleteTarget.id));
+      setDeleteTarget(null);
+      showToast("Issue deleted permanently", "success");
+    } catch (err) {
+      showToast(err instanceof Error ? err.message : "Failed to delete issue", "error");
+    } finally {
+      setDeletingIssueId(null);
+    }
+  };
+
   return (
     <main className="tf-page tf-dashboard-page lg:h-screen lg:overflow-hidden">
       <div className="tf-dashboard flex min-h-0 flex-col lg:h-full">
@@ -803,7 +836,15 @@ function IssuesPageInner() {
                               Open issue
                             </Link>
 
-                            <div className="grid gap-2 sm:grid-cols-2">
+                            <div
+                              className={`grid gap-2.5 ${
+                                viewMode === "active" && issue.isManualAlertIssue
+                                  ? "grid-cols-1"
+                                  : viewMode === "archived"
+                                  ? "grid-cols-1 sm:grid-cols-2"
+                                  : "sm:grid-cols-2"
+                              }`}
+                            >
                               <button
                                 className="tf-button-ghost inline-flex h-10 w-full items-center justify-center gap-1.5 px-3 py-2 text-[13px]"
                                 onClick={() => copyStackTrace(issue.stackTrace)}
@@ -812,7 +853,7 @@ function IssuesPageInner() {
                                 Copy
                               </button>
 
-                              {viewMode === "active" ? (
+                              {viewMode === "active" && !issue.isManualAlertIssue ? (
                                 <button
                                   className="tf-button inline-flex h-10 w-full items-center justify-center gap-1.5 px-3 py-2 text-[13px] text-center"
                                   onClick={() => regenerateIssue(issue.id)}
@@ -835,7 +876,7 @@ function IssuesPageInner() {
                                     ? "Regenerate"
                                     : "Generate"}
                                 </button>
-                              ) : (
+                              ) : viewMode === "archived" ? (
                                 <button
                                   type="button"
                                   className="tf-button-ghost inline-flex h-11 w-full items-center justify-center gap-2 px-4 py-2 text-sm"
@@ -845,13 +886,24 @@ function IssuesPageInner() {
                                   <RotateCcw className="h-4 w-4" />
                                   {restoringIssueId === issue.id ? "Restoring..." : "Restore"}
                                 </button>
-                              )}
+                              ) : null}
                             </div>
+
+                            {viewMode === "archived" && (
+                              <button
+                                type="button"
+                                className="tf-danger-button inline-flex h-11 w-full items-center justify-center gap-2 rounded-full border px-4 py-2 text-sm font-semibold transition"
+                                onClick={() => setDeleteTarget(issue)}
+                                disabled={deletingIssueId === issue.id}
+                              >
+                                {deletingIssueId === issue.id ? "Deleting..." : "Delete"}
+                              </button>
+                            )}
 
                             {viewMode === "active" && (
                               <button
                                 type="button"
-                                className="tf-danger-button inline-flex w-full items-center justify-center gap-2 rounded-full border px-4 py-2.5 text-sm font-semibold transition"
+                                className="tf-danger-button mt-1 inline-flex w-full items-center justify-center gap-2 rounded-full border px-4 py-2.5 text-sm font-semibold transition"
                                 onClick={() => setArchiveTarget(issue)}
                                 aria-label="Archive issue"
                                 title="Archive issue"
@@ -861,20 +913,20 @@ function IssuesPageInner() {
                               </button>
                             )}
                           </div>
+                          </div>
                         </div>
                       </div>
                     </div>
-                  </div>
                 );
               })}
           </section>
 
-          {!loading && pagination.totalPages > 1 && (
+          {!loading && pagination.total > 5 && (
             <div className="mt-4 rounded-2xl border border-border bg-card/90 px-4 py-4 shadow-sm">
               <div className="tf-pagination-bar">
                 <div className="tf-pagination-size">
                   <select
-                    className="tf-select tf-pagination-select w-full sm:min-w-[98px]"
+                    className="tf-select tf-pagination-select w-full"
                     value={pagination.pageSize}
                     onChange={(event) =>
                       setPagination((prev) => ({
@@ -1006,6 +1058,43 @@ function IssuesPageInner() {
         </div>
       )}
 
+      {deleteTarget && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-6">
+          <div className="w-full max-w-lg rounded-[28px] border border-border bg-card/95 p-6 shadow-xl backdrop-blur">
+            <h3 className="font-display text-lg font-semibold text-text-primary">Delete issue</h3>
+            <p className="mt-2 text-sm text-text-secondary">
+              This will permanently delete the archived issue and all of its events and AI data.
+            </p>
+            <div className="mt-5 rounded-2xl border border-border bg-secondary/25 px-4 py-4">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-text-secondary">
+                Selected issue
+              </p>
+              <p className="mt-2 text-sm font-medium leading-6 text-text-primary">
+                {deleteTarget.message}
+              </p>
+            </div>
+            <div className="mt-5 flex w-full flex-nowrap items-center justify-end gap-3">
+              <button
+                type="button"
+                className="tf-button-ghost inline-flex min-w-0 flex-1 items-center justify-center px-3 py-2 text-sm sm:flex-none sm:px-4"
+                onClick={() => setDeleteTarget(null)}
+                disabled={deletingIssueId === deleteTarget.id}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                className="tf-danger-solid inline-flex min-w-0 flex-1 items-center justify-center whitespace-nowrap rounded-full border px-3 py-2 text-sm font-semibold transition sm:flex-none sm:px-4"
+                onClick={deleteIssuePermanently}
+                disabled={deletingIssueId === deleteTarget.id}
+              >
+                {deletingIssueId === deleteTarget.id ? "Deleting..." : "Delete"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {showCreateModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-6">
           <div className="w-full max-w-md rounded-3xl border border-border bg-card/95 p-6 shadow-xl backdrop-blur">
@@ -1055,7 +1144,7 @@ function IssuesPageInner() {
 
       {toast && (
         <div
-          className={`fixed bottom-6 right-6 z-50 rounded-full px-4 py-2 text-sm font-semibold text-white shadow-lg ${
+          className={`tf-dashboard-toast ${
             toast.tone === "success" ? "bg-emerald-600" : "bg-red-600"
           }`}
         >

@@ -175,6 +175,7 @@ alertsRouter.post("/rules", async (req, res) => {
   const userId = req.user?.id;
   const {
     name,
+    issueDescription,
     projectId,
     environment,
     severity,
@@ -183,6 +184,7 @@ alertsRouter.post("/rules", async (req, res) => {
     channel
   } = req.body as {
     name?: string;
+    issueDescription?: string;
     projectId?: string;
     environment?: string;
     severity?: "INFO" | "WARNING" | "CRITICAL";
@@ -208,6 +210,7 @@ alertsRouter.post("/rules", async (req, res) => {
     data: {
       userId,
       name: name.trim(),
+      issueDescription: issueDescription?.trim() ? issueDescription.trim() : null,
       projectId: projectId || null,
       environment: environment?.trim() ? environment.trim() : null,
       severity: severity ?? "CRITICAL",
@@ -244,6 +247,7 @@ alertsRouter.patch("/rules/:id", async (req, res) => {
   const ruleId = req.params.id;
   const {
     name,
+    issueDescription,
     projectId,
     environment,
     severity,
@@ -253,6 +257,7 @@ alertsRouter.patch("/rules/:id", async (req, res) => {
     isActive
   } = req.body as {
     name?: string;
+    issueDescription?: string | null;
     projectId?: string | null;
     environment?: string | null;
     severity?: "INFO" | "WARNING" | "CRITICAL";
@@ -287,6 +292,9 @@ alertsRouter.patch("/rules/:id", async (req, res) => {
     where: { id: ruleId },
     data: {
       ...(typeof name === "string" ? { name: name.trim() || existing.name } : {}),
+      ...(issueDescription !== undefined
+        ? { issueDescription: issueDescription?.trim() ? issueDescription.trim() : null }
+        : {}),
       ...(projectId !== undefined ? { projectId: projectId || null } : {}),
       ...(environment !== undefined
         ? { environment: environment?.trim() ? environment.trim() : null }
@@ -392,7 +400,38 @@ alertsRouter.post("/rules/:id/restore", async (req, res) => {
   return res.status(200).json({ rule });
 });
 
-alertsRouter.post("/rules/:id/test", async (req, res) => {
+alertsRouter.delete("/rules/:id", async (req, res) => {
+  const userId = req.user?.id;
+  const ruleId = req.params.id;
+
+  if (!userId) {
+    return res.status(401).json({ error: "Unauthorized" });
+  }
+
+  const existing = await prisma.alertRule.findFirst({
+    where: {
+      id: ruleId,
+      userId
+    }
+  });
+
+  if (!existing) {
+    return res.status(404).json({ error: "Alert rule not found" });
+  }
+
+  if (!existing.archivedAt) {
+    return res.status(400).json({ error: "Archive the alert rule before deleting it permanently" });
+  }
+
+  await prisma.$transaction([
+    prisma.alertDelivery.deleteMany({ where: { alertRuleId: ruleId } }),
+    prisma.alertRule.delete({ where: { id: ruleId } })
+  ]);
+
+  return res.status(200).json({ status: "deleted" });
+});
+
+alertsRouter.post("/rules/:id/notify", async (req, res) => {
   const userId = req.user?.id;
   const ruleId = req.params.id;
 
@@ -428,11 +467,13 @@ alertsRouter.post("/rules/:id/test", async (req, res) => {
       : accessibleProjects[0]) ?? null;
 
   if (!project) {
-    return res.status(400).json({ error: "Create a project before sending a test alert" });
+    return res.status(400).json({ error: "Create a project before sending an alert notification" });
   }
 
   const now = new Date();
-  const testMessage = `${rule.name} fired for ${project.name}`;
+  const alertMessage = `${rule.name} fired for ${project.name}`;
+  const issueDescription =
+    rule.issueDescription?.trim() || "Alert triggered manually from the alert rules page.";
   const errorHash = crypto
     .createHash("sha256")
     .update(`${rule.id}:${project.id}:${now.toISOString()}`)
@@ -441,8 +482,8 @@ alertsRouter.post("/rules/:id/test", async (req, res) => {
   const errorRecord = await prisma.error.create({
     data: {
       projectId: project.id,
-      message: testMessage,
-      stackTrace: "Test alert triggered manually from the alert rules page.",
+      message: alertMessage,
+      stackTrace: issueDescription,
       hash: errorHash,
       firstSeen: now,
       lastSeen: now,
@@ -454,10 +495,11 @@ alertsRouter.post("/rules/:id/test", async (req, res) => {
     data: {
       errorId: errorRecord.id,
       timestamp: now,
-      environment: rule.environment ?? "test",
+      environment: rule.environment ?? "manual",
       payload: {
-        source: "manual-test-alert",
-        alertRuleId: rule.id
+        source: "manual-alert-trigger",
+        alertRuleId: rule.id,
+        issueDescription
       }
     }
   });
@@ -467,8 +509,8 @@ alertsRouter.post("/rules/:id/test", async (req, res) => {
       alertRuleId: rule.id,
       projectId: project.id,
       errorId: errorRecord.id,
-      environment: rule.environment ?? "test",
-      message: testMessage,
+      environment: rule.environment ?? "manual",
+      message: alertMessage,
       triggeredAt: now
     },
     include: {
@@ -518,14 +560,13 @@ alertsRouter.post("/rules/:id/test", async (req, res) => {
     publishNotificationToUser(recipientId, {
       type: "alert.triggered",
       title: rule.name,
-      message: testMessage,
+      message: alertMessage,
       projectId: project.id,
       projectName: project.name,
       ruleId: rule.id,
       errorId: errorRecord.id,
-      environment: rule.environment ?? "test",
+      environment: rule.environment ?? "manual",
       severity: rule.severity,
-      isTest: true,
       createdAt: now.toISOString()
     });
   }

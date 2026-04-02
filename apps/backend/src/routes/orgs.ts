@@ -4,6 +4,7 @@ import { Prisma } from "@prisma/client";
 import prisma from "../db/prisma.js";
 import { requireAuth } from "../middleware/auth.js";
 import { publishNotificationToUser } from "../utils/notifications.js";
+import { deleteProjectGraph } from "../utils/projectDeletion.js";
 
 export const orgsRouter = Router();
 
@@ -380,6 +381,40 @@ orgsRouter.post("/", async (req, res) => {
   });
 });
 
+orgsRouter.patch("/:id", async (req, res) => {
+  const userId = req.user?.id;
+  const orgId = req.params.id;
+  const { name } = req.body as { name?: string };
+
+  if (!userId) {
+    return res.status(401).json({ error: "Unauthorized" });
+  }
+
+  if (!name || name.trim().length < 2) {
+    return res.status(400).json({ error: "Organization name is required" });
+  }
+
+  const membership = await requireOwner(orgId, userId);
+  if (!membership) {
+    return res.status(403).json({ error: "Only owners can rename organizations" });
+  }
+
+  const org = await prisma.organization.update({
+    where: { id: orgId },
+    data: { name: name.trim() }
+  });
+
+  await logEvent(orgId, userId, "org.renamed", { name: org.name });
+
+  return res.json({
+    org: {
+      id: org.id,
+      name: org.name,
+      createdAt: org.createdAt
+    }
+  });
+});
+
 orgsRouter.delete("/:id", async (req, res) => {
   const userId = req.user?.id;
   const orgId = req.params.id;
@@ -400,31 +435,17 @@ orgsRouter.delete("/:id", async (req, res) => {
     })
   ).map((project) => project.id);
 
-  const errorIds =
-    projectIds.length > 0
-      ? (
-          await prisma.error.findMany({
-            where: { projectId: { in: projectIds } },
-            select: { id: true }
-          })
-        ).map((error) => error.id)
-      : [];
+  await prisma.$transaction(async (tx) => {
+    for (const projectId of projectIds) {
+      await deleteProjectGraph(tx, projectId);
+    }
 
-  await prisma.$transaction([
-    ...(errorIds.length
-      ? [
-          prisma.errorAnalysis.deleteMany({ where: { errorId: { in: errorIds } } }),
-          prisma.errorEvent.deleteMany({ where: { errorId: { in: errorIds } } }),
-          prisma.error.deleteMany({ where: { id: { in: errorIds } } })
-        ]
-      : []),
-    prisma.project.deleteMany({ where: { orgId } }),
-    prisma.organizationInvite.deleteMany({ where: { organizationId: orgId } }),
-    prisma.orgAuditLog.deleteMany({ where: { organizationId: orgId } }),
-    prisma.orgJoinRequest.deleteMany({ where: { organizationId: orgId } }),
-    prisma.organizationMember.deleteMany({ where: { organizationId: orgId } }),
-    prisma.organization.delete({ where: { id: orgId } })
-  ]);
+    await tx.organizationInvite.deleteMany({ where: { organizationId: orgId } });
+    await tx.orgAuditLog.deleteMany({ where: { organizationId: orgId } });
+    await tx.orgJoinRequest.deleteMany({ where: { organizationId: orgId } });
+    await tx.organizationMember.deleteMany({ where: { organizationId: orgId } });
+    await tx.organization.delete({ where: { id: orgId } });
+  });
 
   return res.json({ status: "deleted" });
 });

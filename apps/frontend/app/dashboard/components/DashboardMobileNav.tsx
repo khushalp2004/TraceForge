@@ -151,6 +151,11 @@ export default function DashboardMobileNav() {
     () => overflowItems.find((item) => isActiveRoute(pathname, item.href)) ?? null,
     [overflowItems, pathname]
   );
+  const activeOverflowLabel = activeOverflowItem
+    ? activeOverflowItem.label.length > 10
+      ? `${activeOverflowItem.label.slice(0, 8)}...`
+      : activeOverflowItem.label
+    : "More";
 
   useEffect(() => {
     setMenuOpen(false);
@@ -180,7 +185,7 @@ export default function DashboardMobileNav() {
 
   return (
     <>
-      <div className="sticky top-0 z-30 lg:hidden">
+      <div className="fixed inset-x-0 top-0 z-30 lg:hidden">
         <div className="border-b border-border bg-background/95 px-4 py-3 backdrop-blur">
           <div className="flex items-center justify-between gap-3">
             <Link href="/" className="flex min-w-0 items-center gap-3">
@@ -254,6 +259,8 @@ export default function DashboardMobileNav() {
             <div className="mt-4 grid grid-cols-2 gap-3">
               {overflowItems.map((item) => {
                 const isActive = isActiveRoute(pathname, item.href);
+                const compactLabel =
+                  item.label.length > 10 ? `${item.label.slice(0, 8)}...` : item.label;
 
                 return (
                   <Link
@@ -268,7 +275,7 @@ export default function DashboardMobileNav() {
                     <span className="inline-flex h-9 w-9 items-center justify-center rounded-2xl bg-secondary/70">
                       <MobileNavIcon name={item.icon} active={isActive} />
                     </span>
-                    <span className="min-w-0 truncate">{item.label}</span>
+                    <span className="min-w-0 truncate text-[12px] leading-none">{compactLabel}</span>
                   </Link>
                 );
               })}
@@ -328,7 +335,7 @@ export default function DashboardMobileNav() {
                 <path d="M3 8h10" />
               </svg>
             </span>
-            <span className="truncate">{activeOverflowItem?.label ?? "More"}</span>
+            <span className="truncate text-[10px] leading-none">{activeOverflowLabel}</span>
           </button>
         </div>
       </div>
