@@ -432,7 +432,7 @@ alertsRouter.post("/rules/:id/test", async (req, res) => {
   }
 
   const now = new Date();
-  const testMessage = `[Test alert] ${rule.name} fired for ${project.name}`;
+  const testMessage = `${rule.name} fired for ${project.name}`;
   const errorHash = crypto
     .createHash("sha256")
     .update(`${rule.id}:${project.id}:${now.toISOString()}`)
