@@ -1,5 +1,7 @@
 import { Router } from "express";
+import crypto from "crypto";
 import bcrypt from "bcryptjs";
+import jwt from "jsonwebtoken";
 import prisma from "../db/prisma.js";
 import { requireAuth } from "../middleware/auth.js";
 import { signToken } from "../utils/jwt.js";
@@ -18,9 +20,114 @@ const passwordPolicyMessage =
   "Password must be 10-64 characters and include uppercase, lowercase, number, and special character.";
 const isStrongEnoughPassword = (password: string) => passwordPolicy.test(password);
 const normalizeEmail = (email: string) => email.trim().toLowerCase();
+const jwtSecret = process.env.JWT_SECRET || "";
+const frontendUrl = process.env.FRONTEND_URL || process.env.APP_PUBLIC_URL || "http://localhost:3000";
+const googleClientId = process.env.GOOGLE_CLIENT_ID || "";
+const googleClientSecret = process.env.GOOGLE_CLIENT_SECRET || "";
+const googleRedirectUri = process.env.GOOGLE_REDIRECT_URI || "";
 const chooseTransferTarget = (
   members: Array<{ userId: string; role: "OWNER" | "MEMBER" }>
 ) => members.find((member) => member.role === "OWNER") ?? members[0] ?? null;
+
+type GoogleAuthMode = "login" | "signup";
+
+type GoogleOauthState = {
+  purpose: "google_oauth_state";
+  mode: GoogleAuthMode;
+  next: string;
+};
+
+type GoogleSignupToken = {
+  purpose: "google_signup";
+  email: string;
+  googleName: string;
+  next: string;
+};
+
+const isGoogleOAuthConfigured = () =>
+  Boolean(jwtSecret && googleClientId && googleClientSecret && googleRedirectUri);
+
+const normalizeNextPath = (value: string | undefined) =>
+  value && value.startsWith("/") ? value : "/dashboard";
+
+const buildFrontendRedirect = (path: string, params: Record<string, string | undefined>) => {
+  const url = new URL(path, frontendUrl);
+  for (const [key, value] of Object.entries(params)) {
+    if (value) {
+      url.searchParams.set(key, value);
+    }
+  }
+  return url.toString();
+};
+
+const buildGoogleAuthUrl = (mode: GoogleAuthMode, next: string) => {
+  const state = jwt.sign(
+    {
+      purpose: "google_oauth_state",
+      mode,
+      next
+    } satisfies GoogleOauthState,
+    jwtSecret,
+    { expiresIn: "10m" }
+  );
+
+  const url = new URL("https://accounts.google.com/o/oauth2/v2/auth");
+  url.searchParams.set("client_id", googleClientId);
+  url.searchParams.set("redirect_uri", googleRedirectUri);
+  url.searchParams.set("response_type", "code");
+  url.searchParams.set("scope", "openid email profile");
+  url.searchParams.set("prompt", "select_account");
+  url.searchParams.set("state", state);
+  return url.toString();
+};
+
+const exchangeGoogleCode = async (code: string) => {
+  const response = await fetch("https://oauth2.googleapis.com/token", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded"
+    },
+    body: new URLSearchParams({
+      code,
+      client_id: googleClientId,
+      client_secret: googleClientSecret,
+      redirect_uri: googleRedirectUri,
+      grant_type: "authorization_code"
+    })
+  });
+
+  const data = (await response.json().catch(() => ({}))) as {
+    access_token?: string;
+    error?: string;
+    error_description?: string;
+  };
+
+  if (!response.ok || !data.access_token) {
+    throw new Error(data.error_description || data.error || "Failed to exchange Google code");
+  }
+
+  return data.access_token;
+};
+
+const fetchGoogleProfile = async (accessToken: string) => {
+  const response = await fetch("https://openidconnect.googleapis.com/v1/userinfo", {
+    headers: {
+      Authorization: `Bearer ${accessToken}`
+    }
+  });
+
+  const data = (await response.json().catch(() => ({}))) as {
+    email?: string;
+    email_verified?: boolean;
+    name?: string;
+  };
+
+  if (!response.ok || !data.email) {
+    throw new Error("Failed to fetch Google profile");
+  }
+
+  return data;
+};
 
 authRouter.get("/me", requireAuth, async (req, res) => {
   const userId = req.user?.id;
@@ -137,6 +244,221 @@ authRouter.post("/login", async (req, res) => {
 
   return res.json({
     token,
+    user: { id: user.id, fullName: user.fullName, address: user.address, email: user.email }
+  });
+});
+
+authRouter.get("/google/start", async (req, res) => {
+  if (!isGoogleOAuthConfigured()) {
+    return res.status(503).json({ error: "Google OAuth is not configured" });
+  }
+
+  const mode = req.query.mode === "signup" ? "signup" : "login";
+  const next = normalizeNextPath(
+    typeof req.query.next === "string" ? req.query.next : undefined
+  );
+
+  return res.redirect(buildGoogleAuthUrl(mode, next));
+});
+
+authRouter.get("/google/callback", async (req, res) => {
+  if (!isGoogleOAuthConfigured()) {
+    return res.redirect(
+      buildFrontendRedirect("/signin", {
+        oauthError: "google_not_configured"
+      })
+    );
+  }
+
+  const code = typeof req.query.code === "string" ? req.query.code : "";
+  const state = typeof req.query.state === "string" ? req.query.state : "";
+
+  if (!code || !state) {
+    return res.redirect(
+      buildFrontendRedirect("/signin", {
+        oauthError: "google_callback_invalid"
+      })
+    );
+  }
+
+  let parsedState: GoogleOauthState;
+
+  try {
+    parsedState = jwt.verify(state, jwtSecret) as GoogleOauthState;
+  } catch {
+    return res.redirect(
+      buildFrontendRedirect("/signin", {
+        oauthError: "google_state_invalid"
+      })
+    );
+  }
+
+  if (parsedState.purpose !== "google_oauth_state") {
+    return res.redirect(
+      buildFrontendRedirect("/signin", {
+        oauthError: "google_state_invalid"
+      })
+    );
+  }
+
+  try {
+    const accessToken = await exchangeGoogleCode(code);
+    const googleProfile = await fetchGoogleProfile(accessToken);
+
+    if (!googleProfile.email_verified || !googleProfile.email) {
+      return res.redirect(
+        buildFrontendRedirect(
+          parsedState.mode === "signup" ? "/signup" : "/signin",
+          {
+            oauthError: "google_email_unverified"
+          }
+        )
+      );
+    }
+
+    const normalizedEmail = normalizeEmail(googleProfile.email);
+    const existingUser = await prisma.user.findUnique({
+      where: { email: normalizedEmail }
+    });
+
+    if (parsedState.mode === "login") {
+      if (!existingUser) {
+        return res.redirect(
+          buildFrontendRedirect("/signin", {
+            oauthError: "google_no_account",
+            email: normalizedEmail
+          })
+        );
+      }
+
+      const verifiedUser = existingUser.emailVerifiedAt
+        ? existingUser
+        : await prisma.user.update({
+            where: { id: existingUser.id },
+            data: { emailVerifiedAt: new Date() }
+          });
+
+      const token = signToken({ sub: verifiedUser.id, email: verifiedUser.email });
+      return res.redirect(
+        buildFrontendRedirect("/oauth/complete", {
+          token,
+          next: parsedState.next,
+          mode: "login"
+        })
+      );
+    }
+
+    if (existingUser?.fullName?.trim() && existingUser.address?.trim()) {
+      const verifiedUser = existingUser.emailVerifiedAt
+        ? existingUser
+        : await prisma.user.update({
+            where: { id: existingUser.id },
+            data: { emailVerifiedAt: new Date() }
+          });
+
+      const token = signToken({ sub: verifiedUser.id, email: verifiedUser.email });
+      return res.redirect(
+        buildFrontendRedirect("/oauth/complete", {
+          token,
+          next: parsedState.next,
+          mode: "signup"
+        })
+      );
+    }
+
+    const signupToken = jwt.sign(
+      {
+        purpose: "google_signup",
+        email: normalizedEmail,
+        googleName: googleProfile.name?.trim() || "",
+        next: parsedState.next
+      } satisfies GoogleSignupToken,
+      jwtSecret,
+      { expiresIn: "20m" }
+    );
+
+    return res.redirect(
+      buildFrontendRedirect("/signup", {
+        googleSignupToken: signupToken,
+        email: normalizedEmail,
+        fullName: googleProfile.name?.trim() || "",
+        next: parsedState.next
+      })
+    );
+  } catch {
+    return res.redirect(
+      buildFrontendRedirect(
+        parsedState.mode === "signup" ? "/signup" : "/signin",
+        {
+          oauthError: "google_auth_failed"
+        }
+      )
+    );
+  }
+});
+
+authRouter.post("/google/complete-signup", async (req, res) => {
+  const { signupToken, fullName, address } = req.body as {
+    signupToken?: string;
+    fullName?: string;
+    address?: string;
+  };
+
+  if (!isGoogleOAuthConfigured()) {
+    return res.status(503).json({ error: "Google OAuth is not configured" });
+  }
+
+  if (!signupToken || !address?.trim()) {
+    return res.status(400).json({ error: "Address and signup token are required" });
+  }
+
+  let payload: GoogleSignupToken;
+
+  try {
+    payload = jwt.verify(signupToken, jwtSecret) as GoogleSignupToken;
+  } catch {
+    return res.status(400).json({ error: "Google signup session expired. Please try again." });
+  }
+
+  if (payload.purpose !== "google_signup") {
+    return res.status(400).json({ error: "Google signup session expired. Please try again." });
+  }
+
+  const normalizedEmail = normalizeEmail(payload.email);
+  const resolvedName = fullName?.trim() || payload.googleName?.trim();
+
+  if (!resolvedName) {
+    return res.status(400).json({ error: "Full name is required" });
+  }
+
+  const existingUser = await prisma.user.findUnique({
+    where: { email: normalizedEmail }
+  });
+
+  const user = existingUser
+    ? await prisma.user.update({
+        where: { id: existingUser.id },
+        data: {
+          fullName: resolvedName,
+          address: address.trim(),
+          emailVerifiedAt: existingUser.emailVerifiedAt ?? new Date()
+        }
+      })
+    : await prisma.user.create({
+        data: {
+          fullName: resolvedName,
+          address: address.trim(),
+          email: normalizedEmail,
+          passwordHash: await bcrypt.hash(crypto.randomBytes(32).toString("hex"), 12),
+          emailVerifiedAt: new Date()
+        }
+      });
+
+  const token = signToken({ sub: user.id, email: user.email });
+
+  return res.json({
+    token,
+    next: payload.next,
     user: { id: user.id, fullName: user.fullName, address: user.address, email: user.email }
   });
 });
