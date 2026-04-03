@@ -29,20 +29,33 @@ const chooseTransferTarget = (
   members: Array<{ userId: string; role: "OWNER" | "MEMBER" }>
 ) => members.find((member) => member.role === "OWNER") ?? members[0] ?? null;
 
-type GoogleAuthMode = "login" | "signup";
+type SocialAuthMode = "login" | "signup";
+type SocialProvider = "google" | "github";
 
-type GoogleOauthState = {
-  purpose: "google_oauth_state";
-  mode: GoogleAuthMode;
+type SocialOauthState = {
+  purpose: "social_oauth_state";
+  provider: SocialProvider;
+  mode: SocialAuthMode;
   next: string;
 };
 
-type GoogleSignupToken = {
-  purpose: "google_signup";
+type SocialSignupToken = {
+  purpose: "social_signup";
+  provider: SocialProvider;
   email: string;
-  googleName: string;
+  displayName: string;
   next: string;
 };
+
+const githubClientId = process.env.GITHUB_CLIENT_ID || "";
+const githubClientSecret = process.env.GITHUB_CLIENT_SECRET || "";
+const githubRedirectUri = process.env.GITHUB_REDIRECT_URI || "";
+
+const isGithubOAuthConfigured = () =>
+  Boolean(jwtSecret && githubClientId && githubClientSecret && githubRedirectUri);
+
+const isSocialOAuthConfigured = (provider: SocialProvider) =>
+  provider === "google" ? isGoogleOAuthConfigured() : isGithubOAuthConfigured();
 
 const isGoogleOAuthConfigured = () =>
   Boolean(jwtSecret && googleClientId && googleClientSecret && googleRedirectUri);
@@ -60,13 +73,14 @@ const buildFrontendRedirect = (path: string, params: Record<string, string | und
   return url.toString();
 };
 
-const buildGoogleAuthUrl = (mode: GoogleAuthMode, next: string) => {
+const buildGoogleAuthUrl = (mode: SocialAuthMode, next: string) => {
   const state = jwt.sign(
     {
-      purpose: "google_oauth_state",
+      purpose: "social_oauth_state",
+      provider: "google",
       mode,
       next
-    } satisfies GoogleOauthState,
+    } satisfies SocialOauthState,
     jwtSecret,
     { expiresIn: "10m" }
   );
@@ -77,6 +91,26 @@ const buildGoogleAuthUrl = (mode: GoogleAuthMode, next: string) => {
   url.searchParams.set("response_type", "code");
   url.searchParams.set("scope", "openid email profile");
   url.searchParams.set("prompt", "select_account");
+  url.searchParams.set("state", state);
+  return url.toString();
+};
+
+const buildGithubAuthUrl = (mode: SocialAuthMode, next: string) => {
+  const state = jwt.sign(
+    {
+      purpose: "social_oauth_state",
+      provider: "github",
+      mode,
+      next
+    } satisfies SocialOauthState,
+    jwtSecret,
+    { expiresIn: "10m" }
+  );
+
+  const url = new URL("https://github.com/login/oauth/authorize");
+  url.searchParams.set("client_id", githubClientId);
+  url.searchParams.set("redirect_uri", githubRedirectUri);
+  url.searchParams.set("scope", "read:user user:email");
   url.searchParams.set("state", state);
   return url.toString();
 };
@@ -127,6 +161,153 @@ const fetchGoogleProfile = async (accessToken: string) => {
   }
 
   return data;
+};
+
+const exchangeGithubCode = async (code: string) => {
+  const response = await fetch("https://github.com/login/oauth/access_token", {
+    method: "POST",
+    headers: {
+      Accept: "application/json",
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({
+      client_id: githubClientId,
+      client_secret: githubClientSecret,
+      code,
+      redirect_uri: githubRedirectUri
+    })
+  });
+
+  const data = (await response.json().catch(() => ({}))) as {
+    access_token?: string;
+    error?: string;
+    error_description?: string;
+  };
+
+  if (!response.ok || !data.access_token) {
+    throw new Error(data.error_description || data.error || "Failed to exchange GitHub code");
+  }
+
+  return data.access_token;
+};
+
+const fetchGithubProfile = async (accessToken: string) => {
+  const headers = {
+    Authorization: `Bearer ${accessToken}`,
+    Accept: "application/vnd.github+json",
+    "X-GitHub-Api-Version": "2022-11-28"
+  };
+
+  const [userResponse, emailsResponse] = await Promise.all([
+    fetch("https://api.github.com/user", { headers }),
+    fetch("https://api.github.com/user/emails", { headers })
+  ]);
+
+  const userData = (await userResponse.json().catch(() => ({}))) as {
+    name?: string | null;
+    login?: string;
+    email?: string | null;
+  };
+  const emailData = (await emailsResponse.json().catch(() => [])) as Array<{
+    email: string;
+    primary?: boolean;
+    verified?: boolean;
+  }>;
+
+  const verifiedEmail =
+    emailData.find((entry) => entry.primary && entry.verified)?.email ||
+    emailData.find((entry) => entry.verified)?.email ||
+    userData.email ||
+    "";
+
+  if (!userResponse.ok || !emailsResponse.ok || !verifiedEmail) {
+    throw new Error("Failed to fetch GitHub profile");
+  }
+
+  return {
+    email: verifiedEmail,
+    name: userData.name?.trim() || userData.login || ""
+  };
+};
+
+const resolveSocialSignupRedirect = async ({
+  provider,
+  mode,
+  next,
+  email,
+  displayName
+}: {
+  provider: SocialProvider;
+  mode: SocialAuthMode;
+  next: string;
+  email: string;
+  displayName: string;
+}) => {
+  const normalizedEmail = normalizeEmail(email);
+  const existingUser = await prisma.user.findUnique({
+    where: { email: normalizedEmail }
+  });
+
+  if (mode === "login") {
+    if (!existingUser) {
+      return buildFrontendRedirect("/signin", {
+        oauthError: `${provider}_no_account`,
+        email: normalizedEmail
+      });
+    }
+
+    const verifiedUser = existingUser.emailVerifiedAt
+      ? existingUser
+      : await prisma.user.update({
+          where: { id: existingUser.id },
+          data: { emailVerifiedAt: new Date() }
+        });
+
+    const token = signToken({ sub: verifiedUser.id, email: verifiedUser.email });
+    return buildFrontendRedirect("/oauth/complete", {
+      token,
+      next,
+      mode: "login",
+      provider
+    });
+  }
+
+  if (existingUser?.fullName?.trim() && existingUser.address?.trim()) {
+    const verifiedUser = existingUser.emailVerifiedAt
+      ? existingUser
+      : await prisma.user.update({
+          where: { id: existingUser.id },
+          data: { emailVerifiedAt: new Date() }
+        });
+
+    const token = signToken({ sub: verifiedUser.id, email: verifiedUser.email });
+    return buildFrontendRedirect("/oauth/complete", {
+      token,
+      next,
+      mode: "signup",
+      provider
+    });
+  }
+
+  const signupToken = jwt.sign(
+    {
+      purpose: "social_signup",
+      provider,
+      email: normalizedEmail,
+      displayName,
+      next
+    } satisfies SocialSignupToken,
+    jwtSecret,
+    { expiresIn: "20m" }
+  );
+
+  return buildFrontendRedirect("/signup", {
+    socialProvider: provider,
+    socialSignupToken: signupToken,
+    email: normalizedEmail,
+    fullName: displayName,
+    next
+  });
 };
 
 authRouter.get("/me", requireAuth, async (req, res) => {
@@ -281,10 +462,22 @@ authRouter.get("/google/callback", async (req, res) => {
     );
   }
 
-  let parsedState: GoogleOauthState;
+  let parsedState: SocialOauthState;
 
   try {
-    parsedState = jwt.verify(state, jwtSecret) as GoogleOauthState;
+    const rawState = jwt.verify(state, jwtSecret) as
+      | SocialOauthState
+      | { purpose: "google_oauth_state"; mode: SocialAuthMode; next: string };
+
+    parsedState =
+      rawState.purpose === "google_oauth_state"
+        ? {
+            purpose: "social_oauth_state",
+            provider: "google",
+            mode: rawState.mode,
+            next: rawState.next
+          }
+        : rawState;
   } catch {
     return res.redirect(
       buildFrontendRedirect("/signin", {
@@ -293,7 +486,7 @@ authRouter.get("/google/callback", async (req, res) => {
     );
   }
 
-  if (parsedState.purpose !== "google_oauth_state") {
+  if (parsedState.purpose !== "social_oauth_state" || parsedState.provider !== "google") {
     return res.redirect(
       buildFrontendRedirect("/signin", {
         oauthError: "google_state_invalid"
@@ -316,73 +509,13 @@ authRouter.get("/google/callback", async (req, res) => {
       );
     }
 
-    const normalizedEmail = normalizeEmail(googleProfile.email);
-    const existingUser = await prisma.user.findUnique({
-      where: { email: normalizedEmail }
-    });
-
-    if (parsedState.mode === "login") {
-      if (!existingUser) {
-        return res.redirect(
-          buildFrontendRedirect("/signin", {
-            oauthError: "google_no_account",
-            email: normalizedEmail
-          })
-        );
-      }
-
-      const verifiedUser = existingUser.emailVerifiedAt
-        ? existingUser
-        : await prisma.user.update({
-            where: { id: existingUser.id },
-            data: { emailVerifiedAt: new Date() }
-          });
-
-      const token = signToken({ sub: verifiedUser.id, email: verifiedUser.email });
-      return res.redirect(
-        buildFrontendRedirect("/oauth/complete", {
-          token,
-          next: parsedState.next,
-          mode: "login"
-        })
-      );
-    }
-
-    if (existingUser?.fullName?.trim() && existingUser.address?.trim()) {
-      const verifiedUser = existingUser.emailVerifiedAt
-        ? existingUser
-        : await prisma.user.update({
-            where: { id: existingUser.id },
-            data: { emailVerifiedAt: new Date() }
-          });
-
-      const token = signToken({ sub: verifiedUser.id, email: verifiedUser.email });
-      return res.redirect(
-        buildFrontendRedirect("/oauth/complete", {
-          token,
-          next: parsedState.next,
-          mode: "signup"
-        })
-      );
-    }
-
-    const signupToken = jwt.sign(
-      {
-        purpose: "google_signup",
-        email: normalizedEmail,
-        googleName: googleProfile.name?.trim() || "",
-        next: parsedState.next
-      } satisfies GoogleSignupToken,
-      jwtSecret,
-      { expiresIn: "20m" }
-    );
-
     return res.redirect(
-      buildFrontendRedirect("/signup", {
-        googleSignupToken: signupToken,
-        email: normalizedEmail,
-        fullName: googleProfile.name?.trim() || "",
-        next: parsedState.next
+      await resolveSocialSignupRedirect({
+        provider: "google",
+        mode: parsedState.mode,
+        next: parsedState.next,
+        email: googleProfile.email,
+        displayName: googleProfile.name?.trim() || ""
       })
     );
   } catch {
@@ -397,35 +530,109 @@ authRouter.get("/google/callback", async (req, res) => {
   }
 });
 
-authRouter.post("/google/complete-signup", async (req, res) => {
+authRouter.get("/github/start", async (req, res) => {
+  if (!isGithubOAuthConfigured()) {
+    return res.status(503).json({ error: "GitHub OAuth is not configured" });
+  }
+
+  const mode = req.query.mode === "signup" ? "signup" : "login";
+  const next = normalizeNextPath(
+    typeof req.query.next === "string" ? req.query.next : undefined
+  );
+
+  return res.redirect(buildGithubAuthUrl(mode, next));
+});
+
+authRouter.get("/github/callback", async (req, res) => {
+  if (!isGithubOAuthConfigured()) {
+    return res.redirect(
+      buildFrontendRedirect("/signin", {
+        oauthError: "github_not_configured"
+      })
+    );
+  }
+
+  const code = typeof req.query.code === "string" ? req.query.code : "";
+  const state = typeof req.query.state === "string" ? req.query.state : "";
+
+  if (!code || !state) {
+    return res.redirect(
+      buildFrontendRedirect("/signin", {
+        oauthError: "github_callback_invalid"
+      })
+    );
+  }
+
+  let parsedState: SocialOauthState;
+
+  try {
+    parsedState = jwt.verify(state, jwtSecret) as SocialOauthState;
+  } catch {
+    return res.redirect(
+      buildFrontendRedirect("/signin", {
+        oauthError: "github_state_invalid"
+      })
+    );
+  }
+
+  if (parsedState.purpose !== "social_oauth_state" || parsedState.provider !== "github") {
+    return res.redirect(
+      buildFrontendRedirect("/signin", {
+        oauthError: "github_state_invalid"
+      })
+    );
+  }
+
+  try {
+    const accessToken = await exchangeGithubCode(code);
+    const githubProfile = await fetchGithubProfile(accessToken);
+
+    return res.redirect(
+      await resolveSocialSignupRedirect({
+        provider: "github",
+        mode: parsedState.mode,
+        next: parsedState.next,
+        email: githubProfile.email,
+        displayName: githubProfile.name
+      })
+    );
+  } catch {
+    return res.redirect(
+      buildFrontendRedirect(
+        parsedState.mode === "signup" ? "/signup" : "/signin",
+        {
+          oauthError: "github_auth_failed"
+        }
+      )
+    );
+  }
+});
+
+authRouter.post("/oauth/complete-signup", async (req, res) => {
   const { signupToken, fullName, address } = req.body as {
     signupToken?: string;
     fullName?: string;
     address?: string;
   };
 
-  if (!isGoogleOAuthConfigured()) {
-    return res.status(503).json({ error: "Google OAuth is not configured" });
-  }
-
   if (!signupToken || !address?.trim()) {
     return res.status(400).json({ error: "Address and signup token are required" });
   }
 
-  let payload: GoogleSignupToken;
+  let payload: SocialSignupToken;
 
   try {
-    payload = jwt.verify(signupToken, jwtSecret) as GoogleSignupToken;
+    payload = jwt.verify(signupToken, jwtSecret) as SocialSignupToken;
   } catch {
-    return res.status(400).json({ error: "Google signup session expired. Please try again." });
+    return res.status(400).json({ error: "Social signup session expired. Please try again." });
   }
 
-  if (payload.purpose !== "google_signup") {
-    return res.status(400).json({ error: "Google signup session expired. Please try again." });
+  if (payload.purpose !== "social_signup") {
+    return res.status(400).json({ error: "Social signup session expired. Please try again." });
   }
 
   const normalizedEmail = normalizeEmail(payload.email);
-  const resolvedName = fullName?.trim() || payload.googleName?.trim();
+  const resolvedName = fullName?.trim() || payload.displayName?.trim();
 
   if (!resolvedName) {
     return res.status(400).json({ error: "Full name is required" });

@@ -18,6 +18,9 @@ export default function OauthCompletePage() {
     const token = searchParams.get("token") || "";
     const next = searchParams.get("next") || "/dashboard";
     const mode = searchParams.get("mode") === "signup" ? "signup" : "login";
+    const providerParam = searchParams.get("provider") || "";
+    const provider =
+      providerParam === "github" ? "GitHub" : providerParam === "google" ? "Google" : "OAuth";
 
     if (!token) {
       setError("OAuth session is missing. Please try again.");
@@ -43,8 +46,8 @@ export default function OauthCompletePage() {
             JSON.stringify({
               message:
                 mode === "signup"
-                  ? "Google account connected successfully."
-                  : "Signed in with Google.",
+                  ? `${provider} account connected successfully.`
+                  : `Signed in with ${provider}.`,
               tone: "success"
             })
           );
@@ -64,14 +67,14 @@ export default function OauthCompletePage() {
     <main className="tf-page pb-20 pt-16">
       <div className="tf-container max-w-xl">
         <section className="tf-card p-8">
-          <p className="tf-kicker">Google OAuth</p>
+          <p className="tf-kicker">Social OAuth</p>
           <h1 className="mt-3 text-2xl font-semibold text-text-primary">
             {error ? "We could not complete sign in" : "Finishing your sign in"}
           </h1>
           <p className="mt-3 text-sm text-text-secondary">
             {error
               ? error
-              : "Please wait while we connect your Google account to TraceForge."}
+              : "Please wait while we connect your account to TraceForge."}
           </p>
 
           {error ? (

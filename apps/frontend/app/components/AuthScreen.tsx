@@ -27,6 +27,8 @@ const passwordPolicyMessage =
   "Use 10-64 characters with uppercase, lowercase, number, and special character.";
 const buildGoogleStartUrl = (mode: "login" | "signup", next: string) =>
   `${API_URL}/auth/google/start?mode=${encodeURIComponent(mode)}&next=${encodeURIComponent(next)}`;
+const buildGithubStartUrl = (mode: "login" | "signup", next: string) =>
+  `${API_URL}/auth/github/start?mode=${encodeURIComponent(mode)}&next=${encodeURIComponent(next)}`;
 
 type AuthScreenProps = {
   mode: "login" | "signup";
@@ -71,12 +73,18 @@ function AuthScreenInner({ mode }: AuthScreenProps) {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   const next = searchParams.get("next") || "/dashboard";
-  const githubAuthUrl = process.env.NEXT_PUBLIC_AUTH_GITHUB_URL || "";
   const oauthError = searchParams.get("oauthError") || "";
   const oauthEmail = searchParams.get("email") || "";
-  const googleSignupToken = searchParams.get("googleSignupToken") || "";
-  const googlePrefillName = searchParams.get("fullName") || "";
-  const isGoogleSignupContinuation = mode === "signup" && Boolean(googleSignupToken);
+  const socialSignupToken = searchParams.get("socialSignupToken") || "";
+  const socialProviderParam = searchParams.get("socialProvider") || "";
+  const socialPrefillName = searchParams.get("fullName") || "";
+  const socialProvider =
+    socialProviderParam === "github"
+      ? "GitHub"
+      : socialProviderParam === "google"
+      ? "Google"
+      : "";
+  const isSocialSignupContinuation = mode === "signup" && Boolean(socialSignupToken);
 
   const workflowItems =
     mode === "signup"
@@ -172,13 +180,19 @@ function AuthScreenInner({ mode }: AuthScreenProps) {
         ? "Google did not return a verified email for this account."
         : oauthError === "google_not_configured"
         ? "Google sign-in is not configured yet."
+        : oauthError === "github_no_account"
+        ? "No TraceForge account exists for this GitHub email yet. Please continue from sign up."
+        : oauthError === "github_not_configured"
+        ? "GitHub sign-in is not configured yet."
+        : oauthError === "github_auth_failed"
+        ? "GitHub authentication failed. Please try again."
         : "Google authentication failed. Please try again.";
 
     setToast({ message, tone: "error" });
   }, [oauthError]);
 
   useEffect(() => {
-    if (!isGoogleSignupContinuation) {
+    if (!isSocialSignupContinuation) {
       return;
     }
 
@@ -186,12 +200,12 @@ function AuthScreenInner({ mode }: AuthScreenProps) {
       setEmail(oauthEmail);
     }
 
-    if (googlePrefillName) {
-      setFullName((current) => current || googlePrefillName);
+    if (socialPrefillName) {
+      setFullName((current) => current || socialPrefillName);
     }
-  }, [googlePrefillName, isGoogleSignupContinuation, oauthEmail]);
+  }, [isSocialSignupContinuation, oauthEmail, socialPrefillName]);
 
-  const handleOauth = (provider: "Google" | "GitHub", url: string) => {
+  const handleOauth = (provider: "Google" | "GitHub") => {
     setToast(null);
 
     if (provider === "Google") {
@@ -199,12 +213,7 @@ function AuthScreenInner({ mode }: AuthScreenProps) {
       return;
     }
 
-    if (!url) {
-      setToast({ message: `${provider} sign-in is not configured yet.`, tone: "info" });
-      return;
-    }
-
-    window.location.href = url;
+    window.location.href = buildGithubStartUrl(mode, next);
   };
 
   const handleSubmit = async () => {
@@ -221,7 +230,7 @@ function AuthScreenInner({ mode }: AuthScreenProps) {
         return;
       }
 
-      if (!isGoogleSignupContinuation) {
+      if (!isSocialSignupContinuation) {
         if (!passwordPolicy.test(password)) {
           setToast({ message: passwordPolicyMessage, tone: "error" });
           return;
@@ -239,8 +248,8 @@ function AuthScreenInner({ mode }: AuthScreenProps) {
     try {
       const endpoint =
         mode === "signup"
-          ? isGoogleSignupContinuation
-            ? `${API_URL}/auth/google/complete-signup`
+          ? isSocialSignupContinuation
+            ? `${API_URL}/auth/oauth/complete-signup`
             : `${API_URL}/auth/register`
           : `${API_URL}/auth/login`;
 
@@ -250,7 +259,7 @@ function AuthScreenInner({ mode }: AuthScreenProps) {
         body: JSON.stringify({
           fullName: mode === "signup" ? fullName : undefined,
           address: mode === "signup" ? address : undefined,
-          signupToken: isGoogleSignupContinuation ? googleSignupToken : undefined,
+          signupToken: isSocialSignupContinuation ? socialSignupToken : undefined,
           email,
           password
         })
@@ -279,11 +288,11 @@ function AuthScreenInner({ mode }: AuthScreenProps) {
         window.sessionStorage.setItem(
           postAuthToastKey,
           JSON.stringify({
-            message:
-              mode === "login"
-                ? "Signed in successfully."
-                : isGoogleSignupContinuation
-                ? "Google account connected successfully."
+              message:
+                mode === "login"
+                  ? "Signed in successfully."
+                : isSocialSignupContinuation
+                ? `${socialProvider || "Social"} account connected successfully.`
                 : "Account created successfully.",
             tone: "success"
           })
@@ -487,16 +496,16 @@ function AuthScreenInner({ mode }: AuthScreenProps) {
             <p className={`mt-3 max-w-[42ch] text-[13px] text-text-secondary sm:text-sm ${mode === "signup" ? "leading-5" : "leading-6"}`}>
               {mode === "login"
                 ? "Sign in to review issues, manage alerts, and stay in sync with your organization workflows."
-                : isGoogleSignupContinuation
-                ? "Google verified your email. Add the remaining account details to finish creating your workspace."
+                : isSocialSignupContinuation
+                ? `${socialProvider || "Your social provider"} verified your email. Add the remaining account details to finish creating your workspace.`
                 : "Create your account to start capturing issues, routing alerts, and collaborating with your organization from one place."}
             </p>
 
             <div className="mt-6 space-y-3 sm:space-y-3.5">
-              {isGoogleSignupContinuation && (
+              {isSocialSignupContinuation && (
                 <div className="rounded-2xl border border-border bg-secondary/25 px-4 py-3">
                   <p className="text-xs font-semibold uppercase tracking-[0.14em] text-text-secondary">
-                    Google account connected
+                    {socialProvider || "Social"} account connected
                   </p>
                   <p className="mt-1 text-sm font-medium text-text-primary">{email}</p>
                 </div>
@@ -524,10 +533,10 @@ function AuthScreenInner({ mode }: AuthScreenProps) {
                 placeholder="Email"
                 value={email}
                 onChange={(event) => setEmail(event.target.value)}
-                readOnly={isGoogleSignupContinuation}
+                readOnly={isSocialSignupContinuation}
               />
 
-              {mode === "signup" && !isGoogleSignupContinuation ? (
+              {mode === "signup" && !isSocialSignupContinuation ? (
                 <>
                   <div className="grid gap-2.5 lg:grid-cols-2">
                     <div className="relative">
@@ -629,7 +638,7 @@ function AuthScreenInner({ mode }: AuthScreenProps) {
                   ? "Working..."
                   : mode === "login"
                   ? "Sign in"
-                  : isGoogleSignupContinuation
+                  : isSocialSignupContinuation
                   ? "Complete account"
                   : "Create account"}
               </button>
@@ -653,7 +662,7 @@ function AuthScreenInner({ mode }: AuthScreenProps) {
                 )}
               </div>
 
-              {!isGoogleSignupContinuation && (
+              {!isSocialSignupContinuation && (
                 <div className="pt-1">
                 <div className="flex items-center gap-3">
                   <div className="h-px flex-1 bg-[linear-gradient(90deg,rgba(226,232,240,0),rgba(226,232,240,1))]" />
@@ -667,7 +676,7 @@ function AuthScreenInner({ mode }: AuthScreenProps) {
                   <button
                     type="button"
                     className="group inline-flex w-full items-center justify-center gap-2.5 rounded-[18px] border border-border/80 bg-card/88 px-3.5 py-3 text-[13px] font-semibold text-text-primary shadow-[0_8px_22px_hsl(var(--foreground)/0.05)] transition duration-200 hover:-translate-y-0.5 hover:border-primary/20 hover:bg-card hover:shadow-[0_14px_28px_hsl(var(--primary)/0.12)]"
-                    onClick={() => handleOauth("Google", "")}
+                    onClick={() => handleOauth("Google")}
                     aria-label="Continue with Google"
                     title="Continue with Google"
                   >
@@ -696,7 +705,7 @@ function AuthScreenInner({ mode }: AuthScreenProps) {
                   <button
                     type="button"
                     className="group inline-flex w-full items-center justify-center gap-2.5 rounded-[18px] border border-border/80 bg-card/88 px-3.5 py-3 text-[13px] font-semibold text-text-primary shadow-[0_8px_22px_hsl(var(--foreground)/0.05)] transition duration-200 hover:-translate-y-0.5 hover:border-primary/20 hover:bg-card hover:shadow-[0_14px_28px_hsl(var(--foreground)/0.1)]"
-                    onClick={() => handleOauth("GitHub", githubAuthUrl)}
+                    onClick={() => handleOauth("GitHub")}
                     aria-label="Continue with GitHub"
                     title="Continue with GitHub"
                   >
