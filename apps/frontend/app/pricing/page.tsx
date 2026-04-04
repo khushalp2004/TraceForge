@@ -20,7 +20,7 @@ export default function PricingPage() {
             Simple pricing that scales with you.
           </h1>
           <p className="mt-4 text-lg text-text-secondary">
-            Start free, upgrade to Pro when you need unlimited projects, errors, and AI analysis.
+            Start free, upgrade to Pro for personal unlimited AI, or choose Team for shared organization capacity.
           </p>
         </section>
 

@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import { LoadingButtonContent } from "../../../components/ui/loading-button-content";
 import { DashboardPagination } from "../components/DashboardPagination";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
@@ -780,7 +781,7 @@ export default function ProjectSettingsPage() {
                 onClick={createProject}
                 disabled={loading}
               >
-                {loading ? "Creating..." : "Create Project"}
+                <LoadingButtonContent loading={loading} loadingLabel="Creating..." idleLabel="Create Project" />
               </button>
             </div>
           </div>
@@ -817,7 +818,7 @@ export default function ProjectSettingsPage() {
                 onClick={renameProject}
                 disabled={loading || !renameInput.trim()}
               >
-                {loading ? "Saving..." : "Save name"}
+                <LoadingButtonContent loading={loading} loadingLabel="Saving..." idleLabel="Save name" />
               </button>
             </div>
           </div>
@@ -852,7 +853,11 @@ export default function ProjectSettingsPage() {
                   onClick={() => archiveProject(deleteTarget.id)}
                   disabled={loading || deleteInput.trim() !== deleteTarget.name}
                 >
-                  {loading ? "Archiving..." : "Archive Project"}
+                  <LoadingButtonContent
+                    loading={loading}
+                    loadingLabel="Archiving..."
+                    idleLabel="Archive Project"
+                  />
                 </button>
               </div>
             </div>
@@ -891,7 +896,7 @@ export default function ProjectSettingsPage() {
                 onClick={deleteProjectPermanently}
                 disabled={loading || permanentDeleteInput.trim() !== permanentDeleteTarget.name}
               >
-                {loading ? "Deleting..." : "Delete"}
+                <LoadingButtonContent loading={loading} loadingLabel="Deleting..." idleLabel="Delete" />
               </button>
             </div>
           </div>

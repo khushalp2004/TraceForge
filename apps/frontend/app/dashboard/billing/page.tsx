@@ -1,29 +1,47 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "next/navigation";
+import { LoadingButtonContent } from "../../../components/ui/loading-button-content";
 import { DashboardPagination } from "../components/DashboardPagination";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
 const tokenKey = "traceforge_token";
+
 declare global {
   interface Window {
-    Razorpay?: new (options: Record<string, any>) => { open: () => void; on: (evt: string, cb: (data: any) => void) => void };
+    Razorpay?: new (options: Record<string, any>) => {
+      open: () => void;
+      on: (evt: string, cb: (data: any) => void) => void;
+    };
   }
 }
 
-type Toast = {
-  message: string;
-  tone: "success" | "error";
-};
+type Plan = "FREE" | "PRO" | "TEAM";
+type BillingInterval = "MONTHLY" | "YEARLY";
+type Toast = { message: string; tone: "success" | "error" };
 
 type User = {
   id: string;
   fullName: string | null;
   email: string;
   plan: "FREE" | "PRO";
+  planInterval?: BillingInterval | null;
   proPricingTier?: "LAUNCH" | "STANDARD" | null;
   planExpiresAt: string | null;
   subscriptionStatus: string | null;
+};
+
+type Organization = {
+  id: string;
+  name: string;
+  role: "OWNER" | "MEMBER";
+  plan: Plan;
+  planInterval?: BillingInterval | null;
+  planExpiresAt: string | null;
+  subscriptionStatus: string | null;
+  memberCount: number;
+  createdAt: string;
 };
 
 type Invoice = {
@@ -50,24 +68,25 @@ type PaymentRow = {
   createdAt: string;
 };
 
-type CreateOrderResponse =
-  | {
-      alreadyPro: true;
-      plan: "pro";
-      expiresAt: string | null;
-    }
-  | {
-      keyId: string;
-      subscriptionId: string;
-      amount: number;
-      currency: string;
-      receipt: string;
+type PricingData = {
+  free?: { aiLimitMonthly?: number; orgMemberLimit?: number };
+  pro?: {
+    launch?: {
+      monthlyPriceInr?: number;
+      yearlyPriceInr?: number;
+      slotsTotal?: number;
+      slotsRemaining?: number;
     };
-
-type VerifyResponse = {
-  ok: boolean;
-  plan: "pro";
-  expiresAt: string;
+    standard?: {
+      monthlyPriceInr?: number;
+      yearlyPriceInr?: number;
+    };
+  };
+  team?: {
+    monthlyPriceInr?: number;
+    yearlyPriceInr?: number;
+    aiLimitMonthly?: number;
+  };
 };
 
 const BILLING_PAGE_SIZE_OPTIONS = [
@@ -88,12 +107,22 @@ const loadRazorpay = () =>
     document.body.appendChild(script);
   });
 
+const formatPrice = (value?: number | null) => (typeof value === "number" ? `₹${value}` : "—");
+
 export default function BillingPage() {
+  const searchParams = useSearchParams();
   const [user, setUser] = useState<User | null>(null);
+  const [orgs, setOrgs] = useState<Organization[]>([]);
+  const [pricing, setPricing] = useState<PricingData | null>(null);
   const [loading, setLoading] = useState(true);
   const [billingLoading, setBillingLoading] = useState(false);
+  const [actionLoading, setActionLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [toast, setToast] = useState<Toast | null>(null);
+  const [personalInterval, setPersonalInterval] = useState<BillingInterval>("MONTHLY");
+  const [teamInterval, setTeamInterval] = useState<BillingInterval>("MONTHLY");
+  const [selectedOrgId, setSelectedOrgId] = useState("");
+  const [historyScope, setHistoryScope] = useState<"USER" | "ORGANIZATION">("USER");
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [payments, setPayments] = useState<PaymentRow[]>([]);
   const [invoicesPage, setInvoicesPage] = useState(1);
@@ -101,88 +130,43 @@ export default function BillingPage() {
   const [paymentsPage, setPaymentsPage] = useState(1);
   const [paymentsPageSize, setPaymentsPageSize] = useState(5);
 
-  const showToast = (message: string, tone: Toast["tone"]) => {
-    setToast({ message, tone });
-    window.setTimeout(() => setToast(null), 2400);
-  };
+  const ownerOrgs = useMemo(() => orgs.filter((org) => org.role === "OWNER"), [orgs]);
+  const selectedOrg = useMemo(
+    () => ownerOrgs.find((org) => org.id === selectedOrgId) || null,
+    [ownerOrgs, selectedOrgId]
+  );
 
-  useEffect(() => {
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    void refreshUser();
-  }, []);
-
-  const refreshUser = async () => {
-    const token = localStorage.getItem(tokenKey);
-    if (!token) return;
-
-    setLoading(true);
-    setError(null);
-
-    try {
-      const res = await fetch(`${API_URL}/auth/me`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      const data = await res.json();
-      if (!res.ok) {
-        throw new Error(data.error || "Failed to load account");
-      }
-
-      const nextUser = data.user as User;
-      setUser({
-        id: nextUser.id,
-        fullName: nextUser.fullName ?? null,
-        email: nextUser.email,
-        plan: nextUser.plan,
-        proPricingTier: nextUser.proPricingTier ?? null,
-        planExpiresAt: nextUser.planExpiresAt ?? null,
-        subscriptionStatus: nextUser.subscriptionStatus ?? null
-      });
-
-      void refreshBillingData();
-    } catch (err) {
-      setUser(null);
-      setError(err instanceof Error ? err.message : "Unexpected error");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const refreshBillingData = async () => {
-    const token = localStorage.getItem(tokenKey);
-    if (!token) return;
-
-    setBillingLoading(true);
-    try {
-      const [invoiceRes, historyRes] = await Promise.all([
-        fetch(`${API_URL}/api/payment/invoices`, {
-          headers: { Authorization: `Bearer ${token}` }
-        }),
-        fetch(`${API_URL}/api/payment/history`, {
-          headers: { Authorization: `Bearer ${token}` }
-        })
-      ]);
-
-      const invoiceData = (await invoiceRes.json()) as { invoices?: Invoice[]; error?: string };
-      if (invoiceRes.ok) {
-        setInvoices(Array.isArray(invoiceData.invoices) ? invoiceData.invoices : []);
-      }
-
-      const historyData = (await historyRes.json()) as { payments?: PaymentRow[]; error?: string };
-      if (historyRes.ok) {
-        setPayments(Array.isArray(historyData.payments) ? historyData.payments : []);
-      }
-    } finally {
-      setBillingLoading(false);
-    }
-  };
-
-  const isProActive = useMemo(() => {
-    if (!user) return false;
-    if (user.plan !== "PRO") return false;
+  const isUserProActive = useMemo(() => {
+    if (!user || user.plan !== "PRO") return false;
     if (!user.planExpiresAt) return true;
     return new Date(user.planExpiresAt).getTime() > Date.now();
   }, [user]);
 
+  const isTeamActive = useMemo(() => {
+    if (!selectedOrg || selectedOrg.plan !== "TEAM") return false;
+    if (!selectedOrg.planExpiresAt) return true;
+    return new Date(selectedOrg.planExpiresAt).getTime() > Date.now();
+  }, [selectedOrg]);
+
+  const userKeepsLaunchPricing = user?.proPricingTier === "LAUNCH";
+  const proLaunchAvailable = (pricing?.pro?.launch?.slotsRemaining ?? 0) > 0;
+  const proUsesLaunchPricing = userKeepsLaunchPricing || proLaunchAvailable;
+  const proMonthlyPrice = proUsesLaunchPricing
+    ? pricing?.pro?.launch?.monthlyPriceInr
+    : pricing?.pro?.standard?.monthlyPriceInr;
+  const proYearlyPrice = proUsesLaunchPricing
+    ? pricing?.pro?.launch?.yearlyPriceInr
+    : pricing?.pro?.standard?.yearlyPriceInr;
+  const proYearlySavings =
+    typeof proMonthlyPrice === "number" && typeof proYearlyPrice === "number"
+      ? proMonthlyPrice * 12 - proYearlyPrice
+      : null;
+  const teamYearlySavings =
+    typeof pricing?.team?.monthlyPriceInr === "number" && typeof pricing?.team?.yearlyPriceInr === "number"
+      ? pricing.team.monthlyPriceInr * 12 - pricing.team.yearlyPriceInr
+      : null;
+
+  const activeHistoryOrgId = historyScope === "ORGANIZATION" ? selectedOrg?.id || null : null;
   const invoicesTotalPages = Math.max(1, Math.ceil(invoices.length / invoicesPageSize));
   const paymentsTotalPages = Math.max(1, Math.ceil(payments.length / paymentsPageSize));
   const paginatedInvoices = useMemo(() => {
@@ -194,6 +178,96 @@ export default function BillingPage() {
     return payments.slice(start, start + paymentsPageSize);
   }, [payments, paymentsPage, paymentsPageSize]);
 
+  const showToast = (message: string, tone: Toast["tone"]) => {
+    setToast({ message, tone });
+    window.setTimeout(() => setToast(null), 2600);
+  };
+
+  const refreshBillingData = async (organizationId?: string | null) => {
+    const token = localStorage.getItem(tokenKey);
+    if (!token) return;
+
+    setBillingLoading(true);
+    try {
+      const query = organizationId ? `?organizationId=${encodeURIComponent(organizationId)}` : "";
+      const [invoiceRes, historyRes] = await Promise.all([
+        fetch(`${API_URL}/api/payment/invoices${query}`, {
+          headers: { Authorization: `Bearer ${token}` }
+        }),
+        fetch(`${API_URL}/api/payment/history${query}`, {
+          headers: { Authorization: `Bearer ${token}` }
+        })
+      ]);
+
+      const invoiceData = (await invoiceRes.json()) as { invoices?: Invoice[] };
+      const historyData = (await historyRes.json()) as { payments?: PaymentRow[] };
+      setInvoices(Array.isArray(invoiceData.invoices) ? invoiceData.invoices : []);
+      setPayments(Array.isArray(historyData.payments) ? historyData.payments : []);
+    } finally {
+      setBillingLoading(false);
+    }
+  };
+
+  const refreshAll = async () => {
+    const token = localStorage.getItem(tokenKey);
+    if (!token) return;
+
+    setLoading(true);
+    setError(null);
+    try {
+      const [userRes, orgRes, pricingRes] = await Promise.all([
+        fetch(`${API_URL}/auth/me`, {
+          headers: { Authorization: `Bearer ${token}` }
+        }),
+        fetch(`${API_URL}/orgs`, {
+          headers: { Authorization: `Bearer ${token}` }
+        }),
+        fetch(`${API_URL}/public/billing/pricing`)
+      ]);
+
+      const userData = await userRes.json();
+      const orgData = await orgRes.json();
+      const pricingData = (await pricingRes.json()) as PricingData;
+
+      if (!userRes.ok) {
+        throw new Error(userData.error || "Failed to load billing data");
+      }
+      if (!orgRes.ok) {
+        throw new Error(orgData.error || "Failed to load organizations");
+      }
+
+      setUser(userData.user as User);
+      setOrgs(Array.isArray(orgData.orgs) ? (orgData.orgs as Organization[]) : []);
+      setPricing(pricingData);
+
+      const nextOwnerOrgs = Array.isArray(orgData.orgs)
+        ? (orgData.orgs as Organization[]).filter((org) => org.role === "OWNER")
+        : [];
+      if (!selectedOrgId && nextOwnerOrgs[0]) {
+        setSelectedOrgId(nextOwnerOrgs[0].id);
+      }
+
+      const intent = searchParams.get("intent");
+      if (intent === "team" && nextOwnerOrgs[0]) {
+        setHistoryScope("ORGANIZATION");
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Unexpected error");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    void refreshAll();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
+    const scopeOrgId = historyScope === "ORGANIZATION" ? selectedOrg?.id || null : null;
+    void refreshBillingData(scopeOrgId);
+  }, [historyScope, selectedOrg?.id]);
+
   useEffect(() => {
     setInvoicesPage((current) => Math.min(current, invoicesTotalPages));
   }, [invoicesTotalPages]);
@@ -202,10 +276,19 @@ export default function BillingPage() {
     setPaymentsPage((current) => Math.min(current, paymentsTotalPages));
   }, [paymentsTotalPages]);
 
-  const startCheckout = async () => {
+  const startCheckout = async ({
+    plan,
+    interval,
+    organizationId
+  }: {
+    plan: "PRO" | "TEAM";
+    interval: BillingInterval;
+    organizationId?: string;
+  }) => {
     const token = localStorage.getItem(tokenKey);
     if (!token) return;
-    setLoading(true);
+
+    setActionLoading(true);
     setError(null);
 
     try {
@@ -220,7 +303,11 @@ export default function BillingPage() {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`
         },
-        body: JSON.stringify({})
+        body: JSON.stringify({
+          plan,
+          interval,
+          organizationId
+        })
       });
 
       const data = await res.json();
@@ -228,31 +315,20 @@ export default function BillingPage() {
         throw new Error(data.error || "Failed to start checkout");
       }
 
-      if (typeof data === "object" && data && "alreadyPro" in (data as Record<string, unknown>)) {
-        showToast("You already have Pro active.", "success");
-        await refreshUser();
+      if (data?.alreadyActive) {
+        showToast(`${plan === "PRO" ? "Pro" : "Team"} is already active.`, "success");
+        await refreshAll();
         return;
       }
-      const subscription = data as CreateOrderResponse & {
-        subscriptionId: string;
-        amount: number;
-        currency: string;
-        keyId: string;
-        receipt: string;
-      };
 
       const options = {
-        key: subscription.keyId,
+        key: data.keyId,
         name: "TraceForge",
-        description: "Pro Plan (₹299/month)",
-        subscription_id: subscription.subscriptionId,
-        method: {
-          card: true,
-          upi: false,
-          netbanking: false,
-          wallet: false,
-          emi: false
-        },
+        description:
+          plan === "TEAM"
+            ? `Team Plan (${interval === "YEARLY" ? "yearly" : "monthly"})`
+            : `Pro Plan (${interval === "YEARLY" ? "yearly" : "monthly"})`,
+        subscription_id: data.subscriptionId,
         prefill: {
           email: user?.email
         },
@@ -261,35 +337,31 @@ export default function BillingPage() {
           razorpay_subscription_id?: string;
           razorpay_signature: string;
         }) => {
-          try {
-            const verifyRes = await fetch(`${API_URL}/api/payment/verify`, {
-              method: "POST",
-              headers: {
-                "Content-Type": "application/json",
-                Authorization: `Bearer ${token}`
-              },
-              body: JSON.stringify({
-                ...response,
-                razorpay_subscription_id:
-                  response.razorpay_subscription_id || subscription.subscriptionId
-              })
-            });
-            const verifyData = (await verifyRes.json()) as VerifyResponse & { error?: string };
-            if (!verifyRes.ok || !verifyData.ok) {
-              throw new Error(verifyData.error || "Payment verification failed");
-            }
-            showToast("Upgraded to Pro", "success");
-            await refreshUser();
-            void refreshBillingData();
-          } catch (err) {
-            setError(err instanceof Error ? err.message : "Unexpected error");
-            showToast("Payment verification failed", "error");
+          const verifyRes = await fetch(`${API_URL}/api/payment/verify`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${token}`
+            },
+            body: JSON.stringify({
+              ...response,
+              razorpay_subscription_id:
+                response.razorpay_subscription_id || data.subscriptionId
+            })
+          });
+          const verifyData = await verifyRes.json();
+          if (!verifyRes.ok || !verifyData.ok) {
+            throw new Error(verifyData.error || "Payment verification failed");
           }
+          showToast(
+            plan === "TEAM" ? "Team plan activated." : "Pro activated successfully.",
+            "success"
+          );
+          await refreshAll();
+          await refreshBillingData(historyScope === "ORGANIZATION" ? organizationId : null);
         },
         modal: {
-          ondismiss: () => {
-            showToast("Payment cancelled", "error");
-          }
+          ondismiss: () => showToast("Payment cancelled", "error")
         },
         theme: {
           color: "#6d28d9"
@@ -305,17 +377,16 @@ export default function BillingPage() {
       setError(err instanceof Error ? err.message : "Unexpected error");
       showToast("Failed to start payment", "error");
     } finally {
-      setLoading(false);
+      setActionLoading(false);
     }
   };
 
-  const cancelSubscription = async () => {
+  const cancelSubscription = async (organizationId?: string) => {
     const token = localStorage.getItem(tokenKey);
     if (!token) return;
 
-    setLoading(true);
+    setActionLoading(true);
     setError(null);
-
     try {
       const res = await fetch(`${API_URL}/api/payment/cancel`, {
         method: "POST",
@@ -323,63 +394,24 @@ export default function BillingPage() {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`
         },
-        body: JSON.stringify({ atCycleEnd: false })
+        body: JSON.stringify({
+          atCycleEnd: false,
+          organizationId
+        })
       });
-
-      const data = (await res.json()) as { ok?: boolean; error?: string; expiresAt?: string | null };
+      const data = await res.json();
       if (!res.ok || !data.ok) {
         throw new Error(data.error || "Failed to cancel subscription");
       }
 
-      showToast("Subscription cancelled. Switched to Free.", "success");
-      await refreshUser();
-      void refreshBillingData();
+      showToast(organizationId ? "Team plan cancelled." : "Pro cancelled.", "success");
+      await refreshAll();
+      await refreshBillingData(historyScope === "ORGANIZATION" ? organizationId || null : null);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Unexpected error");
       showToast("Failed to cancel subscription", "error");
     } finally {
-      setLoading(false);
-    }
-  };
-
-  const upgradeToPro = async () => {
-    const token = localStorage.getItem(tokenKey);
-    if (!token) return;
-
-    setLoading(true);
-    setError(null);
-
-    try {
-      const res = await fetch(`${API_URL}/api/payment/upgrade`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`
-        },
-        body: JSON.stringify({})
-      });
-
-      const data = (await res.json()) as
-        | { ok: true; alreadyPro?: boolean; plan?: "pro"; expiresAt?: string | null }
-        | { ok?: boolean; requiresPayment?: boolean; error?: string };
-
-      if (!res.ok) {
-        throw new Error((data as { error?: string }).error || "Failed to upgrade");
-      }
-
-      if (typeof data === "object" && data && "requiresPayment" in data && data.requiresPayment) {
-        await startCheckout();
-        return;
-      }
-
-      showToast("Pro enabled.", "success");
-      await refreshUser();
-      void refreshBillingData();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Unexpected error");
-      showToast("Failed to upgrade", "error");
-    } finally {
-      setLoading(false);
+      setActionLoading(false);
     }
   };
 
@@ -389,50 +421,40 @@ export default function BillingPage() {
         <header className="flex flex-wrap items-center justify-between gap-4">
           <div>
             <p className="tf-kicker">Billing</p>
-            <h1 className="tf-title mt-3 text-3xl">Plan and usage</h1>
-            <p className="mt-2 max-w-2xl text-sm text-text-secondary">
-              Manage your subscription, review usage against plan limits, and keep billing
-              details organized for your workspace.
+            <h1 className="tf-title mt-3 text-3xl">Personal and team plans</h1>
+            <p className="mt-2 max-w-3xl text-sm text-text-secondary">
+              Pro stays user-level with unlimited AI for that person everywhere. Team stays
+              organization-level with shared AI capacity for the selected organization.
             </p>
           </div>
-          <div className="flex flex-wrap items-center gap-3">
-            <button
-              type="button"
-              className="tf-button px-4 py-2 text-sm"
-              onClick={() => {
-                if (isProActive) {
-                  showToast("Pro is already active.", "success");
-                  return;
-                }
-                void upgradeToPro();
-              }}
-              disabled={loading}
-            >
-              Upgrade to Pro
-            </button>
-          </div>
+          <button
+            type="button"
+            className="tf-button-ghost px-4 py-2 text-sm"
+            onClick={() => void refreshAll()}
+            disabled={loading || actionLoading}
+          >
+            Refresh
+          </button>
         </header>
 
-        {error && !loading && (
+        {error && !loading ? (
           <div className="mt-6 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
             {error}
           </div>
-        )}
+        ) : null}
 
-        <section className="mt-6 grid gap-6 xl:grid-cols-[minmax(0,1.25fr)_minmax(320px,0.75fr)]">
+        <section className="mt-6 grid gap-6 xl:grid-cols-2">
           <div className="rounded-3xl border border-border bg-card/95 p-6 shadow-sm">
             <div className="flex flex-wrap items-start justify-between gap-4">
               <div>
                 <p className="text-xs font-semibold uppercase tracking-[0.14em] text-text-secondary">
-                  Current plan
+                  Personal Pro
                 </p>
                 <h2 className="mt-3 text-3xl font-semibold text-text-primary">
-                  {isProActive ? "Pro" : "Free"}
+                  {isUserProActive ? "Pro active" : "Upgrade to Pro"}
                 </h2>
                 <p className="mt-2 text-sm text-text-secondary">
-                  {isProActive
-                    ? "Unlimited projects, errors, and AI analysis."
-                    : "Upgrade to Pro to unlock unlimited projects, errors, and AI analysis."}
+                  Unlimited AI analyses for you, even inside Free or Team organizations.
                 </p>
               </div>
               <div className="rounded-2xl border border-primary/20 bg-accent-soft px-4 py-3 text-right">
@@ -445,144 +467,270 @@ export default function BillingPage() {
               </div>
             </div>
 
+            <div className="mt-5 flex items-center gap-2 rounded-full border border-border bg-secondary/15 p-1 text-xs font-semibold text-text-secondary">
+              <button
+                type="button"
+                className={`rounded-full px-3 py-1.5 ${personalInterval === "MONTHLY" ? "bg-card text-text-primary" : ""}`}
+                onClick={() => setPersonalInterval("MONTHLY")}
+              >
+                Monthly
+              </button>
+              <button
+                type="button"
+                className={`rounded-full px-3 py-1.5 ${personalInterval === "YEARLY" ? "bg-card text-text-primary" : ""}`}
+                onClick={() => setPersonalInterval("YEARLY")}
+              >
+                Yearly
+              </button>
+            </div>
+
             <div className="mt-6 grid gap-4 sm:grid-cols-3">
               <div className="rounded-2xl border border-border bg-secondary/25 px-4 py-4">
                 <p className="text-xs font-semibold uppercase tracking-[0.14em] text-text-secondary">
-                  Monthly price
+                  Price
                 </p>
                 <p className="mt-2 text-2xl font-semibold text-text-primary">
-                  {isProActive ? (user?.proPricingTier === "STANDARD" ? "₹499" : "₹299") : "-"}
+                  {formatPrice(
+                    personalInterval === "YEARLY" ? proYearlyPrice : proMonthlyPrice
+                  )}
                 </p>
-                <p className="mt-1 text-sm text-text-secondary">
-                  {isProActive ? "per month" : "-"}
-                </p>
-              </div>
-              <div className="rounded-2xl border border-border bg-secondary/25 px-4 py-4">
-                <p className="text-xs font-semibold uppercase tracking-[0.14em] text-text-secondary">
-                  Projects
-                </p>
-                <p className="mt-2 text-sm font-semibold text-text-primary">
-                  {isProActive ? "Unlimited" : "3"}
-                </p>
-                <p className="mt-1 text-sm text-text-secondary">
-                  {isProActive ? "Create as many projects as you need." : "Upgrade to remove limits."}
+                <p className="mt-1 text-xs text-text-secondary">
+                  {personalInterval === "YEARLY" && proYearlySavings
+                    ? `Save ₹${proYearlySavings.toLocaleString("en-IN")} with yearly billing`
+                    : "Billed per user"}
                 </p>
               </div>
               <div className="rounded-2xl border border-border bg-secondary/25 px-4 py-4">
                 <p className="text-xs font-semibold uppercase tracking-[0.14em] text-text-secondary">
-                  Errors / month
+                  AI analyses
                 </p>
-                <p className="mt-2 text-sm font-semibold text-text-primary">
-                  {isProActive ? "Unlimited" : "1000"}
+                <p className="mt-2 text-sm font-semibold text-text-primary">Unlimited</p>
+              </div>
+              <div className="rounded-2xl border border-border bg-secondary/25 px-4 py-4">
+                <p className="text-xs font-semibold uppercase tracking-[0.14em] text-text-secondary">
+                  Member cap
                 </p>
-                <p className="mt-1 text-sm text-text-secondary">
-                  {isProActive ? "No monthly cap." : "Upgrade to remove caps."}
-                </p>
+                <p className="mt-2 text-sm font-semibold text-text-primary">None for Pro owners</p>
               </div>
             </div>
-          </div>
 
-          <div className="rounded-3xl border border-border bg-card/95 p-6 shadow-sm">
-            <h2 className="text-lg font-semibold text-text-primary">Billing summary</h2>
-            <div className="mt-5 space-y-3">
-              <div className="rounded-2xl border border-border bg-secondary/25 px-4 py-4">
-                <p className="text-xs font-semibold uppercase tracking-[0.14em] text-text-secondary">
-                  Subscription status
-                </p>
-                <p className="mt-2 text-sm font-semibold text-text-primary">
-                  {isProActive ? user?.subscriptionStatus || "active" : "free"}
-                </p>
-              </div>
-              <div className="rounded-2xl border border-border bg-secondary/25 px-4 py-4">
-                <p className="text-xs font-semibold uppercase tracking-[0.14em] text-text-secondary">
-                  AI analyses / month
-                </p>
-                <p className="mt-2 text-sm font-semibold text-text-primary">
-                  {isProActive ? "Unlimited" : "20"}
-                </p>
-              </div>
-              <div className="rounded-2xl border border-border bg-secondary/25 px-4 py-4">
-                <p className="text-xs font-semibold uppercase tracking-[0.14em] text-text-secondary">
-                  Provider
-                </p>
-                <p className="mt-2 text-sm font-semibold text-text-primary">Razorpay</p>
-              </div>
-            </div>
             <div className="mt-5 flex flex-wrap gap-3">
               <button
                 type="button"
-                className="rounded-full border border-border bg-card px-4 py-2 text-sm font-semibold text-text-secondary transition hover:bg-secondary/70 hover:text-text-primary"
-                onClick={() => void refreshUser()}
+                className="tf-button px-4 py-2 text-sm"
+                onClick={() =>
+                  void startCheckout({ plan: "PRO", interval: personalInterval })
+                }
+                disabled={actionLoading}
               >
-                Refresh
+                <LoadingButtonContent
+                  loading={actionLoading}
+                  loadingLabel="Processing..."
+                  idleLabel={isUserProActive ? "Renew Pro" : "Upgrade to Pro"}
+                />
               </button>
-              {isProActive ? (
+              {isUserProActive ? (
                 <button
                   type="button"
-                  className="rounded-full border border-border bg-card px-4 py-2 text-sm font-semibold text-text-secondary transition hover:bg-secondary/70 hover:text-text-primary"
+                  className="tf-button-ghost px-4 py-2 text-sm"
                   onClick={() => void cancelSubscription()}
-                  disabled={loading}
+                  disabled={actionLoading}
                 >
-                  Cancel subscription
+                  <LoadingButtonContent
+                    loading={actionLoading}
+                    loadingLabel="Cancelling..."
+                    idleLabel="Cancel Pro"
+                  />
                 </button>
               ) : null}
+            </div>
+            {proUsesLaunchPricing ? (
+              <p className="mt-3 text-xs text-text-secondary">
+                {userKeepsLaunchPricing
+                  ? "Your Pro subscription keeps launch pricing on renewals."
+                  : `First ${pricing?.pro?.launch?.slotsTotal ?? 20} Pro customers get launch pricing. ${pricing?.pro?.launch?.slotsRemaining ?? 0} slots left.`}
+              </p>
+            ) : null}
+          </div>
+
+          <div className="rounded-3xl border border-border bg-card/95 p-6 shadow-sm">
+            <div className="flex flex-wrap items-start justify-between gap-4">
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-[0.14em] text-text-secondary">
+                  Team organization
+                </p>
+                <h2 className="mt-3 text-3xl font-semibold text-text-primary">
+                  {isTeamActive ? "Team active" : "Upgrade an organization"}
+                </h2>
+                <p className="mt-2 text-sm text-text-secondary">
+                  Shared {pricing?.team?.aiLimitMonthly ?? 200} AI analyses per month for the selected
+                  organization. Personal Pro still stays unlimited for Pro users.
+                </p>
+              </div>
+              <div className="rounded-2xl border border-primary/20 bg-accent-soft px-4 py-3 text-right">
+                <p className="text-xs font-semibold uppercase tracking-[0.14em] text-text-secondary">
+                  Selected org
+                </p>
+                <p className="mt-1 text-lg font-semibold text-text-primary">
+                  {selectedOrg?.name || "Choose one"}
+                </p>
+              </div>
+            </div>
+
+            <div className="mt-5 grid gap-3 sm:grid-cols-[minmax(0,1fr)_auto]">
+              <select
+                className="tf-input"
+                value={selectedOrgId}
+                onChange={(event) => setSelectedOrgId(event.target.value)}
+              >
+                <option value="">Select organization</option>
+                {ownerOrgs.map((org) => (
+                  <option key={org.id} value={org.id}>
+                    {org.name}
+                  </option>
+                ))}
+              </select>
+
+              <div className="flex items-center gap-2 rounded-full border border-border bg-secondary/15 p-1 text-xs font-semibold text-text-secondary">
+                <button
+                  type="button"
+                  className={`rounded-full px-3 py-1.5 ${teamInterval === "MONTHLY" ? "bg-card text-text-primary" : ""}`}
+                  onClick={() => setTeamInterval("MONTHLY")}
+                >
+                  Monthly
+                </button>
+                <button
+                  type="button"
+                  className={`rounded-full px-3 py-1.5 ${teamInterval === "YEARLY" ? "bg-card text-text-primary" : ""}`}
+                  onClick={() => setTeamInterval("YEARLY")}
+                >
+                  Yearly
+                </button>
+              </div>
+            </div>
+
+            <div className="mt-6 grid gap-4 sm:grid-cols-3">
+              <div className="rounded-2xl border border-border bg-secondary/25 px-4 py-4">
+                <p className="text-xs font-semibold uppercase tracking-[0.14em] text-text-secondary">
+                  Price
+                </p>
+                <p className="mt-2 text-2xl font-semibold text-text-primary">
+                  {formatPrice(
+                    teamInterval === "YEARLY"
+                      ? pricing?.team?.yearlyPriceInr
+                      : pricing?.team?.monthlyPriceInr
+                  )}
+                </p>
+                <p className="mt-1 text-xs text-text-secondary">
+                  {teamInterval === "YEARLY" && teamYearlySavings
+                    ? `Save ₹${teamYearlySavings.toLocaleString("en-IN")} with yearly billing`
+                    : "Billed to the organization"}
+                </p>
+              </div>
+              <div className="rounded-2xl border border-border bg-secondary/25 px-4 py-4">
+                <p className="text-xs font-semibold uppercase tracking-[0.14em] text-text-secondary">
+                  Shared AI
+                </p>
+                <p className="mt-2 text-sm font-semibold text-text-primary">
+                  {pricing?.team?.aiLimitMonthly ?? 200} / month
+                </p>
+              </div>
+              <div className="rounded-2xl border border-border bg-secondary/25 px-4 py-4">
+                <p className="text-xs font-semibold uppercase tracking-[0.14em] text-text-secondary">
+                  Members
+                </p>
+                <p className="mt-2 text-sm font-semibold text-text-primary">
+                  {selectedOrg ? `${selectedOrg.memberCount} active` : "—"}
+                </p>
+              </div>
+            </div>
+
+            <div className="mt-5 flex flex-wrap gap-3">
               <button
                 type="button"
-                className="rounded-full border border-border bg-card px-4 py-2 text-sm font-semibold text-text-secondary transition hover:bg-secondary/70 hover:text-text-primary"
-                onClick={() => void startCheckout()}
-                disabled={loading || isProActive}
+                className="tf-button px-4 py-2 text-sm"
+                onClick={() =>
+                  selectedOrgId
+                    ? void startCheckout({
+                        plan: "TEAM",
+                        interval: teamInterval,
+                        organizationId: selectedOrgId
+                      })
+                    : showToast("Select an organization first.", "error")
+                }
+                disabled={actionLoading}
               >
-                Retry payment
+                <LoadingButtonContent
+                  loading={actionLoading}
+                  loadingLabel="Processing..."
+                  idleLabel={isTeamActive ? "Renew Team" : "Upgrade to Team"}
+                />
               </button>
+              {isTeamActive && selectedOrgId ? (
+                <button
+                  type="button"
+                  className="tf-button-ghost px-4 py-2 text-sm"
+                  onClick={() => void cancelSubscription(selectedOrgId)}
+                  disabled={actionLoading}
+                >
+                  <LoadingButtonContent
+                    loading={actionLoading}
+                    loadingLabel="Cancelling..."
+                    idleLabel="Cancel Team"
+                  />
+                </button>
+              ) : null}
             </div>
           </div>
         </section>
 
-        <section className="mt-6 grid gap-6 lg:grid-cols-2">
-          <div className="rounded-3xl border border-border bg-card/95 p-6 shadow-sm">
-            <div className="flex items-center justify-between gap-4">
-              <h2 className="text-lg font-semibold text-text-primary">Invoices</h2>
+        <section className="mt-6 rounded-3xl border border-border bg-card/95 p-6 shadow-sm">
+          <div className="flex flex-wrap items-center justify-between gap-4">
+            <div>
+              <h2 className="text-lg font-semibold text-text-primary">Invoices and payments</h2>
+              <p className="mt-1 text-sm text-text-secondary">
+                Switch between your personal billing history and the selected Team organization.
+              </p>
+            </div>
+            <div className="flex items-center gap-2 rounded-full border border-border bg-secondary/15 p-1 text-xs font-semibold text-text-secondary">
               <button
                 type="button"
-                className="rounded-full border border-border bg-card px-3 py-1.5 text-xs font-semibold text-text-secondary transition hover:bg-secondary/70 hover:text-text-primary"
-                onClick={() => void refreshBillingData()}
-                disabled={billingLoading || loading}
+                className={`rounded-full px-3 py-1.5 ${historyScope === "USER" ? "bg-card text-text-primary" : ""}`}
+                onClick={() => setHistoryScope("USER")}
               >
-                Refresh
+                Personal
+              </button>
+              <button
+                type="button"
+                className={`rounded-full px-3 py-1.5 ${historyScope === "ORGANIZATION" ? "bg-card text-text-primary" : ""}`}
+                onClick={() => setHistoryScope("ORGANIZATION")}
+                disabled={!selectedOrg}
+              >
+                Team
               </button>
             </div>
+          </div>
 
-            {!isProActive ? (
-              <p className="mt-3 text-sm text-text-secondary">
-                Upgrade to Pro to generate invoices for monthly renewals.
-              </p>
-            ) : invoices.length === 0 && !billingLoading ? (
-              <p className="mt-3 text-sm text-text-secondary">
-                No invoices yet. Your first invoice appears after the payment is captured.
-              </p>
-            ) : null}
-
-            <div className="mt-4 space-y-3">
-              {(billingLoading ? Array.from({ length: 3 }) : paginatedInvoices).map((invoice, idx) => {
-                const row = invoice as Invoice | undefined;
-                return (
-                  <div
-                    key={row?.id || idx}
-                    className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-border bg-secondary/15 px-4 py-3"
-                  >
-                    <div className="min-w-[220px]">
-                      <p className="text-sm font-semibold text-text-primary">
-                        {row?.invoiceNumber || row?.id || "Loading…"}
-                      </p>
-                      <p className="mt-1 text-xs text-text-secondary">
-                        {row?.createdAt ? new Date(row.createdAt).toLocaleString() : "—"} •{" "}
-                        {row?.status || "—"}
-                      </p>
-                    </div>
-                    <div className="flex items-center gap-3">
-                      <p className="text-sm font-semibold text-text-primary">
-                        {row ? `₹${(row.amount / 100).toFixed(0)}` : "—"}
-                      </p>
+          <div className="mt-6 grid gap-6 lg:grid-cols-2">
+            <div>
+              <h3 className="text-base font-semibold text-text-primary">Invoices</h3>
+              <div className="mt-4 space-y-3">
+                {(billingLoading ? Array.from({ length: 3 }) : paginatedInvoices).map((invoice, idx) => {
+                  const row = invoice as Invoice | undefined;
+                  return (
+                    <div
+                      key={row?.id || idx}
+                      className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-border bg-secondary/15 px-4 py-3"
+                    >
+                      <div className="min-w-[220px]">
+                        <p className="text-sm font-semibold text-text-primary">
+                          {row?.invoiceNumber || row?.id || "Loading…"}
+                        </p>
+                        <p className="mt-1 text-xs text-text-secondary">
+                          {row?.createdAt ? new Date(row.createdAt).toLocaleString() : "—"} •{" "}
+                          {row?.status || "—"}
+                        </p>
+                      </div>
                       {row?.shortUrl ? (
                         <a
                           className="tf-button-ghost inline-flex px-3 py-1.5 text-xs"
@@ -598,107 +746,97 @@ export default function BillingPage() {
                         </span>
                       )}
                     </div>
-                  </div>
-                );
-              })}
+                  );
+                })}
+              </div>
+
+              {invoices.length > 5 && !billingLoading ? (
+                <DashboardPagination
+                  page={invoicesPage}
+                  totalPages={invoicesTotalPages}
+                  pageSize={invoicesPageSize}
+                  pageSizeOptions={BILLING_PAGE_SIZE_OPTIONS}
+                  onPageChange={setInvoicesPage}
+                  onPageSizeChange={(nextSize) => {
+                    setInvoicesPage(1);
+                    setInvoicesPageSize(nextSize);
+                  }}
+                />
+              ) : null}
             </div>
 
-            {invoices.length > 5 && !billingLoading && (
-              <DashboardPagination
-                page={invoicesPage}
-                totalPages={invoicesTotalPages}
-                pageSize={invoicesPageSize}
-                pageSizeOptions={BILLING_PAGE_SIZE_OPTIONS}
-                onPageChange={setInvoicesPage}
-                onPageSizeChange={(nextSize) => {
-                  setInvoicesPage(1);
-                  setInvoicesPageSize(nextSize);
-                }}
-              />
-            )}
-          </div>
-
-          <div className="rounded-3xl border border-border bg-card/95 p-6 shadow-sm">
-            <div className="flex items-center justify-between gap-4">
-              <h2 className="text-lg font-semibold text-text-primary">Payments</h2>
-              <button
-                type="button"
-                className="rounded-full border border-border bg-card px-3 py-1.5 text-xs font-semibold text-text-secondary transition hover:bg-secondary/70 hover:text-text-primary"
-                onClick={() => void refreshBillingData()}
-                disabled={billingLoading || loading}
-              >
-                Refresh
-              </button>
-            </div>
-
-            {payments.length === 0 && !billingLoading ? (
-              <p className="mt-3 text-sm text-text-secondary">
-                No payments recorded yet.
-              </p>
-            ) : null}
-
-            <div className="mt-4 space-y-3">
-              {(billingLoading ? Array.from({ length: 3 }) : paginatedPayments).map((payment, idx) => {
-                const row = payment as PaymentRow | undefined;
-                const primaryId = row?.razorpayPaymentId || row?.razorpaySubscriptionId || row?.razorpayOrderId;
-                return (
-                  <div
-                    key={row?.id || idx}
-                    className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-border bg-secondary/15 px-4 py-3"
-                  >
-                    <div className="min-w-[220px]">
-                      <p className="text-sm font-semibold text-text-primary">
-                        {primaryId ? primaryId.slice(0, 18) : "Loading…"}
-                      </p>
-                      <p className="mt-1 text-xs text-text-secondary">
-                        {row?.createdAt ? new Date(row.createdAt).toLocaleString() : "—"} •{" "}
-                        {row?.status || "—"}
-                      </p>
+            <div>
+              <h3 className="text-base font-semibold text-text-primary">Payments</h3>
+              <div className="mt-4 space-y-3">
+                {(billingLoading ? Array.from({ length: 3 }) : paginatedPayments).map((payment, idx) => {
+                  const row = payment as PaymentRow | undefined;
+                  const primaryId =
+                    row?.razorpayPaymentId || row?.razorpaySubscriptionId || row?.razorpayOrderId;
+                  return (
+                    <div
+                      key={row?.id || idx}
+                      className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-border bg-secondary/15 px-4 py-3"
+                    >
+                      <div className="min-w-[220px]">
+                        <p className="text-sm font-semibold text-text-primary">
+                          {primaryId ? primaryId.slice(0, 18) : "Loading…"}
+                        </p>
+                        <p className="mt-1 text-xs text-text-secondary">
+                          {row?.createdAt ? new Date(row.createdAt).toLocaleString() : "—"} •{" "}
+                          {row?.status || "—"}
+                        </p>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-sm font-semibold text-text-primary">
+                          {row ? `₹${(row.amount / 100).toFixed(0)}` : "—"}
+                        </p>
+                        <p className="mt-1 text-xs text-text-secondary">
+                          {row?.expiresAt
+                            ? `Renews: ${new Date(row.expiresAt).toLocaleDateString()}`
+                            : "—"}
+                        </p>
+                      </div>
                     </div>
-                    <div className="flex items-center gap-3">
-                      <p className="text-sm font-semibold text-text-primary">
-                        {row ? `₹${(row.amount / 100).toFixed(0)}` : "—"}
-                      </p>
-                      <p className="text-xs text-text-secondary">
-                        {row?.expiresAt ? `Renews: ${new Date(row.expiresAt).toLocaleDateString()}` : "—"}
-                      </p>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
+                  );
+                })}
+              </div>
 
-            {payments.length > 5 && !billingLoading && (
-              <DashboardPagination
-                page={paymentsPage}
-                totalPages={paymentsTotalPages}
-                pageSize={paymentsPageSize}
-                pageSizeOptions={BILLING_PAGE_SIZE_OPTIONS}
-                onPageChange={setPaymentsPage}
-                onPageSizeChange={(nextSize) => {
-                  setPaymentsPage(1);
-                  setPaymentsPageSize(nextSize);
-                }}
-              />
-            )}
+              {payments.length > 5 && !billingLoading ? (
+                <DashboardPagination
+                  page={paymentsPage}
+                  totalPages={paymentsTotalPages}
+                  pageSize={paymentsPageSize}
+                  pageSizeOptions={BILLING_PAGE_SIZE_OPTIONS}
+                  onPageChange={setPaymentsPage}
+                  onPageSizeChange={(nextSize) => {
+                    setPaymentsPage(1);
+                    setPaymentsPageSize(nextSize);
+                  }}
+                />
+              ) : null}
+            </div>
           </div>
         </section>
 
         <section className="mt-6 rounded-2xl border border-border bg-card/95 p-6 shadow-sm">
-          <h2 className="text-lg font-semibold text-text-primary">How it works</h2>
-          <div className="mt-3 grid gap-3 sm:grid-cols-2">
+          <h2 className="text-lg font-semibold text-text-primary">How plan logic works</h2>
+          <div className="mt-3 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
             {[
               {
-                title: "Secure verification",
-                detail: "Backend verifies Razorpay signature and fetches payment status before upgrading."
+                title: "Free",
+                detail: "50 AI analyses each month and up to 5 members in every Free organization."
               },
               {
-                title: "No frontend trust",
-                detail: "Pro is only activated after server-side verification or webhook capture."
+                title: "Pro",
+                detail: "Unlimited AI belongs to the user account and follows that user everywhere."
               },
               {
-                title: "Auto-debit subscription",
-                detail: "Pro renews monthly via Razorpay subscription until you downgrade."
+                title: "Team",
+                detail: "200 shared AI analyses each month for the selected organization."
+              },
+              {
+                title: "Mixed access",
+                detail: "A Pro user inside a Team organization still keeps unlimited AI personally."
               }
             ].map((item) => (
               <div key={item.title} className="rounded-2xl border border-border bg-secondary/20 px-4 py-4">
@@ -710,15 +848,13 @@ export default function BillingPage() {
         </section>
       </div>
 
-      {toast && (
+      {toast ? (
         <div
-          className={`tf-dashboard-toast ${
-            toast.tone === "success" ? "bg-emerald-600" : "bg-red-600"
-          }`}
+          className={`tf-dashboard-toast ${toast.tone === "success" ? "bg-emerald-600" : "bg-red-600"}`}
         >
           {toast.message}
         </div>
-      )}
+      ) : null}
     </main>
   );
 }

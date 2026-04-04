@@ -4,6 +4,7 @@ import { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Dices } from "lucide-react";
+import { LoadingButtonContent } from "../../components/ui/loading-button-content";
 import { useDebouncedValue } from "../hooks/useDebouncedValue";
 import { useAuth } from "../../context/AuthContext";
 import { useLayout } from "../../context/LayoutContext";
@@ -16,9 +17,6 @@ import { THEMES } from "../theme";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
 const NOTIFICATIONS_URL = `${API_URL}/notifications/stream`;
-const dismissedAlertNotificationsKey = "traceforge_dismissed_alert_notifications";
-const dismissedJoinRequestsKey = "traceforge_dismissed_join_requests";
-const dismissedInviteNotificationsKey = "traceforge_dismissed_invite_notifications";
 const postAuthToastKey = "traceforge_post_auth_toast";
 const dashboardPrefsKey = "traceforge_dashboard_prefs_v1";
 type Org = {
@@ -67,6 +65,7 @@ type AlertNotification = {
 
 type RealtimeAlertPayload = {
   type: "alert.triggered" | "alert.created" | "alert.deleted";
+  notificationId?: string;
   title: string;
   message: string;
   projectId?: string;
@@ -127,6 +126,12 @@ type AnalyticsPoint = {
 type Toast = {
   message: string;
   tone: "success" | "error";
+};
+
+type NotificationDismissals = {
+  alerts: string[];
+  invites: string[];
+  joinRequests: string[];
 };
 
 type PaginationMeta = {
@@ -228,57 +233,9 @@ function DashboardPageInner() {
   const [toast, setToast] = useState<Toast | null>(null);
   const [inviteTokenFromUrl, setInviteTokenFromUrl] = useState("");
   const [inviteLinkStatus, setInviteLinkStatus] = useState<InviteLinkStatus | null>(null);
-  const [dismissedJoinRequestIds, setDismissedJoinRequestIds] = useState<string[]>(() => {
-    if (typeof window === "undefined") {
-      return [];
-    }
-
-    const dismissed = window.localStorage.getItem(dismissedJoinRequestsKey);
-    if (!dismissed) {
-      return [];
-    }
-
-    try {
-      return JSON.parse(dismissed) as string[];
-    } catch {
-      window.localStorage.removeItem(dismissedJoinRequestsKey);
-      return [];
-    }
-  });
-  const [dismissedInviteTokens, setDismissedInviteTokens] = useState<string[]>(() => {
-    if (typeof window === "undefined") {
-      return [];
-    }
-
-    const dismissed = window.localStorage.getItem(dismissedInviteNotificationsKey);
-    if (!dismissed) {
-      return [];
-    }
-
-    try {
-      return JSON.parse(dismissed) as string[];
-    } catch {
-      window.localStorage.removeItem(dismissedInviteNotificationsKey);
-      return [];
-    }
-  });
-  const [dismissedAlertNotificationIds, setDismissedAlertNotificationIds] = useState<string[]>(() => {
-    if (typeof window === "undefined") {
-      return [];
-    }
-
-    const dismissed = window.localStorage.getItem(dismissedAlertNotificationsKey);
-    if (!dismissed) {
-      return [];
-    }
-
-    try {
-      return JSON.parse(dismissed) as string[];
-    } catch {
-      window.localStorage.removeItem(dismissedAlertNotificationsKey);
-      return [];
-    }
-  });
+  const [dismissedJoinRequestIds, setDismissedJoinRequestIds] = useState<string[]>([]);
+  const [dismissedInviteTokens, setDismissedInviteTokens] = useState<string[]>([]);
+  const [dismissedAlertNotificationIds, setDismissedAlertNotificationIds] = useState<string[]>([]);
   const notificationsRef = useRef<HTMLDivElement | null>(null);
   const inviteStatusToastRef = useRef<string | null>(null);
   const prefsHydratedRef = useRef(false);
@@ -392,22 +349,53 @@ function DashboardPageInner() {
     return `${remaining} trials remaining`;
   };
 
-  const persistDismissedAlertNotifications = (ids: string[]) => {
-    setDismissedAlertNotificationIds(ids);
-    localStorage.setItem(dismissedAlertNotificationsKey, JSON.stringify(ids));
+  const setNotificationDismissals = (dismissals: NotificationDismissals) => {
+    setDismissedAlertNotificationIds(dismissals.alerts);
+    setDismissedInviteTokens(dismissals.invites);
+    setDismissedJoinRequestIds(dismissals.joinRequests);
   };
 
-  const persistDismissedJoinRequests = (ids: string[]) => {
-    setDismissedJoinRequestIds(ids);
-    localStorage.setItem(dismissedJoinRequestsKey, JSON.stringify(ids));
+  const loadDismissals = async (authToken: string) => {
+    const res = await fetch(`${API_URL}/notifications/dismissals`, {
+      headers: { Authorization: `Bearer ${authToken}` }
+    });
+
+    if (!res.ok) {
+      throw new Error("Failed to load notification preferences");
+    }
+
+    const data = await res.json();
+    const dismissals: NotificationDismissals = {
+      alerts: Array.isArray(data.dismissals?.alerts) ? data.dismissals.alerts : [],
+      invites: Array.isArray(data.dismissals?.invites) ? data.dismissals.invites : [],
+      joinRequests: Array.isArray(data.dismissals?.joinRequests)
+        ? data.dismissals.joinRequests
+        : []
+    };
+
+    setNotificationDismissals(dismissals);
+    return dismissals;
   };
 
-  const persistDismissedInviteNotifications = (tokens: string[]) => {
-    setDismissedInviteTokens(tokens);
-    localStorage.setItem(dismissedInviteNotificationsKey, JSON.stringify(tokens));
+  const persistDismissals = async (
+    authToken: string,
+    items: Array<{ kind: "ALERT" | "INVITE" | "JOIN_REQUEST"; notificationKey: string }>
+  ) => {
+    if (!items.length) {
+      return;
+    }
+
+    await fetch(`${API_URL}/notifications/dismissals`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${authToken}`,
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({ items })
+    });
   };
 
-  const loadNotifications = async (authToken: string) => {
+  const loadNotifications = async (authToken: string, dismissals: NotificationDismissals) => {
     try {
       const [requestsRes, invitesRes, alertRulesRes, alertEventsRes] = await Promise.all([
         fetch(`${API_URL}/orgs/requests/pending`, {
@@ -428,7 +416,7 @@ function DashboardPageInner() {
         const requestsData = await requestsRes.json();
         setJoinRequests(
           (requestsData.requests || []).filter(
-            (request: JoinRequest) => !dismissedJoinRequestIds.includes(request.id)
+            (request: JoinRequest) => !dismissals.joinRequests.includes(request.id)
           )
         );
       }
@@ -437,7 +425,7 @@ function DashboardPageInner() {
         const invitesData = await invitesRes.json();
         setPendingInvites(
           (invitesData.invites || []).filter(
-            (invite: PendingInvite) => !dismissedInviteTokens.includes(invite.token)
+            (invite: PendingInvite) => !dismissals.invites.includes(invite.token)
           )
         );
       }
@@ -484,7 +472,7 @@ function DashboardPageInner() {
             (item, index, list) => list.findIndex((entry) => entry.id === item.id) === index
           );
           return unique
-            .filter((item) => !dismissedAlertNotificationIds.includes(item.id))
+            .filter((item) => !dismissals.alerts.includes(item.id))
             .sort(
               (a, b) =>
                 new Date(b.triggeredAt).getTime() - new Date(a.triggeredAt).getTime()
@@ -623,7 +611,14 @@ function DashboardPageInner() {
     };
 
     void loadWorkspaceData();
-    void loadNotifications(token);
+    void (async () => {
+      try {
+        const dismissals = await loadDismissals(token);
+        await loadNotifications(token, dismissals);
+      } catch {
+        // Keep the dashboard interactive even if notifications cannot refresh.
+      }
+    })();
 
     return () => controller.abort();
   }, [token, refreshTick]);
@@ -830,7 +825,9 @@ function DashboardPageInner() {
           setAlertNotifications((prev) => {
             const nextItem: AlertNotification = {
               kind: "event",
-              id: `${payload.ruleId || "alert"}:${payload.errorId || payload.message}:${payload.createdAt}`,
+              id:
+                payload.notificationId ||
+                `${payload.ruleId || "alert"}:${payload.errorId || payload.message}:${payload.createdAt}`,
               message: payload.message,
               environment: payload.environment ?? null,
               triggeredAt: payload.createdAt,
@@ -862,7 +859,14 @@ function DashboardPageInner() {
         }
 
         if (!isRealtimeAlertPayload(payload)) {
-          void loadNotifications(token);
+          void (async () => {
+            try {
+              const dismissals = await loadDismissals(token);
+              await loadNotifications(token, dismissals);
+            } catch {
+              // Ignore notification refresh failures here.
+            }
+          })();
         }
       } catch {
         // Ignore malformed keepalive or connection events.
@@ -1082,20 +1086,29 @@ function DashboardPageInner() {
 
   const dismissJoinRequestNotification = (id: string) => {
     const next = Array.from(new Set([...dismissedJoinRequestIds, id]));
-    persistDismissedJoinRequests(next);
+    setDismissedJoinRequestIds(next);
     setJoinRequests((prev) => prev.filter((req) => req.id !== id));
+    if (token) {
+      void persistDismissals(token, [{ kind: "JOIN_REQUEST", notificationKey: id }]);
+    }
   };
 
   const dismissInviteNotification = (tokenValue: string) => {
     const next = Array.from(new Set([...dismissedInviteTokens, tokenValue]));
-    persistDismissedInviteNotifications(next);
+    setDismissedInviteTokens(next);
     setPendingInvites((prev) => prev.filter((invite) => invite.token !== tokenValue));
+    if (token) {
+      void persistDismissals(token, [{ kind: "INVITE", notificationKey: tokenValue }]);
+    }
   };
 
   const dismissAlertNotification = (id: string) => {
     const next = Array.from(new Set([...dismissedAlertNotificationIds, id]));
-    persistDismissedAlertNotifications(next);
+    setDismissedAlertNotificationIds(next);
     setAlertNotifications((prev) => prev.filter((alert) => alert.id !== id));
+    if (token) {
+      void persistDismissals(token, [{ kind: "ALERT", notificationKey: id }]);
+    }
   };
 
   useEffect(() => {
@@ -1212,14 +1225,24 @@ function DashboardPageInner() {
                           type="button"
                           className="rounded-full border border-border px-2.5 py-1 text-[11px] font-semibold text-text-secondary transition hover:bg-secondary/70 hover:text-text-primary"
                           onClick={() => {
+                            const currentIds = alertNotifications.map((alert) => alert.id);
                             const nextIds = Array.from(
                               new Set([
                                 ...dismissedAlertNotificationIds,
-                                ...alertNotifications.map((alert) => alert.id)
+                                ...currentIds
                               ])
                             );
-                            persistDismissedAlertNotifications(nextIds);
+                            setDismissedAlertNotificationIds(nextIds);
                             setAlertNotifications([]);
+                            if (token && currentIds.length) {
+                              void persistDismissals(
+                                token,
+                                currentIds.map((notificationKey) => ({
+                                  kind: "ALERT" as const,
+                                  notificationKey
+                                }))
+                              );
+                            }
                           }}
                           disabled={!alertNotifications.length}
                         >
@@ -1418,7 +1441,11 @@ function DashboardPageInner() {
                   onClick={() => handleAcceptInvite(inviteTokenFromUrl)}
                   disabled={loading}
                 >
-                  {loading ? "Working..." : "Request approval"}
+                  <LoadingButtonContent
+                    loading={loading}
+                    loadingLabel="Requesting..."
+                    idleLabel="Request approval"
+                  />
                 </button>
               </div>
             </div>
@@ -1622,7 +1649,7 @@ function DashboardPageInner() {
                     onClick={handleProjectCreate}
                     disabled={loading}
                   >
-                    {loading ? "Creating..." : "Create"}
+                    <LoadingButtonContent loading={loading} loadingLabel="Creating..." idleLabel="Create" />
                   </button>
                 </div>
               </div>
@@ -1640,7 +1667,7 @@ function DashboardPageInner() {
                     onClick={handleOrgCreate}
                     disabled={loading}
                   >
-                    {loading ? "Creating..." : "Create"}
+                    <LoadingButtonContent loading={loading} loadingLabel="Creating..." idleLabel="Create" />
                   </button>
                 </div>
               </div>

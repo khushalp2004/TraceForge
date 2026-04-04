@@ -1,33 +1,47 @@
 import { Router } from "express";
 import prisma from "../db/prisma.js";
-
-const DEFAULT_LAUNCH_SLOTS = 20;
-
-const getLaunchSlots = () => {
-  const raw = Number(process.env.PRO_LAUNCH_SLOTS || "");
-  if (!Number.isFinite(raw) || raw <= 0) return DEFAULT_LAUNCH_SLOTS;
-  return Math.min(Math.max(1, Math.floor(raw)), 1000);
-};
+import {
+  FREE_MONTHLY_AI_LIMIT,
+  FREE_ORG_MEMBER_LIMIT,
+  PRO_LAUNCH_MONTHLY_PRICE_PAISE,
+  PRO_LAUNCH_YEARLY_PRICE_PAISE,
+  PRO_STANDARD_MONTHLY_PRICE_PAISE,
+  PRO_STANDARD_YEARLY_PRICE_PAISE,
+  TEAM_MONTHLY_AI_LIMIT,
+  TEAM_MONTHLY_PRICE_PAISE,
+  TEAM_YEARLY_PRICE_PAISE,
+  getLaunchSlotsConfigured
+} from "../utils/billing.js";
 
 export const publicBillingRouter = Router();
 
 publicBillingRouter.get("/pricing", async (_req, res) => {
-  const slotsTotal = getLaunchSlots();
+  const slotsTotal = getLaunchSlotsConfigured();
   const used = await prisma.user.count({ where: { proPricingTier: "LAUNCH" } });
   const slotsRemaining = Math.max(0, slotsTotal - used);
 
   return res.json({
     currency: "INR",
+    free: {
+      aiLimitMonthly: FREE_MONTHLY_AI_LIMIT,
+      orgMemberLimit: FREE_ORG_MEMBER_LIMIT
+    },
     pro: {
       launch: {
-        priceInr: 299,
+        monthlyPriceInr: PRO_LAUNCH_MONTHLY_PRICE_PAISE / 100,
+        yearlyPriceInr: PRO_LAUNCH_YEARLY_PRICE_PAISE / 100,
         slotsTotal,
         slotsRemaining
       },
       standard: {
-        priceInr: 499
+        monthlyPriceInr: PRO_STANDARD_MONTHLY_PRICE_PAISE / 100,
+        yearlyPriceInr: PRO_STANDARD_YEARLY_PRICE_PAISE / 100
       }
+    },
+    team: {
+      monthlyPriceInr: TEAM_MONTHLY_PRICE_PAISE / 100,
+      yearlyPriceInr: TEAM_YEARLY_PRICE_PAISE / 100,
+      aiLimitMonthly: TEAM_MONTHLY_AI_LIMIT
     }
   });
 });
-

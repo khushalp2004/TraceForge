@@ -2,12 +2,35 @@ import "dotenv/config";
 import prisma from "./db/prisma.js";
 import { connectRedis, redis } from "./db/redis.js";
 import { generateExplanation } from "./services/groq.js";
+import {
+  FREE_MONTHLY_AI_LIMIT,
+  TEAM_MONTHLY_AI_LIMIT,
+  isOrgTeamActive,
+  isUserProActive
+} from "./utils/billing.js";
 
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 const RETENTION_DAYS = 15;
 const CLEANUP_INTERVAL_MS = 60 * 60 * 1000;
 const currentMonthKey = (now: Date) =>
   `${now.getUTCFullYear()}-${String(now.getUTCMonth() + 1).padStart(2, "0")}`;
+type AiQueueJob = {
+  errorId: string;
+  requestedByUserId?: string;
+};
+
+const parseQueueJob = (value: string): AiQueueJob => {
+  try {
+    const parsed = JSON.parse(value) as AiQueueJob;
+    if (typeof parsed?.errorId === "string" && parsed.errorId) {
+      return parsed;
+    }
+  } catch {
+    // Old queue payloads were plain error ids.
+  }
+
+  return { errorId: value };
+};
 const formatDetailedSolution = (input: {
   rootCause: string;
   recommendedFix: string;
@@ -19,10 +42,25 @@ const formatDetailedSolution = (input: {
     `Next steps\n${input.nextSteps.map((step) => `• ${step}`).join("\n")}`
   ].join("\n\n");
 
-const processError = async (errorId: string) => {
+const processError = async ({ errorId, requestedByUserId }: AiQueueJob) => {
   const errorRecord = await prisma.error.findUnique({
     where: { id: errorId },
-    include: { analysis: true, project: { select: { userId: true, aiModel: true } } }
+    include: {
+      analysis: true,
+      project: {
+        select: {
+          userId: true,
+          orgId: true,
+          aiModel: true,
+          org: {
+            select: {
+              plan: true,
+              planExpiresAt: true
+            }
+          }
+        }
+      }
+    }
   });
 
   if (!errorRecord) {
@@ -39,23 +77,30 @@ const processError = async (errorId: string) => {
       aiStatus: "PROCESSING",
       aiLastError: null,
       aiRequestedAt: errorRecord.aiRequestedAt ?? new Date(),
+      aiRequestedByUserId: requestedByUserId ?? errorRecord.aiRequestedByUserId ?? null,
       aiCompletedAt: null
     }
   });
 
-  const ownerId = errorRecord.project.userId;
+  const effectiveRequesterId =
+    requestedByUserId ?? errorRecord.aiRequestedByUserId ?? errorRecord.project.userId;
   const now = new Date();
-  const owner = await prisma.user.findUnique({
-    where: { id: ownerId },
+  const requester = await prisma.user.findUnique({
+    where: { id: effectiveRequesterId },
     select: { plan: true, planExpiresAt: true }
   });
 
-  const proActive =
-    owner?.plan === "PRO" && (!owner.planExpiresAt || owner.planExpiresAt.getTime() > now.getTime());
+  const proActive = isUserProActive(requester);
+  const teamActive = Boolean(errorRecord.project.orgId && isOrgTeamActive(errorRecord.project.org));
 
   if (!proActive) {
-    const limit = 20;
-    const usageKey = `usage:ai:${ownerId}:${currentMonthKey(now)}`;
+    const usageKey = teamActive
+      ? `usage:ai:org:${errorRecord.project.orgId}:${currentMonthKey(now)}`
+      : `usage:ai:user:${effectiveRequesterId}:${currentMonthKey(now)}`;
+    const limit = teamActive ? TEAM_MONTHLY_AI_LIMIT : FREE_MONTHLY_AI_LIMIT;
+    const limitMessage = teamActive
+      ? "Monthly AI analysis limit reached for this team."
+      : "Monthly AI analysis limit reached for this account.";
 
     if (redis.isOpen) {
       const current = await redis.incr(usageKey);
@@ -69,7 +114,7 @@ const processError = async (errorId: string) => {
           where: { id: errorRecord.id },
           data: {
             aiStatus: "FAILED",
-            aiLastError: "Monthly AI analysis limit reached for this account.",
+            aiLastError: limitMessage,
             aiCompletedAt: new Date()
           }
         });
@@ -80,11 +125,15 @@ const processError = async (errorId: string) => {
       const used = await prisma.errorAnalysis.count({
         where: {
           createdAt: { gte: monthStart },
-          error: {
-            project: {
-              userId: ownerId
-            }
-          }
+          error: teamActive
+            ? {
+                project: {
+                  orgId: errorRecord.project.orgId
+                }
+              }
+            : {
+                aiRequestedByUserId: effectiveRequesterId
+              }
         }
       });
 
@@ -93,7 +142,7 @@ const processError = async (errorId: string) => {
           where: { id: errorRecord.id },
           data: {
             aiStatus: "FAILED",
-            aiLastError: "Monthly AI analysis limit reached for this account.",
+            aiLastError: limitMessage,
             aiCompletedAt: new Date()
           }
         });
@@ -305,8 +354,8 @@ const start = async () => {
         continue;
       }
 
-      const errorId = result.element;
-      await processError(errorId);
+      const job = parseQueueJob(result.element);
+      await processError(job);
     } catch (error) {
       console.error("Worker error", error);
       await sleep(2000);

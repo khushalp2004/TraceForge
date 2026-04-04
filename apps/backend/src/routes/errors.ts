@@ -334,7 +334,20 @@ errorsRouter.post("/:id/regenerate", async (req, res) => {
     }
   });
 
-  await redis.lPush("ai:queue", errorId);
+  await prisma.error.update({
+    where: { id: errorId },
+    data: {
+      aiRequestedByUserId: userId
+    }
+  });
+
+  await redis.lPush(
+    "ai:queue",
+    JSON.stringify({
+      errorId,
+      requestedByUserId: userId
+    })
+  );
   const queueDepth = await redis.lLen("ai:queue");
 
   return res.status(202).json({ status: "queued", queueDepth });

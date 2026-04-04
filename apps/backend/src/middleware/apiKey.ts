@@ -26,7 +26,8 @@ export const requireProjectApiKey = async (
     id: project.id,
     name: project.name,
     apiKey: project.apiKey,
-    userId: project.userId
+    userId: project.userId,
+    orgId: project.orgId
   };
 
   return next();

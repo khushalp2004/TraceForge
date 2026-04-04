@@ -11,6 +11,7 @@ declare module "express-serve-static-core" {
       name: string;
       apiKey: string;
       userId: string;
+      orgId?: string | null;
     };
   }
 }

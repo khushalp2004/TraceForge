@@ -5,6 +5,7 @@ import prisma from "../db/prisma.js";
 import { requireAuth } from "../middleware/auth.js";
 import { publishNotificationToUser } from "../utils/notifications.js";
 import { deleteProjectGraph } from "../utils/projectDeletion.js";
+import { FREE_ORG_MEMBER_LIMIT, isOrgTeamActive, isUserProActive } from "../utils/billing.js";
 
 export const orgsRouter = Router();
 
@@ -43,6 +44,32 @@ const requireOwner = async (orgId: string, userId: string) => {
   return membership;
 };
 
+const canAddMoreOrgMembers = async (orgId: string, actingUserId: string) => {
+  const [actingUser, organization, memberCount] = await Promise.all([
+    prisma.user.findUnique({
+      where: { id: actingUserId },
+      select: { plan: true, planExpiresAt: true }
+    }),
+    prisma.organization.findUnique({
+      where: { id: orgId },
+      select: { plan: true, planExpiresAt: true }
+    }),
+    prisma.organizationMember.count({
+      where: { organizationId: orgId }
+    })
+  ]);
+
+  if (isUserProActive(actingUser) || isOrgTeamActive(organization)) {
+    return { allowed: true as const, memberCount, limit: null as number | null };
+  }
+
+  if (memberCount >= FREE_ORG_MEMBER_LIMIT) {
+    return { allowed: false as const, memberCount, limit: FREE_ORG_MEMBER_LIMIT };
+  }
+
+  return { allowed: true as const, memberCount, limit: FREE_ORG_MEMBER_LIMIT };
+};
+
 orgsRouter.get("/", async (req, res) => {
   const userId = req.user?.id;
   if (!userId) {
@@ -51,14 +78,27 @@ orgsRouter.get("/", async (req, res) => {
 
   const memberships = await prisma.organizationMember.findMany({
     where: { userId },
-    include: { organization: true }
+    include: {
+      organization: {
+        include: {
+          _count: {
+            select: { members: true }
+          }
+        }
+      }
+    }
   });
 
   const orgs = memberships.map((member) => ({
     id: member.organization.id,
     name: member.organization.name,
     role: member.role,
-    createdAt: member.organization.createdAt
+    createdAt: member.organization.createdAt,
+    plan: member.organization.plan,
+    planInterval: member.organization.planInterval,
+    planExpiresAt: member.organization.planExpiresAt,
+    subscriptionStatus: member.organization.subscriptionStatus,
+    memberCount: member.organization._count.members
   }));
 
   return res.json({ orgs });
@@ -281,6 +321,13 @@ orgsRouter.post("/requests/:id/approve", async (req, res) => {
   const owner = await requireOwner(request.organizationId, userId);
   if (!owner) {
     return res.status(403).json({ error: "Only owners can approve requests" });
+  }
+
+  const memberCapacity = await canAddMoreOrgMembers(request.organizationId, userId);
+  if (!memberCapacity.allowed) {
+    return res.status(402).json({
+      error: `Free organizations support up to ${memberCapacity.limit} members. Upgrade to Team or use a Pro owner to add more members.`
+    });
   }
 
   await prisma.organizationMember.upsert({
@@ -560,6 +607,13 @@ orgsRouter.post("/:id/members", async (req, res) => {
     return res.status(404).json({ error: "User not found" });
   }
 
+  const memberCapacity = await canAddMoreOrgMembers(orgId, userId);
+  if (!memberCapacity.allowed) {
+    return res.status(402).json({
+      error: `Free organizations support up to ${memberCapacity.limit} members. Upgrade to Team or use a Pro owner to add more members.`
+    });
+  }
+
   const newMember = await prisma.organizationMember.create({
     data: {
       organizationId: orgId,
@@ -770,6 +824,13 @@ orgsRouter.post("/invites/accept", async (req, res) => {
     }
 
     return res.json({ status: "pending" });
+  }
+
+  const memberCapacity = await canAddMoreOrgMembers(invite.organizationId, userId);
+  if (!memberCapacity.allowed) {
+    return res.status(402).json({
+      error: `Free organizations support up to ${memberCapacity.limit} members. Upgrade to Team or use a Pro owner to add more members.`
+    });
   }
 
   await prisma.organizationMember.upsert({

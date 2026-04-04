@@ -559,6 +559,7 @@ alertsRouter.post("/rules/:id/notify", async (req, res) => {
   for (const recipientId of recipients) {
     publishNotificationToUser(recipientId, {
       type: "alert.triggered",
+      notificationId: delivery.id,
       title: rule.name,
       message: alertMessage,
       projectId: project.id,

@@ -3,6 +3,7 @@
 import { Suspense, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
+import { LoadingButtonContent } from "../../../../components/ui/loading-button-content";
 import { useAuth } from "../../../../context/AuthContext";
 import { DashboardPagination } from "../../components/DashboardPagination";
 
@@ -393,7 +394,11 @@ function OrganizationDetailPageInner({ params }: { params: { id: string } }) {
                 onChange={(event) => setTokenInput(event.target.value)}
               />
               <button className="tf-button-ghost" onClick={() => handleAcceptInvite()} disabled={loading}>
-                {loading ? "Submitting..." : "Accept invite"}
+                <LoadingButtonContent
+                  loading={loading}
+                  loadingLabel="Submitting..."
+                  idleLabel="Accept invite"
+                />
               </button>
             </div>
             {error && <p className="mt-3 text-xs text-red-500">{error}</p>}
@@ -451,7 +456,11 @@ function OrganizationDetailPageInner({ params }: { params: { id: string } }) {
                   onClick={handleInvite}
                   disabled={loading}
                 >
-                  {loading ? "Sending..." : "Send invite"}
+                  <LoadingButtonContent
+                    loading={loading}
+                    loadingLabel="Sending..."
+                    idleLabel="Send invite"
+                  />
                 </button>
               </div>
             </div>
@@ -651,7 +660,11 @@ function OrganizationDetailPageInner({ params }: { params: { id: string } }) {
                 onClick={handleGenerateInviteLink}
                 disabled={loading}
               >
-                {loading ? "Generating link..." : "Generate link"}
+                <LoadingButtonContent
+                  loading={loading}
+                  loadingLabel="Generating link..."
+                  idleLabel="Generate link"
+                />
               </button>
 
               {inviteLink ? (

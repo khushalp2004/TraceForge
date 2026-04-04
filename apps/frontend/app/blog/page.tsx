@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { createPageMetadata } from "../seo";
+import { blogPosts } from "./posts";
 
 export const metadata: Metadata = createPageMetadata({
   title: "Blog",
@@ -9,24 +10,6 @@ export const metadata: Metadata = createPageMetadata({
   path: "/blog",
   keywords: ["reliability blog", "incident response blog", "AI debugging blog"]
 });
-
-const posts = [
-  {
-    title: "Introducing TraceForge AI summaries",
-    date: "Mar 10, 2026",
-    summary: "Root-cause explanations that keep every team aligned."
-  },
-  {
-    title: "Reducing alert fatigue with better grouping",
-    date: "Feb 28, 2026",
-    summary: "How we cluster noisy stacks into actionable issues."
-  },
-  {
-    title: "Enterprise readiness checklist",
-    date: "Feb 12, 2026",
-    summary: "Security and compliance practices that scale with your org."
-  }
-];
 
 export default function BlogPage() {
   return (
@@ -37,22 +20,23 @@ export default function BlogPage() {
           <h1 className="tf-title mt-4 text-4xl sm:text-5xl">
             Insights on reliability, AI, and shipping faster.
           </h1>
-          <p className="mt-4 text-lg text-text-secondary">
-            Product updates, engineering deep dives, and best practices from the
-            TraceForge team.
+          <p className="mt-4 max-w-2xl text-lg text-text-secondary">
+            Product thinking, engineering lessons, and the ideas shaping how we build
+            calmer incident workflows.
           </p>
         </section>
 
         <section className="mt-12 grid gap-6 lg:grid-cols-3">
-          {posts.map((post) => (
-            <div key={post.title} className="tf-card p-6">
+          {blogPosts.map((post) => (
+            <article key={post.slug} className="tf-card flex h-full flex-col p-6">
               <p className="text-xs font-semibold text-text-secondary">{post.date}</p>
               <h2 className="mt-3 text-lg font-semibold text-text-primary">{post.title}</h2>
               <p className="mt-3 text-sm text-text-secondary">{post.summary}</p>
-              <Link className="tf-link mt-4 inline-flex" href="/docs">
-                Read more →
+              <p className="mt-3 text-sm leading-6 text-text-secondary">{post.description}</p>
+              <Link className="tf-link mt-5 inline-flex" href={`/blog/${post.slug}`}>
+                Read article →
               </Link>
-            </div>
+            </article>
           ))}
         </section>
 
@@ -61,11 +45,11 @@ export default function BlogPage() {
             <div>
               <h2 className="tf-title text-3xl">Stay up to date.</h2>
               <p className="mt-2 text-sm text-text-secondary">
-                Subscribe for release updates and reliability insights.
+                Explore product updates, release thinking, and reliability lessons from the TraceForge team.
               </p>
             </div>
             <Link className="tf-button-ghost px-6 py-3 text-sm" href="/docs">
-              Subscribe
+              Read docs
             </Link>
           </div>
         </section>

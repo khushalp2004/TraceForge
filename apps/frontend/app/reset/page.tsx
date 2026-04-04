@@ -14,6 +14,7 @@ import {
   ShieldCheck,
   Sparkles
 } from "lucide-react";
+import { LoadingButtonContent } from "../../components/ui/loading-button-content";
 import AuthToast from "../components/AuthToast";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
@@ -277,7 +278,11 @@ function ResetPasswordPageInner() {
                 onClick={handleSubmit}
                 disabled={loading || !token}
               >
-                {loading ? "Resetting..." : "Reset password"}
+                <LoadingButtonContent
+                  loading={loading}
+                  loadingLabel="Resetting..."
+                  idleLabel="Reset password"
+                />
               </button>
 
               <div className="flex items-center justify-between gap-3 text-sm">

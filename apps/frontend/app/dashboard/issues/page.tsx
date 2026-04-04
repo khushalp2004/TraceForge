@@ -4,6 +4,7 @@ import { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { Archive, Copy, RotateCcw, Sparkles } from "lucide-react";
+import { LoadingButtonContent } from "../../../components/ui/loading-button-content";
 import { useDebouncedValue } from "../../hooks/useDebouncedValue";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
@@ -765,9 +766,11 @@ function IssuesPageInner() {
                           {issue.message}
                         </h2>
 
-                        <p className="mt-2 line-clamp-2 rounded-2xl border border-border bg-secondary/20 px-4 py-3 text-sm text-text-secondary">
-                          {issue.stackTrace}
-                        </p>
+                        <div className="mt-2 overflow-hidden rounded-2xl border border-border bg-secondary/20">
+                          <pre className="max-h-28 overflow-auto px-4 py-3 text-sm text-text-secondary">
+                            <code className="block whitespace-pre-wrap break-all">{issue.stackTrace}</code>
+                          </pre>
+                        </div>
 
                         {issue.analysis?.aiExplanation && (
                           <div className="mt-4 rounded-2xl border border-border bg-secondary/50 px-4 py-3">
@@ -859,22 +862,26 @@ function IssuesPageInner() {
                                   onClick={() => regenerateIssue(issue.id)}
                                   disabled={regeneratingId === issue.id}
                                 >
-                                  {regeneratingId === issue.id ? (
-                                    <Sparkles className="h-3.5 w-3.5 shrink-0 animate-pulse" />
-                                  ) : issue.aiStatus === "FAILED" && hasAiRequest(issue) ? (
-                                    <RotateCcw className="h-3.5 w-3.5 shrink-0" />
-                                  ) : hasAiResult(issue) ? (
-                                    <RotateCcw className="h-3.5 w-3.5 shrink-0" />
-                                  ) : (
-                                    <Sparkles className="h-3.5 w-3.5 shrink-0" />
-                                  )}
-                                  {regeneratingId === issue.id
-                                    ? "Generating..."
-                                    : issue.aiStatus === "FAILED" && hasAiRequest(issue)
-                                    ? "Regenerate"
-                                    : hasAiResult(issue)
-                                    ? "Regenerate"
-                                    : "Generate"}
+                                  <LoadingButtonContent
+                                    loading={regeneratingId === issue.id}
+                                    loadingLabel="Generating..."
+                                    idleLabel={
+                                      issue.aiStatus === "FAILED" && hasAiRequest(issue)
+                                        ? "Regenerate"
+                                        : hasAiResult(issue)
+                                        ? "Regenerate"
+                                        : "Generate"
+                                    }
+                                    icon={
+                                      issue.aiStatus === "FAILED" && hasAiRequest(issue)
+                                        ? RotateCcw
+                                        : hasAiResult(issue)
+                                        ? RotateCcw
+                                        : Sparkles
+                                    }
+                                    iconClassName="h-3.5 w-3.5"
+                                    spinnerClassName="h-3.5 w-3.5"
+                                  />
                                 </button>
                               ) : viewMode === "archived" ? (
                                 <button
@@ -883,8 +890,12 @@ function IssuesPageInner() {
                                   onClick={() => restoreIssue(issue.id)}
                                   disabled={restoringIssueId === issue.id}
                                 >
-                                  <RotateCcw className="h-4 w-4" />
-                                  {restoringIssueId === issue.id ? "Restoring..." : "Restore"}
+                                  <LoadingButtonContent
+                                    loading={restoringIssueId === issue.id}
+                                    loadingLabel="Restoring..."
+                                    idleLabel="Restore"
+                                    icon={RotateCcw}
+                                  />
                                 </button>
                               ) : null}
                             </div>
@@ -896,7 +907,11 @@ function IssuesPageInner() {
                                 onClick={() => setDeleteTarget(issue)}
                                 disabled={deletingIssueId === issue.id}
                               >
-                                {deletingIssueId === issue.id ? "Deleting..." : "Delete"}
+                                <LoadingButtonContent
+                                  loading={deletingIssueId === issue.id}
+                                  loadingLabel="Deleting..."
+                                  idleLabel="Delete"
+                                />
                               </button>
                             )}
 
@@ -908,8 +923,12 @@ function IssuesPageInner() {
                                 aria-label="Archive issue"
                                 title="Archive issue"
                               >
-                                <Archive className="h-4 w-4" />
-                                Archive
+                                <LoadingButtonContent
+                                  loading={false}
+                                  loadingLabel="Archiving..."
+                                  idleLabel="Archive"
+                                  icon={Archive}
+                                />
                               </button>
                             )}
                           </div>
@@ -1051,7 +1070,12 @@ function IssuesPageInner() {
                 onClick={archiveIssue}
                 disabled={archivingIssueId === archiveTarget.id}
               >
-                {archivingIssueId === archiveTarget.id ? "Archiving..." : "Archive issue"}
+                <LoadingButtonContent
+                  loading={archivingIssueId === archiveTarget.id}
+                  loadingLabel="Archiving..."
+                  idleLabel="Archive issue"
+                  icon={Archive}
+                />
               </button>
             </div>
           </div>
@@ -1088,7 +1112,11 @@ function IssuesPageInner() {
                 onClick={deleteIssuePermanently}
                 disabled={deletingIssueId === deleteTarget.id}
               >
-                {deletingIssueId === deleteTarget.id ? "Deleting..." : "Delete"}
+                <LoadingButtonContent
+                  loading={deletingIssueId === deleteTarget.id}
+                  loadingLabel="Deleting..."
+                  idleLabel="Delete"
+                />
               </button>
             </div>
           </div>
@@ -1135,7 +1163,11 @@ function IssuesPageInner() {
                 onClick={createProject}
                 disabled={creatingProject}
               >
-                {creatingProject ? "Creating..." : "Create project"}
+                <LoadingButtonContent
+                  loading={creatingProject}
+                  loadingLabel="Creating..."
+                  idleLabel="Create project"
+                />
               </button>
             </div>
           </div>

@@ -12,6 +12,7 @@ import {
   ShieldCheck,
   Sparkles
 } from "lucide-react";
+import { LoadingButtonContent } from "../../components/ui/loading-button-content";
 import AuthToast from "../components/AuthToast";
 import { useAuth } from "../../context/AuthContext";
 
@@ -408,17 +409,25 @@ function VerifyEmailPageInner() {
                 onClick={handleVerify}
                 disabled={loading}
               >
-                {loading ? "Verifying..." : "Verify email"}
+                <LoadingButtonContent
+                  loading={loading}
+                  loadingLabel="Verifying..."
+                  idleLabel="Verify email"
+                />
               </button>
 
               <div className="flex items-center justify-between gap-3 text-sm">
                 <button
                   type="button"
-                  className="tf-link text-left"
+                  className="tf-link inline-flex items-center gap-2 text-left"
                   onClick={handleResend}
                   disabled={resending}
                 >
-                  {resending ? "Sending..." : "Resend code"}
+                  <LoadingButtonContent
+                    loading={resending}
+                    loadingLabel="Sending..."
+                    idleLabel="Resend code"
+                  />
                 </button>
                 <Link className="tf-link" href="/signin">
                   Back to login

@@ -326,6 +326,7 @@ authRouter.get("/me", requireAuth, async (req, res) => {
       email: true,
       emailVerifiedAt: true,
       plan: true,
+      planInterval: true,
       proPricingTier: true,
       planExpiresAt: true,
       subscriptionStatus: true

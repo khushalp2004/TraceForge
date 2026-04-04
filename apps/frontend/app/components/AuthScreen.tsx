@@ -16,6 +16,7 @@ import {
   Sparkles,
   Zap
 } from "lucide-react";
+import { LoadingButtonContent } from "../../components/ui/loading-button-content";
 import { useAuth } from "../../context/AuthContext";
 import AuthToast from "./AuthToast";
 
@@ -634,13 +635,23 @@ function AuthScreenInner({ mode }: AuthScreenProps) {
                 onClick={handleSubmit}
                 disabled={loading}
               >
-                {loading
-                  ? "Working..."
-                  : mode === "login"
-                  ? "Sign in"
-                  : isSocialSignupContinuation
-                  ? "Complete account"
-                  : "Create account"}
+                <LoadingButtonContent
+                  loading={loading}
+                  loadingLabel={
+                    mode === "login"
+                      ? "Signing in..."
+                      : isSocialSignupContinuation
+                      ? "Completing account..."
+                      : "Creating account..."
+                  }
+                  idleLabel={
+                    mode === "login"
+                      ? "Sign in"
+                      : isSocialSignupContinuation
+                      ? "Complete account"
+                      : "Create account"
+                  }
+                />
               </button>
 
               <div className="flex items-center justify-between gap-3 text-sm">

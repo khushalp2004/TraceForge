@@ -5,6 +5,7 @@ import { hashErrorSignature } from "../utils/hash.js";
 import { redis } from "../db/redis.js";
 import { ingestRateLimit } from "../middleware/rateLimit.js";
 import { evaluateAlertRulesForError } from "../utils/alerts.js";
+import { isOrgTeamActive, isUserProActive } from "../utils/billing.js";
 
 export const ingestRouter = Router();
 
@@ -71,11 +72,17 @@ ingestRouter.post("/", requireProjectApiKey, ingestRateLimit(), async (req, res)
     where: { id: ownerId },
     select: { plan: true, planExpiresAt: true }
   });
+  const organization = req.project?.orgId
+    ? await prisma.organization.findUnique({
+        where: { id: req.project.orgId },
+        select: { plan: true, planExpiresAt: true }
+      })
+    : null;
 
-  const proActive =
-    owner?.plan === "PRO" && (!owner.planExpiresAt || owner.planExpiresAt.getTime() > now.getTime());
+  const proActive = isUserProActive(owner);
+  const teamActive = isOrgTeamActive(organization);
 
-  if (!proActive) {
+  if (!proActive && !teamActive) {
     const limit = 1000;
     const usageKey = `usage:errors:${ownerId}:${currentMonthKey(now)}`;
 

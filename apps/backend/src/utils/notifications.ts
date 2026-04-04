@@ -7,6 +7,7 @@ export type RealtimeNotification = {
     | "alert.triggered"
     | "alert.created"
     | "alert.deleted";
+  notificationId?: string;
   title: string;
   message: string;
   orgId?: string;

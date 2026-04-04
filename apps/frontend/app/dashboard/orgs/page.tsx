@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import { LoadingButtonContent } from "../../../components/ui/loading-button-content";
 import { DashboardPagination } from "../components/DashboardPagination";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
@@ -308,7 +309,7 @@ export default function OrgsPage() {
                 onClick={handleRenameOrg}
                 disabled={loading || !renameInput.trim()}
               >
-                {loading ? "Saving..." : "Save name"}
+                <LoadingButtonContent loading={loading} loadingLabel="Saving..." idleLabel="Save name" />
               </button>
             </div>
           </div>
@@ -343,7 +344,11 @@ export default function OrgsPage() {
                 onClick={handleDeleteOrg}
                 disabled={loading || deleteInput.trim() !== deleteTarget.name}
               >
-                {loading ? "Deleting..." : "Delete Organization"}
+                <LoadingButtonContent
+                  loading={loading}
+                  loadingLabel="Deleting..."
+                  idleLabel="Delete Organization"
+                />
               </button>
             </div>
           </div>
@@ -377,7 +382,11 @@ export default function OrgsPage() {
                 onClick={handleCreateOrg}
                 disabled={loading}
               >
-                {loading ? "Creating..." : "Create Organization"}
+                <LoadingButtonContent
+                  loading={loading}
+                  loadingLabel="Creating..."
+                  idleLabel="Create Organization"
+                />
               </button>
             </div>
           </div>

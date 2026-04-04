@@ -97,7 +97,7 @@ export const evaluateAlertRulesForError = async ({
 
     const deliveryMessage = `${rule.name} fired for ${project.name}: ${message}`;
 
-    await prisma.$transaction([
+    const [delivery] = await prisma.$transaction([
       prisma.alertDelivery.create({
         data: {
           alertRuleId: rule.id,
@@ -131,6 +131,7 @@ export const evaluateAlertRulesForError = async ({
     for (const recipientId of recipients) {
       publishNotificationToUser(recipientId, {
         type: "alert.triggered",
+        notificationId: delivery.id,
         title: rule.name,
         message: deliveryMessage,
         projectId: project.id,

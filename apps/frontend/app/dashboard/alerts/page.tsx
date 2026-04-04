@@ -4,6 +4,7 @@ import { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { Archive, BellRing, Pause, Play, RotateCcw } from "lucide-react";
+import { LoadingButtonContent } from "../../../components/ui/loading-button-content";
 import { useDebouncedValue } from "../../hooks/useDebouncedValue";
 import { DashboardPagination } from "../components/DashboardPagination";
 
@@ -829,8 +830,12 @@ function AlertsPageInner() {
                                 onClick={() => sendAlertNotification(rule.id)}
                                 disabled={notifyingRuleId === rule.id}
                               >
-                                <BellRing className="h-4 w-4" />
-                                {notifyingRuleId === rule.id ? "Sending..." : "Notify"}
+                                <LoadingButtonContent
+                                  loading={notifyingRuleId === rule.id}
+                                  loadingLabel="Sending..."
+                                  idleLabel="Notify"
+                                  icon={BellRing}
+                                />
                               </button>
                               <button
                                 type="button"
@@ -867,8 +872,12 @@ function AlertsPageInner() {
                                 onClick={() => restoreRule(rule.id)}
                                 disabled={restoringRuleId === rule.id}
                               >
-                                <RotateCcw className="h-4 w-4" />
-                                {restoringRuleId === rule.id ? "Restoring..." : "Restore alert"}
+                                <LoadingButtonContent
+                                  loading={restoringRuleId === rule.id}
+                                  loadingLabel="Restoring..."
+                                  idleLabel="Restore alert"
+                                  icon={RotateCcw}
+                                />
                               </button>
                               <button
                                 type="button"
@@ -876,7 +885,11 @@ function AlertsPageInner() {
                                 onClick={() => setDeleteTarget(rule)}
                                 disabled={deletingRuleId === rule.id}
                               >
-                                {deletingRuleId === rule.id ? "Deleting..." : "Delete"}
+                                <LoadingButtonContent
+                                  loading={deletingRuleId === rule.id}
+                                  loadingLabel="Deleting..."
+                                  idleLabel="Delete"
+                                />
                               </button>
                             </>
                           )}
@@ -1073,7 +1086,12 @@ function AlertsPageInner() {
                 onClick={archiveRule}
                 disabled={archivingRuleId === archiveTarget.id}
               >
-                {archivingRuleId === archiveTarget.id ? "Archiving..." : "Archive"}
+                <LoadingButtonContent
+                  loading={archivingRuleId === archiveTarget.id}
+                  loadingLabel="Archiving..."
+                  idleLabel="Archive"
+                  icon={Archive}
+                />
               </button>
             </div>
           </div>
@@ -1105,7 +1123,11 @@ function AlertsPageInner() {
                 onClick={deleteRulePermanently}
                 disabled={deletingRuleId === deleteTarget.id}
               >
-                {deletingRuleId === deleteTarget.id ? "Deleting..." : "Delete"}
+                <LoadingButtonContent
+                  loading={deletingRuleId === deleteTarget.id}
+                  loadingLabel="Deleting..."
+                  idleLabel="Delete"
+                />
               </button>
             </div>
           </div>
@@ -1251,7 +1273,7 @@ function AlertsPageInner() {
                 onClick={createRule}
                 disabled={saving}
               >
-                {saving ? "Creating..." : "Create alert"}
+                <LoadingButtonContent loading={saving} loadingLabel="Creating..." idleLabel="Create alert" />
               </button>
             </div>
           </div>

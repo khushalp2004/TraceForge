@@ -3,18 +3,40 @@ import crypto from "crypto";
 import { Prisma } from "@prisma/client";
 import prisma from "../db/prisma.js";
 import { requireAuth } from "../middleware/auth.js";
+import {
+  BillingIntervalValue,
+  PRO_STANDARD_MONTHLY_PRICE_PAISE,
+  TEAM_MONTHLY_PRICE_PAISE,
+  getLaunchSlotsRemaining,
+  getProPriceForInterval,
+  getTeamPriceForInterval,
+  isOrgTeamActive,
+  isUserProActive,
+  normalizeInterval
+} from "../utils/billing.js";
 
 const RAZORPAY_API_BASE = "https://api.razorpay.com/v1";
 const PROVIDER = "razorpay";
+type CheckoutPlan = "PRO" | "TEAM";
+type BillingScope = "USER" | "ORGANIZATION";
+type PricingTier = "LAUNCH" | "STANDARD" | null;
 
 const getRazorpayKeys = () => {
   const keyId = process.env.RAZORPAY_KEY_ID?.trim() || "";
   const keySecret = process.env.RAZORPAY_KEY_SECRET?.trim() || "";
   const webhookSecret = process.env.RAZORPAY_WEBHOOK_SECRET?.trim() || "";
-  const proLaunchPlanId = process.env.RAZORPAY_PLAN_PRO_MONTHLY_ID?.trim() || "";
-  const proStandardPlanId = process.env.RAZORPAY_PLAN_PRO_MONTHLY_STANDARD_ID?.trim() || "";
-  const launchSlots = Number(process.env.PRO_LAUNCH_SLOTS || "20");
-  return { keyId, keySecret, webhookSecret, proLaunchPlanId, proStandardPlanId, launchSlots };
+  return {
+    keyId,
+    keySecret,
+    webhookSecret,
+    proLaunchMonthlyPlanId: process.env.RAZORPAY_PLAN_PRO_MONTHLY_ID?.trim() || "",
+    proStandardMonthlyPlanId:
+      process.env.RAZORPAY_PLAN_PRO_MONTHLY_STANDARD_ID?.trim() || "",
+    proLaunchYearlyPlanId: process.env.RAZORPAY_PLAN_PRO_YEARLY_ID?.trim() || "",
+    proStandardYearlyPlanId: process.env.RAZORPAY_PLAN_PRO_YEARLY_STANDARD_ID?.trim() || "",
+    teamMonthlyPlanId: process.env.RAZORPAY_PLAN_TEAM_MONTHLY_ID?.trim() || "",
+    teamYearlyPlanId: process.env.RAZORPAY_PLAN_TEAM_YEARLY_ID?.trim() || ""
+  };
 };
 
 const assertConfigured = () => {
@@ -71,6 +93,12 @@ const addOneMonth = (from: Date) => {
   return next;
 };
 
+const addOneYear = (from: Date) => {
+  const next = new Date(from);
+  next.setFullYear(next.getFullYear() + 1);
+  return next;
+};
+
 type RazorpaySubscription = {
   id: string;
   status: string;
@@ -82,43 +110,168 @@ type RazorpaySubscription = {
   created_at?: number | null;
 };
 
-const subscriptionExpiryFromEntity = (sub: RazorpaySubscription | null, fallbackFrom: Date) => {
+const addInterval = (from: Date, interval: BillingIntervalValue) =>
+  interval === "YEARLY" ? addOneYear(from) : addOneMonth(from);
+
+const getPlanAmount = ({
+  plan,
+  interval,
+  pricingTier
+}: {
+  plan: CheckoutPlan;
+  interval: BillingIntervalValue;
+  pricingTier?: PricingTier;
+}) =>
+  plan === "TEAM"
+    ? getTeamPriceForInterval(interval)
+    : getProPriceForInterval(interval, pricingTier === "STANDARD" ? "STANDARD" : "LAUNCH");
+
+const subscriptionExpiryFromEntity = (
+  sub: RazorpaySubscription | null,
+  fallbackFrom: Date,
+  interval: BillingIntervalValue
+) => {
   const currentEnd = sub?.current_end ?? null;
   if (typeof currentEnd === "number" && Number.isFinite(currentEnd) && currentEnd > 0) {
     return new Date(currentEnd * 1000);
   }
-  return addOneMonth(fallbackFrom);
+  return addInterval(fallbackFrom, interval);
 };
 
 const fetchSubscription = async (subscriptionId: string) =>
   razorpayRequest<RazorpaySubscription>("GET", `/subscriptions/${encodeURIComponent(subscriptionId)}`);
 
-const getEffectivePlan = async (userId: string) => {
+const getEffectiveUserPlan = async (userId: string) => {
   const user = await prisma.user.findUnique({
     where: { id: userId },
     select: {
       plan: true,
-      planExpiresAt: true
+      planInterval: true,
+      planExpiresAt: true,
+      subscriptionStatus: true,
+      razorpaySubscriptionId: true,
+      proPricingTier: true
     }
   });
 
-  if (!user) return { plan: "FREE" as const, expiresAt: null as Date | null };
-
-  if (user.plan === "PRO" && (!user.planExpiresAt || user.planExpiresAt.getTime() > Date.now())) {
-    return { plan: "PRO" as const, expiresAt: user.planExpiresAt || null };
+  if (!user) {
+    return null;
   }
 
-  return { plan: "FREE" as const, expiresAt: null };
+  if (isUserProActive(user)) {
+    return user;
+  }
+
+  return {
+    ...user,
+    plan: "FREE" as const,
+    planInterval: null,
+    planExpiresAt: null,
+    subscriptionStatus: null
+  };
 };
 
-const getLaunchSlotsRemaining = async () => {
-  const { launchSlots } = getRazorpayKeys();
-  const total = Number.isFinite(launchSlots) && launchSlots > 0 ? Math.floor(launchSlots) : 20;
-  const used = await prisma.user.count({ where: { proPricingTier: "LAUNCH" } });
+const getEffectiveOrgPlan = async (organizationId: string) => {
+  const organization = await prisma.organization.findUnique({
+    where: { id: organizationId },
+    select: {
+      id: true,
+      name: true,
+      plan: true,
+      planInterval: true,
+      planExpiresAt: true,
+      subscriptionStatus: true,
+      razorpaySubscriptionId: true
+    }
+  });
+
+  if (!organization) {
+    return null;
+  }
+
+  if (isOrgTeamActive(organization)) {
+    return organization;
+  }
+
   return {
-    total,
-    used,
-    remaining: Math.max(0, total - used)
+    ...organization,
+    plan: "FREE" as const,
+    planInterval: null,
+    planExpiresAt: null,
+    subscriptionStatus: null
+  };
+};
+
+const assertOwnerForOrganization = async (organizationId: string, userId: string) => {
+  const membership = await prisma.organizationMember.findUnique({
+    where: {
+      organizationId_userId: {
+        organizationId,
+        userId
+      }
+    }
+  });
+
+  return membership?.role === "OWNER";
+};
+
+const resolvePlanSelection = async ({
+  plan,
+  interval,
+  userId
+}: {
+  plan: CheckoutPlan;
+  interval: BillingIntervalValue;
+  userId: string;
+}) => {
+  const keys = getRazorpayKeys();
+
+  if (plan === "TEAM") {
+    const planId = interval === "YEARLY" ? keys.teamYearlyPlanId : keys.teamMonthlyPlanId;
+    if (!planId) {
+      throw Object.assign(new Error(`Missing ${interval === "YEARLY" ? "RAZORPAY_PLAN_TEAM_YEARLY_ID" : "RAZORPAY_PLAN_TEAM_MONTHLY_ID"}`), { status: 501 });
+    }
+
+    return {
+      planId,
+      amount: getTeamPriceForInterval(interval),
+      pricingTier: null as PricingTier
+    };
+  }
+
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { proPricingTier: true }
+  });
+  const slots = await getLaunchSlotsRemaining();
+  const wantsLaunch =
+    user?.proPricingTier === "LAUNCH" || (!user?.proPricingTier && slots.remaining > 0);
+  const pricingTier: PricingTier = wantsLaunch ? "LAUNCH" : "STANDARD";
+  const planId =
+    interval === "YEARLY"
+      ? wantsLaunch
+        ? keys.proLaunchYearlyPlanId
+        : keys.proStandardYearlyPlanId
+      : wantsLaunch
+        ? keys.proLaunchMonthlyPlanId
+        : keys.proStandardMonthlyPlanId;
+  const missingKey =
+    interval === "YEARLY"
+      ? wantsLaunch
+        ? "RAZORPAY_PLAN_PRO_YEARLY_ID"
+        : "RAZORPAY_PLAN_PRO_YEARLY_STANDARD_ID"
+      : wantsLaunch
+        ? "RAZORPAY_PLAN_PRO_MONTHLY_ID"
+        : "RAZORPAY_PLAN_PRO_MONTHLY_STANDARD_ID";
+
+  if (!planId) {
+    throw Object.assign(new Error(`Missing ${missingKey}`), { status: 501 });
+  }
+
+  return {
+    planId,
+    amount: getProPriceForInterval(interval, pricingTier),
+    pricingTier
   };
 };
 
@@ -134,36 +287,60 @@ paymentRouter.post("/create-order", requireAuth, async (req, res) => {
   }
 
   try {
-    const planState = await getEffectivePlan(userId);
-    if (planState.plan === "PRO") {
-      return res.json({
-        alreadyPro: true,
-        plan: "pro",
-        expiresAt: planState.expiresAt?.toISOString() || null
-      });
-    }
+    const body = (req.body || {}) as {
+      plan?: string;
+      interval?: string;
+      organizationId?: string;
+    };
+    const plan = body.plan === "TEAM" ? "TEAM" : "PRO";
+    const interval = normalizeInterval(body.interval);
+    const organizationId =
+      typeof body.organizationId === "string" && body.organizationId.trim()
+        ? body.organizationId.trim()
+        : null;
 
-    const { proLaunchPlanId, proStandardPlanId } = getRazorpayKeys();
-    if (!proLaunchPlanId) {
-      return res.status(501).json({ error: "Missing RAZORPAY_PLAN_PRO_MONTHLY_ID" });
-    }
-    if (!proStandardPlanId) {
-      return res.status(501).json({ error: "Missing RAZORPAY_PLAN_PRO_MONTHLY_STANDARD_ID" });
-    }
+    if (plan === "TEAM") {
+      if (!organizationId) {
+        return res.status(400).json({ error: "organizationId is required for Team billing" });
+      }
 
-    const user = await prisma.user.findUnique({
-      where: { id: userId },
-      select: { proPricingTier: true }
+      const isOwner = await assertOwnerForOrganization(organizationId, userId);
+      if (!isOwner) {
+        return res.status(403).json({ error: "Only organization owners can manage Team billing" });
+      }
+
+      const orgState = await getEffectiveOrgPlan(organizationId);
+      if (orgState?.plan === "TEAM") {
+        return res.json({
+          alreadyActive: true,
+          plan: "team",
+          interval: orgState.planInterval?.toLowerCase() || interval.toLowerCase(),
+          expiresAt: orgState.planExpiresAt?.toISOString() || null,
+          organizationId
+        });
+      }
+    } else {
+      const userState = await getEffectiveUserPlan(userId);
+      if (userState?.plan === "PRO") {
+        return res.json({
+          alreadyActive: true,
+          plan: "pro",
+          interval: userState.planInterval?.toLowerCase() || interval.toLowerCase(),
+          expiresAt: userState.planExpiresAt?.toISOString() || null
+        });
+      }
+    }
+    const { planId, amount, pricingTier } = await resolvePlanSelection({
+      plan,
+      interval,
+      userId
     });
-
-    const slots = await getLaunchSlotsRemaining();
-    const wantsLaunch =
-      user?.proPricingTier === "LAUNCH" || (!user?.proPricingTier && slots.remaining > 0);
-    const planId = wantsLaunch ? proLaunchPlanId : proStandardPlanId;
-
-    const amount = wantsLaunch ? 29900 : 49900;
     const currency = "INR";
-    const receipt = `tfpro_${Date.now().toString(36)}_${userId.slice(-6)}`.slice(0, 40);
+    const receipt =
+      `${plan.toLowerCase()}_${interval.toLowerCase()}_${Date.now().toString(36)}_${userId.slice(-6)}`.slice(
+        0,
+        40
+      );
 
     const subscription = await razorpayRequest<{
       id: string;
@@ -175,16 +352,21 @@ paymentRouter.post("/create-order", requireAuth, async (req, res) => {
       customer_notify: 1,
       notes: {
         userId,
-        plan: "pro",
-        pricingTier: wantsLaunch ? "LAUNCH" : "STANDARD"
+        organizationId,
+        scope: plan === "TEAM" ? "ORGANIZATION" : "USER",
+        plan: plan.toLowerCase(),
+        interval: interval.toLowerCase(),
+        pricingTier: pricingTier || undefined
       }
     });
 
     await prisma.payment.create({
       data: {
         userId,
+        organizationId,
         provider: PROVIDER,
-        plan: "PRO",
+        plan,
+        interval,
         amount,
         currency,
         status: "subscription_created",
@@ -200,7 +382,10 @@ paymentRouter.post("/create-order", requireAuth, async (req, res) => {
       subscriptionId: subscription.id,
       amount,
       currency,
-      receipt
+      receipt,
+      plan: plan.toLowerCase(),
+      interval: interval.toLowerCase(),
+      organizationId
     });
   } catch (err) {
     const status = (err as { status?: number }).status || 500;
@@ -214,8 +399,6 @@ paymentRouter.post("/verify", requireAuth, async (req, res) => {
     return res.status(401).json({ error: "Unauthorized" });
   }
 
-  const { keySecret } = assertConfigured();
-  const { proLaunchPlanId, proStandardPlanId } = getRazorpayKeys();
   const { razorpay_order_id, razorpay_subscription_id, razorpay_payment_id, razorpay_signature } = req.body as {
     razorpay_order_id?: string;
     razorpay_subscription_id?: string;
@@ -231,6 +414,7 @@ paymentRouter.post("/verify", requireAuth, async (req, res) => {
   }
 
   try {
+    const { keySecret } = assertConfigured();
     const signaturePayload = razorpay_subscription_id
       ? `${razorpay_payment_id}|${razorpay_subscription_id}`
       : `${razorpay_order_id}|${razorpay_payment_id}`;
@@ -243,12 +427,30 @@ paymentRouter.post("/verify", requireAuth, async (req, res) => {
     const subscriptionEntity = razorpay_subscription_id
       ? await fetchSubscription(razorpay_subscription_id)
       : null;
+    const pendingPayment = razorpay_subscription_id
+      ? await prisma.payment.findFirst({
+          where: {
+            userId,
+            razorpaySubscriptionId: razorpay_subscription_id
+          },
+          orderBy: { createdAt: "desc" }
+        })
+      : null;
+
     if (subscriptionEntity) {
       const notesUserId = (subscriptionEntity.notes as Record<string, unknown> | null)?.userId;
       if (!notesUserId || String(notesUserId) !== userId) {
         return res.status(400).json({ error: "Subscription does not belong to this user" });
       }
-      const allowedPlanIds = [proLaunchPlanId, proStandardPlanId].filter(Boolean);
+      const keys = getRazorpayKeys();
+      const allowedPlanIds = [
+        keys.proLaunchMonthlyPlanId,
+        keys.proStandardMonthlyPlanId,
+        keys.proLaunchYearlyPlanId,
+        keys.proStandardYearlyPlanId,
+        keys.teamMonthlyPlanId,
+        keys.teamYearlyPlanId
+      ].filter(Boolean);
       if (allowedPlanIds.length > 0 && subscriptionEntity.plan_id && !allowedPlanIds.includes(subscriptionEntity.plan_id)) {
         return res.status(400).json({ error: "Subscription plan mismatch" });
       }
@@ -272,7 +474,10 @@ paymentRouter.post("/verify", requireAuth, async (req, res) => {
       return res.status(400).json({ error: "Payment does not match the order" });
     }
 
-    if (payment.currency !== "INR" || (payment.amount !== 29900 && payment.amount !== 49900)) {
+    if (
+      payment.currency !== "INR" ||
+      (pendingPayment?.amount && pendingPayment.amount !== payment.amount)
+    ) {
       return res.status(400).json({ error: "Payment amount or currency mismatch" });
     }
 
@@ -303,17 +508,39 @@ paymentRouter.post("/verify", requireAuth, async (req, res) => {
     }
 
     const now = new Date();
+    const plan = pendingPayment?.plan === "TEAM" ? "TEAM" : "PRO";
+    const interval = normalizeInterval(pendingPayment?.interval || String(subscriptionEntity?.notes?.interval || ""));
+    const organizationId =
+      typeof pendingPayment?.organizationId === "string"
+        ? pendingPayment.organizationId
+        : typeof subscriptionEntity?.notes?.organizationId === "string" && subscriptionEntity.notes.organizationId
+          ? String(subscriptionEntity.notes.organizationId)
+          : null;
     const existingUser = await prisma.user.findUnique({
       where: { id: userId },
       select: { plan: true, planExpiresAt: true, proPricingTier: true }
     });
+    const existingOrganization = organizationId
+      ? await prisma.organization.findUnique({
+          where: { id: organizationId },
+          select: { plan: true, planExpiresAt: true }
+        })
+      : null;
     const baseExpiry =
-      existingUser?.plan === "PRO" && existingUser.planExpiresAt && existingUser.planExpiresAt.getTime() > now.getTime()
-        ? existingUser.planExpiresAt
-        : now;
+      plan === "TEAM"
+        ? existingOrganization?.plan === "TEAM" &&
+          existingOrganization.planExpiresAt &&
+          existingOrganization.planExpiresAt.getTime() > now.getTime()
+          ? existingOrganization.planExpiresAt
+          : now
+        : existingUser?.plan === "PRO" &&
+            existingUser.planExpiresAt &&
+            existingUser.planExpiresAt.getTime() > now.getTime()
+          ? existingUser.planExpiresAt
+          : now;
     const expiresAt = subscriptionEntity
-      ? subscriptionExpiryFromEntity(subscriptionEntity, baseExpiry)
-      : addOneMonth(baseExpiry);
+      ? subscriptionExpiryFromEntity(subscriptionEntity, baseExpiry, interval)
+      : addInterval(baseExpiry, interval);
 
     await prisma.$transaction(async (tx) => {
       const pending = razorpay_subscription_id
@@ -342,8 +569,10 @@ paymentRouter.post("/verify", requireAuth, async (req, res) => {
         await tx.payment.create({
           data: {
             userId,
+            organizationId,
             provider: PROVIDER,
-            plan: "PRO",
+            plan,
+            interval,
             amount: payment.amount,
             currency: payment.currency,
             status: "captured",
@@ -357,27 +586,52 @@ paymentRouter.post("/verify", requireAuth, async (req, res) => {
         });
       }
 
-      await tx.user.update({
-        where: { id: userId },
-        data: {
-          plan: "PRO",
-          subscriptionStatus: "active",
-          planExpiresAt: expiresAt,
-          lastPaymentProvider: PROVIDER,
-          lastPaymentId: razorpay_payment_id,
-          razorpaySubscriptionId: razorpay_subscription_id ?? undefined,
-          proPricingTier:
-            existingUser?.proPricingTier ??
-            (subscriptionEntity?.plan_id && subscriptionEntity.plan_id === proStandardPlanId
-              ? "STANDARD"
-              : subscriptionEntity
-              ? "LAUNCH"
-              : undefined)
-        }
-      });
+      if (plan === "TEAM" && organizationId) {
+        await tx.organization.update({
+          where: { id: organizationId },
+          data: {
+            plan: "TEAM",
+            planInterval: interval,
+            subscriptionStatus: "active",
+            planExpiresAt: expiresAt,
+            lastPaymentProvider: PROVIDER,
+            lastPaymentId: razorpay_payment_id,
+            razorpaySubscriptionId: razorpay_subscription_id ?? undefined
+          }
+        });
+      } else {
+        await tx.user.update({
+          where: { id: userId },
+          data: {
+            plan: "PRO",
+            planInterval: interval,
+            subscriptionStatus: "active",
+            planExpiresAt: expiresAt,
+            lastPaymentProvider: PROVIDER,
+            lastPaymentId: razorpay_payment_id,
+            razorpaySubscriptionId: razorpay_subscription_id ?? undefined,
+            proPricingTier:
+              existingUser?.proPricingTier ??
+              (pendingPayment?.payload &&
+              typeof (pendingPayment.payload as Record<string, unknown>)?.pricingTier === "string"
+                ? ((pendingPayment.payload as Record<string, unknown>).pricingTier as "LAUNCH" | "STANDARD")
+                : subscriptionEntity?.notes?.pricingTier === "STANDARD"
+                  ? "STANDARD"
+                  : subscriptionEntity?.notes?.pricingTier === "LAUNCH"
+                    ? "LAUNCH"
+                    : undefined)
+          }
+        });
+      }
     });
 
-    return res.json({ ok: true, plan: "pro", expiresAt: expiresAt.toISOString() });
+    return res.json({
+      ok: true,
+      plan: plan.toLowerCase(),
+      interval: interval.toLowerCase(),
+      expiresAt: expiresAt.toISOString(),
+      organizationId
+    });
   } catch (err) {
     const status = (err as { status?: number }).status || 500;
     return res.status(status).json({ error: err instanceof Error ? err.message : "Unexpected error" });
@@ -390,8 +644,20 @@ paymentRouter.get("/history", requireAuth, async (req, res) => {
     return res.status(401).json({ error: "Unauthorized" });
   }
 
+  const organizationId =
+    typeof req.query.organizationId === "string" && req.query.organizationId.trim()
+      ? req.query.organizationId.trim()
+      : null;
+
+  if (organizationId) {
+    const isOwner = await assertOwnerForOrganization(organizationId, userId);
+    if (!isOwner) {
+      return res.status(403).json({ error: "Only organization owners can view Team billing history" });
+    }
+  }
+
   const payments = await prisma.payment.findMany({
-    where: { userId },
+    where: organizationId ? { organizationId } : { userId, organizationId: null },
     orderBy: { createdAt: "desc" },
     select: {
       id: true,
@@ -416,13 +682,29 @@ paymentRouter.get("/invoices", requireAuth, async (req, res) => {
   if (!userId) {
     return res.status(401).json({ error: "Unauthorized" });
   }
+  const organizationId =
+    typeof req.query.organizationId === "string" && req.query.organizationId.trim()
+      ? req.query.organizationId.trim()
+      : null;
 
-  const user = await prisma.user.findUnique({
-    where: { id: userId },
-    select: { razorpaySubscriptionId: true }
-  });
+  if (organizationId) {
+    const isOwner = await assertOwnerForOrganization(organizationId, userId);
+    if (!isOwner) {
+      return res.status(403).json({ error: "Only organization owners can view Team invoices" });
+    }
+  }
 
-  if (!user?.razorpaySubscriptionId) {
+  const subscriptionHolder = organizationId
+    ? await prisma.organization.findUnique({
+        where: { id: organizationId },
+        select: { razorpaySubscriptionId: true }
+      })
+    : await prisma.user.findUnique({
+        where: { id: userId },
+        select: { razorpaySubscriptionId: true }
+      });
+
+  if (!subscriptionHolder?.razorpaySubscriptionId) {
     return res.json({ invoices: [] });
   }
 
@@ -440,7 +722,7 @@ paymentRouter.get("/invoices", requireAuth, async (req, res) => {
       }>;
     }>(
       "GET",
-      `/invoices?subscription_id=${encodeURIComponent(user.razorpaySubscriptionId)}&count=20`
+      `/invoices?subscription_id=${encodeURIComponent(subscriptionHolder.razorpaySubscriptionId)}&count=20`
     );
 
     return res.json({
@@ -467,45 +749,79 @@ paymentRouter.post("/cancel", requireAuth, async (req, res) => {
     return res.status(401).json({ error: "Unauthorized" });
   }
 
-  const { atCycleEnd } = (req.body || {}) as { atCycleEnd?: boolean };
+  const { atCycleEnd, organizationId } = (req.body || {}) as {
+    atCycleEnd?: boolean;
+    organizationId?: string;
+  };
   const cancelAtCycleEnd = atCycleEnd !== undefined ? Boolean(atCycleEnd) : false;
+  const normalizedOrganizationId = organizationId?.trim() || null;
 
-  const user = await prisma.user.findUnique({
-    where: { id: userId },
-    select: { razorpaySubscriptionId: true }
-  });
+  if (normalizedOrganizationId) {
+    const isOwner = await assertOwnerForOrganization(normalizedOrganizationId, userId);
+    if (!isOwner) {
+      return res.status(403).json({ error: "Only organization owners can cancel Team billing" });
+    }
+  }
 
-  if (!user?.razorpaySubscriptionId) {
+  const subscriptionHolder = normalizedOrganizationId
+    ? await prisma.organization.findUnique({
+        where: { id: normalizedOrganizationId },
+        select: { razorpaySubscriptionId: true }
+      })
+    : await prisma.user.findUnique({
+        where: { id: userId },
+        select: { razorpaySubscriptionId: true }
+      });
+
+  if (!subscriptionHolder?.razorpaySubscriptionId) {
     return res.status(400).json({ error: "No active subscription found" });
   }
 
   try {
     const cancelled = await razorpayRequest<{ id: string; status: string }>(
       "POST",
-      `/subscriptions/${encodeURIComponent(user.razorpaySubscriptionId)}/cancel`,
+      `/subscriptions/${encodeURIComponent(subscriptionHolder.razorpaySubscriptionId)}/cancel`,
       { cancel_at_cycle_end: cancelAtCycleEnd ? 1 : 0 }
     );
 
-    const subscriptionEntity = await fetchSubscription(user.razorpaySubscriptionId).catch(() => null);
+    const subscriptionEntity = await fetchSubscription(subscriptionHolder.razorpaySubscriptionId).catch(() => null);
     const expiresAt =
       cancelAtCycleEnd && subscriptionEntity
-        ? subscriptionExpiryFromEntity(subscriptionEntity, new Date())
+        ? subscriptionExpiryFromEntity(
+            subscriptionEntity,
+            new Date(),
+            normalizeInterval(String(subscriptionEntity.notes?.interval || "MONTHLY"))
+          )
         : null;
 
-    await prisma.user.update({
-      where: { id: userId },
-      data: {
-        plan: cancelAtCycleEnd ? "PRO" : "FREE",
-        subscriptionStatus: cancelAtCycleEnd ? "cancel_at_cycle_end" : cancelled.status || "cancelled",
-        planExpiresAt: expiresAt || null
-      }
-    });
+    if (normalizedOrganizationId) {
+      await prisma.organization.update({
+        where: { id: normalizedOrganizationId },
+        data: {
+          plan: cancelAtCycleEnd ? "TEAM" : "FREE",
+          planInterval: cancelAtCycleEnd ? undefined : null,
+          subscriptionStatus: cancelAtCycleEnd ? "cancel_at_cycle_end" : cancelled.status || "cancelled",
+          planExpiresAt: expiresAt || null
+        }
+      });
+    } else {
+      await prisma.user.update({
+        where: { id: userId },
+        data: {
+          plan: cancelAtCycleEnd ? "PRO" : "FREE",
+          planInterval: cancelAtCycleEnd ? undefined : null,
+          subscriptionStatus: cancelAtCycleEnd ? "cancel_at_cycle_end" : cancelled.status || "cancelled",
+          planExpiresAt: expiresAt || null
+        }
+      });
+    }
 
     return res.json({
       ok: true,
       subscriptionId: cancelled.id,
       status: cancelled.status,
-      expiresAt: expiresAt ? expiresAt.toISOString() : null
+      expiresAt: expiresAt ? expiresAt.toISOString() : null,
+      organizationId: normalizedOrganizationId
     });
   } catch (err) {
     const status = (err as { status?: number }).status || 500;
@@ -565,6 +881,7 @@ paymentRouter.post("/upgrade", requireAuth, async (req, res) => {
     where: { id: userId },
     select: {
       plan: true,
+      planInterval: true,
       planExpiresAt: true,
       razorpaySubscriptionId: true,
       proPricingTier: true
@@ -587,7 +904,6 @@ paymentRouter.post("/upgrade", requireAuth, async (req, res) => {
   }
 
   try {
-    const { proStandardPlanId } = getRazorpayKeys();
     const subscription = await fetchSubscription(user.razorpaySubscriptionId);
     const status = subscription.status?.toLowerCase() || "";
 
@@ -605,19 +921,21 @@ paymentRouter.post("/upgrade", requireAuth, async (req, res) => {
         : subscription;
 
     const resumedStatus = resumed.status || "active";
-    const expiresAt = subscriptionExpiryFromEntity(resumed, now);
+    const interval = normalizeInterval(String(resumed.notes?.interval || user.planInterval || "MONTHLY"));
+    const expiresAt = subscriptionExpiryFromEntity(resumed, now, interval);
 
     await prisma.user.update({
       where: { id: userId },
       data: {
         plan: "PRO",
+        planInterval: interval,
         subscriptionStatus: resumedStatus,
         planExpiresAt: expiresAt,
         lastPaymentProvider: PROVIDER,
         razorpaySubscriptionId: user.razorpaySubscriptionId,
         proPricingTier:
           user.proPricingTier ??
-          (subscription.plan_id && proStandardPlanId && subscription.plan_id === proStandardPlanId
+          (subscription.notes?.pricingTier === "STANDARD"
             ? "STANDARD"
             : "LAUNCH")
       }
@@ -630,7 +948,13 @@ paymentRouter.post("/upgrade", requireAuth, async (req, res) => {
     if (message.toLowerCase().includes("not found")) {
       await prisma.user.update({
         where: { id: userId },
-        data: { razorpaySubscriptionId: null, subscriptionStatus: null, plan: "FREE", planExpiresAt: null }
+        data: {
+          razorpaySubscriptionId: null,
+          subscriptionStatus: null,
+          plan: "FREE",
+          planInterval: null,
+          planExpiresAt: null
+        }
       });
       return res.json({ ok: false, requiresPayment: true });
     }
@@ -694,12 +1018,12 @@ paymentRouter.post("/webhook", async (req, res) => {
     const record = orderId
       ? await prisma.payment.findFirst({
           where: { razorpayOrderId: orderId },
-          select: { id: true, userId: true }
+          select: { id: true, userId: true, organizationId: true, plan: true, interval: true }
         })
       : subscriptionId
       ? await prisma.payment.findFirst({
           where: { razorpaySubscriptionId: subscriptionId },
-          select: { id: true, userId: true }
+          select: { id: true, userId: true, organizationId: true, plan: true, interval: true }
         })
       : null;
 
@@ -721,20 +1045,46 @@ paymentRouter.post("/webhook", async (req, res) => {
     if (eventType === "payment.captured") {
       const now = new Date();
       const subscriptionEntity = subscriptionId ? await fetchSubscription(subscriptionId).catch(() => null) : null;
-      const { proStandardPlanId } = getRazorpayKeys();
+      const plan = record?.plan === "TEAM" ? "TEAM" : "PRO";
+      const interval = normalizeInterval(
+        String(record?.interval || subscriptionEntity?.notes?.interval || "MONTHLY")
+      );
+      const pricingTier =
+        subscriptionEntity?.notes?.pricingTier === "STANDARD"
+          ? "STANDARD"
+          : subscriptionEntity?.notes?.pricingTier === "LAUNCH"
+            ? "LAUNCH"
+            : null;
+      const organizationId =
+        record?.organizationId ||
+        (typeof subscriptionEntity?.notes?.organizationId === "string"
+          ? String(subscriptionEntity.notes.organizationId)
+          : null);
       const existingUser = await prisma.user.findUnique({
         where: { id: ownerId },
         select: { plan: true, planExpiresAt: true, proPricingTier: true }
       });
+      const existingOrganization = organizationId
+        ? await prisma.organization.findUnique({
+            where: { id: organizationId },
+            select: { plan: true, planExpiresAt: true }
+          })
+        : null;
       const baseExpiry =
-        existingUser?.plan === "PRO" &&
-        existingUser.planExpiresAt &&
-        existingUser.planExpiresAt.getTime() > now.getTime()
-          ? existingUser.planExpiresAt
+        plan === "TEAM"
+          ? existingOrganization?.plan === "TEAM" &&
+            existingOrganization.planExpiresAt &&
+            existingOrganization.planExpiresAt.getTime() > now.getTime()
+            ? existingOrganization.planExpiresAt
+            : now
+          : existingUser?.plan === "PRO" &&
+              existingUser.planExpiresAt &&
+              existingUser.planExpiresAt.getTime() > now.getTime()
+            ? existingUser.planExpiresAt
           : now;
       const expiresAt = subscriptionEntity
-        ? subscriptionExpiryFromEntity(subscriptionEntity, baseExpiry)
-        : addOneMonth(baseExpiry);
+        ? subscriptionExpiryFromEntity(subscriptionEntity, baseExpiry, interval)
+        : addInterval(baseExpiry, interval);
 
       await prisma.$transaction(async (tx) => {
         const pending = subscriptionId
@@ -763,9 +1113,11 @@ paymentRouter.post("/webhook", async (req, res) => {
           await tx.payment.create({
             data: {
               userId: ownerId,
+              organizationId,
               provider: PROVIDER,
-              plan: "PRO",
-              amount: entity?.amount ?? 29900,
+              plan,
+              interval,
+              amount: entity?.amount ?? getPlanAmount({ plan, interval, pricingTier }),
               currency: entity?.currency ?? "INR",
               status: "captured",
               razorpayOrderId: orderId,
@@ -778,26 +1130,54 @@ paymentRouter.post("/webhook", async (req, res) => {
           });
         }
 
-        await tx.user.update({
-          where: { id: ownerId },
-          data: {
-            plan: "PRO",
-            subscriptionStatus: "active",
-            planExpiresAt: expiresAt,
-            lastPaymentProvider: PROVIDER,
-            lastPaymentId: paymentId || undefined,
-            razorpaySubscriptionId: subscriptionId || undefined,
-            proPricingTier:
-              existingUser?.proPricingTier ??
-              (subscriptionEntity?.plan_id && proStandardPlanId && subscriptionEntity.plan_id === proStandardPlanId
-                ? "STANDARD"
-                : subscriptionEntity
-                ? "LAUNCH"
-                : undefined)
-          }
-        });
+        if (plan === "TEAM" && organizationId) {
+          await tx.organization.update({
+            where: { id: organizationId },
+            data: {
+              plan: "TEAM",
+              planInterval: interval,
+              subscriptionStatus: "active",
+              planExpiresAt: expiresAt,
+              lastPaymentProvider: PROVIDER,
+              lastPaymentId: paymentId || undefined,
+              razorpaySubscriptionId: subscriptionId || undefined
+            }
+          });
+        } else {
+          await tx.user.update({
+            where: { id: ownerId },
+            data: {
+              plan: "PRO",
+              planInterval: interval,
+              subscriptionStatus: "active",
+              planExpiresAt: expiresAt,
+              lastPaymentProvider: PROVIDER,
+              lastPaymentId: paymentId || undefined,
+              razorpaySubscriptionId: subscriptionId || undefined,
+              proPricingTier:
+                existingUser?.proPricingTier ??
+                (pricingTier === "STANDARD" ? "STANDARD" : "LAUNCH")
+            }
+          });
+        }
       });
     } else if (eventType === "payment.failed") {
+      const subscriptionEntity = subscriptionId ? await fetchSubscription(subscriptionId).catch(() => null) : null;
+      const plan = record?.plan === "TEAM" ? "TEAM" : "PRO";
+      const interval = normalizeInterval(
+        String(record?.interval || subscriptionEntity?.notes?.interval || "MONTHLY")
+      );
+      const pricingTier =
+        subscriptionEntity?.notes?.pricingTier === "STANDARD"
+          ? "STANDARD"
+          : subscriptionEntity?.notes?.pricingTier === "LAUNCH"
+            ? "LAUNCH"
+            : null;
+      const organizationId =
+        record?.organizationId ||
+        (typeof subscriptionEntity?.notes?.organizationId === "string"
+          ? String(subscriptionEntity.notes.organizationId)
+          : null);
       if (record) {
         await prisma.payment.update({
           where: { id: record.id },
@@ -811,9 +1191,11 @@ paymentRouter.post("/webhook", async (req, res) => {
         await prisma.payment.create({
           data: {
             userId: ownerId,
+            organizationId,
             provider: PROVIDER,
-            plan: "PRO",
-            amount: entity?.amount ?? 29900,
+            plan,
+            interval,
+            amount: entity?.amount ?? getPlanAmount({ plan, interval, pricingTier }),
             currency: entity?.currency ?? "INR",
             status: status || "failed",
             razorpayOrderId: orderId,

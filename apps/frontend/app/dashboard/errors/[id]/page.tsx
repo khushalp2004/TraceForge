@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { Copy, RotateCcw, Sparkles } from "lucide-react";
+import { LoadingButtonContent } from "../../../../components/ui/loading-button-content";
 import { useDebouncedValue } from "../../../hooks/useDebouncedValue";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
@@ -257,22 +258,24 @@ export default function ErrorDetailPage({ params }: { params: { id: string } }) 
                   onClick={handleRegenerate}
                   disabled={regenerating}
                 >
-                  {regenerating ? (
-                    <Sparkles className="h-4 w-4 animate-pulse" />
-                  ) : errorDetail.aiStatus === "FAILED" && hasAiRequest(errorDetail) ? (
-                    <RotateCcw className="h-4 w-4" />
-                  ) : hasAiResult(errorDetail) ? (
-                    <RotateCcw className="h-4 w-4" />
-                  ) : (
-                    <Sparkles className="h-4 w-4" />
-                  )}
-                  {regenerating
-                    ? "Generating..."
-                    : errorDetail.aiStatus === "FAILED" && hasAiRequest(errorDetail)
-                    ? "Retry AI solution"
-                    : hasAiResult(errorDetail)
-                    ? "Regenerate AI solution"
-                    : "Generate AI solution"}
+                  <LoadingButtonContent
+                    loading={regenerating}
+                    loadingLabel="Generating..."
+                    idleLabel={
+                      errorDetail.aiStatus === "FAILED" && hasAiRequest(errorDetail)
+                        ? "Retry AI solution"
+                        : hasAiResult(errorDetail)
+                        ? "Regenerate AI solution"
+                        : "Generate AI solution"
+                    }
+                    icon={
+                      errorDetail.aiStatus === "FAILED" && hasAiRequest(errorDetail)
+                        ? RotateCcw
+                        : hasAiResult(errorDetail)
+                        ? RotateCcw
+                        : Sparkles
+                    }
+                  />
                 </button>
               )}
             </div>
@@ -546,22 +549,24 @@ export default function ErrorDetailPage({ params }: { params: { id: string } }) 
                     onClick={handleRegenerate}
                     disabled={regenerating}
                   >
-                    {regenerating ? (
-                      <Sparkles className="h-4 w-4 animate-pulse" />
-                    ) : errorDetail.aiStatus === "FAILED" && hasAiRequest(errorDetail) ? (
-                      <RotateCcw className="h-4 w-4" />
-                    ) : hasAiResult(errorDetail) ? (
-                      <RotateCcw className="h-4 w-4" />
-                    ) : (
-                      <Sparkles className="h-4 w-4" />
-                    )}
-                    {regenerating
-                      ? "Generating..."
-                      : errorDetail.aiStatus === "FAILED" && hasAiRequest(errorDetail)
-                      ? "Retry AI solution"
-                      : hasAiResult(errorDetail)
-                      ? "Regenerate AI solution"
-                      : "Generate AI solution"}
+                    <LoadingButtonContent
+                      loading={regenerating}
+                      loadingLabel="Generating..."
+                      idleLabel={
+                        errorDetail.aiStatus === "FAILED" && hasAiRequest(errorDetail)
+                          ? "Retry AI solution"
+                          : hasAiResult(errorDetail)
+                          ? "Regenerate AI solution"
+                          : "Generate AI solution"
+                      }
+                      icon={
+                        errorDetail.aiStatus === "FAILED" && hasAiRequest(errorDetail)
+                          ? RotateCcw
+                          : hasAiResult(errorDetail)
+                          ? RotateCcw
+                          : Sparkles
+                      }
+                    />
                   </button>
                 )}
               </div>

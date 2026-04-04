@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ChevronDown, Eye, EyeOff } from "lucide-react";
+import { LoadingButtonContent } from "../../../../components/ui/loading-button-content";
 import { THEMES } from "../../../../app/theme";
 import { LAYOUTS } from "../../../../app/layoutPreference";
 import { useAuth } from "../../../../context/AuthContext";
@@ -342,7 +343,11 @@ export default function AccountDetailsPage() {
                   onClick={saveProfile}
                   disabled={busyAction === "profile"}
                 >
-                  {busyAction === "profile" ? "Saving..." : "Save changes"}
+                  <LoadingButtonContent
+                    loading={busyAction === "profile"}
+                    loadingLabel="Saving..."
+                    idleLabel="Save changes"
+                  />
                 </button>
               </div>
             </section>
@@ -414,7 +419,11 @@ export default function AccountDetailsPage() {
                   onClick={changePassword}
                   disabled={busyAction === "change-password"}
                 >
-                  {busyAction === "change-password" ? "Saving..." : "Update password"}
+                  <LoadingButtonContent
+                    loading={busyAction === "change-password"}
+                    loadingLabel="Saving..."
+                    idleLabel="Update password"
+                  />
                 </button>
               </div>
             </section>
@@ -557,7 +566,11 @@ export default function AccountDetailsPage() {
                     onClick={requestPasswordReset}
                     disabled={busyAction === "reset"}
                   >
-                    {busyAction === "reset" ? "Sending..." : "Send reset link"}
+                    <LoadingButtonContent
+                      loading={busyAction === "reset"}
+                      loadingLabel="Sending..."
+                      idleLabel="Send reset link"
+                    />
                   </button>
                 </div>
                 <div className="rounded-2xl border border-border bg-secondary/25 px-4 py-4">
@@ -686,7 +699,11 @@ export default function AccountDetailsPage() {
                 onClick={leaveAllOrganizations}
                 disabled={busyAction === "leave-organizations"}
               >
-                {busyAction === "leave-organizations" ? "Leaving..." : "Leave all"}
+                <LoadingButtonContent
+                  loading={busyAction === "leave-organizations"}
+                  loadingLabel="Leaving..."
+                  idleLabel="Leave all"
+                />
               </button>
             </div>
           </div>
@@ -729,7 +746,11 @@ export default function AccountDetailsPage() {
                 onClick={deleteAccount}
                 disabled={busyAction === "delete-account"}
               >
-                {busyAction === "delete-account" ? "Deleting..." : "Delete account"}
+                <LoadingButtonContent
+                  loading={busyAction === "delete-account"}
+                  loadingLabel="Deleting..."
+                  idleLabel="Delete account"
+                />
               </button>
             </div>
           </div>

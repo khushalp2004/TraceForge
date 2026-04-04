@@ -11,6 +11,7 @@ import {
   ShieldCheck,
   Sparkles
 } from "lucide-react";
+import { LoadingButtonContent } from "../../components/ui/loading-button-content";
 import AuthToast from "../components/AuthToast";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
@@ -238,7 +239,11 @@ export default function ForgotPasswordPage() {
                 onClick={handleSubmit}
                 disabled={loading}
               >
-                {loading ? "Sending..." : "Send reset link"}
+                <LoadingButtonContent
+                  loading={loading}
+                  loadingLabel="Sending link..."
+                  idleLabel="Send reset link"
+                />
               </button>
 
               <div className="flex items-center justify-between gap-3 text-sm">
