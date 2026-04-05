@@ -167,12 +167,17 @@ export default function BillingPage() {
       : null;
 
   const activeHistoryOrgId = historyScope === "ORGANIZATION" ? selectedOrg?.id || null : null;
-  const invoicesTotalPages = Math.max(1, Math.ceil(invoices.length / invoicesPageSize));
+  const visibleInvoices = useMemo(
+    () => invoices.filter((invoice) => invoice.status.toLowerCase() !== "cancelled"),
+    [invoices]
+  );
+  const hiddenCancelledInvoiceCount = invoices.length - visibleInvoices.length;
+  const invoicesTotalPages = Math.max(1, Math.ceil(visibleInvoices.length / invoicesPageSize));
   const paymentsTotalPages = Math.max(1, Math.ceil(payments.length / paymentsPageSize));
   const paginatedInvoices = useMemo(() => {
     const start = (invoicesPage - 1) * invoicesPageSize;
-    return invoices.slice(start, start + invoicesPageSize);
-  }, [invoices, invoicesPage, invoicesPageSize]);
+    return visibleInvoices.slice(start, start + invoicesPageSize);
+  }, [visibleInvoices, invoicesPage, invoicesPageSize]);
   const paginatedPayments = useMemo(() => {
     const start = (paymentsPage - 1) * paymentsPageSize;
     return payments.slice(start, start + paymentsPageSize);
@@ -714,6 +719,11 @@ export default function BillingPage() {
           <div className="mt-6 grid gap-6 lg:grid-cols-2">
             <div>
               <h3 className="text-base font-semibold text-text-primary">Invoices</h3>
+              {hiddenCancelledInvoiceCount > 0 ? (
+                <p className="mt-1 text-xs text-text-secondary">
+                  {hiddenCancelledInvoiceCount} cancelled invoice{hiddenCancelledInvoiceCount === 1 ? "" : "s"} hidden from this page.
+                </p>
+              ) : null}
               <div className="mt-4 space-y-3">
                 {(billingLoading ? Array.from({ length: 3 }) : paginatedInvoices).map((invoice, idx) => {
                   const row = invoice as Invoice | undefined;
@@ -750,7 +760,7 @@ export default function BillingPage() {
                 })}
               </div>
 
-              {invoices.length > 5 && !billingLoading ? (
+              {visibleInvoices.length > 5 && !billingLoading ? (
                 <DashboardPagination
                   page={invoicesPage}
                   totalPages={invoicesTotalPages}

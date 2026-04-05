@@ -134,7 +134,7 @@ export const GLOBAL_STATIC_SEARCH_ITEMS: GlobalSearchItem[] = [
     href: "/dashboard/settings",
     group: "Pages",
     icon: "settings",
-    keywords: ["settings", "integrations", "workspace", "slack", "jira", "pagerduty"]
+    keywords: ["settings", "integrations", "workspace", "github", "slack", "jira", "pagerduty"]
   },
   {
     id: "page-account",

@@ -2,9 +2,18 @@ import { Router } from "express";
 import crypto from "crypto";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
+import { Prisma } from "@prisma/client";
 import prisma from "../db/prisma.js";
+import { redis } from "../db/redis.js";
 import { requireAuth } from "../middleware/auth.js";
 import { signToken } from "../utils/jwt.js";
+import { encryptIntegrationSecret } from "../utils/integrationSecrets.js";
+import {
+  FREE_MONTHLY_AI_LIMIT,
+  TEAM_MONTHLY_AI_LIMIT,
+  isOrgTeamActive,
+  isUserProActive
+} from "../utils/billing.js";
 import {
   findActiveVerificationCode,
   isVerificationCodeMatch,
@@ -25,6 +34,8 @@ const frontendUrl = process.env.FRONTEND_URL || process.env.APP_PUBLIC_URL || "h
 const googleClientId = process.env.GOOGLE_CLIENT_ID || "";
 const googleClientSecret = process.env.GOOGLE_CLIENT_SECRET || "";
 const googleRedirectUri = process.env.GOOGLE_REDIRECT_URI || "";
+const currentMonthKey = (now: Date) =>
+  `${now.getUTCFullYear()}-${String(now.getUTCMonth() + 1).padStart(2, "0")}`;
 const chooseTransferTarget = (
   members: Array<{ userId: string; role: "OWNER" | "MEMBER" }>
 ) => members.find((member) => member.role === "OWNER") ?? members[0] ?? null;
@@ -45,6 +56,13 @@ type SocialSignupToken = {
   email: string;
   displayName: string;
   next: string;
+};
+
+type IntegrationOauthState = {
+  purpose: "integration_oauth";
+  provider: "github";
+  userId: string;
+  returnTo: string;
 };
 
 const githubClientId = process.env.GITHUB_CLIENT_ID || "";
@@ -204,6 +222,7 @@ const fetchGithubProfile = async (accessToken: string) => {
   ]);
 
   const userData = (await userResponse.json().catch(() => ({}))) as {
+    id?: number;
     name?: string | null;
     login?: string;
     email?: string | null;
@@ -220,11 +239,13 @@ const fetchGithubProfile = async (accessToken: string) => {
     userData.email ||
     "";
 
-  if (!userResponse.ok || !emailsResponse.ok || !verifiedEmail) {
+  if (!userResponse.ok || !emailsResponse.ok || !verifiedEmail || !userData.id || !userData.login) {
     throw new Error("Failed to fetch GitHub profile");
   }
 
   return {
+    id: String(userData.id),
+    login: userData.login,
     email: verifiedEmail,
     name: userData.name?.trim() || userData.login || ""
   };
@@ -338,6 +359,148 @@ authRouter.get("/me", requireAuth, async (req, res) => {
   }
 
   return res.json({ user });
+});
+
+authRouter.get("/usage", requireAuth, async (req, res) => {
+  const userId = req.user?.id;
+
+  if (!userId) {
+    return res.status(401).json({ error: "Unauthorized" });
+  }
+
+  const organizationId =
+    typeof req.query.orgId === "string" && req.query.orgId.trim()
+      ? req.query.orgId.trim()
+      : null;
+
+  const now = new Date();
+  const monthKey = currentMonthKey(now);
+
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: {
+      plan: true,
+      planExpiresAt: true
+    }
+  });
+
+  if (!user) {
+    return res.status(404).json({ error: "User not found" });
+  }
+
+  if (isUserProActive(user)) {
+    return res.json({
+      usage: {
+        scope: "USER",
+        plan: "PRO",
+        used: 0,
+        limit: null,
+        remaining: null,
+        percentUsed: 0,
+        label: "Unlimited AI",
+        detail: "Unlimited AI analyses on your Pro plan."
+      }
+    });
+  }
+
+  if (organizationId) {
+    const membership = await prisma.organizationMember.findUnique({
+      where: {
+        organizationId_userId: {
+          organizationId,
+          userId
+        }
+      },
+      select: { role: true }
+    });
+
+    if (!membership) {
+      return res.status(403).json({ error: "You are not a member of this organization" });
+    }
+
+    const organization = await prisma.organization.findUnique({
+      where: { id: organizationId },
+      select: {
+        id: true,
+        name: true,
+        plan: true,
+        planExpiresAt: true
+      }
+    });
+
+    if (!organization) {
+      return res.status(404).json({ error: "Organization not found" });
+    }
+
+    if (isOrgTeamActive(organization)) {
+      const limit = TEAM_MONTHLY_AI_LIMIT;
+      let used = 0;
+
+      if (redis.isOpen) {
+        used = Number((await redis.get(`usage:ai:org:${organizationId}:${monthKey}`)) || "0");
+      } else {
+        const monthStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1, 0, 0, 0, 0));
+        used = await prisma.errorAnalysis.count({
+          where: {
+            createdAt: { gte: monthStart },
+            error: {
+              project: {
+                orgId: organizationId
+              }
+            }
+          }
+        });
+      }
+
+      const safeUsed = Math.max(0, used);
+      const remaining = Math.max(0, limit - safeUsed);
+      return res.json({
+        usage: {
+          scope: "ORGANIZATION",
+          plan: "TEAM",
+          used: safeUsed,
+          limit,
+          remaining,
+          percentUsed: Math.min(100, Math.round((safeUsed / limit) * 100)),
+          label: `${remaining} left`,
+          detail: `${safeUsed} of ${limit} AI analyses used this month for ${organization.name}.`
+        }
+      });
+    }
+  }
+
+  const freeLimit = FREE_MONTHLY_AI_LIMIT;
+  let freeUsed = 0;
+
+  if (redis.isOpen) {
+    freeUsed = Number((await redis.get(`usage:ai:user:${userId}:${monthKey}`)) || "0");
+  } else {
+    const monthStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1, 0, 0, 0, 0));
+    freeUsed = await prisma.errorAnalysis.count({
+      where: {
+        createdAt: { gte: monthStart },
+        error: {
+          aiRequestedByUserId: userId
+        }
+      }
+    });
+  }
+
+  const safeFreeUsed = Math.max(0, freeUsed);
+  const freeRemaining = Math.max(0, freeLimit - safeFreeUsed);
+
+  return res.json({
+    usage: {
+      scope: "USER",
+      plan: "FREE",
+      used: safeFreeUsed,
+      limit: freeLimit,
+      remaining: freeRemaining,
+      percentUsed: Math.min(100, Math.round((safeFreeUsed / freeLimit) * 100)),
+      label: `${freeRemaining} left`,
+      detail: `${safeFreeUsed} of ${freeLimit} AI analyses used this month on your free plan.`
+    }
+  });
 });
 
 authRouter.post("/register", async (req, res) => {
@@ -531,6 +694,36 @@ authRouter.get("/google/callback", async (req, res) => {
   }
 });
 
+authRouter.post("/github/integration/start", requireAuth, async (req, res) => {
+  const userId = req.user?.id;
+  if (!userId) {
+    return res.status(401).json({ error: "Unauthorized" });
+  }
+
+  if (!isGithubOAuthConfigured()) {
+    return res.status(503).json({ error: "GitHub integration is not configured" });
+  }
+
+  const state = jwt.sign(
+    {
+      purpose: "integration_oauth",
+      provider: "github",
+      userId,
+      returnTo: "/dashboard/settings"
+    } satisfies IntegrationOauthState,
+    jwtSecret,
+    { expiresIn: "10m" }
+  );
+
+  const url = new URL("https://github.com/login/oauth/authorize");
+  url.searchParams.set("client_id", githubClientId);
+  url.searchParams.set("redirect_uri", githubRedirectUri);
+  url.searchParams.set("scope", "read:user user:email repo read:org");
+  url.searchParams.set("state", state);
+
+  return res.json({ url: url.toString() });
+});
+
 authRouter.get("/github/start", async (req, res) => {
   if (!isGithubOAuthConfigured()) {
     return res.status(503).json({ error: "GitHub OAuth is not configured" });
@@ -564,10 +757,10 @@ authRouter.get("/github/callback", async (req, res) => {
     );
   }
 
-  let parsedState: SocialOauthState;
+  let parsedState: SocialOauthState | IntegrationOauthState;
 
   try {
-    parsedState = jwt.verify(state, jwtSecret) as SocialOauthState;
+    parsedState = jwt.verify(state, jwtSecret) as SocialOauthState | IntegrationOauthState;
   } catch {
     return res.redirect(
       buildFrontendRedirect("/signin", {
@@ -576,7 +769,7 @@ authRouter.get("/github/callback", async (req, res) => {
     );
   }
 
-  if (parsedState.purpose !== "social_oauth_state" || parsedState.provider !== "github") {
+  if (parsedState.provider !== "github") {
     return res.redirect(
       buildFrontendRedirect("/signin", {
         oauthError: "github_state_invalid"
@@ -588,6 +781,66 @@ authRouter.get("/github/callback", async (req, res) => {
     const accessToken = await exchangeGithubCode(code);
     const githubProfile = await fetchGithubProfile(accessToken);
 
+    if (parsedState.purpose === "integration_oauth") {
+      const existingConnection = await prisma.integrationConnection.findUnique({
+        where: {
+          provider_userId: {
+            provider: "GITHUB",
+            userId: parsedState.userId
+          }
+        }
+      });
+
+      const existingMetadata =
+        existingConnection?.metadata &&
+        typeof existingConnection.metadata === "object" &&
+        !Array.isArray(existingConnection.metadata)
+          ? (existingConnection.metadata as Record<string, unknown>)
+          : {};
+
+      await prisma.integrationConnection.upsert({
+        where: {
+          provider_userId: {
+            provider: "GITHUB",
+            userId: parsedState.userId
+          }
+        },
+        update: {
+          scope: "USER",
+          status: "CONNECTED",
+          externalAccountId: githubProfile.id,
+          externalAccountName: githubProfile.name,
+          accessTokenEncrypted: encryptIntegrationSecret(accessToken),
+          metadata: {
+            ...(existingMetadata as Record<string, unknown>),
+            login: githubProfile.login
+          } as Prisma.InputJsonValue,
+          lastSyncedAt: new Date()
+        },
+        create: {
+          provider: "GITHUB",
+          scope: "USER",
+          userId: parsedState.userId,
+          status: "CONNECTED",
+          externalAccountId: githubProfile.id,
+          externalAccountName: githubProfile.name,
+          accessTokenEncrypted: encryptIntegrationSecret(accessToken),
+          metadata: {
+            login: githubProfile.login,
+            selectedRepoIds: []
+          } as Prisma.InputJsonValue,
+          lastSyncedAt: new Date()
+        }
+      });
+
+      return res.redirect(
+        buildFrontendRedirect(parsedState.returnTo || "/dashboard/settings", {
+          integration: "github",
+          integrationStatus: "connected"
+        })
+      );
+    }
+
     return res.redirect(
       await resolveSocialSignupRedirect({
         provider: "github",
@@ -598,6 +851,16 @@ authRouter.get("/github/callback", async (req, res) => {
       })
     );
   } catch {
+    if (parsedState.purpose === "integration_oauth") {
+      return res.redirect(
+        buildFrontendRedirect(parsedState.returnTo || "/dashboard/settings", {
+          integration: "github",
+          integrationStatus: "error",
+          integrationMessage: "GitHub connection failed"
+        })
+      );
+    }
+
     return res.redirect(
       buildFrontendRedirect(
         parsedState.mode === "signup" ? "/signup" : "/signin",

@@ -7,6 +7,20 @@ import { usePathname, useRouter } from "next/navigation";
 import { useAuth } from "../../../context/AuthContext";
 import { useGlobalSearch } from "../../components/GlobalSearchProvider";
 
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
+const dashboardPrefsKey = "traceforge_dashboard_prefs_v1";
+
+type UsageSummary = {
+  scope: "USER" | "ORGANIZATION";
+  plan: "FREE" | "PRO" | "TEAM";
+  used: number;
+  limit: number | null;
+  remaining: number | null;
+  percentUsed: number;
+  label: string;
+  detail: string;
+};
+
 const navSections = [
   {
     label: "Core",
@@ -168,6 +182,42 @@ function NavIcon({
   }
 }
 
+function UsageRing({
+  used,
+  limit,
+  percentUsed
+}: {
+  used: number;
+  limit: number | null;
+  percentUsed: number;
+}) {
+  const radius = 18;
+  const circumference = 2 * Math.PI * radius;
+  const progress = limit ? circumference - (Math.min(100, percentUsed) / 100) * circumference : circumference * 0.72;
+
+  return (
+    <div className="relative h-11 w-11 shrink-0">
+      <svg className="h-11 w-11 -rotate-90" viewBox="0 0 44 44" fill="none">
+        <circle cx="22" cy="22" r={radius} stroke="currentColor" strokeWidth="4" className="text-border/80" />
+        <circle
+          cx="22"
+          cy="22"
+          r={radius}
+          stroke="currentColor"
+          strokeWidth="4"
+          strokeLinecap="round"
+          strokeDasharray={circumference}
+          strokeDashoffset={progress}
+          className={limit ? "text-primary" : "text-emerald-400"}
+        />
+      </svg>
+      <span className="absolute inset-0 flex items-center justify-center text-[10px] font-semibold text-text-primary">
+        {limit ? `${Math.min(99, Math.max(0, percentUsed))}%` : "∞"}
+      </span>
+    </div>
+  );
+}
+
 export default function DashboardSidebar({
   collapsed,
   onToggle
@@ -175,11 +225,13 @@ export default function DashboardSidebar({
   collapsed: boolean;
   onToggle: () => void;
 }) {
-  const { user, logout } = useAuth();
+  const { user, logout, token } = useAuth();
   const { openSearch } = useGlobalSearch();
   const pathname = usePathname() ?? "/dashboard";
   const router = useRouter();
   const [profileOpen, setProfileOpen] = useState(false);
+  const [selectedOrgId, setSelectedOrgId] = useState("");
+  const [usage, setUsage] = useState<UsageSummary | null>(null);
   const profileRef = useRef<HTMLDivElement | null>(null);
   const displayName = user?.fullName?.trim() || user?.email?.split("@")[0] || "Account";
   const initials = useMemo(() => {
@@ -210,6 +262,68 @@ export default function DashboardSidebar({
     document.addEventListener("mousedown", handleClick);
     return () => document.removeEventListener("mousedown", handleClick);
   }, [profileOpen]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") {
+      return;
+    }
+
+    const syncSelectedOrg = () => {
+      try {
+        const raw = window.localStorage.getItem(dashboardPrefsKey);
+        if (!raw) {
+          setSelectedOrgId("");
+          return;
+        }
+        const parsed = JSON.parse(raw) as { orgId?: string };
+        setSelectedOrgId(typeof parsed.orgId === "string" ? parsed.orgId : "");
+      } catch {
+        setSelectedOrgId("");
+      }
+    };
+
+    syncSelectedOrg();
+    const intervalId = window.setInterval(syncSelectedOrg, 1200);
+    window.addEventListener("focus", syncSelectedOrg);
+    return () => {
+      window.clearInterval(intervalId);
+      window.removeEventListener("focus", syncSelectedOrg);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!token) {
+      setUsage(null);
+      return;
+    }
+
+    let cancelled = false;
+    const query = selectedOrgId ? `?orgId=${encodeURIComponent(selectedOrgId)}` : "";
+
+    const loadUsage = async () => {
+      try {
+        const res = await fetch(`${API_URL}/auth/usage${query}`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        const data = (await res.json()) as { usage?: UsageSummary; error?: string };
+        if (!res.ok) {
+          throw new Error(data.error || "Failed to load usage");
+        }
+        if (!cancelled) {
+          setUsage(data.usage || null);
+        }
+      } catch {
+        if (!cancelled) {
+          setUsage(null);
+        }
+      }
+    };
+
+    void loadUsage();
+    return () => {
+      cancelled = true;
+    };
+  }, [token, selectedOrgId, pathname]);
 
   const openSettings = () => {
     setProfileOpen(false);
@@ -320,6 +434,37 @@ export default function DashboardSidebar({
           );
         })}
       </nav>
+
+      {usage ? (
+        <div
+          className={`group relative rounded-2xl border border-border bg-card px-3 py-3 shadow-sm ${
+            collapsed ? "hidden group-hover/nav:block" : ""
+          }`}
+        >
+          <div className="flex items-center gap-3">
+            <UsageRing used={usage.used} limit={usage.limit} percentUsed={usage.percentUsed} />
+            <div className="min-w-0 flex-1">
+              <p className="text-xs font-semibold text-text-primary">Usage this month</p>
+              <p className="mt-1 truncate text-xs text-text-secondary">
+                {usage.plan === "PRO"
+                  ? "Unlimited AI analysis"
+                  : `${usage.label} · ${usage.plan === "TEAM" ? "Team plan" : "Free plan"}`}
+              </p>
+            </div>
+          </div>
+          <div className="pointer-events-none absolute bottom-full left-0 mb-3 hidden w-56 rounded-2xl border border-border bg-card/95 p-3 text-xs text-text-secondary shadow-xl backdrop-blur group-hover:block">
+            <p className="font-semibold text-text-primary">
+              {usage.plan === "PRO" ? "Unlimited AI" : `${usage.used} used / ${usage.limit} total`}
+            </p>
+            <p className="mt-1">
+              {usage.plan === "PRO"
+                ? "Your Pro plan includes unlimited AI analyses everywhere in TraceForge."
+                : `${usage.remaining} left this month.`}
+            </p>
+            <p className="mt-2">{usage.detail}</p>
+          </div>
+        </div>
+      ) : null}
 
       <div
         className={`rounded-2xl border border-border bg-card px-3 py-3 text-xs text-text-secondary shadow-sm ${

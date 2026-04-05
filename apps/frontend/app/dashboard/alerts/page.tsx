@@ -3,7 +3,7 @@
 import { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { Archive, BellRing, Pause, Play, RotateCcw } from "lucide-react";
+import { Archive, BellRing, Pause, Play, RotateCcw, Send, Trash2 } from "lucide-react";
 import { LoadingButtonContent } from "../../../components/ui/loading-button-content";
 import { useDebouncedValue } from "../../hooks/useDebouncedValue";
 import { DashboardPagination } from "../components/DashboardPagination";
@@ -14,6 +14,7 @@ const tokenKey = "traceforge_token";
 type Project = {
   id: string;
   name: string;
+  orgId?: string | null;
 };
 
 type AlertRule = {
@@ -56,6 +57,31 @@ type Toast = {
   tone: "success" | "error";
 };
 
+type AlertAppTargetsResponse = {
+  rule: {
+    id: string;
+    name: string;
+    severity: "INFO" | "WARNING" | "CRITICAL";
+    projectName: string;
+    environment: string | null;
+    issueDescription: string | null;
+  };
+  targets: {
+    slack: {
+      connected: boolean;
+      ready: boolean;
+      label: string;
+      reason?: string;
+    };
+    jira: {
+      connected: boolean;
+      ready: boolean;
+      label: string;
+      reason?: string;
+    };
+  };
+};
+
 const severityTone: Record<AlertRule["severity"], string> = {
   CRITICAL: "tf-danger-tag",
   WARNING: "tf-warning-tag",
@@ -95,6 +121,13 @@ function AlertsPageInner() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [notifyingRuleId, setNotifyingRuleId] = useState<string | null>(null);
+  const [appModalRule, setAppModalRule] = useState<AlertRule | null>(null);
+  const [loadingAppTargets, setLoadingAppTargets] = useState(false);
+  const [sendingAppAlert, setSendingAppAlert] = useState(false);
+  const [appTargets, setAppTargets] = useState<AlertAppTargetsResponse | null>(null);
+  const [appAlertMessage, setAppAlertMessage] = useState("");
+  const [sendToSlack, setSendToSlack] = useState(false);
+  const [sendToJira, setSendToJira] = useState(false);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [archiveTarget, setArchiveTarget] = useState<AlertRule | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<AlertRule | null>(null);
@@ -539,6 +572,99 @@ function AlertsPageInner() {
     }
   };
 
+  const openAppAlertModal = async (rule: AlertRule) => {
+    const token = localStorage.getItem(tokenKey);
+    if (!token) return;
+
+    setAppModalRule(rule);
+    setAppAlertMessage("");
+    setSendToSlack(false);
+    setSendToJira(false);
+    setLoadingAppTargets(true);
+    setAppTargets(null);
+
+    try {
+      const res = await fetch(`${API_URL}/alerts/rules/${rule.id}/apps`, {
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
+      });
+
+      const data = (await res.json()) as AlertAppTargetsResponse & { error?: string };
+      if (!res.ok) {
+        throw new Error(data.error || "Failed to load app destinations");
+      }
+
+      setAppTargets(data);
+      setSendToSlack(Boolean(data.targets.slack.ready));
+      setSendToJira(Boolean(data.targets.jira.ready));
+    } catch (err) {
+      showToast(err instanceof Error ? err.message : "Failed to load destinations", "error");
+    } finally {
+      setLoadingAppTargets(false);
+    }
+  };
+
+  const closeAppAlertModal = () => {
+    if (sendingAppAlert) return;
+    setAppModalRule(null);
+    setAppTargets(null);
+    setAppAlertMessage("");
+    setSendToSlack(false);
+    setSendToJira(false);
+    setLoadingAppTargets(false);
+  };
+
+  const sendAppAlert = async () => {
+    const token = localStorage.getItem(tokenKey);
+    if (!token || !appModalRule) return;
+
+    if (!sendToSlack && !sendToJira) {
+      showToast("Choose at least one app destination", "error");
+      return;
+    }
+
+    setSendingAppAlert(true);
+    try {
+      const res = await fetch(`${API_URL}/alerts/rules/${appModalRule.id}/apps/send`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          message: appAlertMessage.trim() || undefined,
+          destinations: {
+            slack: sendToSlack,
+            jira: sendToJira
+          }
+        })
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || "Failed to send alert to apps");
+      }
+
+      const sentLabels = Object.entries(data.results || {})
+        .filter(([, value]) => Boolean((value as { ok?: boolean }).ok))
+        .map(([, value]) => (value as { label?: string }).label)
+        .filter(Boolean);
+
+      showToast(
+        sentLabels.length
+          ? `Alert sent to ${sentLabels.join(" and ")}`
+          : data.message || "Alert sent",
+        "success"
+      );
+      closeAppAlertModal();
+    } catch (err) {
+      showToast(err instanceof Error ? err.message : "Failed to send alert", "error");
+    } finally {
+      setSendingAppAlert(false);
+    }
+  };
+
   return (
     <main className="tf-page tf-dashboard-page lg:h-screen lg:overflow-hidden">
       <div className="tf-dashboard flex min-h-0 flex-col lg:h-full">
@@ -821,7 +947,7 @@ function AlertsPageInner() {
                           </div>
                         </div>
 
-                        <div className="mt-4 flex w-full flex-col gap-2 lg:mt-0 lg:min-w-[168px]">
+                        <div className="mt-4 flex w-full flex-col gap-2.5 lg:mt-0 lg:min-w-[176px]">
                           {view === "active" ? (
                             <>
                               <button
@@ -839,30 +965,42 @@ function AlertsPageInner() {
                               </button>
                               <button
                                 type="button"
-                                className="flex w-full items-center justify-center gap-2 rounded-full border border-border bg-card px-4 py-2 text-sm font-semibold text-text-secondary transition hover:bg-secondary/70 hover:text-text-primary"
-                                onClick={() =>
-                                  updateRule(
-                                    rule.id,
-                                    { isActive: !rule.isActive },
-                                    rule.isActive ? "Alert paused" : "Alert resumed"
-                                  )
-                                }
+                                className="tf-button-ghost flex w-full items-center justify-center gap-2 px-4 py-2 text-sm"
+                                onClick={() => void openAppAlertModal(rule)}
                               >
-                                {rule.isActive ? (
-                                  <Pause className="h-4 w-4" />
-                                ) : (
-                                  <Play className="h-4 w-4" />
-                                )}
-                                {rule.isActive ? "Pause" : "Resume"}
+                                <Send className="h-4 w-4" />
+                                Send alert
                               </button>
-                              <button
-                                type="button"
-                                className="tf-danger-button flex w-full items-center justify-center gap-2 rounded-full border px-4 py-2 text-sm font-semibold transition"
-                                onClick={() => setArchiveTarget(rule)}
-                              >
-                                <Archive className="h-4 w-4" />
-                                Archive
-                              </button>
+                              <div className="grid grid-cols-2 gap-2">
+                                <button
+                                  type="button"
+                                  className="tf-button-ghost inline-flex h-10 items-center justify-center rounded-full border border-border bg-card px-0 text-text-secondary transition hover:bg-secondary/70 hover:text-text-primary"
+                                  onClick={() =>
+                                    updateRule(
+                                      rule.id,
+                                      { isActive: !rule.isActive },
+                                      rule.isActive ? "Alert paused" : "Alert resumed"
+                                    )
+                                  }
+                                  aria-label={rule.isActive ? "Pause alert" : "Resume alert"}
+                                  title={rule.isActive ? "Pause alert" : "Resume alert"}
+                                >
+                                  {rule.isActive ? (
+                                    <Pause className="h-4 w-4" />
+                                  ) : (
+                                    <Play className="h-4 w-4" />
+                                  )}
+                                </button>
+                                <button
+                                  type="button"
+                                  className="inline-flex h-10 items-center justify-center rounded-full border border-red-500/25 bg-red-500/10 px-0 text-red-400 transition hover:bg-red-500/15"
+                                  onClick={() => setArchiveTarget(rule)}
+                                  aria-label="Archive alert"
+                                  title="Archive alert"
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </button>
+                              </div>
                             </>
                           ) : (
                             <>
@@ -1058,6 +1196,113 @@ function AlertsPageInner() {
           </div>
         </section>
       </div>
+
+      {appModalRule && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-6">
+          <div className="w-full max-w-lg rounded-2xl border border-border bg-card/95 p-6 shadow-xl backdrop-blur">
+            <h3 className="font-display text-lg font-semibold text-text-primary">Send alert</h3>
+            <p className="mt-2 text-sm text-text-secondary">
+              Add an optional message, then choose where this alert should be sent. TraceForge will attach the alert details automatically.
+            </p>
+
+            <div className="mt-4 rounded-2xl border border-border bg-secondary/25 px-4 py-4">
+              <p className="text-sm font-semibold text-text-primary">{appModalRule.name}</p>
+              <p className="mt-1 text-sm text-text-secondary">
+                {appModalRule.project?.name ?? "All projects"} · {appModalRule.environment || "All environments"} · {appModalRule.severity}
+              </p>
+            </div>
+
+            <div className="mt-4">
+              <label className="mb-2 block text-sm font-semibold text-text-primary">
+                Message
+              </label>
+              <textarea
+                className="tf-input min-h-[112px] w-full resize-y rounded-2xl py-3"
+                placeholder="Add context for Slack or Jira recipients"
+                value={appAlertMessage}
+                onChange={(event) => setAppAlertMessage(event.target.value)}
+                disabled={loadingAppTargets || sendingAppAlert}
+              />
+            </div>
+
+            <div className="mt-4 space-y-3">
+              <p className="text-sm font-semibold text-text-primary">Destinations</p>
+
+              {loadingAppTargets ? (
+                <div className="rounded-2xl border border-border bg-secondary/25 px-4 py-4 text-sm text-text-secondary">
+                  Loading connected apps...
+                </div>
+              ) : (
+                <>
+                  <label className="flex items-start gap-3 rounded-2xl border border-border bg-card px-4 py-4">
+                    <input
+                      type="checkbox"
+                      className="mt-0.5 h-4 w-4 rounded border-border"
+                      checked={sendToSlack}
+                      onChange={(event) => setSendToSlack(event.target.checked)}
+                      disabled={!appTargets?.targets.slack.ready || sendingAppAlert}
+                    />
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-semibold text-text-primary">
+                        {appTargets?.targets.slack.label || "Slack"}
+                      </p>
+                      <p className="mt-1 text-sm text-text-secondary">
+                        {appTargets?.targets.slack.ready
+                          ? "Send this alert to the configured Slack channel."
+                          : appTargets?.targets.slack.reason || "Slack is not ready for this alert."}
+                      </p>
+                    </div>
+                  </label>
+
+                  <label className="flex items-start gap-3 rounded-2xl border border-border bg-card px-4 py-4">
+                    <input
+                      type="checkbox"
+                      className="mt-0.5 h-4 w-4 rounded border-border"
+                      checked={sendToJira}
+                      onChange={(event) => setSendToJira(event.target.checked)}
+                      disabled={!appTargets?.targets.jira.ready || sendingAppAlert}
+                    />
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-semibold text-text-primary">
+                        {appTargets?.targets.jira.label || "Jira"}
+                      </p>
+                      <p className="mt-1 text-sm text-text-secondary">
+                        {appTargets?.targets.jira.ready
+                          ? "Create a Jira issue using the connected default project."
+                          : appTargets?.targets.jira.reason || "Jira is not ready for this alert."}
+                      </p>
+                    </div>
+                  </label>
+                </>
+              )}
+            </div>
+
+            <div className="mt-5 flex flex-col-reverse gap-3 sm:flex-row sm:items-center sm:justify-end">
+              <button
+                type="button"
+                className="tf-button-ghost px-4 py-2 text-sm"
+                onClick={closeAppAlertModal}
+                disabled={sendingAppAlert}
+              >
+                Close
+              </button>
+              <button
+                type="button"
+                className="tf-button px-4 py-2 text-sm"
+                onClick={sendAppAlert}
+                disabled={loadingAppTargets || sendingAppAlert}
+              >
+                <LoadingButtonContent
+                  loading={sendingAppAlert}
+                  loadingLabel="Sending alert..."
+                  idleLabel="Send alert"
+                  icon={Send}
+                />
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {archiveTarget && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-6">

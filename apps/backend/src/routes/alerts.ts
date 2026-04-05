@@ -3,8 +3,22 @@ import crypto from "crypto";
 import prisma from "../db/prisma.js";
 import { requireAuth } from "../middleware/auth.js";
 import { publishNotificationToUser } from "../utils/notifications.js";
+import { decryptIntegrationSecret } from "../utils/integrationSecrets.js";
+import {
+  parseJiraMetadata,
+  parseSlackMetadata,
+  resolveJiraAccessToken
+} from "../utils/integrationConnectionState.js";
+import {
+  createJiraIssue,
+  fetchJiraIssueTypes,
+  sendSlackMessage
+} from "../utils/integrationProviders.js";
 
 export const alertsRouter = Router();
+const frontendUrl = process.env.FRONTEND_URL || process.env.APP_PUBLIC_URL || "http://localhost:3000";
+const jiraClientId = process.env.JIRA_CLIENT_ID || "";
+const jiraClientSecret = process.env.JIRA_CLIENT_SECRET || "";
 
 alertsRouter.use(requireAuth);
 
@@ -37,7 +51,8 @@ const alertInclude = {
   project: {
     select: {
       id: true,
-      name: true
+      name: true,
+      orgId: true
     }
   },
   _count: {
@@ -73,6 +88,154 @@ const getAlertRecipients = async (projectId: string | null, creatorId: string) =
   }
 
   return recipients;
+};
+
+const getOwnedAlertRule = async (ruleId: string, userId: string) =>
+  prisma.alertRule.findFirst({
+    where: {
+      id: ruleId,
+      userId,
+      archivedAt: null
+    },
+    include: {
+      project: {
+        select: {
+          id: true,
+          name: true,
+          orgId: true
+        }
+      }
+    }
+  });
+
+const getAlertAppTargets = async (rule: Awaited<ReturnType<typeof getOwnedAlertRule>>) => {
+  if (!rule?.project?.orgId) {
+    return {
+      slack: {
+        connected: false,
+        ready: false,
+        label: "Slack",
+        reason: "Use an organization project to send Slack alerts."
+      },
+      jira: {
+        connected: false,
+        ready: false,
+        label: "Jira",
+        reason: "Use an organization project to send Jira alerts."
+      }
+    };
+  }
+
+  const connections = await prisma.integrationConnection.findMany({
+    where: {
+      organizationId: rule.project.orgId,
+      provider: {
+        in: ["SLACK", "JIRA"]
+      }
+    }
+  });
+
+  const slackConnection = connections.find((entry) => entry.provider === "SLACK") || null;
+  const jiraConnection = connections.find((entry) => entry.provider === "JIRA") || null;
+  const slackMetadata = parseSlackMetadata(slackConnection?.metadata);
+  const jiraMetadata = parseJiraMetadata(jiraConnection?.metadata);
+
+  return {
+    slack: {
+      connected: Boolean(slackConnection),
+      ready: Boolean(slackConnection && slackMetadata.selectedChannelId),
+      label: slackMetadata.selectedChannelName
+        ? `Slack · #${slackMetadata.selectedChannelName}`
+        : "Slack",
+      reason: !slackConnection
+        ? "Slack is not connected for this organization."
+        : !slackMetadata.selectedChannelId
+          ? "Choose a default Slack channel in Settings first."
+          : undefined
+    },
+    jira: {
+      connected: Boolean(jiraConnection),
+      ready: Boolean(
+        jiraConnection && jiraMetadata.selectedSiteId && jiraMetadata.selectedProjectId
+      ),
+      label: jiraMetadata.selectedProjectKey
+        ? `Jira · ${jiraMetadata.selectedProjectKey}`
+        : "Jira",
+      reason: !jiraConnection
+        ? "Jira is not connected for this organization."
+        : !jiraMetadata.selectedSiteId || !jiraMetadata.selectedProjectId
+          ? "Choose a default Jira project in Settings first."
+          : undefined
+    }
+  };
+};
+
+const buildAlertMessageBody = ({
+  ruleName,
+  severity,
+  projectName,
+  environment,
+  issueDescription,
+  customMessage
+}: {
+  ruleName: string;
+  severity: "INFO" | "WARNING" | "CRITICAL";
+  projectName: string;
+  environment: string | null;
+  issueDescription: string | null;
+  customMessage: string;
+}) => {
+  const details = [
+    `Alert: ${ruleName}`,
+    `Severity: ${severity}`,
+    `Project: ${projectName}`,
+    `Environment: ${environment || "All environments"}`
+  ];
+
+  if (issueDescription?.trim()) {
+    details.push(`Issue: ${issueDescription.trim()}`);
+  }
+
+  if (customMessage.trim()) {
+    details.push(`Message: ${customMessage.trim()}`);
+  }
+
+  details.push(`TraceForge: ${frontendUrl}/dashboard/alerts`);
+  return details.join("\n");
+};
+
+const pickJiraIssueType = async ({
+  accessToken,
+  cloudId,
+  projectId,
+  projectKey
+}: {
+  accessToken: string;
+  cloudId: string;
+  projectId: string;
+  projectKey?: string;
+}) => {
+  const issueTypes = await fetchJiraIssueTypes(accessToken, cloudId, projectId);
+  const preferredNameOrder = ["Task", "Bug", "Story"];
+  const preferred =
+    preferredNameOrder
+      .map((name) => issueTypes.find((issueType) => issueType.name === name))
+      .find(Boolean) || issueTypes[0];
+
+  if (preferred) {
+    return preferred;
+  }
+
+  if (projectKey) {
+    const fallbackTypes = await fetchJiraIssueTypes(accessToken, cloudId, projectKey);
+    return (
+      preferredNameOrder
+        .map((name) => fallbackTypes.find((issueType) => issueType.name === name))
+        .find(Boolean) || fallbackTypes[0] || null
+    );
+  }
+
+  return null;
 };
 
 alertsRouter.get("/rules", async (req, res) => {
@@ -573,4 +736,196 @@ alertsRouter.post("/rules/:id/notify", async (req, res) => {
   }
 
   return res.status(201).json({ delivery });
+});
+
+alertsRouter.get("/rules/:id/apps", async (req, res) => {
+  const userId = req.user?.id;
+  const ruleId = req.params.id;
+
+  if (!userId) {
+    return res.status(401).json({ error: "Unauthorized" });
+  }
+
+  const rule = await getOwnedAlertRule(ruleId, userId);
+  if (!rule) {
+    return res.status(404).json({ error: "Alert rule not found" });
+  }
+
+  const targets = await getAlertAppTargets(rule);
+
+  return res.json({
+    rule: {
+      id: rule.id,
+      name: rule.name,
+      severity: rule.severity,
+      projectName: rule.project?.name ?? "All projects",
+      environment: rule.environment,
+      issueDescription: rule.issueDescription
+    },
+    targets
+  });
+});
+
+alertsRouter.post("/rules/:id/apps/send", async (req, res) => {
+  const userId = req.user?.id;
+  const ruleId = req.params.id;
+  const {
+    message,
+    destinations
+  } = req.body as {
+    message?: string;
+    destinations?: {
+      slack?: boolean;
+      jira?: boolean;
+    };
+  };
+
+  if (!userId) {
+    return res.status(401).json({ error: "Unauthorized" });
+  }
+
+  if (!destinations?.slack && !destinations?.jira) {
+    return res.status(400).json({ error: "Choose at least one destination" });
+  }
+
+  const rule = await getOwnedAlertRule(ruleId, userId);
+  if (!rule) {
+    return res.status(404).json({ error: "Alert rule not found" });
+  }
+
+  if (!rule.project?.orgId) {
+    return res.status(400).json({
+      error: "Use an organization project to send alerts to Slack or Jira"
+    });
+  }
+
+  const appTargets = await getAlertAppTargets(rule);
+  const [slackConnection, jiraConnection] = await Promise.all([
+    prisma.integrationConnection.findUnique({
+      where: {
+        provider_organizationId: {
+          provider: "SLACK",
+          organizationId: rule.project.orgId
+        }
+      }
+    }),
+    prisma.integrationConnection.findUnique({
+      where: {
+        provider_organizationId: {
+          provider: "JIRA",
+          organizationId: rule.project.orgId
+        }
+      }
+    })
+  ]);
+
+  const alertBody = buildAlertMessageBody({
+    ruleName: rule.name,
+    severity: rule.severity,
+    projectName: rule.project.name,
+    environment: rule.environment,
+    issueDescription: rule.issueDescription,
+    customMessage: message || ""
+  });
+
+  const results: Record<string, { ok: boolean; label: string; detail?: string }> = {};
+  const errors: string[] = [];
+
+  if (destinations.slack) {
+    if (!appTargets.slack.ready || !slackConnection) {
+      errors.push(appTargets.slack.reason || "Slack is not ready for this workspace");
+      results.slack = { ok: false, label: appTargets.slack.label };
+    } else {
+      try {
+        const slackMetadata = parseSlackMetadata(slackConnection.metadata);
+        await sendSlackMessage(
+          decryptIntegrationSecret(slackConnection.accessTokenEncrypted),
+          slackMetadata.selectedChannelId as string,
+          `🚨 TraceForge alert\n${alertBody}`
+        );
+        results.slack = {
+          ok: true,
+          label: appTargets.slack.label
+        };
+      } catch (error) {
+        const detail =
+          error instanceof Error ? error.message : "Failed to send alert to Slack";
+        errors.push(detail);
+        results.slack = {
+          ok: false,
+          label: appTargets.slack.label,
+          detail
+        };
+      }
+    }
+  }
+
+  if (destinations.jira) {
+    if (!appTargets.jira.ready || !jiraConnection) {
+      errors.push(appTargets.jira.reason || "Jira is not ready for this workspace");
+      results.jira = { ok: false, label: appTargets.jira.label };
+    } else {
+      try {
+        const jiraMetadata = parseJiraMetadata(jiraConnection.metadata);
+        const { accessToken } = await resolveJiraAccessToken(
+          jiraConnection,
+          jiraClientId,
+          jiraClientSecret
+        );
+        const issueType = await pickJiraIssueType({
+          accessToken,
+          cloudId: jiraMetadata.selectedSiteId as string,
+          projectId: jiraMetadata.selectedProjectId as string,
+          projectKey: jiraMetadata.selectedProjectKey
+        });
+
+        if (!issueType) {
+          throw new Error("No supported Jira issue type was found for the selected project");
+        }
+
+        const jiraIssue = await createJiraIssue({
+          accessToken,
+          cloudId: jiraMetadata.selectedSiteId as string,
+          projectId: jiraMetadata.selectedProjectId as string,
+          issueTypeId: issueType.id,
+          summary: `[Alert] ${rule.name} · ${rule.project.name}`,
+          description: alertBody
+        });
+
+        results.jira = {
+          ok: true,
+          label: appTargets.jira.label,
+          detail: jiraIssue.key
+        };
+      } catch (error) {
+        const detail =
+          error instanceof Error ? error.message : "Failed to send alert to Jira";
+        errors.push(detail);
+        results.jira = {
+          ok: false,
+          label: appTargets.jira.label,
+          detail
+        };
+      }
+    }
+  }
+
+  const successCount = Object.values(results).filter((result) => result.ok).length;
+
+  if (!successCount) {
+    return res.status(400).json({
+      error: errors[0] || "Failed to send alert",
+      results
+    });
+  }
+
+  return res.json({
+    ok: true,
+    results,
+    partial: errors.length > 0,
+    message:
+      errors.length > 0
+        ? "Alert sent to some destinations, but at least one destination failed."
+        : "Alert sent successfully."
+  });
 });

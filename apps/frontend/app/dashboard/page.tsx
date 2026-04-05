@@ -141,6 +141,15 @@ type PaginationMeta = {
   totalPages: number;
 };
 
+const formatNotificationDateTime = (value: string) =>
+  new Intl.DateTimeFormat("en-IN", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+    hour: "numeric",
+    minute: "2-digit"
+  }).format(new Date(value));
+
 type InviteLinkStatus = {
   valid: boolean;
   trialsUsed: number;
@@ -903,6 +912,19 @@ function DashboardPageInner() {
 
   const selectedOrg = orgs.find((org) => org.id === selectedOrgId) || null;
 
+  const handleCopyApiKey = async () => {
+    if (!selectedProjectMeta?.apiKey) {
+      return;
+    }
+
+    try {
+      await navigator.clipboard.writeText(selectedProjectMeta.apiKey);
+      showToast("API key copied", "success");
+    } catch {
+      showToast("Failed to copy API key", "error");
+    }
+  };
+
   const handleProjectCreate = async () => {
     if (!projectName.trim()) {
       setError("Project name is required");
@@ -1280,6 +1302,9 @@ function DashboardPageInner() {
                             </button>
                             <p className="font-semibold text-text-primary">{req.requesterEmail}</p>
                             <p className="text-text-secondary">{req.orgName}</p>
+                            <p className="mt-1 text-text-secondary">
+                              Requested {formatNotificationDateTime(req.createdAt)}
+                            </p>
                             <div className="mt-2 flex gap-2">
                               <button
                                 className="rounded-full border border-border px-2 py-1 text-xs"
@@ -1329,7 +1354,7 @@ function DashboardPageInner() {
                             <p className="font-semibold text-text-primary">{invite.orgName}</p>
                             <p className="text-text-secondary">Role: {invite.role.toLowerCase()}</p>
                             <p className="text-text-secondary">
-                              Expires {new Date(invite.expiresAt).toLocaleDateString()}
+                              Expires {formatNotificationDateTime(invite.expiresAt)}
                             </p>
                             <div className="mt-2 flex gap-2">
                               <button
@@ -1375,6 +1400,9 @@ function DashboardPageInner() {
                             <p className="mt-1 text-text-secondary">
                               {alert.project.name}
                               {alert.environment ? ` · ${alert.environment}` : ""}
+                            </p>
+                            <p className="mt-1 text-text-secondary">
+                              {formatNotificationDateTime(alert.triggeredAt)}
                             </p>
                             <div className="mt-2 flex gap-2">
                               <Link
@@ -1630,7 +1658,16 @@ function DashboardPageInner() {
             </div>
             {selectedProjectMeta && showApiKey && (
               <div className="mt-3 rounded-xl bg-secondary/70 px-3 py-2 text-xs text-text-secondary">
-                <p className="font-semibold text-text-secondary">API Key</p>
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <p className="font-semibold text-text-secondary">API Key</p>
+                  <button
+                    type="button"
+                    className="rounded-full border border-border px-2.5 py-1 text-[11px] font-semibold text-text-secondary transition hover:bg-card hover:text-text-primary"
+                    onClick={() => void handleCopyApiKey()}
+                  >
+                    Copy
+                  </button>
+                </div>
                 <p className="mt-1 break-all">{selectedProjectMeta.apiKey}</p>
               </div>
             )}

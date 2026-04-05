@@ -138,6 +138,9 @@ const subscriptionExpiryFromEntity = (
   return addInterval(fallbackFrom, interval);
 };
 
+const getSubscriptionTotalCount = (interval: BillingIntervalValue) =>
+  interval === "YEARLY" ? 100 : 120;
+
 const fetchSubscription = async (subscriptionId: string) =>
   razorpayRequest<RazorpaySubscription>("GET", `/subscriptions/${encodeURIComponent(subscriptionId)}`);
 
@@ -347,7 +350,7 @@ paymentRouter.post("/create-order", requireAuth, async (req, res) => {
       status: string;
     }>("POST", "/subscriptions", {
       plan_id: planId,
-      total_count: 120,
+      total_count: getSubscriptionTotalCount(interval),
       quantity: 1,
       customer_notify: 1,
       notes: {
@@ -704,29 +707,55 @@ paymentRouter.get("/invoices", requireAuth, async (req, res) => {
         select: { razorpaySubscriptionId: true }
       });
 
-  if (!subscriptionHolder?.razorpaySubscriptionId) {
+  const paymentRecords = await prisma.payment.findMany({
+    where: organizationId
+      ? { organizationId }
+      : {
+          userId,
+          organizationId: null
+        },
+    select: { razorpaySubscriptionId: true },
+    orderBy: { createdAt: "desc" }
+  });
+
+  const subscriptionIds = Array.from(
+    new Set(
+      [
+        subscriptionHolder?.razorpaySubscriptionId || null,
+        ...paymentRecords.map((payment) => payment.razorpaySubscriptionId || null)
+      ].filter((value): value is string => Boolean(value))
+    )
+  );
+
+  if (!subscriptionIds.length) {
     return res.json({ invoices: [] });
   }
 
   try {
-    const invoices = await razorpayRequest<{
-      items: Array<{
-        id: string;
-        status: string;
-        amount: number;
-        currency: string;
-        short_url?: string | null;
-        invoice_number?: string | null;
-        created_at?: number;
-        paid_at?: number | null;
-      }>;
-    }>(
-      "GET",
-      `/invoices?subscription_id=${encodeURIComponent(subscriptionHolder.razorpaySubscriptionId)}&count=20`
+    const invoiceResponses = await Promise.all(
+      subscriptionIds.map((subscriptionId) =>
+        razorpayRequest<{
+          items: Array<{
+            id: string;
+            status: string;
+            amount: number;
+            currency: string;
+            short_url?: string | null;
+            invoice_number?: string | null;
+            created_at?: number;
+            paid_at?: number | null;
+          }>;
+        }>("GET", `/invoices?subscription_id=${encodeURIComponent(subscriptionId)}&count=20`)
+      )
     );
 
+    const invoices = invoiceResponses.flatMap((response) => response.items);
+    const uniqueInvoices = Array.from(
+      new Map(invoices.map((invoice) => [invoice.id, invoice])).values()
+    ).sort((a, b) => (b.created_at || 0) - (a.created_at || 0));
+
     return res.json({
-      invoices: invoices.items.map((invoice) => ({
+      invoices: uniqueInvoices.map((invoice) => ({
         id: invoice.id,
         status: invoice.status,
         amount: invoice.amount,
