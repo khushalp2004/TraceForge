@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { LoadingButtonContent } from "../../../components/ui/loading-button-content";
 import { DashboardPagination } from "../components/DashboardPagination";
@@ -8,6 +8,7 @@ import { DashboardPagination } from "../components/DashboardPagination";
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
 const tokenKey = "traceforge_token";
 const dashboardPrefsKey = "traceforge_dashboard_prefs_v1";
+const projectsPrefsKey = "traceforge_projects_prefs_v1";
 
 type Org = {
   id: string;
@@ -61,6 +62,7 @@ const getProjectStatusMeta = (project: Project) =>
       };
 
 export default function ProjectSettingsPage() {
+  const orgPrefsHydratedRef = useRef(false);
   const [projects, setProjects] = useState<Project[]>([]);
   const [orgs, setOrgs] = useState<Org[]>([]);
   const [selectedOrgId, setSelectedOrgId] = useState("");
@@ -89,6 +91,22 @@ export default function ProjectSettingsPage() {
   useEffect(() => {
     if (typeof window === "undefined") return;
     try {
+      const pageRaw = window.localStorage.getItem(projectsPrefsKey);
+      if (pageRaw) {
+        const pagePrefs = JSON.parse(pageRaw) as {
+          showArchived?: boolean;
+          activePageSize?: number;
+          archivedPageSize?: number;
+        };
+        if (typeof pagePrefs.showArchived === "boolean") setShowArchived(pagePrefs.showArchived);
+        if (typeof pagePrefs.activePageSize === "number" && pagePrefs.activePageSize > 0) {
+          setActiveProjectsPageSize(pagePrefs.activePageSize);
+        }
+        if (typeof pagePrefs.archivedPageSize === "number" && pagePrefs.archivedPageSize > 0) {
+          setArchivedProjectsPageSize(pagePrefs.archivedPageSize);
+        }
+      }
+
       const raw = window.localStorage.getItem(dashboardPrefsKey);
       if (!raw) return;
       const prefs = JSON.parse(raw) as { orgId?: string };
@@ -97,11 +115,13 @@ export default function ProjectSettingsPage() {
       }
     } catch {
       // Ignore malformed prefs.
+    } finally {
+      orgPrefsHydratedRef.current = true;
     }
   }, []);
 
   useEffect(() => {
-    if (typeof window === "undefined") return;
+    if (typeof window === "undefined" || !orgPrefsHydratedRef.current) return;
     try {
       const raw = window.localStorage.getItem(dashboardPrefsKey);
       const existing = raw ? (JSON.parse(raw) as Record<string, unknown>) : {};
@@ -117,10 +137,27 @@ export default function ProjectSettingsPage() {
     }
   }, [selectedOrgId]);
 
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    window.localStorage.setItem(
+      projectsPrefsKey,
+      JSON.stringify({
+        showArchived,
+        activePageSize: activeProjectsPageSize,
+        archivedPageSize: archivedProjectsPageSize
+      })
+    );
+  }, [showArchived, activeProjectsPageSize, archivedProjectsPageSize]);
+
   const showToast = (message: string, tone: Toast["tone"]) => {
     setToast({ message, tone });
     window.setTimeout(() => setToast(null), 2400);
   };
+
+  useEffect(() => {
+    if (!error) return;
+    showToast(error, "error");
+  }, [error]);
 
   const loadProjects = async () => {
     const token = localStorage.getItem(tokenKey);
@@ -193,7 +230,6 @@ export default function ProjectSettingsPage() {
       showToast("API key rotated", "success");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Unexpected error");
-      showToast("Failed to rotate key", "error");
     } finally {
       setLoading(false);
     }
@@ -227,7 +263,6 @@ export default function ProjectSettingsPage() {
       showToast("Project archived", "success");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Unexpected error");
-      showToast("Failed to archive project", "error");
     } finally {
       setLoading(false);
     }
@@ -257,7 +292,6 @@ export default function ProjectSettingsPage() {
       showToast("Project restored", "success");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Unexpected error");
-      showToast("Failed to restore project", "error");
     } finally {
       setLoading(false);
     }
@@ -298,7 +332,6 @@ export default function ProjectSettingsPage() {
       showToast("Project renamed", "success");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Unexpected error");
-      showToast("Failed to rename project", "error");
     } finally {
       setLoading(false);
     }
@@ -332,7 +365,6 @@ export default function ProjectSettingsPage() {
       showToast("Project deleted permanently", "success");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Unexpected error");
-      showToast("Failed to delete project", "error");
     } finally {
       setLoading(false);
     }
@@ -387,7 +419,6 @@ export default function ProjectSettingsPage() {
       showToast("Project created", "success");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Unexpected error");
-      showToast("Failed to create project", "error");
     } finally {
       setLoading(false);
     }
@@ -419,7 +450,6 @@ export default function ProjectSettingsPage() {
       showToast("AI model updated", "success");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Unexpected error");
-      showToast("Failed to update AI model", "error");
       await loadProjects();
     } finally {
       setUpdatingAiModelProjectId(null);
@@ -516,7 +546,6 @@ export default function ProjectSettingsPage() {
 
         <div className="tf-divider my-6" />
 
-        {error && <p className="text-sm text-red-500">{error}</p>}
         {loading && <p className="text-sm text-text-secondary">Working...</p>}
 
         <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
@@ -767,7 +796,6 @@ export default function ProjectSettingsPage() {
                   "Choose the default AI model for this project."}
               </p>
             </label>
-            {error && <p className="mt-3 text-xs text-red-500">{error}</p>}
             <div className="mt-5 flex items-center justify-end gap-3">
               <button
                 className="tf-button-ghost"
@@ -801,7 +829,6 @@ export default function ProjectSettingsPage() {
               value={renameInput}
               onChange={(event) => setRenameInput(event.target.value)}
             />
-            {error && <p className="mt-3 text-xs text-red-500">{error}</p>}
             <div className="mt-5 flex items-center justify-end gap-3">
               <button
                 className="tf-button-ghost"
@@ -839,7 +866,6 @@ export default function ProjectSettingsPage() {
                 value={deleteInput}
                 onChange={(event) => setDeleteInput(event.target.value)}
               />
-              {error && <p className="mt-3 text-xs text-red-500">{error}</p>}
               <div className="mt-5 flex items-center justify-end gap-3">
                 <button
                   className="rounded-full border border-border px-4 py-2 text-sm font-semibold text-text-secondary transition hover:bg-secondary/70"
@@ -879,7 +905,6 @@ export default function ProjectSettingsPage() {
               value={permanentDeleteInput}
               onChange={(event) => setPermanentDeleteInput(event.target.value)}
             />
-            {error && <p className="mt-3 text-xs text-red-500">{error}</p>}
             <div className="mt-5 flex w-full flex-nowrap items-center justify-end gap-3">
               <button
                 className="tf-button-ghost inline-flex min-w-0 flex-1 items-center justify-center px-3 py-2 text-sm sm:flex-none sm:px-4"

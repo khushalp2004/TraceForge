@@ -43,6 +43,11 @@ type AuditLog = {
   createdAt: string;
 };
 
+type Toast = {
+  message: string;
+  tone: "success" | "error";
+};
+
 export default function OrganizationDetailPage({ params }: { params: { id: string } }) {
   return (
     <Suspense fallback={<div className="tf-page tf-dashboard-page" />}>
@@ -65,7 +70,7 @@ function OrganizationDetailPageInner({ params }: { params: { id: string } }) {
   const [inviteLink, setInviteLink] = useState<string>("");
   const [tokenInput, setTokenInput] = useState("");
   const [showInviteModal, setShowInviteModal] = useState(false);
-  const [toast, setToast] = useState<string | null>(null);
+  const [toast, setToast] = useState<Toast | null>(null);
   const [hasAccess, setHasAccess] = useState(false);
   const [membersPage, setMembersPage] = useState(1);
   const [membersPageSize, setMembersPageSize] = useState(5);
@@ -83,6 +88,16 @@ function OrganizationDetailPageInner({ params }: { params: { id: string } }) {
     const start = (auditPage - 1) * auditPageSize;
     return logs.slice(start, start + auditPageSize);
   }, [logs, auditPage, auditPageSize]);
+
+  const showToast = (message: string, tone: Toast["tone"]) => {
+    setToast({ message, tone });
+    window.setTimeout(() => setToast(null), 2200);
+  };
+
+  useEffect(() => {
+    if (!error) return;
+    showToast(error, "error");
+  }, [error]);
 
   const loadOrg = async () => {
     const token = localStorage.getItem(tokenKey);
@@ -188,8 +203,7 @@ function OrganizationDetailPageInner({ params }: { params: { id: string } }) {
         throw new Error(data.error || "Failed to invite member");
       }
 
-      setToast(`Invite sent to ${inviteEmail.trim()}`);
-      window.setTimeout(() => setToast(null), 2000);
+      showToast(`Invite sent to ${inviteEmail.trim()}`, "success");
       setInviteEmail("");
       await loadAudit();
     } catch (err) {
@@ -255,8 +269,7 @@ function OrganizationDetailPageInner({ params }: { params: { id: string } }) {
       }
 
       if (data.status === "pending") {
-        setToast("Request sent for approval");
-        window.setTimeout(() => setToast(null), 2000);
+        showToast("Request sent for approval", "success");
         return;
       }
 
@@ -333,8 +346,7 @@ function OrganizationDetailPageInner({ params }: { params: { id: string } }) {
   const copyLink = async () => {
     try {
       await navigator.clipboard.writeText(inviteLink);
-      setToast("Invite link copied");
-      window.setTimeout(() => setToast(null), 1800);
+      showToast("Invite link copied", "success");
     } catch {
       setError("Failed to copy invite link");
     }
@@ -401,7 +413,6 @@ function OrganizationDetailPageInner({ params }: { params: { id: string } }) {
                 />
               </button>
             </div>
-            {error && <p className="mt-3 text-xs text-red-500">{error}</p>}
           </div>
         )}
 
@@ -469,7 +480,6 @@ function OrganizationDetailPageInner({ params }: { params: { id: string } }) {
 
         {hasAccess && (
           <>
-            {error && <p className="mt-4 text-sm text-red-500">{error}</p>}
             {loading && <p className="mt-2 text-sm text-text-secondary">Working...</p>}
 
             <div className="mt-6">
@@ -690,7 +700,6 @@ function OrganizationDetailPageInner({ params }: { params: { id: string } }) {
                 </div>
               )}
 
-              {error && <p className="text-xs text-red-500">{error}</p>}
             </div>
 
             <div className="flex items-center justify-end border-t border-border px-6 py-4">
@@ -707,8 +716,8 @@ function OrganizationDetailPageInner({ params }: { params: { id: string } }) {
       )}
 
       {toast && (
-        <div className="tf-dashboard-toast bg-emerald-600 text-xs">
-          {toast}
+        <div className={`tf-dashboard-toast text-xs ${toast.tone === "success" ? "bg-emerald-600" : "bg-red-600"}`}>
+          {toast.message}
         </div>
       )}
     </main>

@@ -104,6 +104,34 @@ const getUserOrgIds = async (userId: string) => {
   return memberships.map((m) => m.organizationId);
 };
 
+const findProjectWithSameName = async ({
+  name,
+  userId,
+  orgId,
+  excludeProjectId
+}: {
+  name: string;
+  userId: string;
+  orgId?: string | null;
+  excludeProjectId?: string;
+}) =>
+  prisma.project.findFirst({
+    where: {
+      id: excludeProjectId ? { not: excludeProjectId } : undefined,
+      name: {
+        equals: name,
+        mode: "insensitive"
+      },
+      ...(orgId
+        ? { orgId }
+        : {
+            orgId: null,
+            userId
+          })
+    },
+    select: { id: true }
+  });
+
 projectsRouter.get("/", async (req, res) => {
   const userId = req.user?.id;
   const includeArchived = req.query.includeArchived === "true";
@@ -143,12 +171,28 @@ projectsRouter.post("/", async (req, res) => {
     return res.status(401).json({ error: "Unauthorized" });
   }
 
-  if (!name || name.trim().length < 2) {
+  const normalizedName = name?.trim();
+
+  if (!normalizedName || normalizedName.length < 2) {
     return res.status(400).json({ error: "Project name is required" });
   }
 
   if (!isSupportedAiModel(normalizedAiModel)) {
     return res.status(400).json({ error: "Unsupported AI model" });
+  }
+
+  const existingProject = await findProjectWithSameName({
+    name: normalizedName,
+    userId,
+    orgId: normalizedOrgId ?? null
+  });
+
+  if (existingProject) {
+    return res.status(409).json({
+      error: normalizedOrgId
+        ? "A project with that name already exists in this organization."
+        : "A personal project with that name already exists."
+    });
   }
 
   if (normalizedOrgId) {
@@ -194,7 +238,7 @@ projectsRouter.post("/", async (req, res) => {
   const project = await prisma.project.create({
     data: {
       userId,
-      name: name.trim(),
+      name: normalizedName,
       apiKey,
       orgId: normalizedOrgId ?? null,
       aiModel: normalizedAiModel
@@ -214,7 +258,9 @@ projectsRouter.patch("/:id", async (req, res) => {
     return res.status(401).json({ error: "Unauthorized" });
   }
 
-  if (!name || name.trim().length < 2) {
+  const normalizedName = name?.trim();
+
+  if (!normalizedName || normalizedName.length < 2) {
     return res.status(400).json({ error: "Project name is required" });
   }
 
@@ -243,9 +289,24 @@ projectsRouter.patch("/:id", async (req, res) => {
     return res.status(403).json({ error: "Forbidden" });
   }
 
+  const existingProject = await findProjectWithSameName({
+    name: normalizedName,
+    userId: project.userId,
+    orgId: project.orgId,
+    excludeProjectId: projectId
+  });
+
+  if (existingProject) {
+    return res.status(409).json({
+      error: project.orgId
+        ? "A project with that name already exists in this organization."
+        : "A personal project with that name already exists."
+    });
+  }
+
   const updated = await prisma.project.update({
     where: { id: projectId },
-    data: { name: name.trim() },
+    data: { name: normalizedName },
     select: projectSelect
   });
 

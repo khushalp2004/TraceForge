@@ -85,6 +85,11 @@ type InsightsComparison = {
   productionEvents: ComparisonMetric;
 };
 
+type Toast = {
+  message: string;
+  tone: "success" | "error";
+};
+
 function useInsightsPagination(totalItems: number) {
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(5);
@@ -862,6 +867,7 @@ export default function InsightsPage() {
   const [days, setDays] = useState(30);
   const [chartVariant, setChartVariant] = useState<"area" | "bar">("area");
   const [error, setError] = useState<string | null>(null);
+  const [toast, setToast] = useState<Toast | null>(null);
   const [frequency, setFrequency] = useState<AnalyticsPoint[]>([]);
   const [lastSeen, setLastSeen] = useState<AnalyticsPoint[]>([]);
   const [severityBreakdown, setSeverityBreakdown] = useState<SeverityBreakdownItem[]>([]);
@@ -878,6 +884,15 @@ export default function InsightsPage() {
   const loading = projectsLoading || insightsLoading;
   const isTopbarLayout = effectiveLayout === "topbar";
   const isCompactLayout = effectiveLayout === "compact";
+  const showToast = (message: string, tone: Toast["tone"]) => {
+    setToast({ message, tone });
+    window.setTimeout(() => setToast(null), 2400);
+  };
+
+  useEffect(() => {
+    if (!error) return;
+    showToast(error, "error");
+  }, [error]);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -1307,12 +1322,6 @@ export default function InsightsPage() {
           </div>
         )}
 
-        {error && !loading && (
-          <div className="mt-6 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-            {error}
-          </div>
-        )}
-
         {loading ? (
           <>
             <section className="mt-6 grid gap-4 lg:grid-cols-2">
@@ -1369,6 +1378,15 @@ export default function InsightsPage() {
           </>
         )}
       </div>
+      {toast && (
+        <div
+          className={`tf-dashboard-toast ${
+            toast.tone === "success" ? "bg-emerald-600" : "bg-red-600"
+          }`}
+        >
+          {toast.message}
+        </div>
+      )}
     </main>
   );
 }

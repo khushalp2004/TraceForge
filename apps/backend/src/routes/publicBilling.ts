@@ -2,6 +2,7 @@ import { Router } from "express";
 import prisma from "../db/prisma.js";
 import {
   FREE_MONTHLY_AI_LIMIT,
+  FREE_ORG_CREATION_LIMIT,
   FREE_ORG_MEMBER_LIMIT,
   PRO_LAUNCH_MONTHLY_PRICE_PAISE,
   PRO_LAUNCH_YEARLY_PRICE_PAISE,
@@ -24,18 +25,21 @@ publicBillingRouter.get("/pricing", async (_req, res) => {
     currency: "INR",
     free: {
       aiLimitMonthly: FREE_MONTHLY_AI_LIMIT,
-      orgMemberLimit: FREE_ORG_MEMBER_LIMIT
+      orgMemberLimit: FREE_ORG_MEMBER_LIMIT,
+      orgCreationLimit: FREE_ORG_CREATION_LIMIT
     },
     pro: {
       launch: {
         monthlyPriceInr: PRO_LAUNCH_MONTHLY_PRICE_PAISE / 100,
         yearlyPriceInr: PRO_LAUNCH_YEARLY_PRICE_PAISE / 100,
         slotsTotal,
-        slotsRemaining
+        slotsRemaining,
+        orgCreationLimit: null
       },
       standard: {
         monthlyPriceInr: PRO_STANDARD_MONTHLY_PRICE_PAISE / 100,
-        yearlyPriceInr: PRO_STANDARD_YEARLY_PRICE_PAISE / 100
+        yearlyPriceInr: PRO_STANDARD_YEARLY_PRICE_PAISE / 100,
+        orgCreationLimit: null
       }
     },
     team: {

@@ -39,6 +39,11 @@ type Frame = {
   column?: string;
 };
 
+type Toast = {
+  message: string;
+  tone: "success" | "error";
+};
+
 const parseStack = (stackTrace: string): Frame[] => {
   return stackTrace
     .split("\n")
@@ -76,7 +81,18 @@ export default function ErrorDetailPage({ params }: { params: { id: string } }) 
   const [regenerating, setRegenerating] = useState(false);
   const [aiStatus, setAiStatus] = useState<string | null>(null);
   const [showAiDetail, setShowAiDetail] = useState(false);
+  const [toast, setToast] = useState<Toast | null>(null);
   const debouncedPayloadSearch = useDebouncedValue(payloadSearch, 200);
+
+  const showToast = (message: string, tone: Toast["tone"]) => {
+    setToast({ message, tone });
+    window.setTimeout(() => setToast(null), 2400);
+  };
+
+  useEffect(() => {
+    if (!error) return;
+    showToast(error, "error");
+  }, [error]);
 
   const loadDetail = async () => {
     const token = localStorage.getItem(tokenKey);
@@ -207,12 +223,17 @@ export default function ErrorDetailPage({ params }: { params: { id: string } }) 
     return (
       <main className="tf-page tf-dashboard-page">
         <div className="tf-dashboard">
-          <div className="rounded-3xl border border-red-200 bg-red-50 p-6 shadow-sm">
-            <p className="text-sm font-semibold text-red-700">{error ?? "Not found"}</p>
+          <div className="rounded-3xl border border-border bg-card/95 p-6 shadow-sm">
+            <p className="text-sm font-semibold text-text-primary">{error ?? "Not found"}</p>
             <Link className="mt-4 inline-flex tf-link" href="/dashboard/issues">
               Back to issues
             </Link>
           </div>
+          {toast && (
+            <div className={`tf-dashboard-toast ${toast.tone === "success" ? "bg-emerald-600" : "bg-red-600"}`}>
+              {toast.message}
+            </div>
+          )}
         </div>
       </main>
     );
@@ -603,6 +624,12 @@ export default function ErrorDetailPage({ params }: { params: { id: string } }) 
               {getAiDetail(errorDetail)}
             </div>
           </div>
+        </div>
+      )}
+
+      {toast && (
+        <div className={`tf-dashboard-toast ${toast.tone === "success" ? "bg-emerald-600" : "bg-red-600"}`}>
+          {toast.message}
         </div>
       )}
     </main>

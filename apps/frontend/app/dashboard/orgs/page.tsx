@@ -7,12 +7,18 @@ import { DashboardPagination } from "../components/DashboardPagination";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
 const tokenKey = "traceforge_token";
+const orgsPrefsKey = "traceforge_orgs_prefs_v1";
 
 type Org = {
   id: string;
   name: string;
   role: "OWNER" | "MEMBER";
   createdAt: string;
+};
+
+type Toast = {
+  message: string;
+  tone: "success" | "error";
 };
 
 const ORG_PAGE_SIZE_OPTIONS = [
@@ -31,6 +37,7 @@ export default function OrgsPage() {
   const [renameInput, setRenameInput] = useState("");
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [newOrgName, setNewOrgName] = useState("");
+  const [toast, setToast] = useState<Toast | null>(null);
   const [orgsPage, setOrgsPage] = useState(1);
   const [orgsPageSize, setOrgsPageSize] = useState(6);
 
@@ -39,6 +46,40 @@ export default function OrgsPage() {
     const start = (orgsPage - 1) * orgsPageSize;
     return orgs.slice(start, start + orgsPageSize);
   }, [orgs, orgsPage, orgsPageSize]);
+
+  const showToast = (message: string, tone: Toast["tone"]) => {
+    setToast({ message, tone });
+    window.setTimeout(() => setToast(null), 2400);
+  };
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    try {
+      const raw = window.localStorage.getItem(orgsPrefsKey);
+      if (!raw) return;
+      const prefs = JSON.parse(raw) as { pageSize?: number };
+      if (typeof prefs.pageSize === "number" && prefs.pageSize > 0) {
+        setOrgsPageSize(prefs.pageSize);
+      }
+    } catch {
+      // Ignore malformed prefs.
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!error) return;
+    showToast(error, "error");
+  }, [error]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    window.localStorage.setItem(
+      orgsPrefsKey,
+      JSON.stringify({
+        pageSize: orgsPageSize
+      })
+    );
+  }, [orgsPageSize]);
 
   const loadOrgs = async () => {
     const token = localStorage.getItem(tokenKey);
@@ -200,7 +241,6 @@ export default function OrgsPage() {
 
         <div className="tf-divider my-6" />
 
-        {error && <p className="text-sm text-red-500">{error}</p>}
         {loading && <p className="text-sm text-text-secondary">Working...</p>}
 
         <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
@@ -292,7 +332,6 @@ export default function OrgsPage() {
               value={renameInput}
               onChange={(event) => setRenameInput(event.target.value)}
             />
-            {error && <p className="mt-3 text-xs text-red-500">{error}</p>}
             <div className="mt-5 flex items-center justify-end gap-3">
               <button
                 className="rounded-full border border-border px-4 py-2 text-sm font-semibold text-text-secondary transition hover:bg-secondary/70"
@@ -330,7 +369,6 @@ export default function OrgsPage() {
               value={deleteInput}
               onChange={(event) => setDeleteInput(event.target.value)}
             />
-            {error && <p className="mt-3 text-xs text-red-500">{error}</p>}
             <div className="mt-5 flex items-center justify-end gap-3">
               <button
                 className="rounded-full border border-border px-4 py-2 text-sm font-semibold text-text-secondary transition hover:bg-secondary/70"
@@ -368,7 +406,6 @@ export default function OrgsPage() {
               value={newOrgName}
               onChange={(event) => setNewOrgName(event.target.value)}
             />
-            {error && <p className="mt-3 text-xs text-red-500">{error}</p>}
             <div className="mt-5 flex items-center justify-end gap-3">
               <button
                 className="rounded-full border border-border px-4 py-2 text-sm font-semibold text-text-secondary transition hover:bg-secondary/70"
@@ -390,6 +427,18 @@ export default function OrgsPage() {
               </button>
             </div>
           </div>
+        </div>
+      )}
+
+      {toast && (
+        <div
+          className="tf-dashboard-toast"
+          style={{
+            background: toast.tone === "success" ? "#16a34a" : "#dc2626",
+            color: "white"
+          }}
+        >
+          {toast.message}
         </div>
       )}
     </main>

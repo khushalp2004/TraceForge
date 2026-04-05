@@ -9,6 +9,7 @@ import { useDebouncedValue } from "../../hooks/useDebouncedValue";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
 const tokenKey = "traceforge_token";
+const issuesPrefsKey = "traceforge_issues_prefs_v1";
 
 type Project = {
   id: string;
@@ -138,6 +139,37 @@ function IssuesPageInner() {
     if (hydratedFromQuery.current) return;
     hydratedFromQuery.current = true;
 
+    if (typeof window !== "undefined") {
+      try {
+        const raw = window.localStorage.getItem(issuesPrefsKey);
+        if (raw) {
+          const prefs = JSON.parse(raw) as {
+            search?: string;
+            projectId?: string;
+            environment?: string;
+            severity?: "all" | Severity;
+            sortBy?: "lastSeen" | "count";
+            viewMode?: "active" | "archived";
+            pageSize?: number;
+          };
+
+          if (typeof prefs.search === "string") setSearch(prefs.search);
+          if (typeof prefs.projectId === "string") setSelectedProjectId(prefs.projectId);
+          if (typeof prefs.environment === "string") setEnvironmentFilter(prefs.environment);
+          if (prefs.severity === "all" || prefs.severity === "critical" || prefs.severity === "warning" || prefs.severity === "info") {
+            setSeverityFilter(prefs.severity);
+          }
+          if (prefs.sortBy === "lastSeen" || prefs.sortBy === "count") setSortBy(prefs.sortBy);
+          if (prefs.viewMode === "active" || prefs.viewMode === "archived") setViewMode(prefs.viewMode);
+          if (typeof prefs.pageSize === "number" && prefs.pageSize > 0) {
+            setPagination((prev) => ({ ...prev, pageSize: prefs.pageSize }));
+          }
+        }
+      } catch {
+        // Ignore malformed prefs.
+      }
+    }
+
     const queryProjectId = searchParams.get("projectId") || "";
     const queryEnv = searchParams.get("env") || "";
     const querySeverity = (searchParams.get("severity") || "").toLowerCase();
@@ -169,10 +201,31 @@ function IssuesPageInner() {
     }
   }, [searchParams]);
 
+  useEffect(() => {
+    if (typeof window === "undefined" || !hydratedFromQuery.current) return;
+    window.localStorage.setItem(
+      issuesPrefsKey,
+      JSON.stringify({
+        search,
+        projectId: selectedProjectId,
+        environment: environmentFilter,
+        severity: severityFilter,
+        sortBy,
+        viewMode,
+        pageSize: pagination.pageSize
+      })
+    );
+  }, [search, selectedProjectId, environmentFilter, severityFilter, sortBy, viewMode, pagination.pageSize]);
+
   const showToast = (message: string, tone: Toast["tone"]) => {
     setToast({ message, tone });
     window.setTimeout(() => setToast(null), 2400);
   };
+
+  useEffect(() => {
+    if (!error) return;
+    showToast(error, "error");
+  }, [error]);
 
   const loadProjects = async (token: string) => {
     const res = await fetch(`${API_URL}/projects`, {
@@ -418,7 +471,6 @@ function IssuesPageInner() {
     } catch (err) {
       const message = err instanceof Error ? err.message : "Failed to create project";
       setError(message);
-      showToast(message, "error");
     } finally {
       setCreatingProject(false);
     }
@@ -680,12 +732,6 @@ function IssuesPageInner() {
             </div>
           </div>
         </section>
-
-        {error && !loading && (
-          <div className="mt-6 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-            {error}
-          </div>
-        )}
 
         <div className="mt-6 min-h-0 flex-1 rounded-3xl border border-border bg-card/80 p-4 shadow-sm lg:flex lg:flex-col lg:overflow-hidden">
           <section className="tf-scroll-rail min-h-0 space-y-4 lg:flex-1 lg:overflow-y-auto lg:overscroll-contain lg:pr-2">
@@ -1143,7 +1189,6 @@ function IssuesPageInner() {
                 onChange={(event) => setNewProjectName(event.target.value)}
               />
             </div>
-            {error && <p className="mt-3 text-xs text-red-500">{error}</p>}
             <div className="mt-5 flex items-center justify-end gap-3">
               <button
                 type="button"

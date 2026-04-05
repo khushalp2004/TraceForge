@@ -256,6 +256,11 @@ function DashboardPageInner() {
   };
 
   useEffect(() => {
+    if (!error) return;
+    showToast(error, "error");
+  }, [error]);
+
+  useEffect(() => {
     if (!token || typeof window === "undefined") {
       prefsHydratedRef.current = false;
       return;
@@ -1025,7 +1030,6 @@ function DashboardPageInner() {
       showToast(`Invite sent to ${inviteEmail.trim()}`, "success");
       setInviteEmail("");
     } catch (err) {
-      showToast("Failed to send invite", "error");
       setError(err instanceof Error ? err.message : "Unexpected error");
     } finally {
       setLoading(false);
@@ -1079,7 +1083,6 @@ function DashboardPageInner() {
       } else {
         showToast(message, "error");
       }
-      setError(message);
     } finally {
       setLoading(false);
     }
@@ -1588,19 +1591,6 @@ function DashboardPageInner() {
         </header>
 
         <section className="grid gap-6">
-          {error && !dashboardLoading && (
-            <div className="rounded-2xl border border-border bg-card/90 p-4 text-sm text-text-secondary">
-              <div className="flex flex-wrap items-center justify-between gap-3">
-                <span>{error}</span>
-                <button
-                  className="rounded-full border border-border px-3 py-1 text-xs font-semibold text-text-secondary"
-                  onClick={() => setRefreshTick((value) => value + 1)}
-                >
-                  Retry
-                </button>
-              </div>
-            </div>
-          )}
           <div className="tf-card overflow-hidden p-5">
             {isInitialLoading ? (
               <Skeleton className="h-20" />
@@ -1709,7 +1699,6 @@ function DashboardPageInner() {
                 </div>
               </div>
             </div>
-            {error && <p className="mt-3 text-xs text-red-500">{error}</p>}
           </div>
 
           <div

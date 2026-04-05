@@ -5,7 +5,12 @@ import prisma from "../db/prisma.js";
 import { requireAuth } from "../middleware/auth.js";
 import { publishNotificationToUser } from "../utils/notifications.js";
 import { deleteProjectGraph } from "../utils/projectDeletion.js";
-import { FREE_ORG_MEMBER_LIMIT, isOrgTeamActive, isUserProActive } from "../utils/billing.js";
+import {
+  FREE_ORG_CREATION_LIMIT,
+  FREE_ORG_MEMBER_LIMIT,
+  isOrgTeamActive,
+  isUserProActive
+} from "../utils/billing.js";
 
 export const orgsRouter = Router();
 
@@ -69,6 +74,18 @@ const canAddMoreOrgMembers = async (orgId: string, actingUserId: string) => {
 
   return { allowed: true as const, memberCount, limit: FREE_ORG_MEMBER_LIMIT };
 };
+
+const findOrganizationWithSameName = async (name: string, excludeOrgId?: string) =>
+  prisma.organization.findFirst({
+    where: {
+      id: excludeOrgId ? { not: excludeOrgId } : undefined,
+      name: {
+        equals: name,
+        mode: "insensitive"
+      }
+    },
+    select: { id: true }
+  });
 
 orgsRouter.get("/", async (req, res) => {
   const userId = req.user?.id;
@@ -400,13 +417,40 @@ orgsRouter.post("/", async (req, res) => {
     return res.status(401).json({ error: "Unauthorized" });
   }
 
-  if (!name || name.trim().length < 2) {
+  const normalizedName = name?.trim();
+
+  if (!normalizedName || normalizedName.length < 2) {
     return res.status(400).json({ error: "Organization name is required" });
+  }
+
+  const existingOrganization = await findOrganizationWithSameName(normalizedName);
+
+  if (existingOrganization) {
+    return res.status(409).json({ error: "An organization with that name already exists." });
+  }
+
+  const [user, ownedOrgCount] = await Promise.all([
+    prisma.user.findUnique({
+      where: { id: userId },
+      select: { plan: true, planExpiresAt: true }
+    }),
+    prisma.organizationMember.count({
+      where: {
+        userId,
+        role: "OWNER"
+      }
+    })
+  ]);
+
+  if (!isUserProActive(user) && ownedOrgCount >= FREE_ORG_CREATION_LIMIT) {
+    return res.status(403).json({
+      error: `Non‑Pro accounts can create up to ${FREE_ORG_CREATION_LIMIT} organizations. Upgrade to Pro to create more.`
+    });
   }
 
   const org = await prisma.organization.create({
     data: {
-      name: name.trim(),
+      name: normalizedName,
       members: {
         create: {
           userId,
@@ -437,7 +481,9 @@ orgsRouter.patch("/:id", async (req, res) => {
     return res.status(401).json({ error: "Unauthorized" });
   }
 
-  if (!name || name.trim().length < 2) {
+  const normalizedName = name?.trim();
+
+  if (!normalizedName || normalizedName.length < 2) {
     return res.status(400).json({ error: "Organization name is required" });
   }
 
@@ -446,9 +492,15 @@ orgsRouter.patch("/:id", async (req, res) => {
     return res.status(403).json({ error: "Only owners can rename organizations" });
   }
 
+  const existingOrganization = await findOrganizationWithSameName(normalizedName, orgId);
+
+  if (existingOrganization) {
+    return res.status(409).json({ error: "An organization with that name already exists." });
+  }
+
   const org = await prisma.organization.update({
     where: { id: orgId },
-    data: { name: name.trim() }
+    data: { name: normalizedName }
   });
 
   await logEvent(orgId, userId, "org.renamed", { name: org.name });

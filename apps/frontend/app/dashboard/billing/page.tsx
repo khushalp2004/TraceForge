@@ -188,6 +188,11 @@ export default function BillingPage() {
     window.setTimeout(() => setToast(null), 2600);
   };
 
+  useEffect(() => {
+    if (!error) return;
+    showToast(error, "error");
+  }, [error]);
+
   const refreshBillingData = async (organizationId?: string | null) => {
     const token = localStorage.getItem(tokenKey);
     if (!token) return;
@@ -380,7 +385,6 @@ export default function BillingPage() {
       instance.open();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Unexpected error");
-      showToast("Failed to start payment", "error");
     } finally {
       setActionLoading(false);
     }
@@ -414,7 +418,6 @@ export default function BillingPage() {
       await refreshBillingData(historyScope === "ORGANIZATION" ? organizationId || null : null);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Unexpected error");
-      showToast("Failed to cancel subscription", "error");
     } finally {
       setActionLoading(false);
     }
@@ -441,12 +444,6 @@ export default function BillingPage() {
             Refresh
           </button>
         </header>
-
-        {error && !loading ? (
-          <div className="mt-6 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-            {error}
-          </div>
-        ) : null}
 
         <section className="mt-6 grid gap-6 xl:grid-cols-2">
           <div className="rounded-3xl border border-border bg-card/95 p-6 shadow-sm">

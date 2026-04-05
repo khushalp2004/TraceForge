@@ -10,6 +10,7 @@ import { DashboardPagination } from "../components/DashboardPagination";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
 const tokenKey = "traceforge_token";
+const alertsPrefsKey = "traceforge_alerts_prefs_v1";
 
 type Project = {
   id: string;
@@ -159,6 +160,39 @@ function AlertsPageInner() {
     if (hydratedFromQuery.current) return;
     hydratedFromQuery.current = true;
 
+    if (typeof window !== "undefined") {
+      try {
+        const raw = window.localStorage.getItem(alertsPrefsKey);
+        if (raw) {
+          const prefs = JSON.parse(raw) as {
+            search?: string;
+            projectId?: string;
+            environment?: string;
+            severity?: AlertRule["severity"] | "";
+            status?: "active" | "paused" | "";
+            view?: "active" | "archived";
+            rulesPageSize?: number;
+            eventsPageSize?: number;
+          };
+
+          if (typeof prefs.search === "string") setSearch(prefs.search);
+          if (typeof prefs.projectId === "string") setProjectFilter(prefs.projectId);
+          if (typeof prefs.environment === "string") setEnvironmentFilter(prefs.environment);
+          if (prefs.severity === "" || prefs.severity === "CRITICAL" || prefs.severity === "WARNING" || prefs.severity === "INFO") {
+            setSeverityFilter(prefs.severity);
+          }
+          if (prefs.status === "" || prefs.status === "active" || prefs.status === "paused") {
+            setStatusFilter(prefs.status);
+          }
+          if (prefs.view === "active" || prefs.view === "archived") setView(prefs.view);
+          if (typeof prefs.rulesPageSize === "number" && prefs.rulesPageSize > 0) setRulesPageSize(prefs.rulesPageSize);
+          if (typeof prefs.eventsPageSize === "number" && prefs.eventsPageSize > 0) setEventsPageSize(prefs.eventsPageSize);
+        }
+      } catch {
+        // Ignore malformed prefs.
+      }
+    }
+
     const queryQ = searchParams.get("q") || "";
     const queryProjectId = searchParams.get("projectId") || "";
     const queryEnv = searchParams.get("env") || "";
@@ -185,10 +219,32 @@ function AlertsPageInner() {
     setRulesPage(1);
   }, [searchParams]);
 
+  useEffect(() => {
+    if (typeof window === "undefined" || !hydratedFromQuery.current) return;
+    window.localStorage.setItem(
+      alertsPrefsKey,
+      JSON.stringify({
+        search,
+        projectId: projectFilter,
+        environment: environmentFilter,
+        severity: severityFilter,
+        status: statusFilter,
+        view,
+        rulesPageSize,
+        eventsPageSize
+      })
+    );
+  }, [search, projectFilter, environmentFilter, severityFilter, statusFilter, view, rulesPageSize, eventsPageSize]);
+
   const showToast = (message: string, tone: Toast["tone"]) => {
     setToast({ message, tone });
     window.setTimeout(() => setToast(null), 2400);
   };
+
+  useEffect(() => {
+    if (!error) return;
+    showToast(error, "error");
+  }, [error]);
 
   const loadData = async () => {
     const token = localStorage.getItem(tokenKey);
@@ -413,7 +469,6 @@ function AlertsPageInner() {
     } catch (err) {
       const message = err instanceof Error ? err.message : "Failed to create alert rule";
       setError(message);
-      showToast(message, "error");
     } finally {
       setSaving(false);
     }
@@ -709,12 +764,6 @@ function AlertsPageInner() {
             <p className="mt-1.5 text-xl font-semibold text-text-primary sm:text-[22px]">{projects.length}</p>
           </div>
         </section>
-
-        {error && !loading && (
-          <div className="mt-6 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-            {error}
-          </div>
-        )}
 
         <section className="tf-filter-panel mt-6">
           <div className="tf-filter-grid md:grid-cols-2 xl:grid-cols-[minmax(0,1.25fr)_180px_180px_170px_160px_132px]">
@@ -1496,8 +1545,6 @@ function AlertsPageInner() {
                 />
               </div>
             </div>
-
-            {error && <p className="mt-3 text-xs text-red-500">{error}</p>}
 
             <div className="mt-5 flex flex-col-reverse gap-3 sm:flex-row sm:items-center sm:justify-end">
               <button

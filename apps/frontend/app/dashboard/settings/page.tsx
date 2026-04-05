@@ -199,6 +199,21 @@ export default function SettingsPage() {
     }
   }, [selectedOrgId]);
 
+  useEffect(() => {
+    if (!github?.error) return;
+    showToast(github.error, "error");
+  }, [github?.error]);
+
+  useEffect(() => {
+    if (!slack?.error) return;
+    showToast(slack.error, "error");
+  }, [slack?.error]);
+
+  useEffect(() => {
+    if (!jira?.error) return;
+    showToast(jira.error, "error");
+  }, [jira?.error]);
+
   const getToken = () => window.localStorage.getItem(tokenKey) || "";
 
   const authedFetch = async (path: string, init?: RequestInit) => {
@@ -685,10 +700,6 @@ export default function SettingsPage() {
                     </div>
                   </div>
 
-                  {github.error ? (
-                    <p className="mt-3 text-sm text-red-300">{github.error}</p>
-                  ) : null}
-
                   <div className="mt-4 grid gap-3 sm:grid-cols-3">
                     <div className={compactPanelClass}>
                       <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-text-secondary">
@@ -868,7 +879,6 @@ export default function SettingsPage() {
                       </div>
                       <span className="tf-muted-tag">{slack.workspace?.name || "Workspace"}</span>
                     </div>
-                    {slack.error ? <p className="mt-3 text-sm text-red-300">{slack.error}</p> : null}
                   </div>
 
                   <div className="grid gap-4 sm:grid-cols-2">
@@ -1029,7 +1039,6 @@ export default function SettingsPage() {
                         {selectedJiraSite?.name || "No site selected"}
                       </span>
                     </div>
-                    {jira.error ? <p className="mt-3 text-sm text-red-300">{jira.error}</p> : null}
                   </div>
 
                   <div className="grid gap-4 sm:grid-cols-2">

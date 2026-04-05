@@ -8,6 +8,7 @@ import { DashboardPagination } from "../components/DashboardPagination";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
 const tokenKey = "traceforge_token";
+const releasesPrefsKey = "traceforge_releases_prefs_v1";
 
 type Project = {
   id: string;
@@ -104,6 +105,11 @@ function ReleasesPageInner() {
     window.setTimeout(() => setToast(null), 2400);
   };
 
+  useEffect(() => {
+    if (!error) return;
+    showToast(error, "error");
+  }, [error]);
+
   const releasesTotalPages = Math.max(1, Math.ceil(releases.length / releasesPageSize));
   const paginatedReleases = useMemo(() => {
     const start = (releasesPage - 1) * releasesPageSize;
@@ -114,6 +120,25 @@ function ReleasesPageInner() {
     if (hydratedFromQuery.current) return;
     hydratedFromQuery.current = true;
 
+    if (typeof window !== "undefined") {
+      try {
+        const raw = window.localStorage.getItem(releasesPrefsKey);
+        if (raw) {
+          const prefs = JSON.parse(raw) as {
+            projectId?: string;
+            environment?: string;
+            pageSize?: number;
+          };
+
+          if (typeof prefs.projectId === "string") setSelectedProjectId(prefs.projectId);
+          if (typeof prefs.environment === "string") setEnvironmentFilter(prefs.environment);
+          if (typeof prefs.pageSize === "number" && prefs.pageSize > 0) setReleasesPageSize(prefs.pageSize);
+        }
+      } catch {
+        // Ignore malformed prefs.
+      }
+    }
+
     const queryProjectId = searchParams.get("projectId") || "";
     const queryEnvironment = searchParams.get("environment") || "";
     const queryReleaseId = searchParams.get("releaseId") || "";
@@ -122,6 +147,18 @@ function ReleasesPageInner() {
     if (queryEnvironment) setEnvironmentFilter(queryEnvironment);
     if (queryReleaseId) setHighlightReleaseId(queryReleaseId);
   }, [searchParams]);
+
+  useEffect(() => {
+    if (typeof window === "undefined" || !hydratedFromQuery.current) return;
+    window.localStorage.setItem(
+      releasesPrefsKey,
+      JSON.stringify({
+        projectId: selectedProjectId,
+        environment: environmentFilter,
+        pageSize: releasesPageSize
+      })
+    );
+  }, [selectedProjectId, environmentFilter, releasesPageSize]);
 
   const loadProjects = async (token: string) => {
     const res = await fetch(`${API_URL}/projects`, {
@@ -356,12 +393,6 @@ function ReleasesPageInner() {
             </div>
           </div>
         </section>
-
-        {error && !loading && (
-          <div className="mt-6 rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-            {error}
-          </div>
-        )}
 
         <section className="mt-6 space-y-4">
           {loading && (

@@ -320,8 +320,18 @@ export default function DashboardSidebar({
     };
 
     void loadUsage();
+    const intervalId = window.setInterval(() => {
+      void loadUsage();
+    }, 8000);
+    const handleFocus = () => {
+      void loadUsage();
+    };
+    window.addEventListener("focus", handleFocus);
+
     return () => {
       cancelled = true;
+      window.clearInterval(intervalId);
+      window.removeEventListener("focus", handleFocus);
     };
   }, [token, selectedOrgId, pathname]);
 

@@ -3,6 +3,7 @@ import prisma from "../db/prisma.js";
 export const FREE_MONTHLY_AI_LIMIT = 50;
 export const TEAM_MONTHLY_AI_LIMIT = 200;
 export const FREE_ORG_MEMBER_LIMIT = 5;
+export const FREE_ORG_CREATION_LIMIT = 3;
 export const PRO_LAUNCH_MONTHLY_PRICE_PAISE = 39900;
 export const PRO_STANDARD_MONTHLY_PRICE_PAISE = 59900;
 export const PRO_LAUNCH_YEARLY_PRICE_PAISE = 358800;

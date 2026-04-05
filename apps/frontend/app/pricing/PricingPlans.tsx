@@ -134,17 +134,19 @@ export function PricingPlans() {
   const [inrPerUsd, setInrPerUsd] = useState(DEFAULT_INR_PER_USD);
   const [rateMeta, setRateMeta] = useState<{ provider: string; asOf: string } | null>(null);
   const [pricing, setPricing] = useState<{
-    free?: { aiLimitMonthly?: number; orgMemberLimit?: number };
+    free?: { aiLimitMonthly?: number; orgMemberLimit?: number; orgCreationLimit?: number };
     pro?: {
       launch?: {
         monthlyPriceInr?: number;
         yearlyPriceInr?: number;
         slotsTotal?: number;
         slotsRemaining?: number;
+        orgCreationLimit?: null;
       };
       standard?: {
         monthlyPriceInr?: number;
         yearlyPriceInr?: number;
+        orgCreationLimit?: null;
       };
     };
     team?: {
@@ -189,6 +191,7 @@ export function PricingPlans() {
 
   const freeAi = pricing?.free?.aiLimitMonthly ?? 50;
   const freeMembers = pricing?.free?.orgMemberLimit ?? 5;
+  const freeOrganizations = pricing?.free?.orgCreationLimit ?? 3;
   const teamAi = pricing?.team?.aiLimitMonthly ?? 200;
 
   const proLaunchMonthly = pricing?.pro?.launch?.monthlyPriceInr ?? 399;
@@ -234,15 +237,17 @@ export function PricingPlans() {
     { label: "3 personal projects", included: true },
     { label: "1k errors / mo", included: true },
     { label: `${freeAi} AI / mo`, included: true },
+    { label: `${freeOrganizations} organizations`, included: true },
     { label: `${freeMembers} org members`, included: true },
     { label: "Unlimited AI", included: false },
-    { label: "Unlimited org scale", included: false }
+    { label: "Unlimited organizations", included: false }
   ];
 
   const proFeatures: FeatureItem[] = [
     { label: "Unlimited projects", included: true },
     { label: "Unlimited errors", included: true },
     { label: "Unlimited AI", included: true },
+    { label: "Unlimited organizations", included: true },
     { label: "No limit to add member by you", included: true },
     { label: "Works in every org", included: true },
     { label: "Launch pricing", included: true }
@@ -254,6 +259,7 @@ export function PricingPlans() {
     { label: `${teamAi} shared AI / mo`, included: true },
     { label: "No limit to add member", included: true },
     { label: "Shared workflows", included: true },
+    { label: "Unlimited organizations", included: false },
     { label: "Unlimited personal AI", included: false }
   ];
 
