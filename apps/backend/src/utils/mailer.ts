@@ -35,9 +35,10 @@ type SendEmailInput = {
   subject: string;
   text: string;
   html: string;
+  replyTo?: string;
 };
 
-export const sendEmail = async ({ to, subject, text, html }: SendEmailInput) => {
+export const sendEmail = async ({ to, subject, text, html, replyTo }: SendEmailInput) => {
   if (!smtpHost) {
     console.log(`[mail:disabled] To=${to} Subject=${subject}\n${text}`);
     return;
@@ -47,6 +48,7 @@ export const sendEmail = async ({ to, subject, text, html }: SendEmailInput) => 
   await transporter.sendMail({
     from: smtpFrom,
     to,
+    replyTo,
     subject,
     text,
     html

@@ -24,6 +24,17 @@ export default function BlogPage() {
             Product thinking, engineering lessons, and the ideas shaping how we build
             calmer incident workflows.
           </p>
+          <div className="mt-8 grid gap-3 sm:grid-cols-3">
+            {[
+              "AI summaries + grouped issues",
+              "GitHub issue creation + repo analysis",
+              "Slack, Jira, and release workflows"
+            ].map((item) => (
+              <div key={item} className="rounded-2xl border border-border bg-card/90 px-4 py-4 text-sm text-text-secondary">
+                {item}
+              </div>
+            ))}
+          </div>
         </section>
 
         <section className="mt-12 grid gap-6 lg:grid-cols-3">

@@ -37,7 +37,7 @@ export const blogPosts: BlogPost[] = [
         heading: "How it fits the workflow",
         body: [
           "AI summaries work best when they sit next to grouped issues, release context, and ownership. A clever explanation without routing is still incomplete.",
-          "TraceForge pairs the summary with the issue inbox, release health, and alerts so teams can move from understanding to action without switching tools."
+          "TraceForge pairs the summary with the issue inbox, release health, alerts, and GitHub issue creation so teams can move from understanding to action without switching tools."
         ]
       }
     ]
@@ -69,6 +69,37 @@ export const blogPosts: BlogPost[] = [
         body: [
           "We wanted grouping to feel dependable, not magical. It should reduce noise without hiding meaningful differences.",
           "That is why TraceForge uses grouping as the center of the workflow: alerts, AI generation, archived issues, and recent events all hang off the issue rather than isolated raw events."
+        ]
+      }
+    ]
+  },
+  {
+    slug: "repo-analysis-for-faster-onboarding",
+    title: "Repo analysis for faster onboarding",
+    date: "Apr 6, 2026",
+    summary: "GitHub repo analysis that explains structure before the first fix.",
+    description:
+      "Why we added repository analysis to TraceForge, what the report includes, and how it helps engineers move from a production issue to the right part of the codebase faster.",
+    sections: [
+      {
+        heading: "Why repo analysis matters",
+        body: [
+          "An error report is only half the story if the engineer still needs to understand a codebase from scratch. That is especially true in shared platforms, inherited services, or onboarding moments.",
+          "We added repo analysis so TraceForge can help teams answer the next question after triage: where does this system start, how is it organized, and what part of the repository should we read first?"
+        ]
+      },
+      {
+        heading: "What the report includes",
+        body: [
+          "The report summarizes the repository, describes the likely architecture, lists important modules, points to entry points, and calls out risks or coupling that deserve caution.",
+          "It is designed to be practical rather than academic. The output should help an engineer orient faster, not generate another document that never gets used."
+        ]
+      },
+      {
+        heading: "How it fits TraceForge",
+        body: [
+          "Repo analysis sits naturally next to grouped issues, AI summaries, and GitHub issue creation. Teams can now move from the incident to the codebase with far less context rebuilding.",
+          "That makes TraceForge more than an error inbox. It becomes the place where production context starts connecting back to implementation."
         ]
       }
     ]

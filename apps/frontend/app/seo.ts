@@ -104,5 +104,9 @@ export const PUBLIC_SITEMAP_ROUTES = [
   { path: "/docs", changeFrequency: "weekly" as const, priority: 0.9 },
   { path: "/about", changeFrequency: "monthly" as const, priority: 0.7 },
   { path: "/blog", changeFrequency: "weekly" as const, priority: 0.75 },
-  { path: "/terms", changeFrequency: "yearly" as const, priority: 0.4 }
+  { path: "/terms", changeFrequency: "yearly" as const, priority: 0.4 },
+  { path: "/privacy", changeFrequency: "yearly" as const, priority: 0.4 },
+  { path: "/security", changeFrequency: "monthly" as const, priority: 0.5 },
+  { path: "/help", changeFrequency: "monthly" as const, priority: 0.55 },
+  { path: "/contact", changeFrequency: "monthly" as const, priority: 0.45 }
 ];

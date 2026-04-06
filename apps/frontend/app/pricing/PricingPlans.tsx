@@ -237,16 +237,19 @@ export function PricingPlans() {
     { label: "3 personal projects", included: true },
     { label: "1k errors / mo", included: true },
     { label: `${freeAi} AI / mo`, included: true },
+    { label: "Repo analysis available", included: true },
     { label: `${freeOrganizations} organizations`, included: true },
     { label: `${freeMembers} org members`, included: true },
     { label: "Unlimited AI", included: false },
-    { label: "Unlimited organizations", included: false }
+    { label: "Unlimited organizations", included: false },
+    { label: "Unlimited repo analysis", included: false }
   ];
 
   const proFeatures: FeatureItem[] = [
     { label: "Unlimited projects", included: true },
     { label: "Unlimited errors", included: true },
     { label: "Unlimited AI", included: true },
+    { label: "Unlimited repo analysis", included: true },
     { label: "Unlimited organizations", included: true },
     { label: "No limit to add member by you", included: true },
     { label: "Works in every org", included: true },
@@ -257,6 +260,7 @@ export function PricingPlans() {
     { label: "Org-wide billing", included: true },
     { label: "Unlimited org scale", included: true },
     { label: `${teamAi} shared AI / mo`, included: true },
+    { label: "Repo analysis from team quota", included: true },
     { label: "No limit to add member", included: true },
     { label: "Shared workflows", included: true },
     { label: "Unlimited organizations", included: false },
@@ -276,7 +280,9 @@ export function PricingPlans() {
             </h2>
             <p className="mt-5 max-w-2xl text-lg leading-8 text-text-secondary">
               Start free, unlock unlimited personal AI with Pro, or move your organization onto a
-              shared Team plan.
+              shared Team plan. Every plan includes grouped issues, release context, GitHub
+              issue creation, and connected workflows that can grow into repo analysis and shared
+              incident routing.
             </p>
           </div>
 
@@ -398,6 +404,28 @@ export function PricingPlans() {
           features={teamFeatures}
           ctaIntent="team"
         />
+      </section>
+
+      <section className="mt-8 grid gap-4 lg:grid-cols-3">
+        {[
+          {
+            title: "Repo analysis",
+            text: "Generate a structured GitHub repo report with architecture, entry points, and onboarding notes."
+          },
+          {
+            title: "Connected workflows",
+            text: "Push alerts into Slack and Jira, and open GitHub issues directly from TraceForge."
+          },
+          {
+            title: "Usage that matches plan",
+            text: "Free and Team keep clear monthly AI limits, while Pro removes the cap for the individual user."
+          }
+        ].map((item) => (
+          <div key={item.title} className="rounded-3xl border border-border bg-card/90 p-5 shadow-sm">
+            <p className="text-sm font-semibold text-text-primary">{item.title}</p>
+            <p className="mt-3 text-sm leading-6 text-text-secondary">{item.text}</p>
+          </div>
+        ))}
       </section>
 
       <p className="mt-6 text-xs text-text-secondary">

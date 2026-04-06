@@ -18,6 +18,7 @@ import { paymentRouter } from "./routes/payment.js";
 import { fxRouter } from "./routes/fx.js";
 import { publicBillingRouter } from "./routes/publicBilling.js";
 import { integrationsRouter } from "./routes/integrations.js";
+import { supportRouter } from "./routes/support.js";
 
 export const createApp = () => {
   const app = express();
@@ -50,6 +51,7 @@ export const createApp = () => {
   app.use("/api/payment", paymentRouter);
   app.use("/public/fx", fxRouter);
   app.use("/public/billing", publicBillingRouter);
+  app.use("/support", supportRouter);
   app.use("/integrations", integrationsRouter);
   app.use("/projects", projectsRouter);
   app.use("/orgs", orgsRouter);

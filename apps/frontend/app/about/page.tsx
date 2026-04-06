@@ -19,12 +19,12 @@ const storyBlocks = [
   {
     title: "How we built it",
     text:
-      "We focused on the workflow after the exception lands: grouping noisy events, adding release context, generating AI guidance, and making ownership visible across projects and organizations."
+      "We focused on the workflow after the exception lands: grouping noisy events, adding release context, generating AI guidance, connecting GitHub, Slack, and Jira, and making ownership visible across projects and organizations."
   },
   {
     title: "What success looks like",
     text:
-      "Success is a quieter release day. The team sees the signal early, understands the likely cause, routes it quickly, and resolves it before the incident becomes a customer story."
+      "Success is a quieter release day. The team sees the signal early, understands the likely cause, routes it quickly, opens the GitHub issue with context already attached, and resolves it before the incident becomes a customer story."
   }
 ];
 
@@ -32,7 +32,8 @@ const buildPrinciples = [
   "Clarity before dashboards",
   "AI that reduces toil",
   "Ownership that stays visible",
-  "Reliability that feels collaborative"
+  "Reliability that feels collaborative",
+  "Context that reaches code"
 ];
 
 const milestones = [
@@ -51,6 +52,10 @@ const milestones = [
   {
     label: "Improve",
     text: "Learn from recurring issues and ship calmer releases next time."
+  },
+  {
+    label: "Connect",
+    text: "Route work to GitHub, Slack, and Jira without rebuilding incident context."
   }
 ];
 
@@ -68,7 +73,9 @@ export default function AboutPage() {
               TraceForge started with a simple frustration: teams were spending too much
               energy collecting context and not enough energy fixing the problem. We wanted
               one place where errors could arrive, get cleaned up, gain meaning, and move
-              toward resolution.
+              toward resolution. As the product grew, that same idea pushed us to connect the
+              tools teams already use: GitHub for code, Slack for routing, Jira for follow-up,
+              and repo analysis for faster onboarding into unfamiliar systems.
             </p>
             <div className="mt-8 flex flex-wrap gap-4">
               <Link className="tf-button px-6 py-3 text-sm" href="/signup">
@@ -116,7 +123,9 @@ export default function AboutPage() {
                 The first few minutes after an incident matter the most. That is the point
                 where teams either gather around one shared understanding or lose time
                 reconstructing the same context in three different places. TraceForge is
-                built to make that moment smaller, calmer, and easier to move through.
+                built to make that moment smaller, calmer, and easier to move through. That is
+                why we kept extending the product from issue grouping into release health,
+                alerts, organization workflows, GitHub issue creation, and repo analysis.
               </p>
             </div>
             <div className="grid gap-4 sm:grid-cols-2">
@@ -143,7 +152,8 @@ export default function AboutPage() {
               <p className="mt-3 text-sm leading-6 text-text-secondary sm:text-base">
                 A deploy goes out, error volume shifts, the issue is grouped instantly,
                 the AI summary points to the likely regression, the alert reaches the right
-                owner, and the fix ships before the incident becomes a support escalation.
+                owner, the GitHub issue opens with context already attached, and the fix ships
+                before the incident becomes a support escalation.
                 That is the kind of successful engineering rhythm we are building for.
               </p>
             </div>

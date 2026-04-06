@@ -11,6 +11,25 @@ export const metadata: Metadata = createPageMetadata({
 });
 
 export default function HomePage() {
+  const latestCapabilities = [
+    {
+      title: "Repo analysis",
+      text: "Generate a structured GitHub repo report with architecture, runtime flow, entry points, and onboarding notes."
+    },
+    {
+      title: "GitHub issue creation",
+      text: "Create a GitHub issue from any TraceForge issue or error detail page without leaving the workflow."
+    },
+    {
+      title: "Slack + Jira routing",
+      text: "Connect workspace integrations and send alert context into Slack channels or Jira projects."
+    },
+    {
+      title: "Project-aware AI",
+      text: "Choose an AI model per project, keep usage visible, and give teams clear limits across Free, Pro, and Team."
+    }
+  ];
+
   const structuredData = [
     {
       "@context": "https://schema.org",
@@ -62,11 +81,12 @@ export default function HomePage() {
               AI-assisted error monitoring, minus the bloat
             </div>
             <h1 className="tf-title mt-6 text-3xl sm:text-4xl lg:text-6xl">
-              Turn stack traces into clear fixes your team can ship.
+              Turn production errors into fixes, ownership, and calmer releases.
             </h1>
             <p className="mt-5 text-base sm:text-lg text-text-secondary">
-              TraceForge captures errors, groups noisy stacks into one issue, and produces an AI
-              remediation brief so you can go from incident to PR faster.
+              TraceForge groups noisy errors into clean issues, generates AI summaries, routes
+              alerts to the right tools, links work to GitHub, and now analyzes connected repos so
+              teams can move from incident to implementation with context already in place.
             </p>
             <div className="mt-7 space-y-4">
               <div className="flex flex-col items-start gap-3 sm:flex-row sm:items-center">
@@ -86,9 +106,9 @@ export default function HomePage() {
 
             <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
               {[
-                { label: "Grouping", value: "hash(message + stack)" },
-                { label: "AI analysis", value: "new issues only" },
-                { label: "Time to insight", value: "seconds" }
+                { label: "Issue workflow", value: "grouped + owned" },
+                { label: "GitHub actions", value: "issues + repo analysis" },
+                { label: "Routing", value: "in-app, Slack, Jira" }
               ].map((item) => (
                 <div
                   key={item.label}
@@ -138,6 +158,17 @@ export default function HomePage() {
                   <span className="font-semibold">AI brief:</span> root cause introduced in checkout
                   refactor. Add a null guard for <span className="font-mono">customer.email</span>{" "}
                   before calling <span className="font-mono">sendReceipt()</span>.
+                </div>
+
+                <div className="rounded-xl border border-border bg-card px-3 py-3 sm:px-4">
+                  <div className="flex flex-wrap items-center justify-between gap-3">
+                    <p className="text-xs font-semibold text-text-secondary">Connected workflow</p>
+                    <span className="tf-pill">GitHub + Slack</span>
+                  </div>
+                  <p className="mt-2 text-xs leading-6 text-text-secondary">
+                    Create the GitHub issue, send the alert into Slack, and keep the fix work tied
+                    to the same incident thread.
+                  </p>
                 </div>
               </div>
 
@@ -227,11 +258,11 @@ export default function HomePage() {
             },
             {
               title: "Team workflows",
-              text: "Invite teammates, approve access, and keep ownership clean across orgs and projects."
+              text: "Invite teammates, manage org ownership, and keep project routing clean across shared workspaces."
             },
             {
-              title: "Release confidence",
-              text: "Track frequency, last seen, and regressions with fast filters and a clean timeline."
+              title: "Connected response",
+              text: "Push alerts into Slack and Jira, create GitHub issues, and keep the response moving from one system."
             }
           ].map((feature) => (
             <div key={feature.title} className="tf-card p-6">
@@ -239,6 +270,33 @@ export default function HomePage() {
               <p className="mt-3 text-sm text-text-secondary">{feature.text}</p>
             </div>
           ))}
+        </section>
+
+        <section className="mt-14 tf-frame">
+          <div className="flex flex-wrap items-end justify-between gap-6">
+            <div>
+              <p className="tf-kicker">Latest capabilities</p>
+              <h2 className="tf-title mt-4 text-2xl sm:text-3xl">
+                Built for the way teams debug now, not last year.
+              </h2>
+              <p className="mt-3 max-w-2xl text-sm sm:text-base text-text-secondary">
+                TraceForge has moved beyond grouped error feeds. The product now carries more of the
+                response workflow so teams can stay in one place longer and switch tools less often.
+              </p>
+            </div>
+            <Link className="tf-link inline-flex text-sm" href="/solutions">
+              See the full workflow →
+            </Link>
+          </div>
+
+          <div className="mt-8 grid gap-4 md:grid-cols-2">
+            {latestCapabilities.map((item) => (
+              <div key={item.title} className="rounded-2xl border border-border bg-card p-5">
+                <p className="text-sm font-semibold text-text-primary">{item.title}</p>
+                <p className="mt-3 text-sm leading-6 text-text-secondary">{item.text}</p>
+              </div>
+            ))}
+          </div>
         </section>
 
         <section className="mt-14 grid gap-6 lg:grid-cols-[0.6fr_0.4fr]">
@@ -365,25 +423,27 @@ export default function HomePage() {
 
         <section className="mt-14 rounded-3xl border border-border bg-card/90 p-6 sm:p-8 shadow-sm">
           <div className="flex flex-wrap items-center justify-between gap-6">
-            <div>
+            <div className="max-w-2xl">
               <h2 className="tf-title text-2xl sm:text-3xl">Ready to make errors boring?</h2>
               <p className="mt-2 text-sm sm:text-base text-text-secondary">
-                Bring your team into TraceForge and ship with confidence.
+                Create a workspace, connect a project, invite your team, and start shipping with
+                grouped issues, AI summaries, GitHub workflows, and real alert routing on day one.
               </p>
             </div>
             <div className="flex flex-wrap gap-3">
               <Link className="tf-button px-7 py-3 text-sm" href="/signup">
-                Start free trial
+                Create your workspace
               </Link>
-              <Link className="tf-button-ghost px-7 py-3 text-sm" href="/docs">
-                Talk to sales
+              <Link className="tf-button-ghost px-7 py-3 text-sm" href="/pricing">
+                View pricing
               </Link>
             </div>
           </div>
           <div className="mt-6 flex flex-wrap items-center gap-3 text-xs font-semibold text-text-secondary">
-            <span className="rounded-full border border-border bg-card px-2.5 py-1">14‑day trial</span>
-            <span className="rounded-full border border-border bg-card px-2.5 py-1">Cancel anytime</span>
-            <span className="rounded-full border border-border bg-card px-2.5 py-1">SOC 2-ready</span>
+            <span className="rounded-full border border-border bg-card px-2.5 py-1">No demo required</span>
+            <span className="rounded-full border border-border bg-card px-2.5 py-1">Start free</span>
+            <span className="rounded-full border border-border bg-card px-2.5 py-1">Use real projects</span>
+            <span className="rounded-full border border-border bg-card px-2.5 py-1">Upgrade when the team is ready</span>
           </div>
         </section>
       </div>

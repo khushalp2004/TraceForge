@@ -44,7 +44,7 @@ const workflow = [
   {
     step: "04",
     title: "Coordinate the response",
-    description: "Alerts, release health, projects, and org workflows keep the right people aligned."
+    description: "Alerts, release health, projects, org workflows, and external integrations keep the right people aligned."
   }
 ];
 
@@ -64,6 +64,10 @@ const outcomes = [
   {
     title: "Team ownership",
     detail: "Projects, orgs, and alerts stay accountable"
+  },
+  {
+    title: "Repo intelligence",
+    detail: "GitHub repo analysis adds architecture and onboarding context"
   }
 ];
 
@@ -79,6 +83,10 @@ const surfaces = [
   {
     title: "Release health",
     points: ["Environment comparisons", "Alert correlation", "Change-focused investigation"]
+  },
+  {
+    title: "Connected apps",
+    points: ["Slack channels", "Jira projects", "GitHub issue creation"]
   }
 ];
 
@@ -95,7 +103,8 @@ export default function SolutionsPage() {
             <p className="mt-6 max-w-2xl text-lg text-text-secondary">
               We built TraceForge for teams that want fewer noisy dashboards and more
               clear next steps. Errors come in, duplicates collapse, AI explains what
-              changed, and the right team can move.
+              changed, the right team gets routed, and connected GitHub, Slack, and Jira
+              workflows carry the response forward.
             </p>
             <div className="mt-8 flex flex-wrap gap-4">
               <Link className="tf-button px-6 py-3 text-sm" href="/signup">
@@ -109,7 +118,8 @@ export default function SolutionsPage() {
               {[
                 { label: "Signal", value: "Grouped issues" },
                 { label: "Speed", value: "AI summaries" },
-                { label: "Coordination", value: "Projects + alerts" }
+                { label: "Coordination", value: "Projects + alerts" },
+                { label: "Code context", value: "Repo analysis" }
               ].map((item) => (
                 <div key={item.label} className="rounded-2xl border border-border bg-card/90 px-4 py-4">
                   <p className="text-xs font-semibold uppercase tracking-[0.18em] text-text-secondary">
@@ -154,6 +164,11 @@ export default function SolutionsPage() {
                     title: "Alert routed to payments team",
                     meta: "Owner and org context attached",
                     state: "Assigned"
+                  },
+                  {
+                    title: "GitHub repo report ready",
+                    meta: "Architecture, entry points, and key modules summarized",
+                    state: "Prepared"
                   }
                 ].map((item) => (
                   <div key={item.title} className="rounded-2xl border border-border bg-card px-4 py-4">
@@ -187,7 +202,8 @@ export default function SolutionsPage() {
               <h2 className="tf-title mt-4 text-3xl">It mirrors the way real incidents unfold.</h2>
               <p className="mt-3 max-w-2xl text-sm text-text-secondary">
                 Capture is only the start. The product gets better when it helps teams
-                decide what matters, who owns it, and what changed.
+                decide what matters, who owns it, what changed, and where the fix likely
+                lives in the codebase.
               </p>
             </div>
             <Link className="tf-link inline-flex text-sm" href="/pricing">
@@ -197,7 +213,7 @@ export default function SolutionsPage() {
 
           <div className="mt-8 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
             {workflow.map((item) => (
-              <div key={item.step} className="rounded-2xl border border-border bg-card p-5">
+                <div key={item.step} className="rounded-2xl border border-border bg-card p-5">
                 <p className="text-xs font-semibold uppercase tracking-[0.18em] text-primary">
                   Step {item.step}
                 </p>
