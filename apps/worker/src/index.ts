@@ -12,6 +12,14 @@ import {
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 const RETENTION_DAYS = 15;
 const CLEANUP_INTERVAL_MS = 60 * 60 * 1000;
+const AI_QUEUE_KEY = "ai:queue";
+const AI_PROCESSING_QUEUE_KEY = "ai:processing";
+const AI_DEAD_LETTER_QUEUE_KEY = "ai:dead";
+const AI_WORKER_INSTANCE_SET_KEY = "worker:ai:instances";
+const AI_WORKER_HEARTBEAT_PREFIX = "worker:ai:heartbeat:";
+const MAX_AI_JOB_ATTEMPTS = Number(process.env.AI_WORKER_MAX_ATTEMPTS || "3");
+const AI_WORKER_CONCURRENCY = Math.max(1, Number(process.env.AI_WORKER_CONCURRENCY || "2"));
+const AI_WORKER_HEARTBEAT_INTERVAL_MS = 15_000;
 const currentMonthKey = (now: Date) =>
   `${now.getUTCFullYear()}-${String(now.getUTCMonth() + 1).padStart(2, "0")}`;
 const currentMonthStart = (now: Date) =>
@@ -20,8 +28,11 @@ const normalizeEmail = (email: string) => email.trim().toLowerCase();
 const getFreeEmailUsageRedisKey = (email: string, monthKey: string) =>
   `usage:ai:email:${normalizeEmail(email)}:${monthKey}`;
 type AiQueueJob = {
+  jobId?: string;
   errorId: string;
   requestedByUserId?: string;
+  attempt?: number;
+  enqueuedAt?: string;
 };
 
 const parseQueueJob = (value: string): AiQueueJob => {
@@ -36,6 +47,15 @@ const parseQueueJob = (value: string): AiQueueJob => {
 
   return { errorId: value };
 };
+const normalizeQueueJob = (job: AiQueueJob): Required<Pick<AiQueueJob, "errorId" | "attempt" | "jobId" | "enqueuedAt">> &
+  Pick<AiQueueJob, "requestedByUserId"> => ({
+  errorId: job.errorId,
+  requestedByUserId: job.requestedByUserId,
+  attempt: typeof job.attempt === "number" && Number.isFinite(job.attempt) ? job.attempt : 1,
+  jobId: job.jobId || `${job.errorId}:${Date.now().toString(36)}:${Math.random().toString(36).slice(2, 8)}`,
+  enqueuedAt: job.enqueuedAt || new Date().toISOString()
+});
+const serializeQueueJob = (job: AiQueueJob) => JSON.stringify(normalizeQueueJob(job));
 const formatDetailedSolution = (input: {
   rootCause: string;
   recommendedFix: string;
@@ -293,6 +313,83 @@ const processError = async ({ errorId, requestedByUserId }: AiQueueJob) => {
   }
 };
 
+const ackQueueJob = async (rawJob: string) => {
+  if (!redis.isOpen) {
+    return;
+  }
+  await redis.lRem(AI_PROCESSING_QUEUE_KEY, 1, rawJob);
+};
+
+const moveStaleProcessingJobsBackToQueue = async () => {
+  if (!redis.isOpen) {
+    return;
+  }
+
+  const inFlightJobs = await redis.lRange(AI_PROCESSING_QUEUE_KEY, 0, -1);
+  if (!inFlightJobs.length) {
+    return;
+  }
+
+  for (const rawJob of inFlightJobs) {
+    await redis.lRem(AI_PROCESSING_QUEUE_KEY, 1, rawJob);
+    await redis.rPush(AI_QUEUE_KEY, rawJob);
+  }
+
+  console.log(`Recovered ${inFlightJobs.length} in-flight AI job(s) back to the queue.`);
+};
+
+const handleFailedQueueJob = async (rawJob: string, job: AiQueueJob, error: unknown) => {
+  if (!redis.isOpen) {
+    return;
+  }
+
+  const normalized = normalizeQueueJob(job);
+  await ackQueueJob(rawJob);
+
+  if (normalized.attempt >= MAX_AI_JOB_ATTEMPTS) {
+    await redis.lPush(
+      AI_DEAD_LETTER_QUEUE_KEY,
+      JSON.stringify({
+        ...normalized,
+        failedAt: new Date().toISOString(),
+        error: error instanceof Error ? error.message : "Unknown worker error"
+      })
+    );
+    return;
+  }
+
+  await redis.lPush(
+    AI_QUEUE_KEY,
+    serializeQueueJob({
+      ...normalized,
+      attempt: normalized.attempt + 1,
+      enqueuedAt: new Date().toISOString()
+    })
+  );
+};
+
+const publishWorkerHeartbeat = async (instanceId: string) => {
+  if (!redis.isOpen) {
+    return;
+  }
+
+  const payload = {
+    instanceId,
+    pid: process.pid,
+    concurrency: AI_WORKER_CONCURRENCY,
+    updatedAt: new Date().toISOString()
+  };
+
+  await redis.sAdd(AI_WORKER_INSTANCE_SET_KEY, instanceId);
+  await redis.set(
+    `${AI_WORKER_HEARTBEAT_PREFIX}${instanceId}`,
+    JSON.stringify(payload),
+    {
+      EX: Math.ceil((AI_WORKER_HEARTBEAT_INTERVAL_MS * 3) / 1000)
+    }
+  );
+};
+
 const cleanupArchivedData = async () => {
   const cutoff = new Date(Date.now() - RETENTION_DAYS * 24 * 60 * 60 * 1000);
 
@@ -437,30 +534,99 @@ const cleanupArchivedData = async () => {
 const start = async () => {
   await prisma.$connect();
   await connectRedis();
+  await moveStaleProcessingJobsBackToQueue();
+  const instanceId = `${process.pid}-${Date.now().toString(36)}`;
+  await publishWorkerHeartbeat(instanceId);
 
-  console.log("TraceForge worker started. Waiting for jobs...");
+  console.log(`TraceForge worker started. Waiting for jobs with concurrency ${AI_WORKER_CONCURRENCY}.`);
   let lastCleanupAt = 0;
+  let shuttingDown = false;
+  let heartbeatInterval: NodeJS.Timeout | null = null;
 
-  while (true) {
-    try {
-      if (Date.now() - lastCleanupAt >= CLEANUP_INTERVAL_MS) {
-        await cleanupArchivedData();
-        lastCleanupAt = Date.now();
+  const runCleanupLoop = async () => {
+    while (!shuttingDown) {
+      try {
+        if (Date.now() - lastCleanupAt >= CLEANUP_INTERVAL_MS) {
+          await cleanupArchivedData();
+          lastCleanupAt = Date.now();
+        }
+      } catch (error) {
+        console.error("Cleanup loop error", error);
       }
 
-      const result = await redis.blPop("ai:queue", 5);
-      if (!result) {
-        await sleep(1000);
-        continue;
-      }
-
-      const job = parseQueueJob(result.element);
-      await processError(job);
-    } catch (error) {
-      console.error("Worker error", error);
-      await sleep(2000);
+      await sleep(15_000);
     }
-  }
+  };
+
+  const workerTasks = Array.from({ length: AI_WORKER_CONCURRENCY }, (_, index) =>
+    (async () => {
+      while (!shuttingDown) {
+        let rawJob: string | null = null;
+        let job: AiQueueJob | null = null;
+
+        try {
+          rawJob = await redis.blMove(
+            AI_QUEUE_KEY,
+            AI_PROCESSING_QUEUE_KEY,
+            "RIGHT",
+            "LEFT",
+            5
+          );
+          if (!rawJob) {
+            await sleep(250);
+            continue;
+          }
+
+          job = normalizeQueueJob(parseQueueJob(rawJob));
+          await processError(job);
+          await ackQueueJob(rawJob);
+        } catch (error) {
+          if (rawJob && job) {
+            await handleFailedQueueJob(rawJob, job, error);
+          } else {
+            console.error(`Worker loop ${index + 1} error`, error);
+            await sleep(1000);
+          }
+        }
+      }
+    })()
+  );
+
+  const stop = async (signal: string) => {
+    if (shuttingDown) {
+      return;
+    }
+    shuttingDown = true;
+    console.log(`TraceForge worker shutting down (${signal})...`);
+    if (heartbeatInterval) {
+      clearInterval(heartbeatInterval);
+      heartbeatInterval = null;
+    }
+    if (redis.isOpen) {
+      await redis.sRem(AI_WORKER_INSTANCE_SET_KEY, instanceId).catch(() => undefined);
+      await redis.del(`${AI_WORKER_HEARTBEAT_PREFIX}${instanceId}`).catch(() => undefined);
+    }
+    await sleep(350);
+    if (redis.isOpen) {
+      await redis.quit().catch(() => undefined);
+    }
+    await prisma.$disconnect().catch(() => undefined);
+    process.exit(0);
+  };
+
+  process.on("SIGTERM", () => {
+    void stop("SIGTERM");
+  });
+  process.on("SIGINT", () => {
+    void stop("SIGINT");
+  });
+
+  heartbeatInterval = setInterval(() => {
+    void publishWorkerHeartbeat(instanceId);
+  }, AI_WORKER_HEARTBEAT_INTERVAL_MS);
+  heartbeatInterval.unref();
+
+  await Promise.all([runCleanupLoop(), ...workerTasks]);
 };
 
 start().catch((err) => {

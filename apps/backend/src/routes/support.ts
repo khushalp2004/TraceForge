@@ -1,33 +1,23 @@
 import { Router } from "express";
-import { redis } from "../db/redis.js";
+import { rateLimitByIp } from "../middleware/rateLimit.js";
 import { sendEmail } from "../utils/mailer.js";
 import { buildHelpRequestEmail } from "../utils/emailTemplates.js";
 
 export const supportRouter = Router();
+const helpRequestRateLimit = rateLimitByIp("support:help", {
+  windowSeconds: 10 * 60,
+  maxRequests: 5,
+  message: "Too many help requests from this network. Please try again in a few minutes."
+});
 
 const supportInboxEmail = process.env.SUPPORT_INBOX_EMAIL || "patilkhushal54321@gmail.com";
 const webBaseUrl = process.env.WEB_BASE_URL || process.env.FRONTEND_URL || "http://localhost:3000";
 
 const isValidEmail = (value: string) => /\S+@\S+\.\S+/.test(value);
 
-const normalizeIp = (value: unknown) =>
-  typeof value === "string" && value.trim() ? value.trim() : "unknown";
+const normalizeIp = (value: unknown) => (typeof value === "string" && value.trim() ? value.trim() : "unknown");
 
-const applySupportRateLimit = async (ip: string) => {
-  if (!redis.isOpen) {
-    return null;
-  }
-
-  const key = `rate:support:${ip}`;
-  const count = await redis.incr(key);
-  if (count === 1) {
-    await redis.expire(key, 60 * 10);
-  }
-
-  return count;
-};
-
-supportRouter.post("/help", async (req, res) => {
+supportRouter.post("/help", helpRequestRateLimit, async (req, res) => {
   const email = typeof req.body?.email === "string" ? req.body.email.trim().toLowerCase() : "";
   const problem = typeof req.body?.problem === "string" ? req.body.problem.trim() : "";
 
@@ -46,13 +36,6 @@ supportRouter.post("/help", async (req, res) => {
   const ip = normalizeIp(req.ip || req.headers["x-forwarded-for"] || req.socket.remoteAddress);
 
   try {
-    const requestCount = await applySupportRateLimit(ip);
-    if (typeof requestCount === "number" && requestCount > 5) {
-      return res.status(429).json({
-        error: "Too many help requests from this network. Please try again in a few minutes."
-      });
-    }
-
     const { text, html } = buildHelpRequestEmail({
       fromEmail: email,
       problem,

@@ -57,6 +57,20 @@ Local test notes:
 - The frontend calls `POST /api/payment/create-order` → opens Razorpay Checkout → then calls `POST /api/payment/verify`.
 - Pro is activated only after server-side signature verification + Razorpay payment status check.
 
+## Production-style Docker runtime
+
+Use the dedicated production compose file when you want a deployment-shaped run instead of the live-reload dev stack:
+
+```bash
+docker compose -f docker-compose.prod.yml up --build -d
+```
+
+This production path:
+- builds Next.js once and runs `next start`
+- compiles backend and worker TypeScript before startup
+- removes bind mounts and startup-time `npm install`
+- keeps Prisma migration deploy in backend startup
+
 ## Ingestion Test (Phase 3)
 1. Create a user + project to get an API key.
 2. Send a sample error:

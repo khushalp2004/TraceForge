@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useAuth } from "../../../context/AuthContext";
@@ -8,7 +8,7 @@ import { useAuth } from "../../../context/AuthContext";
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
 const postAuthToastKey = "traceforge_post_auth_toast";
 
-export default function OauthCompletePage() {
+function OauthCompleteContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { login } = useAuth();
@@ -92,5 +92,30 @@ export default function OauthCompletePage() {
         </section>
       </div>
     </main>
+  );
+}
+
+export default function OauthCompletePage() {
+  return (
+    <Suspense
+      fallback={
+        <main className="tf-page pb-20 pt-16">
+          <div className="tf-container max-w-xl">
+            <section className="tf-card p-8">
+              <p className="tf-kicker">Social OAuth</p>
+              <h1 className="mt-3 text-2xl font-semibold text-text-primary">
+                Finishing your sign in
+              </h1>
+              <p className="mt-3 text-sm text-text-secondary">
+                Please wait while we connect your account to TraceForge.
+              </p>
+              <div className="mt-6 h-11 animate-pulse rounded-full bg-secondary/70" />
+            </section>
+          </div>
+        </main>
+      }
+    >
+      <OauthCompleteContent />
+    </Suspense>
   );
 }

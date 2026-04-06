@@ -3,6 +3,7 @@ import crypto from "crypto";
 import { Prisma } from "@prisma/client";
 import prisma from "../db/prisma.js";
 import { requireAuth } from "../middleware/auth.js";
+import { rateLimitByUser, rateLimitByIp } from "../middleware/rateLimit.js";
 import {
   BillingIntervalValue,
   PRO_STANDARD_MONTHLY_PRICE_PAISE,
@@ -20,6 +21,19 @@ const PROVIDER = "razorpay";
 type CheckoutPlan = "PRO" | "TEAM";
 type BillingScope = "USER" | "ORGANIZATION";
 type PricingTier = "LAUNCH" | "STANDARD" | null;
+
+const paymentMutationRateLimit = rateLimitByUser("payment:mutations", {
+  windowSeconds: 5 * 60,
+  maxRequests: 25,
+  message: "Too many billing requests. Please wait and try again."
+});
+
+const webhookRateLimit = rateLimitByIp("payment:webhook", {
+  windowSeconds: 60,
+  maxRequests: 180,
+  message: "Too many webhook requests. Please try again later.",
+  failOpen: true
+});
 
 const getRazorpayKeys = () => {
   const keyId = process.env.RAZORPAY_KEY_ID?.trim() || "";
@@ -293,7 +307,7 @@ type RawBodyRequest = Request & { rawBody?: Buffer };
 
 export const paymentRouter = Router();
 
-paymentRouter.post("/create-order", requireAuth, async (req, res) => {
+paymentRouter.post("/create-order", requireAuth, paymentMutationRateLimit, async (req, res) => {
   const userId = req.user?.id;
   const email = req.user?.email;
   if (!userId || !email) {
@@ -407,7 +421,7 @@ paymentRouter.post("/create-order", requireAuth, async (req, res) => {
   }
 });
 
-paymentRouter.post("/verify", requireAuth, async (req, res) => {
+paymentRouter.post("/verify", requireAuth, paymentMutationRateLimit, async (req, res) => {
   const userId = req.user?.id;
   if (!userId) {
     return res.status(401).json({ error: "Unauthorized" });
@@ -799,7 +813,7 @@ paymentRouter.get("/invoices", requireAuth, async (req, res) => {
   }
 });
 
-paymentRouter.post("/cancel", requireAuth, async (req, res) => {
+paymentRouter.post("/cancel", requireAuth, paymentMutationRateLimit, async (req, res) => {
   const userId = req.user?.id;
   if (!userId) {
     return res.status(401).json({ error: "Unauthorized" });
@@ -885,7 +899,7 @@ paymentRouter.post("/cancel", requireAuth, async (req, res) => {
   }
 });
 
-paymentRouter.post("/downgrade", requireAuth, async (req, res) => {
+paymentRouter.post("/downgrade", requireAuth, paymentMutationRateLimit, async (req, res) => {
   const userId = req.user?.id;
   if (!userId) {
     return res.status(401).json({ error: "Unauthorized" });
@@ -927,7 +941,7 @@ paymentRouter.post("/downgrade", requireAuth, async (req, res) => {
   }
 });
 
-paymentRouter.post("/upgrade", requireAuth, async (req, res) => {
+paymentRouter.post("/upgrade", requireAuth, paymentMutationRateLimit, async (req, res) => {
   const userId = req.user?.id;
   if (!userId) {
     return res.status(401).json({ error: "Unauthorized" });
@@ -1020,7 +1034,7 @@ paymentRouter.post("/upgrade", requireAuth, async (req, res) => {
   }
 });
 
-paymentRouter.post("/webhook", async (req, res) => {
+paymentRouter.post("/webhook", webhookRateLimit, async (req, res) => {
   const { webhookSecret } = getRazorpayKeys();
   if (!webhookSecret) {
     return res.status(501).json({ error: "Webhook is not configured" });

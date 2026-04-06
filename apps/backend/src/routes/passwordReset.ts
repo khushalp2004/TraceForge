@@ -2,17 +2,28 @@ import { Router } from "express";
 import bcrypt from "bcryptjs";
 import crypto from "crypto";
 import prisma from "../db/prisma.js";
+import { rateLimitByIp } from "../middleware/rateLimit.js";
 import { generateResetToken } from "../utils/passwordReset.js";
 import { sendEmail } from "../utils/mailer.js";
 import { buildPasswordResetEmail } from "../utils/emailTemplates.js";
 
 export const passwordResetRouter = Router();
+const passwordResetRequestRateLimit = rateLimitByIp("auth:password-request", {
+  windowSeconds: 15 * 60,
+  maxRequests: 5,
+  message: "Too many password reset requests. Please wait before trying again."
+});
+const passwordResetConfirmRateLimit = rateLimitByIp("auth:password-confirm", {
+  windowSeconds: 15 * 60,
+  maxRequests: 10,
+  message: "Too many password reset attempts. Please wait before trying again."
+});
 const passwordPolicy =
   /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z\d])[A-Za-z\d\S]{10,64}$/;
 const passwordPolicyMessage =
   "Password must be 10-64 characters and include uppercase, lowercase, number, and special character.";
 
-passwordResetRouter.post("/request", async (req, res) => {
+passwordResetRouter.post("/request", passwordResetRequestRateLimit, async (req, res) => {
   const { email } = req.body as { email?: string };
 
   if (!email) {
@@ -54,7 +65,7 @@ passwordResetRouter.post("/request", async (req, res) => {
   return res.json({ status: "ok" });
 });
 
-passwordResetRouter.post("/confirm", async (req, res) => {
+passwordResetRouter.post("/confirm", passwordResetConfirmRateLimit, async (req, res) => {
   const { token, password } = req.body as { token?: string; password?: string };
 
   if (!token || !password) {

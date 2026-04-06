@@ -1,3 +1,4 @@
+import crypto from "crypto";
 import express from "express";
 import cors from "cors";
 import helmet from "helmet";
@@ -22,18 +23,56 @@ import { supportRouter } from "./routes/support.js";
 
 export const createApp = () => {
   const app = express();
+  const allowedOrigins = [
+    process.env.FRONTEND_URL,
+    process.env.APP_PUBLIC_URL,
+    "http://localhost:3000",
+    "http://127.0.0.1:3000"
+  ].filter((value): value is string => Boolean(value && value.trim()));
+  const corsOptions = {
+    origin(
+      origin: string | undefined,
+      callback: (err: Error | null, allow?: boolean) => void
+    ) {
+      if (!origin || allowedOrigins.includes(origin)) {
+        return callback(null, true);
+      }
+      return callback(new Error("Origin not allowed by CORS"));
+    },
+    credentials: true
+  };
 
-  app.use(helmet());
-  app.use(cors());
+  morgan.token("reqid", (req) => {
+    return (req as express.Request & { requestId?: string }).requestId || "-";
+  });
+
+  app.disable("x-powered-by");
+  app.set("trust proxy", 1);
+
+  app.use(
+    helmet({
+      crossOriginResourcePolicy: false
+    })
+  );
+  app.use(cors(corsOptions));
   app.use(
     express.json({
-      limit: "1mb",
+      limit: "512kb",
       verify: (req, _res, buf) => {
         (req as { rawBody?: Buffer }).rawBody = buf;
       }
     })
   );
-  app.use(morgan("dev"));
+  app.use(express.urlencoded({ extended: true, limit: "64kb" }));
+  app.use((req, res, next) => {
+    const requestId =
+      (typeof req.headers["x-request-id"] === "string" && req.headers["x-request-id"].trim()) ||
+      crypto.randomUUID();
+    (req as express.Request & { requestId?: string }).requestId = requestId;
+    res.setHeader("X-Request-Id", requestId);
+    next();
+  });
+  app.use(morgan(":method :url :status :response-time ms req=:reqid"));
 
   app.get("/", (_req, res) => {
     res.json({
@@ -58,6 +97,18 @@ export const createApp = () => {
   app.use("/ingest", ingestRouter);
   app.use("/errors", errorsRouter);
   app.use("/analytics", analyticsRouter);
+
+  app.use((err: unknown, _req: express.Request, res: express.Response, next: express.NextFunction) => {
+    if ((err as { type?: string; message?: string })?.type === "entity.too.large") {
+      return res.status(413).json({ error: "Request payload is too large" });
+    }
+
+    if (err instanceof Error && err.message === "Origin not allowed by CORS") {
+      return res.status(403).json({ error: err.message });
+    }
+
+    return next(err);
+  });
 
   return app;
 };

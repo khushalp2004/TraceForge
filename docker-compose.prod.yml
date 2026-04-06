@@ -1,0 +1,81 @@
+version: "3.9"
+
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: traceforge-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    ports:
+      - "5432:5432"
+    volumes:
+      - traceforge_db:/var/lib/postgresql/data
+      - ./docker/postgres/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+
+  redis:
+    image: redis:7-alpine
+    container_name: traceforge-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - traceforge_redis:/data
+
+  backend:
+    build:
+      context: ./apps/backend
+      dockerfile: Dockerfile.prod
+    container_name: traceforge-backend
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      NODE_ENV: production
+      DATABASE_URL: ${DATABASE_URL}
+      REDIS_URL: ${REDIS_URL}
+      PORT: ${BACKEND_PORT}
+    ports:
+      - "${BACKEND_PORT}:3001"
+    depends_on:
+      - db
+      - redis
+
+  worker:
+    build:
+      context: ./apps/worker
+      dockerfile: Dockerfile.prod
+    container_name: traceforge-worker
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      NODE_ENV: production
+      DATABASE_URL: ${DATABASE_URL}
+      REDIS_URL: ${REDIS_URL}
+      GROQ_API_KEY: ${GROQ_API_KEY}
+    depends_on:
+      - db
+      - redis
+
+  frontend:
+    build:
+      context: ./apps/frontend
+      dockerfile: Dockerfile.prod
+    container_name: traceforge-frontend
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      NODE_ENV: production
+      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL}
+    ports:
+      - "${FRONTEND_PORT}:3000"
+    depends_on:
+      - backend
+
+volumes:
+  traceforge_db:
+  traceforge_redis:

@@ -159,7 +159,17 @@ errorsRouter.get("/", async (req, res) => {
       orderBy,
       skip: (currentPage - 1) * perPage,
       take: perPage,
-      include: {
+      select: {
+        id: true,
+        projectId: true,
+        message: true,
+        stackTrace: true,
+        count: true,
+        lastSeen: true,
+        archivedAt: true,
+        aiStatus: true,
+        aiLastError: true,
+        aiRequestedAt: true,
         analysis: true,
         events: {
           select: {
@@ -199,9 +209,36 @@ errorsRouter.get("/:id", async (req, res) => {
 
   const errorRecord = await prisma.error.findUnique({
     where: { id: errorId },
-    include: {
-      analysis: true,
-      project: true,
+    select: {
+      id: true,
+      message: true,
+      stackTrace: true,
+      count: true,
+      firstSeen: true,
+      lastSeen: true,
+      archivedAt: true,
+      aiStatus: true,
+      aiLastError: true,
+      aiRequestedAt: true,
+      aiCompletedAt: true,
+      analysis: {
+        select: {
+          aiExplanation: true,
+          suggestedFix: true
+        }
+      },
+      project: {
+        select: {
+          id: true,
+          userId: true,
+          orgId: true,
+          archivedAt: true,
+          name: true,
+          githubRepoId: true,
+          githubRepoName: true,
+          githubRepoUrl: true
+        }
+      },
       events: {
         orderBy: { timestamp: "desc" },
         take: 10
@@ -263,9 +300,31 @@ errorsRouter.post("/:id/github-issue", async (req, res) => {
 
   const errorRecord = await prisma.error.findUnique({
     where: { id: errorId },
-    include: {
-      analysis: true,
-      project: true,
+    select: {
+      id: true,
+      message: true,
+      stackTrace: true,
+      count: true,
+      lastSeen: true,
+      archivedAt: true,
+      analysis: {
+        select: {
+          aiExplanation: true,
+          suggestedFix: true
+        }
+      },
+      project: {
+        select: {
+          id: true,
+          name: true,
+          userId: true,
+          orgId: true,
+          archivedAt: true,
+          githubRepoId: true,
+          githubRepoName: true,
+          githubRepoUrl: true
+        }
+      },
       events: {
         orderBy: { timestamp: "desc" },
         take: 3
@@ -387,8 +446,16 @@ errorsRouter.post("/:id/regenerate", async (req, res) => {
 
   const errorRecord = await prisma.error.findUnique({
     where: { id: errorId },
-    include: {
-      project: true,
+    select: {
+      id: true,
+      archivedAt: true,
+      project: {
+        select: {
+          userId: true,
+          orgId: true,
+          archivedAt: true
+        }
+      },
       events: {
         select: {
           payload: true
@@ -495,7 +562,17 @@ errorsRouter.post("/:id/archive", async (req, res) => {
 
   const errorRecord = await prisma.error.findUnique({
     where: { id: errorId },
-    include: { project: true }
+    select: {
+      id: true,
+      archivedAt: true,
+      project: {
+        select: {
+          userId: true,
+          orgId: true,
+          archivedAt: true
+        }
+      }
+    }
   });
 
   if (!errorRecord) {
@@ -547,7 +624,17 @@ errorsRouter.post("/:id/restore", async (req, res) => {
 
   const errorRecord = await prisma.error.findUnique({
     where: { id: errorId },
-    include: { project: true }
+    select: {
+      id: true,
+      archivedAt: true,
+      project: {
+        select: {
+          userId: true,
+          orgId: true,
+          archivedAt: true
+        }
+      }
+    }
   });
 
   if (!errorRecord) {
@@ -599,7 +686,16 @@ errorsRouter.delete("/:id", async (req, res) => {
 
   const errorRecord = await prisma.error.findUnique({
     where: { id: errorId },
-    include: { project: true }
+    select: {
+      id: true,
+      archivedAt: true,
+      project: {
+        select: {
+          userId: true,
+          orgId: true
+        }
+      }
+    }
   });
 
   if (!errorRecord) {

@@ -79,6 +79,9 @@ model Payment {
   @@index([userId])
   @@index([organizationId])
   @@index([createdAt])
+  @@index([userId, createdAt])
+  @@index([organizationId, createdAt])
+  @@index([provider, status])
 }
 
 model EmailVerificationCode {
@@ -167,6 +170,7 @@ model OrganizationInvite {
 
   @@index([organizationId])
   @@index([expiresAt])
+  @@index([organizationId, expiresAt])
 }
 
 model OrgAuditLog {
@@ -208,6 +212,7 @@ model OrgJoinRequest {
   @@index([organizationId])
   @@index([requesterId])
   @@index([status])
+  @@index([organizationId, status, createdAt])
 }
 
 model Project {
@@ -236,6 +241,8 @@ model Project {
 
   @@index([archivedAt])
   @@index([orgId])
+  @@index([userId, archivedAt, createdAt])
+  @@index([orgId, archivedAt, createdAt])
 }
 
 model Error {
@@ -263,6 +270,8 @@ model Error {
   @@index([archivedAt])
   @@index([projectId])
   @@index([lastSeen])
+  @@index([projectId, archivedAt, lastSeen])
+  @@index([projectId, archivedAt, count])
 }
 
 model ErrorEvent {
@@ -278,6 +287,8 @@ model ErrorEvent {
 
   @@index([errorId])
   @@index([releaseId])
+  @@index([errorId, timestamp])
+  @@index([timestamp, environment])
 }
 
 model ErrorAnalysis {
@@ -390,6 +401,7 @@ model Release {
   @@unique([projectId, version])
   @@index([projectId])
   @@index([releasedAt])
+  @@index([projectId, releasedAt])
 }
 
 model AlertRule {
@@ -417,6 +429,8 @@ model AlertRule {
   @@index([userId])
   @@index([projectId])
   @@index([isActive])
+  @@index([userId, archivedAt, isActive])
+  @@index([projectId, archivedAt, isActive])
 }
 
 model AlertDelivery {
@@ -436,6 +450,9 @@ model AlertDelivery {
   @@index([projectId])
   @@index([errorId])
   @@index([triggeredAt])
+  @@index([projectId, triggeredAt])
+  @@index([errorId, triggeredAt])
+  @@index([alertRuleId, triggeredAt])
 }
 
 model NotificationDismissal {
@@ -476,6 +493,8 @@ model IntegrationConnection {
   @@index([userId])
   @@index([organizationId])
   @@index([provider, scope])
+  @@index([provider, organizationId, status])
+  @@index([provider, userId, status])
 }
 
 model AiUsageEntry {
@@ -495,6 +514,8 @@ model AiUsageEntry {
   @@index([organizationId, createdAt])
   @@index([projectId, createdAt])
   @@index([kind, createdAt])
+  @@index([userId, kind, createdAt])
+  @@index([organizationId, kind, createdAt])
 }
 
 model FreeAiEmailUsage {

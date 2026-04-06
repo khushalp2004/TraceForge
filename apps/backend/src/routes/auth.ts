@@ -6,6 +6,7 @@ import { Prisma } from "@prisma/client";
 import prisma from "../db/prisma.js";
 import { redis } from "../db/redis.js";
 import { requireAuth } from "../middleware/auth.js";
+import { rateLimitByIp, rateLimitByUser } from "../middleware/rateLimit.js";
 import { signToken } from "../utils/jwt.js";
 import { encryptIntegrationSecret } from "../utils/integrationSecrets.js";
 import {
@@ -22,6 +23,42 @@ import {
 } from "../utils/emailVerification.js";
 
 export const authRouter = Router();
+
+const registerRateLimit = rateLimitByIp("auth:register", {
+  windowSeconds: 15 * 60,
+  maxRequests: 8,
+  message: "Too many sign up attempts. Please try again shortly."
+});
+const loginRateLimit = rateLimitByIp("auth:login", {
+  windowSeconds: 10 * 60,
+  maxRequests: 10,
+  message: "Too many sign in attempts. Please try again shortly."
+});
+const socialStartRateLimit = rateLimitByIp("auth:social-start", {
+  windowSeconds: 10 * 60,
+  maxRequests: 20,
+  message: "Too many OAuth attempts. Please try again shortly."
+});
+const socialCompleteRateLimit = rateLimitByIp("auth:social-complete", {
+  windowSeconds: 15 * 60,
+  maxRequests: 10,
+  message: "Too many social signup attempts. Please try again shortly."
+});
+const verifyCodeRateLimit = rateLimitByIp("auth:verify-email", {
+  windowSeconds: 10 * 60,
+  maxRequests: 10,
+  message: "Too many verification attempts. Please wait before trying again."
+});
+const resendVerificationRateLimit = rateLimitByIp("auth:verify-email-resend", {
+  windowSeconds: 10 * 60,
+  maxRequests: 5,
+  message: "Too many resend requests. Please wait before trying again."
+});
+const accountMutationRateLimit = rateLimitByUser("auth:account-mutation", {
+  windowSeconds: 5 * 60,
+  maxRequests: 20,
+  message: "Too many account changes. Please wait and try again."
+});
 
 const isValidEmail = (email: string) => /\S+@\S+\.\S+/.test(email);
 const passwordPolicy =
@@ -480,7 +517,7 @@ authRouter.get("/usage", requireAuth, async (req, res) => {
   });
 });
 
-authRouter.post("/register", async (req, res) => {
+authRouter.post("/register", registerRateLimit, async (req, res) => {
   const { fullName, address, email, password } = req.body as {
     fullName?: string;
     address?: string;
@@ -536,7 +573,7 @@ authRouter.post("/register", async (req, res) => {
   });
 });
 
-authRouter.post("/login", async (req, res) => {
+authRouter.post("/login", loginRateLimit, async (req, res) => {
   const { email, password } = req.body as { email?: string; password?: string };
 
   if (!email || !password) {
@@ -577,7 +614,7 @@ authRouter.post("/login", async (req, res) => {
   });
 });
 
-authRouter.get("/google/start", async (req, res) => {
+authRouter.get("/google/start", socialStartRateLimit, async (req, res) => {
   if (!isGoogleOAuthConfigured()) {
     return res.status(503).json({ error: "Google OAuth is not configured" });
   }
@@ -708,7 +745,7 @@ authRouter.post("/github/integration/start", requireAuth, async (req, res) => {
   return res.json({ url: url.toString() });
 });
 
-authRouter.get("/github/start", async (req, res) => {
+authRouter.get("/github/start", socialStartRateLimit, async (req, res) => {
   if (!isGithubOAuthConfigured()) {
     return res.status(503).json({ error: "GitHub OAuth is not configured" });
   }
@@ -856,7 +893,7 @@ authRouter.get("/github/callback", async (req, res) => {
   }
 });
 
-authRouter.post("/oauth/complete-signup", async (req, res) => {
+authRouter.post("/oauth/complete-signup", socialCompleteRateLimit, async (req, res) => {
   const { signupToken, fullName, address, password } = req.body as {
     signupToken?: string;
     fullName?: string;
@@ -932,7 +969,7 @@ authRouter.post("/oauth/complete-signup", async (req, res) => {
   });
 });
 
-authRouter.post("/verify-email", async (req, res) => {
+authRouter.post("/verify-email", verifyCodeRateLimit, async (req, res) => {
   const { email, code } = req.body as { email?: string; code?: string };
 
   if (!email || !code) {
@@ -1001,7 +1038,7 @@ authRouter.post("/verify-email", async (req, res) => {
   });
 });
 
-authRouter.post("/verify-email/resend", async (req, res) => {
+authRouter.post("/verify-email/resend", resendVerificationRateLimit, async (req, res) => {
   const { email } = req.body as { email?: string };
 
   if (!email || !isValidEmail(email)) {
@@ -1030,7 +1067,7 @@ authRouter.post("/verify-email/resend", async (req, res) => {
   return res.json({ status: "ok" });
 });
 
-authRouter.patch("/profile", requireAuth, async (req, res) => {
+authRouter.patch("/profile", requireAuth, accountMutationRateLimit, async (req, res) => {
   const userId = req.user?.id;
   const { fullName, address } = req.body as {
     fullName?: string;
@@ -1062,7 +1099,7 @@ authRouter.patch("/profile", requireAuth, async (req, res) => {
   return res.json({ status: "ok", user });
 });
 
-authRouter.post("/change-password", requireAuth, async (req, res) => {
+authRouter.post("/change-password", requireAuth, accountMutationRateLimit, async (req, res) => {
   const userId = req.user?.id;
   const { currentPassword, newPassword } = req.body as {
     currentPassword?: string;
@@ -1104,7 +1141,7 @@ authRouter.post("/change-password", requireAuth, async (req, res) => {
   return res.json({ status: "ok" });
 });
 
-authRouter.post("/leave-organizations", requireAuth, async (req, res) => {
+authRouter.post("/leave-organizations", requireAuth, accountMutationRateLimit, async (req, res) => {
   const userId = req.user?.id;
 
   if (!userId) {
@@ -1161,7 +1198,7 @@ authRouter.post("/leave-organizations", requireAuth, async (req, res) => {
   return res.json({ status: "ok", left: memberships.length });
 });
 
-authRouter.delete("/account", requireAuth, async (req, res) => {
+authRouter.delete("/account", requireAuth, accountMutationRateLimit, async (req, res) => {
   const userId = req.user?.id;
   const { email, password } = req.body as { email?: string; password?: string };
 
