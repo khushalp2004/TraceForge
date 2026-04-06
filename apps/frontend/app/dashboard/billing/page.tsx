@@ -478,8 +478,8 @@ export default function BillingPage() {
 
         <section className="mt-6 grid gap-6 xl:grid-cols-2">
           <div className="rounded-3xl border border-border bg-card/95 p-6 shadow-sm">
-            <div className="flex flex-wrap items-start justify-between gap-4">
-              <div>
+            <div className="flex flex-wrap items-start justify-between gap-4 sm:flex-nowrap">
+              <div className="min-w-0 flex-1">
                 <p className="text-xs font-semibold uppercase tracking-[0.14em] text-text-secondary">
                   Personal Pro
                 </p>
@@ -490,12 +490,15 @@ export default function BillingPage() {
                   Unlimited AI analyses for you, even inside Free or Team organizations.
                 </p>
               </div>
-              <div className="rounded-2xl border border-primary/20 bg-accent-soft px-4 py-3 text-right">
+              <div className="shrink-0 rounded-2xl border border-primary/20 bg-accent-soft px-4 py-3 text-right">
                 <p className="text-xs font-semibold uppercase tracking-[0.14em] text-text-secondary">
-                  Expires
+                  Status
                 </p>
                 <p className="mt-1 text-lg font-semibold text-text-primary">
-                  {user?.planExpiresAt ? new Date(user.planExpiresAt).toLocaleDateString() : "—"}
+                  {isUserProActive ? "Active" : "Not active"}
+                </p>
+                <p className="mt-1 text-xs text-text-secondary">
+                  {user?.planExpiresAt ? `Expires ${new Date(user.planExpiresAt).toLocaleDateString()}` : "No active renewal"}
                 </p>
               </div>
             </div>
@@ -592,8 +595,8 @@ export default function BillingPage() {
           </div>
 
           <div className="rounded-3xl border border-border bg-card/95 p-6 shadow-sm">
-            <div className="flex flex-wrap items-start justify-between gap-4">
-              <div>
+            <div className="flex flex-wrap items-start justify-between gap-4 sm:flex-nowrap">
+              <div className="min-w-0 flex-1">
                 <p className="text-xs font-semibold uppercase tracking-[0.14em] text-text-secondary">
                   Team organization
                 </p>
@@ -605,31 +608,22 @@ export default function BillingPage() {
                   organization. Personal Pro still stays unlimited for Pro users.
                 </p>
               </div>
-              <div className="rounded-2xl border border-primary/20 bg-accent-soft px-4 py-3 text-right">
+              <div className="shrink-0 rounded-2xl border border-primary/20 bg-accent-soft px-4 py-3 text-right">
                 <p className="text-xs font-semibold uppercase tracking-[0.14em] text-text-secondary">
-                  Selected org
+                  Status
                 </p>
                 <p className="mt-1 text-lg font-semibold text-text-primary">
-                  {selectedOrg?.name || "Choose one"}
+                  {isTeamActive ? "Active" : "Not active"}
+                </p>
+                <p className="mt-1 whitespace-nowrap text-xs text-text-secondary">
+                  {selectedOrg?.planExpiresAt
+                    ? `Expires ${new Date(selectedOrg.planExpiresAt).toLocaleDateString()}`
+                    : "No active renewal"}
                 </p>
               </div>
             </div>
 
-            <div className="mt-5 grid gap-3 sm:grid-cols-[minmax(0,1fr)_auto]">
-              <select
-                className="tf-input"
-                value={selectedOrgId}
-                onChange={(event) => setSelectedOrgId(event.target.value)}
-              >
-                <option value="">Select organization</option>
-                {ownerOrgs.map((org) => (
-                  <option key={org.id} value={org.id}>
-                    {org.name}
-                  </option>
-                ))}
-              </select>
-
-              <div className="flex items-center gap-2 rounded-full border border-border bg-secondary/15 p-1 text-xs font-semibold text-text-secondary">
+            <div className="mt-5 flex items-center gap-2 rounded-full border border-border bg-secondary/15 p-1 text-xs font-semibold text-text-secondary">
                 <button
                   type="button"
                   className={`rounded-full px-3 py-1.5 ${teamInterval === "MONTHLY" ? "bg-card text-text-primary" : ""}`}
@@ -644,7 +638,6 @@ export default function BillingPage() {
                 >
                   Yearly
                 </button>
-              </div>
             </div>
 
             <div className="mt-6 grid gap-4 sm:grid-cols-3">
@@ -675,12 +668,33 @@ export default function BillingPage() {
               </div>
               <div className="rounded-2xl border border-border bg-secondary/25 px-4 py-4">
                 <p className="text-xs font-semibold uppercase tracking-[0.14em] text-text-secondary">
-                  Members
+                  Organization
                 </p>
                 <p className="mt-2 text-sm font-semibold text-text-primary">
-                  {selectedOrg ? `${selectedOrg.memberCount} active` : "—"}
+                  {selectedOrg?.name || "Select one"}
+                </p>
+                <p className="mt-1 text-xs text-text-secondary">
+                  {selectedOrg ? `${selectedOrg.memberCount} active members` : "Choose the billing organization"}
                 </p>
               </div>
+            </div>
+
+            <div className="mt-5">
+              <label className="tf-filter-field">
+                <span className="tf-filter-label">Team organization</span>
+                <select
+                  className="tf-select tf-filter-control w-full"
+                  value={selectedOrgId}
+                  onChange={(event) => setSelectedOrgId(event.target.value)}
+                >
+                  <option value="">Select organization</option>
+                  {ownerOrgs.map((org) => (
+                    <option key={org.id} value={org.id}>
+                      {org.name}
+                    </option>
+                  ))}
+                </select>
+              </label>
             </div>
 
             <div className="mt-5 flex flex-wrap gap-3">

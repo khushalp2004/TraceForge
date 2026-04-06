@@ -21,13 +21,11 @@ export default function AuthToast({ toast }: AuthToastProps) {
       : toast.tone === "success"
         ? {
             Icon: CheckCircle2,
-            className:
-              "border-emerald-200/90 bg-emerald-50/95 text-emerald-700 shadow-[0_18px_40px_rgba(16,185,129,0.14)]"
+            className: "tf-success-toast"
           }
         : {
             Icon: Info,
-            className:
-              "border-amber-200/90 bg-amber-50/95 text-amber-700 shadow-[0_18px_40px_rgba(245,158,11,0.14)]"
+            className: "tf-info-toast"
           };
 
   const Icon = toneStyles.Icon;

@@ -1,6 +1,7 @@
 import { Router } from "express";
 import { redis } from "../db/redis.js";
 import { sendEmail } from "../utils/mailer.js";
+import { buildHelpRequestEmail } from "../utils/emailTemplates.js";
 
 export const supportRouter = Router();
 
@@ -52,26 +53,12 @@ supportRouter.post("/help", async (req, res) => {
       });
     }
 
-    const text = [
-      "TraceForge help request",
-      "",
-      `From: ${email}`,
-      `IP: ${ip}`,
-      `Product URL: ${webBaseUrl}`,
-      "",
-      "Problem:",
-      problem
-    ].join("\n");
-
-    const html = `
-      <div style="font-family: Inter, Arial, sans-serif; color: #0f172a; line-height: 1.6;">
-        <h2 style="margin: 0 0 16px;">TraceForge help request</h2>
-        <p style="margin: 0 0 8px;"><strong>From:</strong> ${email}</p>
-        <p style="margin: 0 0 8px;"><strong>IP:</strong> ${ip}</p>
-        <p style="margin: 0 0 20px;"><strong>Product URL:</strong> ${webBaseUrl}</p>
-        <div style="padding: 16px; border-radius: 16px; background: #f8fafc; border: 1px solid #e2e8f0; white-space: pre-wrap;">${problem.replace(/</g, "&lt;").replace(/>/g, "&gt;")}</div>
-      </div>
-    `;
+    const { text, html } = buildHelpRequestEmail({
+      fromEmail: email,
+      problem,
+      ip,
+      productUrl: webBaseUrl
+    });
 
     await sendEmail({
       to: supportInboxEmail,

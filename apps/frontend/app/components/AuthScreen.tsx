@@ -231,16 +231,14 @@ function AuthScreenInner({ mode }: AuthScreenProps) {
         return;
       }
 
-      if (!isSocialSignupContinuation) {
-        if (!passwordPolicy.test(password)) {
-          setToast({ message: passwordPolicyMessage, tone: "error" });
-          return;
-        }
+      if (!passwordPolicy.test(password)) {
+        setToast({ message: passwordPolicyMessage, tone: "error" });
+        return;
+      }
 
-        if (!password || password !== confirmPassword) {
-          setToast({ message: "Passwords do not match.", tone: "error" });
-          return;
-        }
+      if (!password || password !== confirmPassword) {
+        setToast({ message: "Passwords do not match.", tone: "error" });
+        return;
       }
     }
 
@@ -537,13 +535,13 @@ function AuthScreenInner({ mode }: AuthScreenProps) {
                 readOnly={isSocialSignupContinuation}
               />
 
-              {mode === "signup" && !isSocialSignupContinuation ? (
+              {mode === "signup" ? (
                 <>
                   <div className="grid gap-2.5 lg:grid-cols-2">
                     <div className="relative">
                       <input
                         className="tf-input w-full bg-card/80 pr-12"
-                        placeholder="Create a password"
+                        placeholder={isSocialSignupContinuation ? "Create a password for future sign-ins" : "Create a password"}
                         type={showPassword ? "text" : "password"}
                         value={password}
                         onChange={(event) => setPassword(event.target.value)}
@@ -576,7 +574,9 @@ function AuthScreenInner({ mode }: AuthScreenProps) {
                     </div>
                   </div>
                   <p className="text-xs leading-5 text-text-secondary">
-                    Use 10-64 characters with uppercase, lowercase, number, and special character.
+                    {isSocialSignupContinuation
+                      ? "Set a password so you can sign in later with email and password, not only OAuth."
+                      : "Use 10-64 characters with uppercase, lowercase, number, and special character."}
                   </p>
                   <label className="tf-auth-chip flex items-start gap-3 rounded-2xl border px-4 py-2.5 text-sm text-text-secondary">
                     <input
@@ -594,22 +594,6 @@ function AuthScreenInner({ mode }: AuthScreenProps) {
                     </span>
                   </label>
                 </>
-              ) : mode === "signup" ? (
-                <label className="tf-auth-chip flex items-start gap-3 rounded-2xl border px-4 py-2.5 text-sm text-text-secondary">
-                  <input
-                    type="checkbox"
-                    checked={agreedToTerms}
-                    onChange={(event) => setAgreedToTerms(event.target.checked)}
-                    className="mt-1 h-4 w-4 rounded border-border text-primary focus:ring-primary/30"
-                  />
-                  <span>
-                    I agree to the{" "}
-                    <Link className="tf-link" href="/terms">
-                      terms and conditions
-                    </Link>
-                    .
-                  </span>
-                </label>
               ) : (
                 <div className="relative">
                   <input

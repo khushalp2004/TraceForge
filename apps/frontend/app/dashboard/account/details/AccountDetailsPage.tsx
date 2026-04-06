@@ -36,6 +36,7 @@ export default function AccountDetailsPage() {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [showDeletePassword, setShowDeletePassword] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [showProDeleteConfirm, setShowProDeleteConfirm] = useState(false);
   const [showLeaveConfirm, setShowLeaveConfirm] = useState(false);
   const [leaveBlockers, setLeaveBlockers] = useState<string[]>([]);
   const [rightRailScrollable, setRightRailScrollable] = useState(false);
@@ -277,12 +278,23 @@ export default function AccountDetailsPage() {
     } finally {
       setBusyAction(null);
       setShowDeleteConfirm(false);
+      setShowProDeleteConfirm(false);
     }
   };
 
+  const continueDeleteAccount = () => {
+    if (user?.plan === "PRO") {
+      setShowDeleteConfirm(false);
+      setShowProDeleteConfirm(true);
+      return;
+    }
+
+    void deleteAccount();
+  };
+
   return (
-    <main className="tf-page tf-dashboard-page lg:h-screen lg:overflow-hidden">
-      <div className="tf-dashboard flex min-h-0 flex-col lg:h-full">
+    <main className="tf-page tf-dashboard-page xl:h-screen xl:overflow-hidden">
+      <div className="tf-dashboard flex flex-col xl:h-full">
         <header>
           <p className="tf-kicker">Account Details</p>
           <h1 className="tf-title mt-3 text-3xl">Personal account and security</h1>
@@ -291,9 +303,9 @@ export default function AccountDetailsPage() {
           </p>
         </header>
 
-        <div className="mt-6 grid min-h-0 flex-1 gap-6 xl:grid-cols-[minmax(0,1.2fr)_minmax(320px,0.8fr)]">
-          <div className="min-h-0 space-y-3 xl:h-full xl:overflow-hidden xl:self-start">
-            <section className="rounded-2xl border border-border bg-card/90 p-4 shadow-sm xl:p-5">
+        <div className="mt-6 grid gap-6 xl:min-h-0 xl:flex-1 xl:grid-cols-[minmax(0,1.2fr)_minmax(320px,0.8fr)]">
+          <div className="space-y-3 xl:min-h-0 xl:self-start xl:overflow-hidden">
+            <section className="rounded-2xl border border-border bg-card/90 p-4 shadow-sm md:p-5">
               <h2 className="text-lg font-semibold text-text-primary">Edit profile</h2>
               <p className="mt-1 text-sm text-text-secondary">
                 Update the personal details used across your workspace and recovery flows.
@@ -352,14 +364,14 @@ export default function AccountDetailsPage() {
               </div>
             </section>
 
-            <section className="rounded-2xl border border-border bg-card/90 p-4 shadow-sm xl:p-5">
+            <section className="rounded-2xl border border-border bg-card/90 p-4 shadow-sm md:p-5">
               <h2 className="text-lg font-semibold text-text-primary">Change password</h2>
               <p className="mt-1 text-sm text-text-secondary">
                 Update your password here without leaving the dashboard.
               </p>
 
-              <div className="mt-4 grid gap-3 xl:grid-cols-2">
-                <div className="relative xl:col-span-2">
+              <div className="mt-4 grid gap-3 md:grid-cols-2">
+                <div className="relative md:col-span-2">
                   <input
                     className="tf-input w-full pr-12"
                     type={showCurrentPassword ? "text" : "password"}
@@ -431,7 +443,7 @@ export default function AccountDetailsPage() {
 
           <div
             ref={rightRailRef}
-            className="tf-scroll-rail relative min-h-0 space-y-5 xl:h-full xl:overflow-y-auto xl:pr-3"
+            className="tf-scroll-rail relative space-y-5 xl:min-h-0 xl:overflow-y-auto xl:pr-3"
           >
             {rightRailScrollable && (
               <div className="pointer-events-none sticky top-0 z-10 -mb-1 hidden xl:block">
@@ -743,13 +755,60 @@ export default function AccountDetailsPage() {
               <button
                 type="button"
                 className="min-w-[144px] rounded-full border border-[hsl(var(--destructive)/0.3)] bg-[hsl(var(--destructive)/0.12)] px-4 py-2 text-sm font-semibold text-[hsl(var(--destructive))] transition hover:bg-[hsl(var(--destructive)/0.18)]"
+                onClick={continueDeleteAccount}
+                disabled={busyAction === "delete-account"}
+              >
+                <LoadingButtonContent
+                  loading={busyAction === "delete-account"}
+                  loadingLabel={user?.plan === "PRO" ? "Opening..." : "Deleting..."}
+                  idleLabel={user?.plan === "PRO" ? "Continue" : "Delete account"}
+                />
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showProDeleteConfirm && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 px-6">
+          <div className="w-full max-w-md rounded-[28px] border border-border bg-card/95 p-6 shadow-xl backdrop-blur">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[hsl(var(--destructive))]">
+              Final confirmation
+            </p>
+            <h3 className="mt-2 font-display text-lg font-semibold text-text-primary">
+              Delete Pro account
+            </h3>
+            <p className="mt-3 text-sm text-text-secondary">
+              You have Pro Plan. If you delete your account, it will be disabled and you won&apos;t
+              get any refund for that plan. Are you sure you want to delete the account?
+            </p>
+
+            <div className="mt-5 rounded-2xl border border-[hsl(var(--destructive)/0.25)] bg-[hsl(var(--destructive)/0.08)] px-4 py-4">
+              <p className="text-sm font-medium text-[hsl(var(--destructive))]">
+                This permanently removes {user?.email || "your account"} and ends access to your
+                Pro benefits on this account.
+              </p>
+            </div>
+
+            <div className="mt-5 flex items-center justify-end gap-3">
+              <button
+                type="button"
+                className="min-w-[144px] rounded-full border border-border bg-card px-4 py-2 text-sm font-semibold text-text-secondary transition hover:bg-secondary/50 hover:text-text-primary"
+                onClick={() => setShowProDeleteConfirm(false)}
+                disabled={busyAction === "delete-account"}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                className="min-w-[144px] rounded-full border border-[hsl(var(--destructive)/0.3)] bg-[hsl(var(--destructive)/0.12)] px-4 py-2 text-sm font-semibold text-[hsl(var(--destructive))] transition hover:bg-[hsl(var(--destructive)/0.18)]"
                 onClick={deleteAccount}
                 disabled={busyAction === "delete-account"}
               >
                 <LoadingButtonContent
                   loading={busyAction === "delete-account"}
                   loadingLabel="Deleting..."
-                  idleLabel="Delete account"
+                  idleLabel="Delete"
                 />
               </button>
             </div>

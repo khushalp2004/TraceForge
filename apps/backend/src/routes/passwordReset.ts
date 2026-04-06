@@ -4,6 +4,7 @@ import crypto from "crypto";
 import prisma from "../db/prisma.js";
 import { generateResetToken } from "../utils/passwordReset.js";
 import { sendEmail } from "../utils/mailer.js";
+import { buildPasswordResetEmail } from "../utils/emailTemplates.js";
 
 export const passwordResetRouter = Router();
 const passwordPolicy =
@@ -38,35 +39,16 @@ passwordResetRouter.post("/request", async (req, res) => {
   });
 
   const resetUrl = `${process.env.WEB_BASE_URL || "http://localhost:3000"}/reset?token=${token}`;
+  const { text, html } = buildPasswordResetEmail({
+    fullName: user.fullName,
+    resetUrl
+  });
+
   await sendEmail({
     to: email,
     subject: "TraceForge password reset",
-    text: [
-      "Hi,",
-      "",
-      "We received a request to reset your TraceForge password.",
-      `Use this link to continue: ${resetUrl}`,
-      "",
-      "This link expires in 1 hour.",
-      "If you did not request a password reset, you can ignore this email."
-    ].join("\n"),
-    html: `
-      <div style="font-family: Inter, Arial, sans-serif; color: #0f172a; line-height: 1.6;">
-        <p>Hi,</p>
-        <p>We received a request to reset your TraceForge password.</p>
-        <p>
-          <a
-            href="${resetUrl}"
-            style="display: inline-block; padding: 12px 18px; border-radius: 14px; background: #f97316; color: #ffffff; text-decoration: none; font-weight: 600;"
-          >
-            Reset password
-          </a>
-        </p>
-        <p style="word-break: break-all; color: #475569;">${resetUrl}</p>
-        <p>This link expires in 1 hour.</p>
-        <p style="color: #64748b;">If you did not request a password reset, you can ignore this email.</p>
-      </div>
-    `
+    text,
+    html
   });
 
   return res.json({ status: "ok" });

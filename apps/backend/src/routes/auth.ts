@@ -14,7 +14,7 @@ import {
   isOrgTeamActive,
   isUserProActive
 } from "../utils/billing.js";
-import { currentMonthKey, getEffectiveAiUsage } from "../utils/aiUsage.js";
+import { ensureFreeEmailUsageFloor, getEffectiveAiUsage } from "../utils/aiUsage.js";
 import {
   findActiveVerificationCode,
   isVerificationCodeMatch,
@@ -377,6 +377,7 @@ authRouter.get("/usage", requireAuth, async (req, res) => {
   const user = await prisma.user.findUnique({
     where: { id: userId },
     select: {
+      email: true,
       plan: true,
       planExpiresAt: true
     }
@@ -458,6 +459,7 @@ authRouter.get("/usage", requireAuth, async (req, res) => {
   const freeLimit = FREE_MONTHLY_AI_LIMIT;
   const freeUsed = await getEffectiveAiUsage({
     userId,
+    email: user.email,
     now
   });
 
@@ -564,7 +566,14 @@ authRouter.post("/login", async (req, res) => {
 
   return res.json({
     token,
-    user: { id: user.id, fullName: user.fullName, address: user.address, email: user.email }
+    user: {
+      id: user.id,
+      fullName: user.fullName,
+      address: user.address,
+      email: user.email,
+      plan: user.plan,
+      planExpiresAt: user.planExpiresAt
+    }
   });
 });
 
@@ -848,14 +857,19 @@ authRouter.get("/github/callback", async (req, res) => {
 });
 
 authRouter.post("/oauth/complete-signup", async (req, res) => {
-  const { signupToken, fullName, address } = req.body as {
+  const { signupToken, fullName, address, password } = req.body as {
     signupToken?: string;
     fullName?: string;
     address?: string;
+    password?: string;
   };
 
-  if (!signupToken || !address?.trim()) {
-    return res.status(400).json({ error: "Address and signup token are required" });
+  if (!signupToken || !address?.trim() || !password) {
+    return res.status(400).json({ error: "Address, password, and signup token are required" });
+  }
+
+  if (!isStrongEnoughPassword(password)) {
+    return res.status(400).json({ error: passwordPolicyMessage });
   }
 
   let payload: SocialSignupToken;
@@ -880,6 +894,7 @@ authRouter.post("/oauth/complete-signup", async (req, res) => {
   const existingUser = await prisma.user.findUnique({
     where: { email: normalizedEmail }
   });
+  const passwordHash = await bcrypt.hash(password, 12);
 
   const user = existingUser
     ? await prisma.user.update({
@@ -887,6 +902,7 @@ authRouter.post("/oauth/complete-signup", async (req, res) => {
         data: {
           fullName: resolvedName,
           address: address.trim(),
+          passwordHash,
           emailVerifiedAt: existingUser.emailVerifiedAt ?? new Date()
         }
       })
@@ -895,7 +911,7 @@ authRouter.post("/oauth/complete-signup", async (req, res) => {
           fullName: resolvedName,
           address: address.trim(),
           email: normalizedEmail,
-          passwordHash: await bcrypt.hash(crypto.randomBytes(32).toString("hex"), 12),
+          passwordHash,
           emailVerifiedAt: new Date()
         }
       });
@@ -905,7 +921,14 @@ authRouter.post("/oauth/complete-signup", async (req, res) => {
   return res.json({
     token,
     next: payload.next,
-    user: { id: user.id, fullName: user.fullName, address: user.address, email: user.email }
+    user: {
+      id: user.id,
+      fullName: user.fullName,
+      address: user.address,
+      email: user.email,
+      plan: user.plan,
+      planExpiresAt: user.planExpiresAt
+    }
   });
 });
 
@@ -931,7 +954,14 @@ authRouter.post("/verify-email", async (req, res) => {
     return res.json({
       status: "already_verified",
       token,
-      user: { id: user.id, fullName: user.fullName, address: user.address, email: user.email }
+      user: {
+        id: user.id,
+        fullName: user.fullName,
+        address: user.address,
+        email: user.email,
+        plan: user.plan,
+        planExpiresAt: user.planExpiresAt
+      }
     });
   }
 
@@ -960,7 +990,14 @@ authRouter.post("/verify-email", async (req, res) => {
   return res.json({
     status: "verified",
     token,
-    user: { id: user.id, fullName: user.fullName, address: user.address, email: user.email }
+    user: {
+      id: user.id,
+      fullName: user.fullName,
+      address: user.address,
+      email: user.email,
+      plan: user.plan,
+      planExpiresAt: user.planExpiresAt
+    }
   });
 });
 
@@ -1141,7 +1178,9 @@ authRouter.delete("/account", requireAuth, async (req, res) => {
     select: {
       id: true,
       email: true,
-      passwordHash: true
+      passwordHash: true,
+      plan: true,
+      planExpiresAt: true
     }
   });
 
@@ -1210,6 +1249,23 @@ authRouter.delete("/account", requireAuth, async (req, res) => {
         organizations: blockingOrganizations
       }
     });
+  }
+
+  if (!isUserProActive(user)) {
+    const now = new Date();
+    const freeUsage = await getEffectiveAiUsage({
+      userId,
+      email: user.email,
+      now
+    });
+
+    if (freeUsage > 0) {
+      await ensureFreeEmailUsageFloor({
+        email: user.email,
+        amount: Math.min(freeUsage, FREE_MONTHLY_AI_LIMIT),
+        now
+      });
+    }
   }
 
   await prisma.$transaction(async (tx) => {

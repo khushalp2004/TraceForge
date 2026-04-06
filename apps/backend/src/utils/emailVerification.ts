@@ -1,6 +1,7 @@
 import crypto from "crypto";
 import prisma from "../db/prisma.js";
 import { sendEmail } from "./mailer.js";
+import { buildVerificationCodeEmail } from "./emailTemplates.js";
 
 const verificationTtlMinutes = Number(process.env.EMAIL_VERIFICATION_TTL_MINUTES || 10);
 
@@ -38,27 +39,11 @@ export const issueEmailVerificationCode = async ({
     })
   ]);
 
-  const greeting = fullName?.trim() ? `Hi ${fullName.trim()},` : "Hi,";
-  const text = [
-    greeting,
-    "",
-    `Your TraceForge verification code is ${code}.`,
-    `It expires in ${verificationTtlMinutes} minutes.`,
-    "",
-    "If you did not request this code, you can ignore this email."
-  ].join("\n");
-
-  const html = `
-    <div style="font-family: Inter, Arial, sans-serif; color: #0f172a; line-height: 1.6;">
-      <p>${greeting}</p>
-      <p>Your TraceForge verification code is:</p>
-      <div style="display: inline-block; padding: 12px 18px; border-radius: 14px; background: #fff7ed; border: 1px solid #fdba74; font-size: 28px; font-weight: 700; letter-spacing: 0.32em; color: #c2410c;">
-        ${code}
-      </div>
-      <p style="margin-top: 16px;">It expires in ${verificationTtlMinutes} minutes.</p>
-      <p style="color: #64748b;">If you did not request this code, you can ignore this email.</p>
-    </div>
-  `;
+  const { text, html } = buildVerificationCodeEmail({
+    fullName,
+    code,
+    expiresInMinutes: verificationTtlMinutes
+  });
 
   await sendEmail({
     to: email,

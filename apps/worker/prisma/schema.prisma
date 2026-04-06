@@ -26,6 +26,7 @@ model User {
   resetTokens          PasswordResetToken[]
   joinRequests         OrgJoinRequest[]       @relation("Requester")
   resolvedJoinRequests OrgJoinRequest[]       @relation("Resolver")
+  aiUsageEntries       AiUsageEntry[]
 }
 
 enum BillingPlan {
@@ -66,6 +67,7 @@ model Organization {
   invites      OrganizationInvite[]
   auditLogs    OrgAuditLog[]
   joinRequests OrgJoinRequest[]
+  aiUsageEntries AiUsageEntry[]
 
   @@index([createdAt])
 }
@@ -164,6 +166,7 @@ model Project {
   alertRules      AlertRule[]
   alertDeliveries AlertDelivery[]
   releases        Release[]
+  aiUsageEntries  AiUsageEntry[]
 
   @@index([archivedAt])
   @@index([orgId])
@@ -219,6 +222,41 @@ model ErrorAnalysis {
   createdAt     DateTime @default(now())
 
   error Error @relation(fields: [errorId], references: [id])
+}
+
+model FreeAiEmailUsage {
+  id        String   @id @default(cuid())
+  email     String
+  monthKey  String
+  amount    Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([email, monthKey])
+  @@index([monthKey])
+}
+
+enum AiUsageKind {
+  GITHUB_REPO_ANALYSIS
+}
+
+model AiUsageEntry {
+  id             String      @id @default(cuid())
+  userId         String
+  organizationId String?
+  projectId      String?
+  kind           AiUsageKind
+  amount         Int
+  createdAt      DateTime    @default(now())
+
+  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  organization Organization? @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  project      Project?      @relation(fields: [projectId], references: [id], onDelete: SetNull)
+
+  @@index([userId, createdAt])
+  @@index([organizationId, createdAt])
+  @@index([projectId, createdAt])
+  @@index([kind, createdAt])
 }
 
 enum ErrorAiStatus {

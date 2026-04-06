@@ -14,6 +14,11 @@ const RETENTION_DAYS = 15;
 const CLEANUP_INTERVAL_MS = 60 * 60 * 1000;
 const currentMonthKey = (now: Date) =>
   `${now.getUTCFullYear()}-${String(now.getUTCMonth() + 1).padStart(2, "0")}`;
+const currentMonthStart = (now: Date) =>
+  new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1, 0, 0, 0, 0));
+const normalizeEmail = (email: string) => email.trim().toLowerCase();
+const getFreeEmailUsageRedisKey = (email: string, monthKey: string) =>
+  `usage:ai:email:${normalizeEmail(email)}:${monthKey}`;
 type AiQueueJob = {
   errorId: string;
   requestedByUserId?: string;
@@ -41,6 +46,80 @@ const formatDetailedSolution = (input: {
     `Recommended fix\n${input.recommendedFix}`,
     `Next steps\n${input.nextSteps.map((step) => `• ${step}`).join("\n")}`
   ].join("\n\n");
+
+const getPersistedFreeUsageByEmail = async (email: string, now: Date) => {
+  const normalizedEmail = normalizeEmail(email);
+  const user = await prisma.user.findUnique({
+    where: {
+      email: normalizedEmail
+    },
+    select: {
+      id: true
+    }
+  });
+
+  const [errorAnalysisCount, usageEntryAggregate, emailUsage] = await Promise.all([
+    user
+      ? prisma.errorAnalysis.count({
+          where: {
+            createdAt: { gte: currentMonthStart(now) },
+            error: {
+              aiRequestedByUserId: user.id
+            }
+          }
+        })
+      : Promise.resolve(0),
+    prisma.aiUsageEntry.aggregate({
+      _sum: { amount: true },
+      where: {
+        createdAt: { gte: currentMonthStart(now) },
+        organizationId: null,
+        user: {
+          email: normalizedEmail
+        }
+      }
+    }),
+    prisma.freeAiEmailUsage.findUnique({
+      where: {
+        email_monthKey: {
+          email: normalizedEmail,
+          monthKey: currentMonthKey(now)
+        }
+      },
+      select: {
+        amount: true
+      }
+    })
+  ]);
+
+  return Math.max(
+    errorAnalysisCount,
+    usageEntryAggregate._sum.amount || 0,
+    emailUsage?.amount || 0
+  );
+};
+
+const incrementFreeEmailUsage = async (email: string, amount: number, now: Date) => {
+  const normalizedEmail = normalizeEmail(email);
+  await prisma.freeAiEmailUsage.upsert({
+    where: {
+      email_monthKey: {
+        email: normalizedEmail,
+        monthKey: currentMonthKey(now)
+      }
+    },
+    update: {
+      amount: {
+        increment: amount
+      }
+    },
+    create: {
+      email: normalizedEmail,
+      monthKey: currentMonthKey(now),
+      amount
+    }
+  });
+};
 
 const processError = async ({ errorId, requestedByUserId }: AiQueueJob) => {
   const errorRecord = await prisma.error.findUnique({
@@ -87,7 +166,7 @@ const processError = async ({ errorId, requestedByUserId }: AiQueueJob) => {
   const now = new Date();
   const requester = await prisma.user.findUnique({
     where: { id: effectiveRequesterId },
-    select: { plan: true, planExpiresAt: true }
+    select: { email: true, plan: true, planExpiresAt: true }
   });
 
   const proActive = isUserProActive(requester);
@@ -96,13 +175,24 @@ const processError = async ({ errorId, requestedByUserId }: AiQueueJob) => {
   if (!proActive) {
     const usageKey = teamActive
       ? `usage:ai:org:${errorRecord.project.orgId}:${currentMonthKey(now)}`
-      : `usage:ai:user:${effectiveRequesterId}:${currentMonthKey(now)}`;
+      : requester?.email
+        ? getFreeEmailUsageRedisKey(requester.email, currentMonthKey(now))
+        : `usage:ai:user:${effectiveRequesterId}:${currentMonthKey(now)}`;
     const limit = teamActive ? TEAM_MONTHLY_AI_LIMIT : FREE_MONTHLY_AI_LIMIT;
     const limitMessage = teamActive
       ? "Monthly AI analysis limit reached for this team."
       : "Monthly AI analysis limit reached for this account.";
 
     if (redis.isOpen) {
+      if (!teamActive && requester?.email) {
+        const persistedFreeUsage = await getPersistedFreeUsageByEmail(requester.email, now);
+        const existingRedisUsage = Number((await redis.get(usageKey)) || "0");
+        if (existingRedisUsage < persistedFreeUsage) {
+          await redis.set(usageKey, String(persistedFreeUsage));
+          await redis.expire(usageKey, 60 * 60 * 24 * 45);
+        }
+      }
+
       const current = await redis.incr(usageKey);
       if (current === 1) {
         await redis.expire(usageKey, 60 * 60 * 24 * 45);
@@ -121,21 +211,27 @@ const processError = async ({ errorId, requestedByUserId }: AiQueueJob) => {
         return;
       }
     } else {
-      const monthStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1, 0, 0, 0, 0));
-      const used = await prisma.errorAnalysis.count({
-        where: {
-          createdAt: { gte: monthStart },
-          error: teamActive
-            ? {
+      const used = teamActive
+        ? await prisma.errorAnalysis.count({
+            where: {
+              createdAt: { gte: currentMonthStart(now) },
+              error: {
                 project: {
                   orgId: errorRecord.project.orgId
                 }
               }
-            : {
-                aiRequestedByUserId: effectiveRequesterId
+            }
+          })
+        : requester?.email
+          ? await getPersistedFreeUsageByEmail(requester.email, now)
+          : await prisma.errorAnalysis.count({
+              where: {
+                createdAt: { gte: currentMonthStart(now) },
+                error: {
+                  aiRequestedByUserId: effectiveRequesterId
+                }
               }
-        }
-      });
+            });
 
       if (used >= limit) {
         await prisma.error.update({
@@ -179,6 +275,10 @@ const processError = async ({ errorId, requestedByUserId }: AiQueueJob) => {
         aiCompletedAt: new Date()
       }
     });
+
+    if (!teamActive && !proActive && requester?.email) {
+      await incrementFreeEmailUsage(requester.email, 1, now);
+    }
   } catch (error) {
     await prisma.error.update({
       where: { id: errorRecord.id },

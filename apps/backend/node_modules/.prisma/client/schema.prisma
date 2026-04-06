@@ -496,3 +496,15 @@ model AiUsageEntry {
   @@index([projectId, createdAt])
   @@index([kind, createdAt])
 }
+
+model FreeAiEmailUsage {
+  id        String   @id @default(cuid())
+  email     String
+  monthKey  String
+  amount    Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([email, monthKey])
+  @@index([monthKey])
+}

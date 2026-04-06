@@ -1,5 +1,8 @@
 import nodemailer, { type Transporter } from "nodemailer";
 
+const resendApiKey = process.env.RESEND_API_KEY;
+const resendApiUrl = process.env.RESEND_API_URL || "https://api.resend.com/emails";
+const resendFrom = process.env.RESEND_FROM_EMAIL || process.env.SMTP_FROM || "TraceForge <no-reply@traceforge.local>";
 const smtpPort = Number(process.env.SMTP_PORT || 1025);
 const smtpHost = process.env.SMTP_HOST;
 const smtpUser = process.env.SMTP_USER;
@@ -30,6 +33,35 @@ const getTransporter = async () => {
   return transporterPromise;
 };
 
+const sendWithResend = async ({
+  to,
+  subject,
+  text,
+  html,
+  replyTo
+}: SendEmailInput) => {
+  const response = await fetch(resendApiUrl, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${resendApiKey}`,
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({
+      from: resendFrom,
+      to: [to],
+      reply_to: replyTo ? [replyTo] : undefined,
+      subject,
+      text,
+      html
+    })
+  });
+
+  if (!response.ok) {
+    const errorBody = await response.text();
+    throw new Error(`Resend error: ${response.status} ${errorBody}`);
+  }
+};
+
 type SendEmailInput = {
   to: string;
   subject: string;
@@ -39,6 +71,11 @@ type SendEmailInput = {
 };
 
 export const sendEmail = async ({ to, subject, text, html, replyTo }: SendEmailInput) => {
+  if (resendApiKey) {
+    await sendWithResend({ to, subject, text, html, replyTo });
+    return;
+  }
+
   if (!smtpHost) {
     console.log(`[mail:disabled] To=${to} Subject=${subject}\n${text}`);
     return;

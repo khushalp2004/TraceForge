@@ -366,7 +366,7 @@ export default function DashboardSidebar({
 
   return (
     <aside
-      className={`tf-sidebar relative hidden flex-col gap-5 border-r border-border bg-sidebar/80 px-5 py-6 transition-[width] duration-200 ease-out lg:fixed lg:inset-y-0 lg:left-0 lg:z-40 lg:flex ${
+      className={`tf-sidebar relative hidden min-h-0 flex-col border-r border-border bg-sidebar/80 px-5 py-6 transition-[width] duration-200 ease-out lg:fixed lg:inset-y-0 lg:left-0 lg:z-40 lg:flex ${
         collapsed ? "tf-sidebar-collapsed w-[85px]" : "w-64"
       }`}
     >
@@ -389,83 +389,87 @@ export default function DashboardSidebar({
           {collapsed ? <path d="M6 3.5 10.5 8 6 12.5" /> : <path d="M10 3.5 5.5 8 10 12.5" />}
         </svg>
       </button>
-      <div
-        className={`rounded-2xl border border-border bg-card shadow-sm ${
-          collapsed ? "px-2 py-2" : "px-3 py-3"
-        }`}
-      >
-        <Link href="/" className="flex items-center gap-3">
-          <div
-            className={`flex items-center justify-center rounded-full bg-primary/10 ${
-              collapsed ? "h-8 w-8" : "h-9 w-9"
-            }`}
-          >
-            <Image src="/traceforge.png" alt="TraceForge" width={22} height={22} />
-          </div>
-          <div className={`min-w-0 ${collapsed ? "hidden tf-reveal-block" : "block"}`}>
-            <p className="text-[11px] uppercase tracking-[0.18em] text-text-secondary">
-              Workspace
-            </p>
-            <p className="truncate text-sm font-semibold text-text-primary">
-              TraceForge
-            </p>
-          </div>
-        </Link>
-      </div>
-
-      <button
-        className={`flex items-center gap-2 rounded-2xl border border-border bg-card px-3 py-2 text-xs font-semibold text-text-secondary shadow-sm transition hover:border-primary/40 hover:text-text-primary ${
-          collapsed ? "justify-center group-hover/nav:justify-start" : ""
-        }`}
-        type="button"
-        onClick={() => openSearch()}
-      >
-        <svg
-          aria-hidden="true"
-          className="h-4 w-4 text-text-secondary"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="2"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        >
-          <circle cx="11" cy="11" r="7" />
-          <line x1="16.65" y1="16.65" x2="21" y2="21" />
-        </svg>
-        <span className={`${collapsed ? "hidden tf-reveal-inline" : ""}`}>Search</span>
-        <span
-          className={`ml-auto rounded-md border border-border bg-secondary px-2 py-0.5 text-[10px] font-semibold text-text-secondary ${
-            collapsed ? "hidden tf-reveal-inline-flex" : ""
+      <div className="flex min-h-0 flex-1 flex-col gap-5">
+        <div
+          className={`rounded-2xl border border-border bg-card shadow-sm ${
+            collapsed ? "px-2 py-2" : "px-3 py-3"
           }`}
         >
-          /
-        </span>
-      </button>
-
-      <nav className="tf-sidebar-nav group/nav flex flex-1 flex-col gap-2 text-sm">
-        {navItems.map((item) => {
-          const isActive = isActiveRoute(pathname, item.href);
-          return (
-            <Link
-              key={item.href}
-              className={`${baseLink} group ${isActive ? activeLink : inactiveLink} ${
-                collapsed ? "justify-center group-hover/nav:justify-start px-2 py-3" : ""
+          <Link href="/" className="flex items-center gap-3">
+            <div
+              className={`flex items-center justify-center rounded-full bg-primary/10 ${
+                collapsed ? "h-8 w-8" : "h-9 w-9"
               }`}
-              href={item.href}
             >
-              <NavIcon name={item.icon} isActive={isActive} collapsed={collapsed} />
-              <span className={`${collapsed ? "hidden tf-reveal-inline" : ""}`}>
-                {item.label}
-              </span>
-            </Link>
-          );
-        })}
-      </nav>
+              <Image src="/traceforge.png" alt="TraceForge" width={22} height={22} />
+            </div>
+            <div className={`min-w-0 ${collapsed ? "hidden tf-reveal-block" : "block"}`}>
+              <p className="text-[11px] uppercase tracking-[0.18em] text-text-secondary">
+                Workspace
+              </p>
+              <p className="truncate text-sm font-semibold text-text-primary">
+                TraceForge
+              </p>
+            </div>
+          </Link>
+        </div>
+
+        <button
+          className={`flex items-center gap-2 rounded-2xl border border-border bg-card px-3 py-2 text-xs font-semibold text-text-secondary shadow-sm transition hover:border-primary/40 hover:text-text-primary ${
+            collapsed ? "justify-center group-hover/nav:justify-start" : ""
+          }`}
+          type="button"
+          onClick={() => openSearch()}
+        >
+          <svg
+            aria-hidden="true"
+            className="h-4 w-4 text-text-secondary"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          >
+            <circle cx="11" cy="11" r="7" />
+            <line x1="16.65" y1="16.65" x2="21" y2="21" />
+          </svg>
+          <span className={`${collapsed ? "hidden tf-reveal-inline" : ""}`}>Search</span>
+          <span
+            className={`ml-auto rounded-md border border-border bg-secondary px-2 py-0.5 text-[10px] font-semibold text-text-secondary ${
+              collapsed ? "hidden tf-reveal-inline-flex" : ""
+            }`}
+          >
+            /
+          </span>
+        </button>
+
+        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain pr-1">
+          <nav className="tf-sidebar-nav group/nav flex flex-col gap-2 text-sm">
+            {navItems.map((item) => {
+              const isActive = isActiveRoute(pathname, item.href);
+              return (
+                <Link
+                  key={item.href}
+                  className={`${baseLink} group ${isActive ? activeLink : inactiveLink} ${
+                    collapsed ? "justify-center group-hover/nav:justify-start px-2 py-3" : ""
+                  }`}
+                  href={item.href}
+                >
+                  <NavIcon name={item.icon} isActive={isActive} collapsed={collapsed} />
+                  <span className={`${collapsed ? "hidden tf-reveal-inline" : ""}`}>
+                    {item.label}
+                  </span>
+                </Link>
+              );
+            })}
+          </nav>
+        </div>
+      </div>
 
       {usage ? (
         <div
-          className={`group relative rounded-2xl border border-border bg-card px-3 py-3 shadow-sm ${
+          className={`group relative mt-5 rounded-2xl border border-border bg-card px-3 py-3 shadow-sm ${
             collapsed ? "hidden group-hover/nav:block" : ""
           }`}
         >
@@ -494,7 +498,7 @@ export default function DashboardSidebar({
         </div>
       ) : null}
 
-      <div className="relative mt-auto" ref={profileRef}>
+      <div className="relative mt-5" ref={profileRef}>
         <button
           type="button"
           onClick={() => setProfileOpen((open) => !open)}

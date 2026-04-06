@@ -9,7 +9,13 @@ import {
   resolveAiModel,
   supportedAiModels
 } from "../utils/aiModels.js";
-import { currentMonthKey, getEffectiveAiUsage, getRedisUsageKey } from "../utils/aiUsage.js";
+import {
+  currentMonthKey,
+  getEffectiveAiUsage,
+  getFreeEmailUsageRedisKey,
+  getRedisUsageKey,
+  incrementFreeEmailUsage
+} from "../utils/aiUsage.js";
 import {
   FREE_MONTHLY_AI_LIMIT,
   TEAM_MONTHLY_AI_LIMIT,
@@ -716,6 +722,7 @@ projectsRouter.post("/:id/github-analysis/analyze", async (req, res) => {
   const requester = await prisma.user.findUnique({
     where: { id: userId },
     select: {
+      email: true,
       plan: true,
       planExpiresAt: true
     }
@@ -734,11 +741,22 @@ projectsRouter.post("/:id/github-analysis/analyze", async (req, res) => {
     : "Monthly AI analysis limit reached for this account.";
   const now = new Date();
   const monthKey = currentMonthKey(now);
-  const usageKey = getRedisUsageKey({
-    userId,
-    organizationId,
-    monthKey
-  });
+  const usageKey = teamActive
+    ? getRedisUsageKey({
+        userId,
+        organizationId,
+        monthKey
+      })
+    : requester.email
+      ? getFreeEmailUsageRedisKey({
+          email: requester.email,
+          monthKey
+        })
+      : getRedisUsageKey({
+          userId,
+          organizationId,
+          monthKey
+        });
 
   let usageReservedInRedis = false;
 
@@ -746,6 +764,7 @@ projectsRouter.post("/:id/github-analysis/analyze", async (req, res) => {
     const used = await getEffectiveAiUsage({
       userId,
       organizationId,
+      email: requester.email,
       now
     });
 
@@ -754,6 +773,14 @@ projectsRouter.post("/:id/github-analysis/analyze", async (req, res) => {
     }
 
     if (redis.isOpen) {
+      if (!teamActive && requester.email) {
+        const existingRedisUsage = Number((await redis.get(usageKey)) || "0");
+        if (existingRedisUsage < used) {
+          await redis.set(usageKey, String(used));
+          await redis.expire(usageKey, 60 * 60 * 24 * 45);
+        }
+      }
+
       const nextUsed = await redis.incrBy(usageKey, GITHUB_REPO_ANALYSIS_COST);
       usageReservedInRedis = true;
       if (nextUsed === GITHUB_REPO_ANALYSIS_COST) {
@@ -848,6 +875,14 @@ projectsRouter.post("/:id/github-analysis/analyze", async (req, res) => {
           amount: GITHUB_REPO_ANALYSIS_COST
         }
       });
+
+      if (!teamActive && requester.email) {
+        await incrementFreeEmailUsage({
+          email: requester.email,
+          amount: GITHUB_REPO_ANALYSIS_COST,
+          now
+        });
+      }
     }
 
     return res.json({

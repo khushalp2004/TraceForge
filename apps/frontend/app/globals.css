@@ -571,6 +571,20 @@
     box-shadow: 0 18px 40px hsl(var(--destructive) / 0.16);
   }
 
+  .tf-success-toast {
+    border-color: hsl(var(--success-border));
+    background: hsl(var(--success-soft));
+    color: hsl(var(--success));
+    box-shadow: 0 18px 40px hsl(var(--success) / 0.16);
+  }
+
+  .tf-info-toast {
+    border-color: hsl(var(--warning-border));
+    background: hsl(var(--warning-soft));
+    color: hsl(var(--warning));
+    box-shadow: 0 18px 40px hsl(var(--warning) / 0.16);
+  }
+
   .tf-dashboard-toast {
     @apply fixed z-50 rounded-full px-4 py-2 text-sm font-semibold text-white shadow-lg;
     left: 1rem;
