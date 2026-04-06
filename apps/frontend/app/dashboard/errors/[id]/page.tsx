@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { Copy, RotateCcw, Sparkles } from "lucide-react";
+import { Copy, Github, RotateCcw, Sparkles } from "lucide-react";
 import { LoadingButtonContent } from "../../../../components/ui/loading-button-content";
 import { useDebouncedValue } from "../../../hooks/useDebouncedValue";
 
@@ -29,7 +29,28 @@ type ErrorDetail = {
   aiLastError?: string | null;
   analysis?: { aiExplanation: string; suggestedFix?: string | null } | null;
   events: ErrorEvent[];
-  project: { id: string; name: string };
+  project: {
+    id: string;
+    name: string;
+    githubRepoId?: string | null;
+    githubRepoName?: string | null;
+    githubRepoUrl?: string | null;
+  };
+};
+
+type GithubRepo = {
+  id: string;
+  fullName: string;
+  private: boolean;
+  url: string;
+};
+
+type GithubIntegrationState = {
+  configured: boolean;
+  connected: boolean;
+  repos?: GithubRepo[];
+  selectedRepoIds?: string[];
+  error?: string;
 };
 
 type Frame = {
@@ -70,6 +91,38 @@ const getAiSummary = (detail: Pick<ErrorDetail, "analysis">) =>
 const getAiDetail = (detail: Pick<ErrorDetail, "analysis">) =>
   detail.analysis?.suggestedFix?.trim() ?? "";
 
+const buildGithubIssueTitle = (detail: Pick<ErrorDetail, "message">) =>
+  `[TraceForge] ${detail.message}`.slice(0, 240);
+
+const buildGithubIssueBody = (detail: ErrorDetail) => {
+  const issueUrl =
+    typeof window !== "undefined"
+      ? `${window.location.origin}/dashboard/errors/${detail.id}`
+      : `/dashboard/errors/${detail.id}`;
+
+  return [
+    "## TraceForge issue",
+    "",
+    `- Message: ${detail.message}`,
+    `- Project: ${detail.project.name}`,
+    `- Occurrences: ${detail.count}`,
+    `- First seen: ${new Date(detail.firstSeen).toLocaleString()}`,
+    `- Last seen: ${new Date(detail.lastSeen).toLocaleString()}`,
+    `- TraceForge: ${issueUrl}`,
+    detail.analysis?.aiExplanation
+      ? ["", "## AI summary", "", detail.analysis.aiExplanation].join("\n")
+      : "",
+    "",
+    "## Stack trace",
+    "",
+    "```",
+    detail.stackTrace,
+    "```"
+  ]
+    .filter(Boolean)
+    .join("\n");
+};
+
 export default function ErrorDetailPage({ params }: { params: { id: string } }) {
   const [errorDetail, setErrorDetail] = useState<ErrorDetail | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -82,6 +135,16 @@ export default function ErrorDetailPage({ params }: { params: { id: string } }) 
   const [aiStatus, setAiStatus] = useState<string | null>(null);
   const [showAiDetail, setShowAiDetail] = useState(false);
   const [toast, setToast] = useState<Toast | null>(null);
+  const [showGithubModal, setShowGithubModal] = useState(false);
+  const [githubRepos, setGithubRepos] = useState<GithubRepo[]>([]);
+  const [githubRepoId, setGithubRepoId] = useState("");
+  const [githubIssueTitle, setGithubIssueTitle] = useState("");
+  const [githubIssueBody, setGithubIssueBody] = useState("");
+  const [githubModalError, setGithubModalError] = useState<string | null>(null);
+  const [githubConfigured, setGithubConfigured] = useState(false);
+  const [githubConnected, setGithubConnected] = useState(false);
+  const [githubReposLoading, setGithubReposLoading] = useState(false);
+  const [creatingGithubIssue, setCreatingGithubIssue] = useState(false);
   const debouncedPayloadSearch = useDebouncedValue(payloadSearch, 200);
 
   const showToast = (message: string, tone: Toast["tone"]) => {
@@ -191,6 +254,89 @@ export default function ErrorDetailPage({ params }: { params: { id: string } }) 
     }
   };
 
+  const openGithubModal = async () => {
+    const token = localStorage.getItem(tokenKey);
+    if (!token || !errorDetail) return;
+
+    setShowGithubModal(true);
+    setGithubRepos([]);
+    setGithubRepoId("");
+    setGithubIssueTitle(buildGithubIssueTitle(errorDetail));
+    setGithubIssueBody(buildGithubIssueBody(errorDetail));
+    setGithubModalError(null);
+    setGithubReposLoading(true);
+
+    try {
+      const res = await fetch(`${API_URL}/integrations/github`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      const data = (await res.json()) as GithubIntegrationState;
+      if (!res.ok) {
+        throw new Error(data.error || "Failed to load GitHub integration");
+      }
+
+      setGithubConfigured(Boolean(data.configured));
+      setGithubConnected(Boolean(data.connected));
+      const selectedRepos = (data.repos || []).filter((repo) =>
+        (data.selectedRepoIds || []).includes(repo.id)
+      );
+      setGithubRepos(selectedRepos);
+      const mappedRepoId = errorDetail.project.githubRepoId || "";
+      if (mappedRepoId && selectedRepos.some((repo) => repo.id === mappedRepoId)) {
+        setGithubRepoId(mappedRepoId);
+      } else if (selectedRepos[0]) {
+        setGithubRepoId(selectedRepos[0].id);
+      }
+    } catch (err) {
+      setGithubModalError(
+        err instanceof Error ? err.message : "Failed to load GitHub repositories"
+      );
+    } finally {
+      setGithubReposLoading(false);
+    }
+  };
+
+  const createGithubIssueForError = async () => {
+    const token = localStorage.getItem(tokenKey);
+    if (!token || !errorDetail) return;
+    if (!githubRepoId) {
+      setGithubModalError("Choose a GitHub repository first");
+      return;
+    }
+
+    setCreatingGithubIssue(true);
+    setGithubModalError(null);
+
+    try {
+      const res = await fetch(`${API_URL}/errors/${errorDetail.id}/github-issue`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          repoId: githubRepoId,
+          title: githubIssueTitle.trim(),
+          body: githubIssueBody.trim()
+        })
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || "Failed to create GitHub issue");
+      }
+
+      setShowGithubModal(false);
+      showToast(`GitHub issue #${data.issue?.number || ""} created`.trim(), "success");
+    } catch (err) {
+      setGithubModalError(
+        err instanceof Error ? err.message : "Failed to create GitHub issue"
+      );
+    } finally {
+      setCreatingGithubIssue(false);
+    }
+  };
+
   const filteredEvents = useMemo(() => {
     if (!errorDetail) {
       return [];
@@ -272,6 +418,13 @@ export default function ErrorDetailPage({ params }: { params: { id: string } }) 
               >
                 <Copy className="h-4 w-4" />
                 {copyStatus ?? "Copy stack"}
+              </button>
+              <button
+                className="tf-button-ghost inline-flex w-full items-center justify-center gap-2 px-4 py-2 text-sm sm:w-auto"
+                onClick={openGithubModal}
+              >
+                <Github className="h-4 w-4" />
+                GitHub issue
               </button>
               {!errorDetail.isManualAlertIssue && (
                 <button
@@ -563,6 +716,14 @@ export default function ErrorDetailPage({ params }: { params: { id: string } }) 
                   <Copy className="h-4 w-4" />
                   {copyStatus ?? "Copy full stack trace"}
                 </button>
+                <button
+                  type="button"
+                  className="tf-button-ghost flex w-full items-center justify-center gap-2 px-4 py-2 text-center text-sm"
+                  onClick={openGithubModal}
+                >
+                  <Github className="h-4 w-4" />
+                  Create GitHub issue
+                </button>
                 {!errorDetail.isManualAlertIssue && (
                   <button
                     type="button"
@@ -622,6 +783,134 @@ export default function ErrorDetailPage({ params }: { params: { id: string } }) 
 
             <div className="tf-scroll-rail mt-5 max-h-[60vh] overflow-y-auto whitespace-pre-wrap rounded-2xl border border-primary/15 bg-secondary/20 px-4 py-4 text-sm leading-7 text-text-primary">
               {getAiDetail(errorDetail)}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showGithubModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 px-4 sm:px-6">
+          <div className="w-full max-w-2xl rounded-[28px] border border-border bg-card/95 p-6 shadow-xl backdrop-blur">
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+              <div className="min-w-0">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-text-secondary">
+                  GitHub
+                </p>
+                <h3 className="mt-2 font-display text-lg font-semibold text-text-primary">
+                  Create GitHub issue
+                </h3>
+                <p className="mt-2 text-sm text-text-secondary">
+                  Create a GitHub issue from this TraceForge error using one of your selected
+                  repositories.
+                </p>
+              </div>
+              <button
+                type="button"
+                className="tf-button-ghost w-full px-4 py-2 text-sm sm:w-auto"
+                onClick={() => setShowGithubModal(false)}
+                disabled={creatingGithubIssue}
+              >
+                Close
+              </button>
+            </div>
+
+            <div className="mt-5 space-y-4">
+              <div className="rounded-2xl border border-border bg-secondary/20 px-4 py-4">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-text-secondary">
+                  TraceForge issue
+                </p>
+                <p className="mt-2 text-sm font-medium text-text-primary">{errorDetail.message}</p>
+              </div>
+
+              {githubReposLoading ? (
+                <div className="rounded-2xl border border-border bg-secondary/20 px-4 py-4 text-sm text-text-secondary">
+                  Loading GitHub repositories...
+                </div>
+              ) : !githubConfigured ? (
+                <div className="rounded-2xl border border-border bg-secondary/20 px-4 py-4 text-sm text-text-secondary">
+                  GitHub integration is not configured for this app yet.
+                </div>
+              ) : !githubConnected ? (
+                <div className="rounded-2xl border border-border bg-secondary/20 px-4 py-4 text-sm text-text-secondary">
+                  Connect GitHub in Settings first, then choose one or more repositories to use
+                  here.
+                </div>
+              ) : !githubRepos.length ? (
+                <div className="rounded-2xl border border-border bg-secondary/20 px-4 py-4 text-sm text-text-secondary">
+                  No selected repositories are available. Choose repositories in Settings first.
+                </div>
+              ) : (
+                <>
+                  <label className="tf-filter-field">
+                    <span className="tf-filter-label">Repository</span>
+                    <select
+                      className="tf-select tf-filter-control"
+                      value={githubRepoId}
+                      onChange={(event) => setGithubRepoId(event.target.value)}
+                    >
+                      {githubRepos.map((repo) => (
+                        <option key={repo.id} value={repo.id}>
+                          {repo.fullName}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+
+                  <label className="tf-filter-field">
+                    <span className="tf-filter-label">Title</span>
+                    <input
+                      className="tf-input tf-filter-control"
+                      value={githubIssueTitle}
+                      onChange={(event) => setGithubIssueTitle(event.target.value)}
+                    />
+                  </label>
+
+                  <label className="tf-filter-field">
+                    <span className="tf-filter-label">Description</span>
+                    <textarea
+                      className="tf-textarea min-h-[240px]"
+                      value={githubIssueBody}
+                      onChange={(event) => setGithubIssueBody(event.target.value)}
+                    />
+                  </label>
+                </>
+              )}
+
+              {githubModalError ? (
+                <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+                  {githubModalError}
+                </div>
+              ) : null}
+            </div>
+
+            <div className="mt-5 flex w-full flex-nowrap items-center justify-end gap-3">
+              <button
+                type="button"
+                className="tf-button-ghost inline-flex min-w-0 flex-1 items-center justify-center px-3 py-2 text-sm sm:flex-none sm:px-4"
+                onClick={() => setShowGithubModal(false)}
+                disabled={creatingGithubIssue}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                className="tf-button inline-flex min-w-0 flex-1 items-center justify-center gap-2 whitespace-nowrap px-3 py-2 text-sm sm:flex-none sm:px-4"
+                onClick={createGithubIssueForError}
+                disabled={
+                  githubReposLoading ||
+                  !githubConnected ||
+                  !githubRepos.length ||
+                  !githubRepoId ||
+                  creatingGithubIssue
+                }
+              >
+                <LoadingButtonContent
+                  loading={creatingGithubIssue}
+                  loadingLabel="Creating..."
+                  idleLabel="Create GitHub issue"
+                  icon={Github}
+                />
+              </button>
             </div>
           </div>
         </div>

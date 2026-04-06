@@ -39,6 +39,29 @@ export type GithubRepo = {
   url: string;
 };
 
+export type GithubRepoSummary = {
+  defaultBranch: string;
+  description: string | null;
+};
+
+export type GithubRepoTreeEntry = {
+  path: string;
+  type: "blob" | "tree";
+  size?: number;
+};
+
+export type GithubRepoFile = {
+  path: string;
+  content: string;
+};
+
+export type GithubCreatedIssue = {
+  id: string;
+  number: number;
+  title: string;
+  url: string;
+};
+
 export type SlackConnectionInfo = {
   accessToken: string;
   teamId: string;
@@ -178,6 +201,187 @@ export const fetchGithubRepos = async (accessToken: string): Promise<GithubRepo[
     private: repo.private,
     url: repo.html_url
   }));
+};
+
+const githubHeaders = (accessToken: string) => ({
+  Authorization: `Bearer ${accessToken}`,
+  Accept: "application/vnd.github+json",
+  "X-GitHub-Api-Version": "2022-11-28"
+});
+
+const parseRepoFullName = (repoFullName: string) => {
+  const [owner, repo] = repoFullName.split("/");
+  if (!owner || !repo) {
+    throw new Error("Invalid GitHub repository selection");
+  }
+  return { owner, repo };
+};
+
+export const fetchGithubRepoSummary = async (
+  accessToken: string,
+  repoFullName: string
+): Promise<GithubRepoSummary> => {
+  const { owner, repo } = parseRepoFullName(repoFullName);
+  const response = await fetch(
+    `https://api.github.com/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}`,
+    {
+      headers: githubHeaders(accessToken)
+    }
+  );
+
+  const data = (await response.json().catch(() => ({}))) as {
+    default_branch?: string;
+    description?: string | null;
+    message?: string;
+  };
+
+  if (!response.ok || !data.default_branch) {
+    throw new Error(data.message || "Failed to fetch GitHub repository summary");
+  }
+
+  return {
+    defaultBranch: data.default_branch,
+    description: data.description ?? null
+  };
+};
+
+export const fetchGithubRepoTree = async ({
+  accessToken,
+  repoFullName,
+  branch
+}: {
+  accessToken: string;
+  repoFullName: string;
+  branch: string;
+}): Promise<GithubRepoTreeEntry[]> => {
+  const { owner, repo } = parseRepoFullName(repoFullName);
+  const response = await fetch(
+    `https://api.github.com/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/git/trees/${encodeURIComponent(branch)}?recursive=1`,
+    {
+      headers: githubHeaders(accessToken)
+    }
+  );
+
+  const data = (await response.json().catch(() => ({}))) as {
+    tree?: Array<{ path?: string; type?: "blob" | "tree"; size?: number }>;
+    message?: string;
+  };
+
+  if (!response.ok || !Array.isArray(data.tree)) {
+    throw new Error(data.message || "Failed to fetch GitHub repository tree");
+  }
+
+  return data.tree
+    .filter((entry): entry is { path: string; type: "blob" | "tree"; size?: number } =>
+      Boolean(entry.path && entry.type && (entry.type === "blob" || entry.type === "tree"))
+    )
+    .map((entry) => ({
+      path: entry.path,
+      type: entry.type,
+      size: entry.size
+    }));
+};
+
+export const fetchGithubRepoFile = async ({
+  accessToken,
+  repoFullName,
+  path,
+  branch
+}: {
+  accessToken: string;
+  repoFullName: string;
+  path: string;
+  branch: string;
+}): Promise<GithubRepoFile | null> => {
+  const { owner, repo } = parseRepoFullName(repoFullName);
+  const response = await fetch(
+    `https://api.github.com/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/contents/${path
+      .split("/")
+      .map((segment) => encodeURIComponent(segment))
+      .join("/")}?ref=${encodeURIComponent(branch)}`,
+    {
+      headers: githubHeaders(accessToken)
+    }
+  );
+
+  if (response.status === 404) {
+    return null;
+  }
+
+  const data = (await response.json().catch(() => ({}))) as {
+    content?: string;
+    encoding?: string;
+    message?: string;
+    type?: string;
+  };
+
+  if (!response.ok) {
+    throw new Error(data.message || `Failed to fetch ${path} from GitHub`);
+  }
+
+  if (data.type !== "file" || !data.content || data.encoding !== "base64") {
+    return null;
+  }
+
+  return {
+    path,
+    content: Buffer.from(data.content, "base64").toString("utf8")
+  };
+};
+
+export const createGithubIssue = async ({
+  accessToken,
+  repoFullName,
+  title,
+  body
+}: {
+  accessToken: string;
+  repoFullName: string;
+  title: string;
+  body: string;
+}): Promise<GithubCreatedIssue> => {
+  const { owner, repo } = parseRepoFullName(repoFullName);
+
+  const response = await fetch(
+    `https://api.github.com/repos/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/issues`,
+    {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        Accept: "application/vnd.github+json",
+        "Content-Type": "application/json",
+        "X-GitHub-Api-Version": "2022-11-28"
+      },
+      body: JSON.stringify({
+        title,
+        body
+      })
+    }
+  );
+
+  const data = (await response.json().catch(() => ({}))) as {
+    id?: number;
+    number?: number;
+    title?: string;
+    html_url?: string;
+    message?: string;
+    errors?: Array<{ message?: string }>;
+  };
+
+  if (!response.ok || !data.id || !data.number || !data.html_url || !data.title) {
+    const detail =
+      data.errors?.map((entry) => entry.message).filter(Boolean).join(", ") ||
+      data.message ||
+      "Failed to create GitHub issue";
+    throw new Error(detail);
+  }
+
+  return {
+    id: String(data.id),
+    number: data.number,
+    title: data.title,
+    url: data.html_url
+  };
 };
 
 export const exchangeSlackCode = async ({

@@ -3,6 +3,9 @@ import prisma from "../db/prisma.js";
 import { requireAuth } from "../middleware/auth.js";
 import { redis } from "../db/redis.js";
 import type { Prisma } from "@prisma/client";
+import { decryptIntegrationSecret } from "../utils/integrationSecrets.js";
+import { parseGithubMetadata } from "../utils/integrationConnectionState.js";
+import { createGithubIssue, fetchGithubRepos } from "../utils/integrationProviders.js";
 
 export const errorsRouter = Router();
 
@@ -243,6 +246,135 @@ errorsRouter.get("/:id", async (req, res) => {
       isManualAlertIssue: hasManualAlertSource(errorRecord.events)
     }
   });
+});
+
+errorsRouter.post("/:id/github-issue", async (req, res) => {
+  const userId = req.user?.id;
+  if (!userId) {
+    return res.status(401).json({ error: "Unauthorized" });
+  }
+
+  const errorId = req.params.id;
+  const { repoId, title, body } = req.body as {
+    repoId?: string;
+    title?: string;
+    body?: string;
+  };
+
+  const errorRecord = await prisma.error.findUnique({
+    where: { id: errorId },
+    include: {
+      analysis: true,
+      project: true,
+      events: {
+        orderBy: { timestamp: "desc" },
+        take: 3
+      }
+    }
+  });
+
+  if (!errorRecord) {
+    return res.status(404).json({ error: "Not found" });
+  }
+
+  if (errorRecord.project.archivedAt || errorRecord.archivedAt) {
+    return res.status(404).json({ error: "Not found" });
+  }
+
+  if (errorRecord.project.userId !== userId) {
+    if (!errorRecord.project.orgId) {
+      return res.status(403).json({ error: "Forbidden" });
+    }
+
+    const membership = await prisma.organizationMember.findUnique({
+      where: {
+        organizationId_userId: {
+          organizationId: errorRecord.project.orgId,
+          userId
+        }
+      }
+    });
+
+    if (!membership) {
+      return res.status(403).json({ error: "Forbidden" });
+    }
+  }
+
+  const connection = await prisma.integrationConnection.findUnique({
+    where: {
+      provider_userId: {
+        provider: "GITHUB",
+        userId
+      }
+    }
+  });
+
+  if (!connection) {
+    return res.status(404).json({ error: "Connect GitHub in Settings first" });
+  }
+
+  const metadata = parseGithubMetadata(connection.metadata);
+  if (!metadata.selectedRepoIds?.length) {
+    return res.status(400).json({ error: "Choose at least one GitHub repository in Settings first" });
+  }
+
+  try {
+    const accessToken = decryptIntegrationSecret(connection.accessTokenEncrypted);
+    const repos = await fetchGithubRepos(accessToken);
+    const fallbackRepoId = errorRecord.project.githubRepoId || "";
+    const resolvedRepoId =
+      typeof repoId === "string" && repoId.trim() ? repoId.trim() : fallbackRepoId;
+
+    if (!resolvedRepoId) {
+      return res.status(400).json({ error: "repoId is required" });
+    }
+
+    const repo = repos.find(
+      (entry) => entry.id === resolvedRepoId && metadata.selectedRepoIds?.includes(entry.id)
+    );
+
+    if (!repo) {
+      return res.status(404).json({ error: "Selected GitHub repository is not available" });
+    }
+
+    const githubIssue = await createGithubIssue({
+      accessToken,
+      repoFullName: repo.fullName,
+      title:
+        typeof title === "string" && title.trim()
+          ? title.trim().slice(0, 240)
+          : `[TraceForge] ${errorRecord.message}`.slice(0, 240),
+      body:
+        typeof body === "string" && body.trim()
+          ? body.trim()
+          : [
+              `TraceForge issue: ${errorRecord.message}`,
+              "",
+              `Project: ${errorRecord.project.name}`,
+              `Occurrences: ${errorRecord.count}`,
+              `Last seen: ${errorRecord.lastSeen.toISOString()}`,
+              "",
+              "```",
+              errorRecord.stackTrace,
+              "```"
+            ].join("\n")
+    });
+
+    return res.json({
+      ok: true,
+      issue: {
+        id: githubIssue.id,
+        number: githubIssue.number,
+        title: githubIssue.title,
+        url: githubIssue.url,
+        repoFullName: repo.fullName
+      }
+    });
+  } catch (error) {
+    return res.status(400).json({
+      error: error instanceof Error ? error.message : "Failed to create GitHub issue"
+    });
+  }
 });
 
 errorsRouter.post("/:id/regenerate", async (req, res) => {

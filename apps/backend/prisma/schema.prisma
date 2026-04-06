@@ -35,6 +35,7 @@ model User {
   payments     Payment[]
   notificationDismissals NotificationDismissal[]
   integrationConnections IntegrationConnection[]
+  aiUsageEntries AiUsageEntry[]
 }
 
 enum BillingPlan {
@@ -126,6 +127,7 @@ model Organization {
   joinRequests OrgJoinRequest[]
   payments  Payment[]
   integrationConnections IntegrationConnection[]
+  aiUsageEntries AiUsageEntry[]
 
   @@index([createdAt])
 }
@@ -215,6 +217,9 @@ model Project {
   name             String
   apiKey           String    @unique
   aiModel          String    @default("groq/compound")
+  githubRepoId     String?
+  githubRepoName   String?
+  githubRepoUrl    String?
   createdAt        DateTime  @default(now())
   archivedAt       DateTime?
   configuredAt     DateTime?
@@ -226,6 +231,8 @@ model Project {
   alertRules AlertRule[]
   alertDeliveries AlertDelivery[]
   releases Release[]
+  githubRepoAnalysis GithubRepoAnalysis?
+  aiUsageEntries AiUsageEntry[]
 
   @@index([archivedAt])
   @@index([orgId])
@@ -283,6 +290,41 @@ model ErrorAnalysis {
   error Error @relation(fields: [errorId], references: [id])
 }
 
+enum GithubRepoAnalysisStatus {
+  PENDING
+  PROCESSING
+  READY
+  FAILED
+}
+
+model GithubRepoAnalysis {
+  id               String                   @id @default(cuid())
+  projectId        String                   @unique
+  repoId           String
+  repoName         String
+  repoUrl          String?
+  status           GithubRepoAnalysisStatus @default(PENDING)
+  model            String?
+  summary          String?
+  architecture     String?
+  runtimeFlow      String?
+  developmentFlow  String?
+  techStack        Json?
+  keyModules       Json?
+  entryPoints      Json?
+  risks            Json?
+  onboardingTips   Json?
+  lastError        String?
+  generatedAt      DateTime?
+  createdAt        DateTime                 @default(now())
+  updatedAt        DateTime                 @updatedAt
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@index([status])
+  @@index([generatedAt])
+}
+
 enum ErrorAiStatus {
   PENDING
   PROCESSING
@@ -321,6 +363,10 @@ enum IntegrationScope {
 enum IntegrationStatus {
   CONNECTED
   ERROR
+}
+
+enum AiUsageKind {
+  GITHUB_REPO_ANALYSIS
 }
 
 enum ReleaseSource {
@@ -430,4 +476,23 @@ model IntegrationConnection {
   @@index([userId])
   @@index([organizationId])
   @@index([provider, scope])
+}
+
+model AiUsageEntry {
+  id             String      @id @default(cuid())
+  userId         String
+  organizationId String?
+  projectId      String?
+  kind           AiUsageKind
+  amount         Int
+  createdAt      DateTime    @default(now())
+
+  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  organization Organization? @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  project      Project?      @relation(fields: [projectId], references: [id], onDelete: SetNull)
+
+  @@index([userId, createdAt])
+  @@index([organizationId, createdAt])
+  @@index([projectId, createdAt])
+  @@index([kind, createdAt])
 }

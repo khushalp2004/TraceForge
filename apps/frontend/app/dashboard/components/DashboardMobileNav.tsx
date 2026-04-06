@@ -14,6 +14,7 @@ const mobileItems = [
   { href: "/dashboard/releases", label: "Releases", icon: "releases" },
   { href: "/dashboard/insights", label: "Insights", icon: "insights" },
   { href: "/dashboard/orgs", label: "Organization", icon: "team" },
+  { href: "/dashboard/repo-analysis", label: "Repo Analysis", icon: "repo-analysis" },
   { href: "/docs", label: "Documentation", icon: "docs" },
   { href: "/dashboard/settings", label: "Settings", icon: "settings" },
   { href: "/dashboard/billing", label: "Billing", icon: "billing" }
@@ -102,6 +103,23 @@ function MobileNavIcon({
           <circle cx="17" cy="10" r="2.5" stroke="currentColor" strokeWidth="1.8" />
           <path d="M4 19a5 5 0 0 1 10 0" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
           <path d="M14.5 19a4 4 0 0 1 7 0" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+        </svg>
+      );
+    case "repo-analysis":
+      return (
+        <svg aria-hidden="true" className={common} viewBox="0 0 24 24" fill="none">
+          <path
+            d="M8 7.5h8M8 12h6M8 16.5h4"
+            stroke="currentColor"
+            strokeWidth="1.8"
+            strokeLinecap="round"
+          />
+          <path
+            d="M5.5 4.5h13A1.5 1.5 0 0 1 20 6v12a1.5 1.5 0 0 1-1.5 1.5h-13A1.5 1.5 0 0 1 4 18V6a1.5 1.5 0 0 1 1.5-1.5Z"
+            stroke="currentColor"
+            strokeWidth="1.8"
+            strokeLinejoin="round"
+          />
         </svg>
       );
     case "docs":

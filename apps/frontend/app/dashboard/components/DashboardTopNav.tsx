@@ -12,6 +12,7 @@ const topNavItems = [
   { href: "/dashboard/issues", label: "Issues" },
   { href: "/dashboard/projects", label: "Projects" },
   { href: "/dashboard/orgs", label: "Organization" },
+  { href: "/dashboard/repo-analysis", label: "Repo Analysis" },
   { href: "/dashboard/releases", label: "Releases" },
   { href: "/dashboard/insights", label: "Insights" },
   { href: "/dashboard/alerts", label: "Alerts" },

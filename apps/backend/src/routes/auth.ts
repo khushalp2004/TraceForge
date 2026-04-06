@@ -14,6 +14,7 @@ import {
   isOrgTeamActive,
   isUserProActive
 } from "../utils/billing.js";
+import { currentMonthKey, getEffectiveAiUsage } from "../utils/aiUsage.js";
 import {
   findActiveVerificationCode,
   isVerificationCodeMatch,
@@ -34,8 +35,6 @@ const frontendUrl = process.env.FRONTEND_URL || process.env.APP_PUBLIC_URL || "h
 const googleClientId = process.env.GOOGLE_CLIENT_ID || "";
 const googleClientSecret = process.env.GOOGLE_CLIENT_SECRET || "";
 const googleRedirectUri = process.env.GOOGLE_REDIRECT_URI || "";
-const currentMonthKey = (now: Date) =>
-  `${now.getUTCFullYear()}-${String(now.getUTCMonth() + 1).padStart(2, "0")}`;
 const chooseTransferTarget = (
   members: Array<{ userId: string; role: "OWNER" | "MEMBER" }>
 ) => members.find((member) => member.role === "OWNER") ?? members[0] ?? null;
@@ -374,7 +373,6 @@ authRouter.get("/usage", requireAuth, async (req, res) => {
       : null;
 
   const now = new Date();
-  const monthKey = currentMonthKey(now);
 
   const user = await prisma.user.findUnique({
     where: { id: userId },
@@ -434,23 +432,11 @@ authRouter.get("/usage", requireAuth, async (req, res) => {
 
     if (isOrgTeamActive(organization)) {
       const limit = TEAM_MONTHLY_AI_LIMIT;
-      let used = 0;
-
-      if (redis.isOpen) {
-        used = Number((await redis.get(`usage:ai:org:${organizationId}:${monthKey}`)) || "0");
-      } else {
-        const monthStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1, 0, 0, 0, 0));
-        used = await prisma.errorAnalysis.count({
-          where: {
-            createdAt: { gte: monthStart },
-            error: {
-              project: {
-                orgId: organizationId
-              }
-            }
-          }
-        });
-      }
+      const used = await getEffectiveAiUsage({
+        userId,
+        organizationId,
+        now
+      });
 
       const safeUsed = Math.max(0, used);
       const remaining = Math.max(0, limit - safeUsed);
@@ -470,21 +456,10 @@ authRouter.get("/usage", requireAuth, async (req, res) => {
   }
 
   const freeLimit = FREE_MONTHLY_AI_LIMIT;
-  let freeUsed = 0;
-
-  if (redis.isOpen) {
-    freeUsed = Number((await redis.get(`usage:ai:user:${userId}:${monthKey}`)) || "0");
-  } else {
-    const monthStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1, 0, 0, 0, 0));
-    freeUsed = await prisma.errorAnalysis.count({
-      where: {
-        createdAt: { gte: monthStart },
-        error: {
-          aiRequestedByUserId: userId
-        }
-      }
-    });
-  }
+  const freeUsed = await getEffectiveAiUsage({
+    userId,
+    now
+  });
 
   const safeFreeUsed = Math.max(0, freeUsed);
   const freeRemaining = Math.max(0, freeLimit - safeFreeUsed);

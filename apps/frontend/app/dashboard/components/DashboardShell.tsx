@@ -19,6 +19,7 @@ const PREFETCH_ROUTES = [
   "/dashboard/insights",
   "/dashboard/alerts",
   "/dashboard/orgs",
+  "/dashboard/repo-analysis",
   "/dashboard/settings",
   "/dashboard/billing",
   "/dashboard/account/details",

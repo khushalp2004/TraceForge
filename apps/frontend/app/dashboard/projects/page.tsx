@@ -22,6 +22,9 @@ type Project = {
   name: string;
   apiKey: string;
   aiModel: string;
+  githubRepoId?: string | null;
+  githubRepoName?: string | null;
+  githubRepoUrl?: string | null;
   createdAt: string;
   orgId?: string | null;
   archivedAt?: string | null;
@@ -42,6 +45,21 @@ type AiModelOption = {
   id: string;
   label: string;
   description: string;
+};
+
+type GithubRepo = {
+  id: string;
+  fullName: string;
+  private: boolean;
+  url: string;
+};
+
+type GithubIntegrationState = {
+  configured: boolean;
+  connected: boolean;
+  repos?: GithubRepo[];
+  selectedRepoIds?: string[];
+  error?: string;
 };
 
 const PROJECT_PAGE_SIZE_OPTIONS = [
@@ -83,6 +101,11 @@ export default function ProjectSettingsPage() {
   const [availableAiModels, setAvailableAiModels] = useState<AiModelOption[]>([]);
   const [defaultAiModel, setDefaultAiModel] = useState("groq/compound");
   const [newProjectAiModel, setNewProjectAiModel] = useState("groq/compound");
+  const [availableGithubRepos, setAvailableGithubRepos] = useState<GithubRepo[]>([]);
+  const [githubConfigured, setGithubConfigured] = useState(false);
+  const [githubConnected, setGithubConnected] = useState(false);
+  const [newProjectGithubRepoId, setNewProjectGithubRepoId] = useState("");
+  const [updatingGithubRepoProjectId, setUpdatingGithubRepoProjectId] = useState<string | null>(null);
   const [updatingAiModelProjectId, setUpdatingAiModelProjectId] = useState<string | null>(null);
   const [activeProjectsPage, setActiveProjectsPage] = useState(1);
   const [activeProjectsPageSize, setActiveProjectsPageSize] = useState(6);
@@ -209,8 +232,36 @@ export default function ProjectSettingsPage() {
     }
   };
 
+  const loadGithubRepos = async () => {
+    const token = localStorage.getItem(tokenKey);
+    if (!token) return;
+
+    try {
+      const res = await fetch(`${API_URL}/integrations/github`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      const data = (await res.json()) as GithubIntegrationState;
+      if (!res.ok) {
+        throw new Error(data.error || "Failed to load GitHub repositories");
+      }
+
+      setGithubConfigured(Boolean(data.configured));
+      setGithubConnected(Boolean(data.connected));
+      const selectedRepos = (data.repos || []).filter((repo) =>
+        (data.selectedRepoIds || []).includes(repo.id)
+      );
+      setAvailableGithubRepos(selectedRepos);
+    } catch (err) {
+      setGithubConfigured(false);
+      setGithubConnected(false);
+      setAvailableGithubRepos([]);
+      setError(err instanceof Error ? err.message : "Unexpected error");
+    }
+  };
+
   useEffect(() => {
     loadProjects();
+    void loadGithubRepos();
   }, [showArchived]);
 
   const rotateKey = async (projectId: string) => {
@@ -410,7 +461,8 @@ export default function ProjectSettingsPage() {
         body: JSON.stringify({
           name: newProjectName,
           orgId: selectedOrgId || undefined,
-          aiModel: newProjectAiModel || defaultAiModel
+          aiModel: newProjectAiModel || defaultAiModel,
+          githubRepoId: newProjectGithubRepoId || undefined
         })
       });
 
@@ -422,6 +474,7 @@ export default function ProjectSettingsPage() {
       setProjects((prev) => [data.project, ...prev]);
       setNewProjectName("");
       setNewProjectAiModel(defaultAiModel);
+      setNewProjectGithubRepoId("");
       setShowCreateModal(false);
       showToast("Project created", "success");
     } catch (err) {
@@ -460,6 +513,38 @@ export default function ProjectSettingsPage() {
       await loadProjects();
     } finally {
       setUpdatingAiModelProjectId(null);
+    }
+  };
+
+  const updateProjectGithubRepo = async (projectId: string, githubRepoId: string) => {
+    const token = localStorage.getItem(tokenKey);
+    if (!token) return;
+
+    setUpdatingGithubRepoProjectId(projectId);
+    try {
+      const res = await fetch(`${API_URL}/projects/${projectId}/github-repo`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({ githubRepoId: githubRepoId || null })
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || "Failed to update GitHub repository");
+      }
+
+      setProjects((prev) =>
+        prev.map((project) => (project.id === projectId ? data.project : project))
+      );
+      showToast(githubRepoId ? "GitHub repo linked" : "GitHub repo removed", "success");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Unexpected error");
+      await loadProjects();
+    } finally {
+      setUpdatingGithubRepoProjectId(null);
     }
   };
 
@@ -609,6 +694,11 @@ export default function ProjectSettingsPage() {
                 <span className="rounded-full border border-border bg-secondary/60 px-2.5 py-1">
                   {project.eventCount} {project.eventCount === 1 ? "issue group" : "issue groups"}
                 </span>
+                {project.githubRepoName ? (
+                  <span className="rounded-full border border-border bg-secondary/60 px-2.5 py-1">
+                    {project.githubRepoName}
+                  </span>
+                ) : null}
               </div>
               <div className="mt-4 rounded-xl border border-border bg-card/70 px-3 py-3">
                 <label className="block">
@@ -631,6 +721,38 @@ export default function ProjectSettingsPage() {
                 <p className="mt-2 text-xs text-text-secondary">
                   {availableAiModels.find((model) => model.id === project.aiModel)?.description ||
                     "Choose the AI model used for solutions in this project."}
+                </p>
+              </div>
+              <div className="mt-3 rounded-xl border border-border bg-card/70 px-3 py-3">
+                <label className="block">
+                  <span className="text-[11px] font-semibold uppercase tracking-[0.14em] text-text-secondary">
+                    GitHub repo
+                  </span>
+                  <select
+                    className="tf-select mt-2 w-full"
+                    value={project.githubRepoId || ""}
+                    onChange={(event) => updateProjectGithubRepo(project.id, event.target.value)}
+                    disabled={
+                      loading ||
+                      updatingGithubRepoProjectId === project.id ||
+                      !githubConfigured ||
+                      !githubConnected
+                    }
+                  >
+                    <option value="">
+                      {githubConnected ? "No linked repository" : "Connect GitHub in Settings"}
+                    </option>
+                    {availableGithubRepos.map((repo) => (
+                      <option key={repo.id} value={repo.id}>
+                        {repo.fullName}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <p className="mt-2 text-xs text-text-secondary">
+                  {githubConnected
+                    ? "Link one selected repository so GitHub issue creation can default to it."
+                    : "Connect GitHub and choose repositories in Settings first."}
                 </p>
               </div>
               <div className="mt-3 flex flex-wrap items-center gap-2">
@@ -801,6 +923,31 @@ export default function ProjectSettingsPage() {
               <p className="mt-2 text-xs text-text-secondary">
                 {availableAiModels.find((model) => model.id === newProjectAiModel)?.description ||
                   "Choose the default AI model for this project."}
+              </p>
+            </label>
+            <label className="mt-4 block">
+              <span className="text-xs font-semibold uppercase tracking-[0.14em] text-text-secondary">
+                GitHub repo
+              </span>
+              <select
+                className="tf-select mt-2 w-full"
+                value={newProjectGithubRepoId}
+                onChange={(event) => setNewProjectGithubRepoId(event.target.value)}
+                disabled={!githubConfigured || !githubConnected}
+              >
+                <option value="">
+                  {githubConnected ? "No linked repository" : "Connect GitHub in Settings"}
+                </option>
+                {availableGithubRepos.map((repo) => (
+                  <option key={repo.id} value={repo.id}>
+                    {repo.fullName}
+                  </option>
+                ))}
+              </select>
+              <p className="mt-2 text-xs text-text-secondary">
+                {githubConnected
+                  ? "Optional. New GitHub issues for this project can use this repository by default."
+                  : "Optional. Connect GitHub and select repositories in Settings first."}
               </p>
             </label>
             <div className="mt-5 flex items-center justify-end gap-3">

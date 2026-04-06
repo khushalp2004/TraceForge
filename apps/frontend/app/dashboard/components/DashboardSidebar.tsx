@@ -36,7 +36,8 @@ const navSections = [
     label: "Operations",
     items: [
       { href: "/dashboard/alerts", label: "Alerts", icon: "alerts" },
-      { href: "/dashboard/orgs", label: "Organization", icon: "team" }
+      { href: "/dashboard/orgs", label: "Organization", icon: "team" },
+      { href: "/dashboard/repo-analysis", label: "Repo Analysis", icon: "repo-analysis" }
     ]
   },
   {
@@ -143,6 +144,23 @@ function NavIcon({
           <circle cx="17" cy="10" r="2.5" stroke="currentColor" strokeWidth="1.8" />
           <path d="M4 19a5 5 0 0 1 10 0" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
           <path d="M14.5 19a4 4 0 0 1 7 0" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+        </svg>
+      );
+    case "repo-analysis":
+      return (
+        <svg aria-hidden="true" className={common} viewBox="0 0 24 24" fill="none">
+          <path
+            d="M8 7.5h8M8 12h6M8 16.5h4"
+            stroke="currentColor"
+            strokeWidth="1.8"
+            strokeLinecap="round"
+          />
+          <path
+            d="M5.5 4.5h13A1.5 1.5 0 0 1 20 6v12a1.5 1.5 0 0 1-1.5 1.5h-13A1.5 1.5 0 0 1 4 18V6a1.5 1.5 0 0 1 1.5-1.5Z"
+            stroke="currentColor"
+            strokeWidth="1.8"
+            strokeLinejoin="round"
+          />
         </svg>
       );
     case "docs":
@@ -475,15 +493,6 @@ export default function DashboardSidebar({
           </div>
         </div>
       ) : null}
-
-      <div
-        className={`rounded-2xl border border-border bg-card px-3 py-3 text-xs text-text-secondary shadow-sm ${
-          collapsed ? "hidden group-hover/nav:block" : ""
-        }`}
-      >
-        <p className="font-semibold text-text-primary">Need help?</p>
-        <p className="mt-1">Check docs or reach support for faster triage.</p>
-      </div>
 
       <div className="relative mt-auto" ref={profileRef}>
         <button

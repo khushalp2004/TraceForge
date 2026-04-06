@@ -3,7 +3,7 @@
 import { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { Archive, Copy, RotateCcw, Sparkles } from "lucide-react";
+import { Archive, Copy, Github, RotateCcw, Sparkles } from "lucide-react";
 import { LoadingButtonContent } from "../../../components/ui/loading-button-content";
 import { useDebouncedValue } from "../../hooks/useDebouncedValue";
 
@@ -16,6 +16,9 @@ type Project = {
   name: string;
   orgId?: string | null;
   archivedAt?: string | null;
+  githubRepoId?: string | null;
+  githubRepoName?: string | null;
+  githubRepoUrl?: string | null;
 };
 
 type Issue = {
@@ -33,6 +36,21 @@ type Issue = {
     aiExplanation: string;
     suggestedFix?: string | null;
   } | null;
+};
+
+type GithubRepo = {
+  id: string;
+  fullName: string;
+  private: boolean;
+  url: string;
+};
+
+type GithubIntegrationState = {
+  configured: boolean;
+  connected: boolean;
+  repos?: GithubRepo[];
+  selectedRepoIds?: string[];
+  error?: string;
 };
 
 type Toast = {
@@ -96,6 +114,37 @@ const getAiBadgeLabel = (issue: Pick<Issue, "aiStatus" | "aiRequestedAt" | "anal
   return "AI not generated";
 };
 
+const buildGithubIssueTitle = (issue: Pick<Issue, "message">) =>
+  `[TraceForge] ${issue.message}`.slice(0, 240);
+
+const buildGithubIssueBody = (issue: Issue, projectName?: string) => {
+  const issueUrl =
+    typeof window !== "undefined"
+      ? `${window.location.origin}/dashboard/errors/${issue.id}`
+      : `/dashboard/errors/${issue.id}`;
+
+  return [
+    `## TraceForge issue`,
+    ``,
+    `- Message: ${issue.message}`,
+    `- Project: ${projectName || "Unknown project"}`,
+    `- Occurrences: ${issue.count}`,
+    `- Last seen: ${new Date(issue.lastSeen).toLocaleString()}`,
+    `- TraceForge: ${issueUrl}`,
+    issue.analysis?.aiExplanation
+      ? [``, `## AI summary`, ``, issue.analysis.aiExplanation].join("\n")
+      : "",
+    ``,
+    `## Stack trace`,
+    ``,
+    "```",
+    issue.stackTrace,
+    "```"
+  ]
+    .filter(Boolean)
+    .join("\n");
+};
+
 export default function IssuesPage() {
   return (
     <Suspense fallback={<div className="tf-page tf-dashboard-page" />}>
@@ -131,9 +180,19 @@ function IssuesPageInner() {
   const [creatingProject, setCreatingProject] = useState(false);
   const [archiveTarget, setArchiveTarget] = useState<Issue | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<Issue | null>(null);
+  const [githubIssueTarget, setGithubIssueTarget] = useState<Issue | null>(null);
+  const [githubRepos, setGithubRepos] = useState<GithubRepo[]>([]);
+  const [githubRepoId, setGithubRepoId] = useState("");
+  const [githubIssueTitle, setGithubIssueTitle] = useState("");
+  const [githubIssueBody, setGithubIssueBody] = useState("");
+  const [githubModalError, setGithubModalError] = useState<string | null>(null);
+  const [githubConfigured, setGithubConfigured] = useState(false);
+  const [githubConnected, setGithubConnected] = useState(false);
+  const [githubReposLoading, setGithubReposLoading] = useState(false);
   const [archivingIssueId, setArchivingIssueId] = useState<string | null>(null);
   const [restoringIssueId, setRestoringIssueId] = useState<string | null>(null);
   const [deletingIssueId, setDeletingIssueId] = useState<string | null>(null);
+  const [creatingGithubIssueId, setCreatingGithubIssueId] = useState<string | null>(null);
   const deferredSearch = useDebouncedValue(search, 300);
 
   useEffect(() => {
@@ -163,7 +222,8 @@ function IssuesPageInner() {
           if (prefs.sortBy === "lastSeen" || prefs.sortBy === "count") setSortBy(prefs.sortBy);
           if (prefs.viewMode === "active" || prefs.viewMode === "archived") setViewMode(prefs.viewMode);
           if (typeof prefs.pageSize === "number" && prefs.pageSize > 0) {
-            setPagination((prev) => ({ ...prev, pageSize: prefs.pageSize }));
+            const nextPageSize = prefs.pageSize;
+            setPagination((prev) => ({ ...prev, pageSize: nextPageSize }));
           }
         }
       } catch {
@@ -568,6 +628,102 @@ function IssuesPageInner() {
     }
   };
 
+  const openGithubIssueModal = async (issue: Issue) => {
+    const token = localStorage.getItem(tokenKey);
+    if (!token) {
+      setError("Missing auth token. Please log in again.");
+      return;
+    }
+
+    setGithubIssueTarget(issue);
+    setGithubRepos([]);
+    setGithubRepoId("");
+    setGithubIssueTitle(buildGithubIssueTitle(issue));
+    setGithubIssueBody(buildGithubIssueBody(issue, projectMap.get(issue.projectId)?.name));
+    setGithubModalError(null);
+    setGithubReposLoading(true);
+
+    try {
+      const res = await fetch(`${API_URL}/integrations/github`, {
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
+      });
+
+      const data = (await res.json()) as GithubIntegrationState;
+      if (!res.ok) {
+        throw new Error(data.error || "Failed to load GitHub integration");
+      }
+
+      setGithubConfigured(Boolean(data.configured));
+      setGithubConnected(Boolean(data.connected));
+
+      const selectedRepos = (data.repos || []).filter((repo) =>
+        (data.selectedRepoIds || []).includes(repo.id)
+      );
+      setGithubRepos(selectedRepos);
+      const mappedRepoId = projectMap.get(issue.projectId)?.githubRepoId || "";
+      if (mappedRepoId && selectedRepos.some((repo) => repo.id === mappedRepoId)) {
+        setGithubRepoId(mappedRepoId);
+      } else if (selectedRepos[0]) {
+        setGithubRepoId(selectedRepos[0].id);
+      }
+    } catch (err) {
+      setGithubModalError(
+        err instanceof Error ? err.message : "Failed to load GitHub repositories"
+      );
+    } finally {
+      setGithubReposLoading(false);
+    }
+  };
+
+  const createGithubIssueForTarget = async () => {
+    const token = localStorage.getItem(tokenKey);
+    if (!token || !githubIssueTarget) {
+      return;
+    }
+
+    if (!githubRepoId) {
+      setGithubModalError("Choose a GitHub repository first");
+      return;
+    }
+
+    setCreatingGithubIssueId(githubIssueTarget.id);
+    setGithubModalError(null);
+
+    try {
+      const res = await fetch(`${API_URL}/errors/${githubIssueTarget.id}/github-issue`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          repoId: githubRepoId,
+          title: githubIssueTitle.trim(),
+          body: githubIssueBody.trim()
+        })
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || "Failed to create GitHub issue");
+      }
+
+      setGithubIssueTarget(null);
+      showToast(
+        `GitHub issue #${data.issue?.number || ""} created`.trim(),
+        "success"
+      );
+    } catch (err) {
+      setGithubModalError(
+        err instanceof Error ? err.message : "Failed to create GitHub issue"
+      );
+    } finally {
+      setCreatingGithubIssueId(null);
+    }
+  };
+
   return (
     <main className="tf-page tf-dashboard-page lg:h-screen lg:overflow-hidden">
       <div className="tf-dashboard flex min-h-0 flex-col lg:h-full">
@@ -887,6 +1043,22 @@ function IssuesPageInner() {
                             >
                               Open issue
                             </Link>
+
+                            <button
+                              type="button"
+                              className="tf-button-ghost inline-flex h-10 w-full items-center justify-center gap-1.5 px-3 py-2 text-[13px]"
+                              onClick={() => openGithubIssueModal(issue)}
+                              disabled={creatingGithubIssueId === issue.id}
+                            >
+                              <LoadingButtonContent
+                                loading={creatingGithubIssueId === issue.id}
+                                loadingLabel="Creating..."
+                                idleLabel="GitHub issue"
+                                icon={Github}
+                                iconClassName="h-3.5 w-3.5"
+                                spinnerClassName="h-3.5 w-3.5"
+                              />
+                            </button>
 
                             <div
                               className={`grid gap-2.5 ${
@@ -1215,6 +1387,137 @@ function IssuesPageInner() {
                   loading={creatingProject}
                   loadingLabel="Creating..."
                   idleLabel="Create project"
+                />
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {githubIssueTarget && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-6">
+          <div className="w-full max-w-2xl rounded-[28px] border border-border bg-card/95 p-6 shadow-xl backdrop-blur">
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+              <div className="min-w-0">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-text-secondary">
+                  GitHub
+                </p>
+                <h3 className="font-display text-lg font-semibold text-text-primary">
+                  Create GitHub issue
+                </h3>
+                <p className="mt-2 text-sm text-text-secondary">
+                  Send this TraceForge issue to one of your selected repositories without leaving
+                  the dashboard.
+                </p>
+              </div>
+              <button
+                type="button"
+                className="tf-button-ghost w-full px-4 py-2 text-sm sm:w-auto"
+                onClick={() => setGithubIssueTarget(null)}
+                disabled={creatingGithubIssueId === githubIssueTarget.id}
+              >
+                Close
+              </button>
+            </div>
+
+            <div className="mt-5 space-y-4">
+              <div className="rounded-2xl border border-border bg-secondary/20 px-4 py-4">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-text-secondary">
+                  TraceForge issue
+                </p>
+                <p className="mt-2 text-sm font-medium text-text-primary">
+                  {githubIssueTarget.message}
+                </p>
+              </div>
+
+              {githubReposLoading ? (
+                <div className="rounded-2xl border border-border bg-secondary/20 px-4 py-4 text-sm text-text-secondary">
+                  Loading GitHub repositories...
+                </div>
+              ) : !githubConfigured ? (
+                <div className="rounded-2xl border border-border bg-secondary/20 px-4 py-4 text-sm text-text-secondary">
+                  GitHub integration is not configured for this app yet.
+                </div>
+              ) : !githubConnected ? (
+                <div className="rounded-2xl border border-border bg-secondary/20 px-4 py-4 text-sm text-text-secondary">
+                  Connect GitHub in Settings first, then choose one or more repositories to use
+                  here.
+                </div>
+              ) : !githubRepos.length ? (
+                <div className="rounded-2xl border border-border bg-secondary/20 px-4 py-4 text-sm text-text-secondary">
+                  No selected repositories are available. Choose repositories in Settings first.
+                </div>
+              ) : (
+                <>
+                  <label className="tf-filter-field">
+                    <span className="tf-filter-label">Repository</span>
+                    <select
+                      className="tf-select tf-filter-control"
+                      value={githubRepoId}
+                      onChange={(event) => setGithubRepoId(event.target.value)}
+                    >
+                      {githubRepos.map((repo) => (
+                        <option key={repo.id} value={repo.id}>
+                          {repo.fullName}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+
+                  <label className="tf-filter-field">
+                    <span className="tf-filter-label">Title</span>
+                    <input
+                      className="tf-input tf-filter-control"
+                      value={githubIssueTitle}
+                      onChange={(event) => setGithubIssueTitle(event.target.value)}
+                      placeholder="Issue title"
+                    />
+                  </label>
+
+                  <label className="tf-filter-field">
+                    <span className="tf-filter-label">Description</span>
+                    <textarea
+                      className="tf-textarea min-h-[240px]"
+                      value={githubIssueBody}
+                      onChange={(event) => setGithubIssueBody(event.target.value)}
+                    />
+                  </label>
+                </>
+              )}
+
+              {githubModalError ? (
+                <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+                  {githubModalError}
+                </div>
+              ) : null}
+            </div>
+
+            <div className="mt-5 flex w-full flex-nowrap items-center justify-end gap-3">
+              <button
+                type="button"
+                className="tf-button-ghost inline-flex min-w-0 flex-1 items-center justify-center px-3 py-2 text-sm sm:flex-none sm:px-4"
+                onClick={() => setGithubIssueTarget(null)}
+                disabled={creatingGithubIssueId === githubIssueTarget.id}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                className="tf-button inline-flex min-w-0 flex-1 items-center justify-center gap-2 whitespace-nowrap px-3 py-2 text-sm sm:flex-none sm:px-4"
+                onClick={createGithubIssueForTarget}
+                disabled={
+                  githubReposLoading ||
+                  !githubConnected ||
+                  !githubRepos.length ||
+                  !githubRepoId ||
+                  creatingGithubIssueId === githubIssueTarget.id
+                }
+              >
+                <LoadingButtonContent
+                  loading={creatingGithubIssueId === githubIssueTarget.id}
+                  loadingLabel="Creating..."
+                  idleLabel="Create GitHub issue"
+                  icon={Github}
                 />
               </button>
             </div>
