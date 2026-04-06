@@ -107,6 +107,7 @@ export default function IssuesPage() {
 function IssuesPageInner() {
   const searchParams = useSearchParams();
   const hydratedFromQuery = useRef(false);
+  const prefsHydratedRef = useRef(false);
   const [projects, setProjects] = useState<Project[]>([]);
   const [issues, setIssues] = useState<Issue[]>([]);
   const [pagination, setPagination] = useState<Pagination>({
@@ -167,6 +168,8 @@ function IssuesPageInner() {
         }
       } catch {
         // Ignore malformed prefs.
+      } finally {
+        prefsHydratedRef.current = true;
       }
     }
 
@@ -202,7 +205,7 @@ function IssuesPageInner() {
   }, [searchParams]);
 
   useEffect(() => {
-    if (typeof window === "undefined" || !hydratedFromQuery.current) return;
+    if (typeof window === "undefined" || !prefsHydratedRef.current) return;
     window.localStorage.setItem(
       issuesPrefsKey,
       JSON.stringify({

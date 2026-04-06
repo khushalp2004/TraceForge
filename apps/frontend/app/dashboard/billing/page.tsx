@@ -89,6 +89,18 @@ type PricingData = {
   };
 };
 
+type CancelSubscriptionTarget =
+  | {
+      plan: "PRO";
+      organizationId?: undefined;
+      label: string;
+    }
+  | {
+      plan: "TEAM";
+      organizationId: string;
+      label: string;
+    };
+
 const BILLING_PAGE_SIZE_OPTIONS = [
   { value: 5, label: "5 / page" },
   { value: 10, label: "10 / page" },
@@ -129,6 +141,8 @@ export default function BillingPage() {
   const [invoicesPageSize, setInvoicesPageSize] = useState(5);
   const [paymentsPage, setPaymentsPage] = useState(1);
   const [paymentsPageSize, setPaymentsPageSize] = useState(5);
+  const [cancelTarget, setCancelTarget] = useState<CancelSubscriptionTarget | null>(null);
+  const [cancelConfirmationInput, setCancelConfirmationInput] = useState("");
 
   const ownerOrgs = useMemo(() => orgs.filter((org) => org.role === "OWNER"), [orgs]);
   const selectedOrg = useMemo(
@@ -186,6 +200,11 @@ export default function BillingPage() {
   const showToast = (message: string, tone: Toast["tone"]) => {
     setToast({ message, tone });
     window.setTimeout(() => setToast(null), 2600);
+  };
+
+  const closeCancelModal = () => {
+    setCancelTarget(null);
+    setCancelConfirmationInput("");
   };
 
   useEffect(() => {
@@ -392,7 +411,7 @@ export default function BillingPage() {
 
   const cancelSubscription = async (organizationId?: string) => {
     const token = localStorage.getItem(tokenKey);
-    if (!token) return;
+    if (!token) return false;
 
     setActionLoading(true);
     setError(null);
@@ -416,10 +435,22 @@ export default function BillingPage() {
       showToast(organizationId ? "Team plan cancelled." : "Pro cancelled.", "success");
       await refreshAll();
       await refreshBillingData(historyScope === "ORGANIZATION" ? organizationId || null : null);
+      return true;
     } catch (err) {
       setError(err instanceof Error ? err.message : "Unexpected error");
+      return false;
     } finally {
       setActionLoading(false);
+    }
+  };
+
+  const confirmCancelSubscription = async () => {
+    if (!cancelTarget) return;
+    const cancelled = await cancelSubscription(
+      cancelTarget.plan === "TEAM" ? cancelTarget.organizationId : undefined
+    );
+    if (cancelled) {
+      closeCancelModal();
     }
   };
 
@@ -535,7 +566,12 @@ export default function BillingPage() {
                 <button
                   type="button"
                   className="tf-button-ghost px-4 py-2 text-sm"
-                  onClick={() => void cancelSubscription()}
+                  onClick={() =>
+                    setCancelTarget({
+                      plan: "PRO",
+                      label: "Pro subscription"
+                    })
+                  }
                   disabled={actionLoading}
                 >
                   <LoadingButtonContent
@@ -672,7 +708,13 @@ export default function BillingPage() {
                 <button
                   type="button"
                   className="tf-button-ghost px-4 py-2 text-sm"
-                  onClick={() => void cancelSubscription(selectedOrgId)}
+                  onClick={() =>
+                    setCancelTarget({
+                      plan: "TEAM",
+                      organizationId: selectedOrgId,
+                      label: selectedOrg?.name ? `${selectedOrg.name} Team subscription` : "Team subscription"
+                    })
+                  }
                   disabled={actionLoading}
                 >
                   <LoadingButtonContent
@@ -755,6 +797,11 @@ export default function BillingPage() {
                     </div>
                   );
                 })}
+                {!billingLoading && visibleInvoices.length === 0 ? (
+                  <div className="rounded-2xl border border-dashed border-border bg-secondary/10 px-4 py-5 text-sm text-text-secondary">
+                    No invoices
+                  </div>
+                ) : null}
               </div>
 
               {visibleInvoices.length > 5 && !billingLoading ? (
@@ -854,6 +901,52 @@ export default function BillingPage() {
           </div>
         </section>
       </div>
+
+      {cancelTarget ? (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-6">
+          <div className="w-full max-w-md rounded-2xl border border-border bg-card/95 p-6 shadow-xl backdrop-blur">
+            <h3 className="font-display text-lg font-semibold text-text-primary">
+              Cancel subscription
+            </h3>
+            <p className="mt-2 text-sm text-text-secondary">
+              You are about to cancel <span className="font-semibold">{cancelTarget.label}</span>.
+              Type <span className="font-semibold">Cancel your subscription</span> to confirm.
+            </p>
+            <div className="mt-4 rounded-2xl border border-amber-500/20 bg-amber-500/10 px-4 py-3 text-sm text-amber-700 dark:text-amber-300">
+              Cancelling stops future billing. Payments already made are non-refundable.
+            </div>
+            <input
+              className="tf-input mt-4 w-full"
+              placeholder="Cancel your subscription"
+              value={cancelConfirmationInput}
+              onChange={(event) => setCancelConfirmationInput(event.target.value)}
+              disabled={actionLoading}
+            />
+            <div className="mt-5 flex w-full flex-nowrap items-center justify-end gap-3">
+              <button
+                type="button"
+                className="tf-button-ghost inline-flex min-w-0 flex-1 items-center justify-center px-3 py-2 text-sm sm:flex-none sm:px-4"
+                onClick={closeCancelModal}
+                disabled={actionLoading}
+              >
+                Keep plan
+              </button>
+              <button
+                type="button"
+                className="tf-danger-solid inline-flex min-w-0 flex-1 items-center justify-center whitespace-nowrap rounded-full border px-3 py-2 text-sm font-semibold transition disabled:opacity-50 sm:flex-none sm:px-4"
+                onClick={() => void confirmCancelSubscription()}
+                disabled={actionLoading || cancelConfirmationInput.trim() !== "Cancel your subscription"}
+              >
+                <LoadingButtonContent
+                  loading={actionLoading}
+                  loadingLabel="Cancelling..."
+                  idleLabel="Cancel subscription"
+                />
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
 
       {toast ? (
         <div

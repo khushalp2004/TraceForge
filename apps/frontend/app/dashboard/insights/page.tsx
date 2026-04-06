@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { SparkAreaChart } from "../components/SparkAreaChart";
 import { DashboardPagination } from "../components/DashboardPagination";
 import { useLayout } from "../../../context/LayoutContext";
@@ -857,6 +857,7 @@ function HighlightsCard({
 }
 
 export default function InsightsPage() {
+  const prefsHydratedRef = useRef(false);
   const { layout } = useLayout();
   const isDesktop = useMediaQuery("(min-width: 1024px)");
   const effectiveLayout = isDesktop ? layout : "classic";
@@ -911,11 +912,13 @@ export default function InsightsPage() {
       if (prefs.chartVariant === "area" || prefs.chartVariant === "bar") setChartVariant(prefs.chartVariant);
     } catch {
       // Ignore malformed prefs.
+    } finally {
+      prefsHydratedRef.current = true;
     }
   }, []);
 
   useEffect(() => {
-    if (typeof window === "undefined") return;
+    if (typeof window === "undefined" || !prefsHydratedRef.current) return;
     window.localStorage.setItem(
       insightsPrefsKey,
       JSON.stringify({

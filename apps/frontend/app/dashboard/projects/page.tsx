@@ -63,6 +63,7 @@ const getProjectStatusMeta = (project: Project) =>
 
 export default function ProjectSettingsPage() {
   const orgPrefsHydratedRef = useRef(false);
+  const pagePrefsHydratedRef = useRef(false);
   const [projects, setProjects] = useState<Project[]>([]);
   const [orgs, setOrgs] = useState<Org[]>([]);
   const [selectedOrgId, setSelectedOrgId] = useState("");
@@ -94,10 +95,14 @@ export default function ProjectSettingsPage() {
       const pageRaw = window.localStorage.getItem(projectsPrefsKey);
       if (pageRaw) {
         const pagePrefs = JSON.parse(pageRaw) as {
+          orgId?: string;
           showArchived?: boolean;
           activePageSize?: number;
           archivedPageSize?: number;
         };
+        if (typeof pagePrefs.orgId === "string") {
+          setSelectedOrgId(pagePrefs.orgId);
+        }
         if (typeof pagePrefs.showArchived === "boolean") setShowArchived(pagePrefs.showArchived);
         if (typeof pagePrefs.activePageSize === "number" && pagePrefs.activePageSize > 0) {
           setActiveProjectsPageSize(pagePrefs.activePageSize);
@@ -108,7 +113,7 @@ export default function ProjectSettingsPage() {
       }
 
       const raw = window.localStorage.getItem(dashboardPrefsKey);
-      if (!raw) return;
+      if (!raw || pageRaw) return;
       const prefs = JSON.parse(raw) as { orgId?: string };
       if (typeof prefs.orgId === "string") {
         setSelectedOrgId(prefs.orgId);
@@ -117,6 +122,7 @@ export default function ProjectSettingsPage() {
       // Ignore malformed prefs.
     } finally {
       orgPrefsHydratedRef.current = true;
+      pagePrefsHydratedRef.current = true;
     }
   }, []);
 
@@ -138,16 +144,17 @@ export default function ProjectSettingsPage() {
   }, [selectedOrgId]);
 
   useEffect(() => {
-    if (typeof window === "undefined") return;
+    if (typeof window === "undefined" || !pagePrefsHydratedRef.current) return;
     window.localStorage.setItem(
       projectsPrefsKey,
       JSON.stringify({
+        orgId: selectedOrgId,
         showArchived,
         activePageSize: activeProjectsPageSize,
         archivedPageSize: archivedProjectsPageSize
       })
     );
-  }, [showArchived, activeProjectsPageSize, archivedProjectsPageSize]);
+  }, [selectedOrgId, showArchived, activeProjectsPageSize, archivedProjectsPageSize]);
 
   const showToast = (message: string, tone: Toast["tone"]) => {
     setToast({ message, tone });

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { LoadingButtonContent } from "../../../components/ui/loading-button-content";
@@ -111,6 +111,7 @@ const integrationTone = (connected: boolean) =>
   connected ? "text-text-primary" : "text-text-secondary";
 
 export default function SettingsPage() {
+  const prefsHydratedRef = useRef(false);
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -179,11 +180,13 @@ export default function SettingsPage() {
       }
     } catch {
       // Ignore malformed prefs.
+    } finally {
+      prefsHydratedRef.current = true;
     }
   }, []);
 
   useEffect(() => {
-    if (typeof window === "undefined") return;
+    if (typeof window === "undefined" || !prefsHydratedRef.current) return;
     try {
       const raw = window.localStorage.getItem(dashboardPrefsKey);
       const existing = raw ? (JSON.parse(raw) as Record<string, unknown>) : {};

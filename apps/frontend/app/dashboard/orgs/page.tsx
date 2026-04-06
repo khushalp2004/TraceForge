@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { LoadingButtonContent } from "../../../components/ui/loading-button-content";
 import { DashboardPagination } from "../components/DashboardPagination";
@@ -28,6 +28,7 @@ const ORG_PAGE_SIZE_OPTIONS = [
 ];
 
 export default function OrgsPage() {
+  const prefsHydratedRef = useRef(false);
   const [orgs, setOrgs] = useState<Org[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -63,6 +64,8 @@ export default function OrgsPage() {
       }
     } catch {
       // Ignore malformed prefs.
+    } finally {
+      prefsHydratedRef.current = true;
     }
   }, []);
 
@@ -72,7 +75,7 @@ export default function OrgsPage() {
   }, [error]);
 
   useEffect(() => {
-    if (typeof window === "undefined") return;
+    if (typeof window === "undefined" || !prefsHydratedRef.current) return;
     window.localStorage.setItem(
       orgsPrefsKey,
       JSON.stringify({

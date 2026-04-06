@@ -76,9 +76,20 @@ const razorpayRequest = async <T>(
     body: body ? JSON.stringify(body) : undefined
   });
 
-  const data = (await res.json().catch(() => ({}))) as { error?: { description?: string } };
+  const data = (await res.json().catch(() => ({}))) as {
+    error?: { description?: string } | string;
+  };
   if (!res.ok) {
-    const message = data?.error?.description || `Razorpay request failed (${res.status})`;
+    const providerMessage =
+      typeof data?.error === "string"
+        ? data.error
+        : data?.error?.description || `Razorpay request failed (${res.status})`;
+    const message =
+      res.status === 401
+        ? "Razorpay authentication failed. Check RAZORPAY_KEY_ID and RAZORPAY_KEY_SECRET, and make sure they match the same test or live account as your plan IDs."
+        : res.status === 404
+          ? "Razorpay could not find the requested billing resource. Check that your plan IDs exist in the same Razorpay mode as your keys."
+          : providerMessage;
     const err = new Error(message);
     (err as { status?: number }).status = 502;
     throw err;
@@ -732,7 +743,7 @@ paymentRouter.get("/invoices", requireAuth, async (req, res) => {
   }
 
   try {
-    const invoiceResponses = await Promise.all(
+    const invoiceResponses = await Promise.allSettled(
       subscriptionIds.map((subscriptionId) =>
         razorpayRequest<{
           items: Array<{
@@ -749,10 +760,23 @@ paymentRouter.get("/invoices", requireAuth, async (req, res) => {
       )
     );
 
-    const invoices = invoiceResponses.flatMap((response) => response.items);
+    const invoices = invoiceResponses.flatMap((response) =>
+      response.status === "fulfilled" ? response.value.items : []
+    );
     const uniqueInvoices = Array.from(
       new Map(invoices.map((invoice) => [invoice.id, invoice])).values()
     ).sort((a, b) => (b.created_at || 0) - (a.created_at || 0));
+
+    if (!uniqueInvoices.length) {
+      const rejectedCount = invoiceResponses.filter(
+        (response) => response.status === "rejected"
+      ).length;
+      if (rejectedCount > 0) {
+        console.warn(
+          `[billing] returning empty invoices list after ${rejectedCount} Razorpay invoice lookup failure(s) for ${organizationId ? `organization ${organizationId}` : `user ${userId}`}`
+        );
+      }
+    }
 
     return res.json({
       invoices: uniqueInvoices.map((invoice) => ({
@@ -767,8 +791,11 @@ paymentRouter.get("/invoices", requireAuth, async (req, res) => {
       }))
     });
   } catch (err) {
-    const status = (err as { status?: number }).status || 500;
-    return res.status(status).json({ error: err instanceof Error ? err.message : "Unexpected error" });
+    console.warn(
+      `[billing] unexpected invoice lookup failure for ${organizationId ? `organization ${organizationId}` : `user ${userId}`}:`,
+      err
+    );
+    return res.json({ invoices: [] });
   }
 });
 

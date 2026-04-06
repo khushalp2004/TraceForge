@@ -77,6 +77,7 @@ function ReleasesPageInner() {
   const searchParams = useSearchParams();
   const hydratedFromQuery = useRef(false);
   const scrolledToHighlight = useRef(false);
+  const prefsHydratedRef = useRef(false);
   const [projects, setProjects] = useState<Project[]>([]);
   const [releases, setReleases] = useState<ReleaseItem[]>([]);
   const [summary, setSummary] = useState<ReleaseSummary>({
@@ -136,6 +137,8 @@ function ReleasesPageInner() {
         }
       } catch {
         // Ignore malformed prefs.
+      } finally {
+        prefsHydratedRef.current = true;
       }
     }
 
@@ -149,7 +152,7 @@ function ReleasesPageInner() {
   }, [searchParams]);
 
   useEffect(() => {
-    if (typeof window === "undefined" || !hydratedFromQuery.current) return;
+    if (typeof window === "undefined" || !prefsHydratedRef.current) return;
     window.localStorage.setItem(
       releasesPrefsKey,
       JSON.stringify({

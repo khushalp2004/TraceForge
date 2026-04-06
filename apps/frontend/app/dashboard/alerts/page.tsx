@@ -115,6 +115,7 @@ export default function AlertsPage() {
 function AlertsPageInner() {
   const searchParams = useSearchParams();
   const hydratedFromQuery = useRef(false);
+  const prefsHydratedRef = useRef(false);
   const [projects, setProjects] = useState<Project[]>([]);
   const [rules, setRules] = useState<AlertRule[]>([]);
   const [archivedRules, setArchivedRules] = useState<AlertRule[]>([]);
@@ -190,6 +191,8 @@ function AlertsPageInner() {
         }
       } catch {
         // Ignore malformed prefs.
+      } finally {
+        prefsHydratedRef.current = true;
       }
     }
 
@@ -220,7 +223,7 @@ function AlertsPageInner() {
   }, [searchParams]);
 
   useEffect(() => {
-    if (typeof window === "undefined" || !hydratedFromQuery.current) return;
+    if (typeof window === "undefined" || !prefsHydratedRef.current) return;
     window.localStorage.setItem(
       alertsPrefsKey,
       JSON.stringify({
