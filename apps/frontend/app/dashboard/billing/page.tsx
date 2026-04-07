@@ -26,6 +26,7 @@ type User = {
   fullName: string | null;
   email: string;
   plan: "FREE" | "DEV" | "PRO";
+  isSuperAdmin?: boolean;
   planInterval?: BillingInterval | null;
   proPricingTier?: "LAUNCH" | "STANDARD" | null;
   planExpiresAt: string | null;
@@ -167,6 +168,7 @@ export default function BillingPage() {
     if (!user.planExpiresAt) return true;
     return new Date(user.planExpiresAt).getTime() > Date.now();
   }, [user]);
+  const canManageDevPlan = Boolean(user?.isSuperAdmin);
 
   const isTeamActive = useMemo(() => {
     if (!selectedOrg || selectedOrg.plan !== "TEAM") return false;
@@ -503,8 +505,13 @@ export default function BillingPage() {
           </button>
         </header>
 
-        <section className="mt-6 grid gap-6 2xl:grid-cols-3">
-          <div className="rounded-3xl border border-border bg-card/95 p-6 shadow-sm">
+        <section
+          className={`mt-6 grid gap-6 ${
+            canManageDevPlan ? "2xl:grid-cols-3" : "xl:grid-cols-2"
+          }`}
+        >
+          {canManageDevPlan ? (
+            <div className="rounded-3xl border border-border bg-card/95 p-6 shadow-sm">
             <div className="flex flex-wrap items-start justify-between gap-4 sm:flex-nowrap">
               <div className="min-w-0 flex-1">
                 <p className="text-xs font-semibold uppercase tracking-[0.14em] text-text-secondary">
@@ -590,7 +597,8 @@ export default function BillingPage() {
             <p className="mt-3 text-xs text-text-secondary">
               Dev is meant for payment testing and controlled evaluation. It only increases the user AI allowance.
             </p>
-          </div>
+            </div>
+          ) : null}
 
           <div className="rounded-3xl border border-border bg-card/95 p-6 shadow-sm">
             <div className="flex flex-wrap items-start justify-between gap-4 sm:flex-nowrap">

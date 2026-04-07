@@ -87,11 +87,11 @@ type JiraIntegrationState = {
   selectedProjectName?: string;
 };
 
-const settingsCardClass = "rounded-2xl border border-border bg-card/90 p-6 shadow-sm";
-const subtlePanelClass = "rounded-xl border border-border/60 bg-secondary/18 p-4";
-const compactPanelClass = "rounded-xl border border-border/60 bg-secondary/12 px-4 py-4";
+const settingsCardClass = "min-w-0 overflow-hidden rounded-2xl border border-border bg-card/90 p-4 shadow-sm sm:p-6";
+const subtlePanelClass = "min-w-0 overflow-hidden rounded-xl border border-border/60 bg-secondary/18 p-4";
+const compactPanelClass = "min-w-0 overflow-hidden rounded-xl border border-border/60 bg-secondary/12 px-4 py-4";
 const setupStateClass =
-  "mt-5 rounded-xl border border-border/60 bg-secondary/14 px-4 py-4 text-sm text-text-secondary";
+  "mt-5 min-w-0 overflow-hidden rounded-xl border border-border/60 bg-secondary/14 px-4 py-4 text-sm text-text-secondary";
 const settingsSelectClass = "tf-select tf-filter-control w-full";
 
 const integrationStatusMeta = (connected: boolean) =>
@@ -99,12 +99,12 @@ const integrationStatusMeta = (connected: boolean) =>
     ? {
         label: "Connected",
         className:
-          "inline-flex items-center rounded-full border border-emerald-500/20 bg-emerald-500/10 px-2.5 py-1 text-xs font-semibold text-emerald-300"
+          "inline-flex w-fit max-w-full items-center rounded-full border border-emerald-500/20 bg-emerald-500/10 px-2.5 py-1 text-xs font-semibold text-emerald-300"
       }
     : {
         label: "Not connected",
         className:
-          "inline-flex items-center rounded-full border border-border bg-secondary/30 px-2.5 py-1 text-xs font-semibold text-text-secondary"
+          "inline-flex w-fit max-w-full items-center rounded-full border border-border bg-secondary/30 px-2.5 py-1 text-xs font-semibold text-text-secondary"
       };
 
 const integrationTone = (connected: boolean) =>
@@ -524,7 +524,7 @@ export default function SettingsPage() {
   };
 
   return (
-    <main className="tf-page tf-dashboard-page">
+    <main className="tf-page tf-dashboard-page overflow-x-hidden">
       <div className="tf-dashboard">
         <header>
           <p className="tf-kicker">Settings</p>
@@ -535,44 +535,44 @@ export default function SettingsPage() {
         </header>
 
         <div className="mt-6 grid gap-6">
-          <section className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_320px]">
+          <section className="min-w-0 grid gap-4 lg:grid-cols-[minmax(0,1fr)_320px]">
             <div className={settingsCardClass}>
-              <div className="flex flex-wrap items-start justify-between gap-4">
+              <div className="flex flex-col gap-4 sm:flex-row sm:flex-wrap sm:items-start sm:justify-between">
                 <div>
                   <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-text-secondary">
                     Step 1
                   </p>
                   <h2 className="mt-2 text-lg font-semibold text-text-primary">Choose what you want to configure</h2>
-                  <p className="mt-1 text-sm text-text-secondary">
+                  <p className="mt-1 break-words text-sm text-text-secondary">
                     GitHub stays personal. Slack and Jira follow the organization you choose on the right.
                   </p>
                 </div>
-                <span className="tf-muted-tag">{connectedCount}/3 connected</span>
+                <span className="tf-muted-tag w-fit">{connectedCount}/3 connected</span>
               </div>
 
               <div className="mt-5 divide-y divide-border/70 rounded-xl bg-secondary/10">
-                <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-4">
+                <div className="flex flex-col gap-3 px-4 py-4 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
                   <div className="min-w-0">
                     <p className={`text-sm font-semibold ${integrationTone(Boolean(github?.connected))}`}>GitHub</p>
-                    <p className="mt-1 text-sm text-text-secondary">Personal repos, release context, and ownership.</p>
+                    <p className="mt-1 break-words text-sm text-text-secondary">Personal repos, release context, and ownership.</p>
                   </div>
                   <span className={integrationStatusMeta(Boolean(github?.connected)).className}>
                     {integrationStatusMeta(Boolean(github?.connected)).label}
                   </span>
                 </div>
-                <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-4">
+                <div className="flex flex-col gap-3 px-4 py-4 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
                   <div className="min-w-0">
                     <p className={`text-sm font-semibold ${integrationTone(Boolean(slack?.connected))}`}>Slack</p>
-                    <p className="mt-1 text-sm text-text-secondary">Send alerts into one team channel.</p>
+                    <p className="mt-1 break-words text-sm text-text-secondary">Send alerts into one team channel.</p>
                   </div>
                   <span className={integrationStatusMeta(Boolean(slack?.connected)).className}>
                     {integrationStatusMeta(Boolean(slack?.connected)).label}
                   </span>
                 </div>
-                <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-4">
+                <div className="flex flex-col gap-3 px-4 py-4 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
                   <div className="min-w-0">
                     <p className={`text-sm font-semibold ${integrationTone(Boolean(jira?.connected))}`}>Jira</p>
-                    <p className="mt-1 text-sm text-text-secondary">Create issues in one default project.</p>
+                    <p className="mt-1 break-words text-sm text-text-secondary">Create issues in one default project.</p>
                   </div>
                   <span className={integrationStatusMeta(Boolean(jira?.connected)).className}>
                     {integrationStatusMeta(Boolean(jira?.connected)).label}
@@ -582,7 +582,7 @@ export default function SettingsPage() {
             </div>
 
             <aside className={settingsCardClass}>
-              <div className="flex flex-wrap items-center justify-between gap-3">
+              <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
                 <div>
                   <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-text-secondary">
                     Step 2
@@ -613,11 +613,11 @@ export default function SettingsPage() {
               <div className="mt-4 rounded-xl border border-border/60 bg-secondary/12 px-4 py-4">
                 {selectedOrg ? (
                   <>
-                    <div className="flex flex-wrap items-center justify-between gap-2">
+                    <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
                       <p className="text-sm font-semibold text-text-primary">{selectedOrg.name}</p>
                       <span className="tf-muted-tag">{selectedOrg.role === "OWNER" ? "Owner" : "Member"}</span>
                     </div>
-                    <p className="mt-1 text-sm text-text-secondary">
+                    <p className="mt-1 break-words text-sm text-text-secondary">
                       {selectedOrg.role === "OWNER"
                         ? "You can connect and manage workspace integrations here."
                         : "You can review status here, but only organization owners can change workspace integrations."}
@@ -626,7 +626,7 @@ export default function SettingsPage() {
                 ) : (
                   <>
                     <p className="text-sm font-semibold text-text-primary">Personal scope</p>
-                    <p className="mt-1 text-sm text-text-secondary">
+                    <p className="mt-1 break-words text-sm text-text-secondary">
                       Choose an organization to configure Slack and Jira. GitHub stays personal.
                     </p>
                   </>
@@ -636,8 +636,8 @@ export default function SettingsPage() {
           </section>
 
           <section className={settingsCardClass}>
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <div>
+            <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
+              <div className="min-w-0">
                 <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-text-secondary">
                   Personal integration
                 </p>
@@ -660,7 +660,7 @@ export default function SettingsPage() {
               </div>
             ) : !github?.connected ? (
               <div className="mt-5 rounded-xl border border-border/60 bg-secondary/12 p-5">
-                <div className="flex flex-wrap items-center justify-between gap-4">
+                <div className="flex flex-col gap-4 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
                   <div className="max-w-2xl">
                     <p className="text-sm font-semibold text-text-primary">Connect your GitHub account</p>
                     <p className="mt-1 text-sm text-text-secondary">
@@ -669,7 +669,7 @@ export default function SettingsPage() {
                   </div>
                   <button
                     type="button"
-                    className="tf-button px-4 py-2 text-sm"
+                    className="tf-button w-full px-4 py-2 text-sm sm:w-auto"
                     onClick={() => void redirectToOAuth("/auth/github/integration/start", "github-connect")}
                     disabled={loadingAction === "github-connect"}
                   >
@@ -688,12 +688,12 @@ export default function SettingsPage() {
             ) : (
               <div className="mt-5 space-y-4">
                 <div className="rounded-xl border border-border/60 bg-secondary/12 p-5">
-                  <div className="flex flex-wrap items-start justify-between gap-4">
+                  <div className="flex flex-col gap-4 sm:flex-row sm:flex-wrap sm:items-start sm:justify-between">
                     <div className="min-w-0">
                       <p className="text-sm font-semibold text-text-primary">
                         {github.account?.name || "GitHub account"}
                       </p>
-                      <p className="mt-1 text-sm text-text-secondary">
+                      <p className="mt-1 break-all text-sm text-text-secondary">
                         {github.account?.login ? `Connected as @${github.account.login}` : "Connected"}
                       </p>
                     </div>
@@ -724,10 +724,10 @@ export default function SettingsPage() {
                     </div>
                   </div>
 
-                  <div className="mt-4 flex flex-wrap items-center justify-end gap-3">
+                  <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-end">
                     <button
                       type="button"
-                      className="tf-button-ghost px-4 py-2 text-sm"
+                      className="tf-button-ghost w-full px-4 py-2 text-sm sm:w-auto"
                       onClick={() => void disconnectGithub()}
                       disabled={loadingAction === "github-disconnect"}
                     >
@@ -743,7 +743,7 @@ export default function SettingsPage() {
                     </button>
                     <button
                       type="button"
-                      className="tf-button px-4 py-2 text-sm"
+                      className="tf-button w-full px-4 py-2 text-sm sm:w-auto"
                       onClick={() => void saveGithubRepos()}
                       disabled={loadingAction === "github-save"}
                     >
@@ -761,7 +761,7 @@ export default function SettingsPage() {
                 </div>
 
                 <div className="rounded-xl border border-border/60 bg-secondary/12 p-4">
-                  <div className="flex flex-wrap items-center justify-between gap-3">
+                  <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
                     <div>
                       <p className="text-sm font-semibold text-text-primary">Choose repositories</p>
                       <p className="mt-1 text-sm text-text-secondary">
@@ -792,7 +792,7 @@ export default function SettingsPage() {
                             }}
                           />
                           <div className="min-w-0 flex-1">
-                            <p className="truncate font-medium">{repo.fullName}</p>
+                            <p className="break-all font-medium sm:truncate">{repo.fullName}</p>
                             <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-text-secondary">
                               <span>{repo.private ? "Private" : "Public"}</span>
                             </div>
@@ -806,7 +806,7 @@ export default function SettingsPage() {
             )}
           </section>
 
-          <section>
+          <section className="min-w-0">
             <div className="mb-4">
               <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-text-secondary">
                 Workspace integrations
@@ -817,15 +817,15 @@ export default function SettingsPage() {
               </p>
             </div>
 
-          <section className="grid gap-6 xl:grid-cols-2">
+          <section className="min-w-0 grid gap-6 xl:grid-cols-2">
             <div className={settingsCardClass}>
-              <div className="flex flex-wrap items-center justify-between gap-3">
-                <div>
+              <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
+                <div className="min-w-0">
                   <div className="flex flex-wrap items-center gap-2">
                     <h2 className="text-lg font-semibold text-text-primary">Slack</h2>
                     <span className="tf-muted-tag">Workspace</span>
                   </div>
-                  <p className="mt-1 text-sm text-text-secondary">
+                  <p className="mt-1 break-words text-sm text-text-secondary">
                     Route workspace alerts into one default Slack channel.
                   </p>
                 </div>
@@ -843,13 +843,13 @@ export default function SettingsPage() {
                   Add Slack OAuth env values first, then connect this workspace.
                 </div>
               ) : !slack?.connected ? (
-                <div className="mt-5 flex flex-wrap items-center justify-between gap-4 rounded-xl bg-secondary/14 px-4 py-4">
-                  <p className="max-w-xl text-sm text-text-secondary">
+                <div className="mt-5 flex flex-col gap-4 rounded-xl bg-secondary/14 px-4 py-4 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
+                  <p className="max-w-xl break-words text-sm text-text-secondary">
                     Connect Slack once for this organization, then choose the default channel used for alert delivery.
                   </p>
                   <button
                     type="button"
-                    className="tf-button px-4 py-2 text-sm"
+                    className="tf-button w-full px-4 py-2 text-sm sm:w-auto"
                     onClick={() =>
                       void redirectToOAuth("/integrations/slack/start", "slack-connect", {
                         orgId: selectedOrgId
@@ -871,16 +871,18 @@ export default function SettingsPage() {
               ) : (
                 <div className="mt-5 space-y-4">
                   <div className={subtlePanelClass}>
-                    <div className="flex flex-wrap items-center justify-between gap-3">
+                    <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
                       <div>
                         <p className="text-sm font-semibold text-text-primary">Current setup</p>
-                        <p className="mt-1 text-sm text-text-secondary">
+                        <p className="mt-1 break-words text-sm text-text-secondary">
                           {slack.selectedChannelName
                             ? "Slack is ready to deliver alerts into your selected channel."
                             : "Choose a default channel for alert delivery."}
                         </p>
                       </div>
-                      <span className="tf-muted-tag">{slack.workspace?.name || "Workspace"}</span>
+                      <span className="tf-muted-tag max-w-full break-words">
+                        {slack.workspace?.name || "Workspace"}
+                      </span>
                     </div>
                   </div>
 
@@ -892,7 +894,7 @@ export default function SettingsPage() {
                       <p className="text-sm font-semibold text-text-primary">
                         {slack.workspace?.name || "Slack workspace"}
                       </p>
-                      <p className="mt-1 text-sm text-text-secondary">
+                      <p className="mt-1 break-words text-sm text-text-secondary">
                         Connected for {selectedOrg.name}.
                       </p>
                     </div>
@@ -918,10 +920,10 @@ export default function SettingsPage() {
                     </div>
                   </div>
 
-                  <div className="flex flex-wrap items-center justify-end gap-3">
+                  <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-end">
                     <button
                       type="button"
-                      className="tf-button-ghost px-4 py-2 text-sm"
+                      className="tf-button-ghost w-full px-4 py-2 text-sm sm:w-auto"
                       onClick={() => void disconnectSlack()}
                       disabled={selectedOrg.role !== "OWNER" || loadingAction === "slack-disconnect"}
                     >
@@ -937,7 +939,7 @@ export default function SettingsPage() {
                     </button>
                     <button
                       type="button"
-                      className="tf-button-ghost px-4 py-2 text-sm"
+                      className="tf-button-ghost w-full px-4 py-2 text-sm sm:w-auto"
                       onClick={() => void sendSlackTest()}
                       disabled={selectedOrg.role !== "OWNER" || loadingAction === "slack-test"}
                     >
@@ -953,7 +955,7 @@ export default function SettingsPage() {
                     </button>
                     <button
                       type="button"
-                      className="tf-button px-4 py-2 text-sm"
+                      className="tf-button w-full px-4 py-2 text-sm sm:w-auto"
                       onClick={() => void saveSlackChannel()}
                       disabled={
                         selectedOrg.role !== "OWNER" ||
@@ -977,13 +979,13 @@ export default function SettingsPage() {
             </div>
 
             <div className={settingsCardClass}>
-              <div className="flex flex-wrap items-center justify-between gap-3">
-                <div>
+              <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
+                <div className="min-w-0">
                   <div className="flex flex-wrap items-center gap-2">
                     <h2 className="text-lg font-semibold text-text-primary">Jira</h2>
                     <span className="tf-muted-tag">Workspace</span>
                   </div>
-                  <p className="mt-1 text-sm text-text-secondary">
+                  <p className="mt-1 break-words text-sm text-text-secondary">
                     Connect Jira once, then pick the site and default project used by this workspace.
                   </p>
                 </div>
@@ -1001,13 +1003,13 @@ export default function SettingsPage() {
                   Add Jira OAuth env values first, then connect this workspace.
                 </div>
               ) : !jira?.connected ? (
-                <div className="mt-5 flex flex-wrap items-center justify-between gap-4 rounded-xl bg-secondary/14 px-4 py-4">
-                  <p className="max-w-xl text-sm text-text-secondary">
+                <div className="mt-5 flex flex-col gap-4 rounded-xl bg-secondary/14 px-4 py-4 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
+                  <p className="max-w-xl break-words text-sm text-text-secondary">
                     Connect Jira for this organization, then choose the site and default project TraceForge should use.
                   </p>
                   <button
                     type="button"
-                    className="tf-button px-4 py-2 text-sm"
+                    className="tf-button w-full px-4 py-2 text-sm sm:w-auto"
                     onClick={() =>
                       void redirectToOAuth("/integrations/jira/start", "jira-connect", {
                         orgId: selectedOrgId
@@ -1029,16 +1031,16 @@ export default function SettingsPage() {
               ) : (
                 <div className="mt-5 space-y-4">
                   <div className={subtlePanelClass}>
-                    <div className="flex flex-wrap items-center justify-between gap-3">
+                    <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
                       <div>
                         <p className="text-sm font-semibold text-text-primary">Current setup</p>
-                        <p className="mt-1 text-sm text-text-secondary">
+                        <p className="mt-1 break-words text-sm text-text-secondary">
                           {jira.selectedProjectName
                             ? "Jira is ready to create issues in your selected project."
                             : "Choose a site and default project for Jira issue creation."}
                         </p>
                       </div>
-                      <span className="tf-muted-tag">
+                      <span className="tf-muted-tag max-w-full break-words">
                         {selectedJiraSite?.name || "No site selected"}
                       </span>
                     </div>
@@ -1088,7 +1090,7 @@ export default function SettingsPage() {
                           </option>
                         ))}
                       </select>
-                      <p className="mt-2 text-sm text-text-secondary">
+                      <p className="mt-2 break-words text-sm text-text-secondary">
                         {jira.selectedProjectName
                           ? `${jira.selectedProjectKey} · ${jira.selectedProjectName}`
                           : "No default project selected yet"}
@@ -1096,10 +1098,10 @@ export default function SettingsPage() {
                     </div>
                   </div>
 
-                  <div className="flex flex-wrap items-center justify-end gap-3">
+                  <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-end">
                     <button
                       type="button"
-                      className="tf-button-ghost px-4 py-2 text-sm"
+                      className="tf-button-ghost w-full px-4 py-2 text-sm sm:w-auto"
                       onClick={() => void disconnectJira()}
                       disabled={selectedOrg.role !== "OWNER" || loadingAction === "jira-disconnect"}
                     >
@@ -1115,7 +1117,7 @@ export default function SettingsPage() {
                     </button>
                     <button
                       type="button"
-                      className="tf-button-ghost px-4 py-2 text-sm"
+                      className="tf-button-ghost w-full px-4 py-2 text-sm sm:w-auto"
                       onClick={() => void sendJiraTest()}
                       disabled={selectedOrg.role !== "OWNER" || loadingAction === "jira-test"}
                     >
@@ -1131,7 +1133,7 @@ export default function SettingsPage() {
                     </button>
                     <button
                       type="button"
-                      className="tf-button px-4 py-2 text-sm"
+                      className="tf-button w-full px-4 py-2 text-sm sm:w-auto"
                       onClick={() => void saveJiraConfig()}
                       disabled={
                         selectedOrg.role !== "OWNER" ||
@@ -1158,8 +1160,8 @@ export default function SettingsPage() {
           </section>
 
           <section className={settingsCardClass}>
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <div>
+            <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
+              <div className="min-w-0">
                 <h2 className="text-lg font-semibold text-text-primary">Coming next</h2>
                 <p className="mt-1 text-sm text-text-secondary">
                   PagerDuty stays next in line after GitHub, Slack, and Jira are fully exercised with real accounts.

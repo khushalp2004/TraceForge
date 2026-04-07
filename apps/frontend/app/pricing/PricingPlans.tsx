@@ -22,7 +22,7 @@ type PlanCardProps = {
   footnote?: string;
   badge?: string;
   featured?: boolean;
-  ctaIntent: "free" | "dev" | "pro" | "team";
+  ctaIntent: "free" | "pro" | "team";
   features: FeatureItem[];
 };
 
@@ -193,8 +193,6 @@ export function PricingPlans() {
   const freeAi = pricing?.free?.aiLimitMonthly ?? 50;
   const freeMembers = pricing?.free?.orgMemberLimit ?? 5;
   const freeOrganizations = pricing?.free?.orgCreationLimit ?? 3;
-  const devAi = pricing?.dev?.aiLimitMonthly ?? 100;
-  const devMonthly = pricing?.dev?.monthlyPriceInr ?? 1;
   const teamAi = pricing?.team?.aiLimitMonthly ?? 200;
 
   const proLaunchMonthly = pricing?.pro?.launch?.monthlyPriceInr ?? 399;
@@ -246,17 +244,6 @@ export function PricingPlans() {
     { label: "Unlimited AI", included: false },
     { label: "Unlimited organizations", included: false },
     { label: "Unlimited repo analysis", included: false }
-  ];
-
-  const devFeatures: FeatureItem[] = [
-    { label: "3 personal projects", included: true },
-    { label: "1k errors / mo", included: true },
-    { label: `${devAi} AI / mo`, included: true },
-    { label: "Repo analysis available", included: true },
-    { label: `${freeOrganizations} organizations`, included: true },
-    { label: `${freeMembers} org members`, included: true },
-    { label: "Unlimited AI", included: false },
-    { label: "Unlimited organizations", included: false }
   ];
 
   const proFeatures: FeatureItem[] = [
@@ -357,7 +344,7 @@ export function PricingPlans() {
         </div>
       </section>
 
-      <section className="mt-8 grid gap-6 xl:grid-cols-4">
+      <section className="mt-8 grid gap-6 xl:grid-cols-3">
         <PlanCard
           name="Free"
           description="Core monitoring for early builds and smaller teams."
@@ -367,17 +354,6 @@ export function PricingPlans() {
           footnote="Good for validating TraceForge in a live project before your usage grows."
           features={freeFeatures}
           ctaIntent="free"
-        />
-
-        <PlanCard
-          name="Dev"
-          description="A low-cost testing plan with a bigger monthly AI allowance and the same core product limits as Free."
-          price={formatMoney(currency, devMonthly, inrPerUsd)}
-          periodLabel="per month"
-          note={`${devAi} AI analyses each month. Built for payment testing and internal validation.`}
-          footnote="Dev keeps Free-level product limits and only increases the monthly AI allowance."
-          features={devFeatures}
-          ctaIntent="dev"
         />
 
         <PlanCard

@@ -331,14 +331,16 @@ function AuthScreenInner({ mode }: AuthScreenProps) {
   return (
     <main
       className={`tf-page overflow-x-hidden pt-8 sm:pt-10 ${
-        mode === "signup" ? "pb-8 lg:h-screen lg:overflow-hidden lg:pb-6 lg:pt-6" : "pb-12 sm:pb-14 lg:pb-16 lg:pt-12"
+        mode === "signup"
+          ? "pb-12 sm:pb-14 lg:min-h-screen lg:pb-10 lg:pt-6"
+          : "pb-12 sm:pb-14 lg:pb-16 lg:pt-12"
       }`}
     >
       <AuthToast toast={toast} />
       <div className="tf-container max-w-[96rem]">
         <div
           className={`grid gap-4 sm:gap-5 md:gap-6 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,1.1fr)_minmax(0,1.24fr)] ${
-            mode === "signup" ? "lg:h-full" : ""
+            mode === "signup" ? "items-start" : ""
           }`}
         >
           <section className="tf-auth-panel order-2 hidden min-w-0 self-start rounded-[28px] border p-4 backdrop-blur md:block md:p-6 lg:order-1 lg:row-span-2 lg:p-8">
@@ -425,7 +427,7 @@ function AuthScreenInner({ mode }: AuthScreenProps) {
                     className="tf-auth-inner-card min-w-0 rounded-2xl border px-4 py-3"
                   >
                     <p
-                      className={`font-semibold uppercase text-text-secondary break-normal ${
+                      className={`min-w-0 overflow-hidden text-ellipsis whitespace-nowrap font-semibold uppercase text-text-secondary ${
                         mode === "signup"
                           ? "text-[10px] leading-4 tracking-[0.08em]"
                           : "text-[11px] leading-4 tracking-[0.12em]"
