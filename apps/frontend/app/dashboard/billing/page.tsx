@@ -17,7 +17,7 @@ declare global {
   }
 }
 
-type Plan = "FREE" | "PRO" | "TEAM";
+type Plan = "FREE" | "DEV" | "PRO" | "TEAM";
 type BillingInterval = "MONTHLY" | "YEARLY";
 type Toast = { message: string; tone: "success" | "error" };
 
@@ -25,7 +25,7 @@ type User = {
   id: string;
   fullName: string | null;
   email: string;
-  plan: "FREE" | "PRO";
+  plan: "FREE" | "DEV" | "PRO";
   planInterval?: BillingInterval | null;
   proPricingTier?: "LAUNCH" | "STANDARD" | null;
   planExpiresAt: string | null;
@@ -70,6 +70,7 @@ type PaymentRow = {
 
 type PricingData = {
   free?: { aiLimitMonthly?: number; orgMemberLimit?: number };
+  dev?: { monthlyPriceInr?: number; aiLimitMonthly?: number };
   pro?: {
     launch?: {
       monthlyPriceInr?: number;
@@ -90,6 +91,11 @@ type PricingData = {
 };
 
 type CancelSubscriptionTarget =
+  | {
+      plan: "DEV";
+      organizationId?: undefined;
+      label: string;
+    }
   | {
       plan: "PRO";
       organizationId?: undefined;
@@ -156,6 +162,12 @@ export default function BillingPage() {
     return new Date(user.planExpiresAt).getTime() > Date.now();
   }, [user]);
 
+  const isUserDevActive = useMemo(() => {
+    if (!user || user.plan !== "DEV") return false;
+    if (!user.planExpiresAt) return true;
+    return new Date(user.planExpiresAt).getTime() > Date.now();
+  }, [user]);
+
   const isTeamActive = useMemo(() => {
     if (!selectedOrg || selectedOrg.plan !== "TEAM") return false;
     if (!selectedOrg.planExpiresAt) return true;
@@ -179,6 +191,8 @@ export default function BillingPage() {
     typeof pricing?.team?.monthlyPriceInr === "number" && typeof pricing?.team?.yearlyPriceInr === "number"
       ? pricing.team.monthlyPriceInr * 12 - pricing.team.yearlyPriceInr
       : null;
+  const devMonthlyPrice = pricing?.dev?.monthlyPriceInr ?? 1;
+  const devAiLimit = pricing?.dev?.aiLimitMonthly ?? 100;
 
   const activeHistoryOrgId = historyScope === "ORGANIZATION" ? selectedOrg?.id || null : null;
   const visibleInvoices = useMemo(
@@ -310,7 +324,7 @@ export default function BillingPage() {
     interval,
     organizationId
   }: {
-    plan: "PRO" | "TEAM";
+    plan: "DEV" | "PRO" | "TEAM";
     interval: BillingInterval;
     organizationId?: string;
   }) => {
@@ -345,7 +359,10 @@ export default function BillingPage() {
       }
 
       if (data?.alreadyActive) {
-        showToast(`${plan === "PRO" ? "Pro" : "Team"} is already active.`, "success");
+        showToast(
+          plan === "TEAM" ? "Team is already active." : plan === "DEV" ? "Dev is already active." : "Pro is already active.",
+          "success"
+        );
         await refreshAll();
         return;
       }
@@ -356,6 +373,8 @@ export default function BillingPage() {
         description:
           plan === "TEAM"
             ? `Team Plan (${interval === "YEARLY" ? "yearly" : "monthly"})`
+            : plan === "DEV"
+              ? "Dev Plan (monthly)"
             : `Pro Plan (${interval === "YEARLY" ? "yearly" : "monthly"})`,
         subscription_id: data.subscriptionId,
         prefill: {
@@ -383,7 +402,11 @@ export default function BillingPage() {
             throw new Error(verifyData.error || "Payment verification failed");
           }
           showToast(
-            plan === "TEAM" ? "Team plan activated." : "Pro activated successfully.",
+            plan === "TEAM"
+              ? "Team plan activated."
+              : plan === "DEV"
+                ? "Dev activated successfully."
+                : "Pro activated successfully.",
             "success"
           );
           await refreshAll();
@@ -432,7 +455,10 @@ export default function BillingPage() {
         throw new Error(data.error || "Failed to cancel subscription");
       }
 
-      showToast(organizationId ? "Team plan cancelled." : "Pro cancelled.", "success");
+      showToast(
+        organizationId ? "Team plan cancelled." : cancelTarget?.plan === "DEV" ? "Dev cancelled." : "Pro cancelled.",
+        "success"
+      );
       await refreshAll();
       await refreshBillingData(historyScope === "ORGANIZATION" ? organizationId || null : null);
       return true;
@@ -462,8 +488,9 @@ export default function BillingPage() {
             <p className="tf-kicker">Billing</p>
             <h1 className="tf-title mt-3 text-3xl">Personal and team plans</h1>
             <p className="mt-2 max-w-3xl text-sm text-text-secondary">
-              Pro stays user-level with unlimited AI for that person everywhere. Team stays
-              organization-level with shared AI capacity for the selected organization.
+              Dev and Pro stay user-level. Dev keeps Free-style access with a bigger AI allowance,
+              Pro removes the AI cap for that person everywhere, and Team stays organization-level
+              with shared AI capacity for the selected organization.
             </p>
           </div>
           <button
@@ -476,7 +503,95 @@ export default function BillingPage() {
           </button>
         </header>
 
-        <section className="mt-6 grid gap-6 xl:grid-cols-2">
+        <section className="mt-6 grid gap-6 2xl:grid-cols-3">
+          <div className="rounded-3xl border border-border bg-card/95 p-6 shadow-sm">
+            <div className="flex flex-wrap items-start justify-between gap-4 sm:flex-nowrap">
+              <div className="min-w-0 flex-1">
+                <p className="text-xs font-semibold uppercase tracking-[0.14em] text-text-secondary">
+                  Personal Dev
+                </p>
+                <h2 className="mt-3 text-3xl font-semibold text-text-primary">
+                  {isUserDevActive ? "Dev active" : "Enable Dev"}
+                </h2>
+                <p className="mt-2 text-sm text-text-secondary">
+                  Free-style product access with a paid testing subscription and a larger monthly AI allowance.
+                </p>
+              </div>
+              <div className="shrink-0 rounded-2xl border border-primary/20 bg-accent-soft px-4 py-3 text-right">
+                <p className="text-xs font-semibold uppercase tracking-[0.14em] text-text-secondary">
+                  Status
+                </p>
+                <p className="mt-1 text-lg font-semibold text-text-primary">
+                  {isUserDevActive ? "Active" : "Not active"}
+                </p>
+                <p className="mt-1 text-xs text-text-secondary">
+                  {user?.plan === "DEV" && user?.planExpiresAt
+                    ? `Expires ${new Date(user.planExpiresAt).toLocaleDateString()}`
+                    : "Monthly testing plan"}
+                </p>
+              </div>
+            </div>
+
+            <div className="mt-6 grid gap-4 sm:grid-cols-3">
+              <div className="rounded-2xl border border-border bg-secondary/25 px-4 py-4">
+                <p className="text-xs font-semibold uppercase tracking-[0.14em] text-text-secondary">
+                  Price
+                </p>
+                <p className="mt-2 text-2xl font-semibold text-text-primary">₹{devMonthlyPrice}</p>
+                <p className="mt-1 text-xs text-text-secondary">Monthly only</p>
+              </div>
+              <div className="rounded-2xl border border-border bg-secondary/25 px-4 py-4">
+                <p className="text-xs font-semibold uppercase tracking-[0.14em] text-text-secondary">
+                  AI analyses
+                </p>
+                <p className="mt-2 text-sm font-semibold text-text-primary">{devAiLimit} / month</p>
+              </div>
+              <div className="rounded-2xl border border-border bg-secondary/25 px-4 py-4">
+                <p className="text-xs font-semibold uppercase tracking-[0.14em] text-text-secondary">
+                  Product access
+                </p>
+                <p className="mt-2 text-sm font-semibold text-text-primary">Same as Free</p>
+              </div>
+            </div>
+
+            <div className="mt-5 flex flex-wrap gap-3">
+              <button
+                type="button"
+                className="tf-button px-4 py-2 text-sm"
+                onClick={() => void startCheckout({ plan: "DEV", interval: "MONTHLY" })}
+                disabled={actionLoading}
+              >
+                <LoadingButtonContent
+                  loading={actionLoading}
+                  loadingLabel="Processing..."
+                  idleLabel={isUserDevActive ? "Renew Dev" : "Choose Dev"}
+                />
+              </button>
+              {isUserDevActive ? (
+                <button
+                  type="button"
+                  className="tf-button-ghost px-4 py-2 text-sm"
+                  onClick={() =>
+                    setCancelTarget({
+                      plan: "DEV",
+                      label: "Dev subscription"
+                    })
+                  }
+                  disabled={actionLoading}
+                >
+                  <LoadingButtonContent
+                    loading={actionLoading}
+                    loadingLabel="Cancelling..."
+                    idleLabel="Cancel Dev"
+                  />
+                </button>
+              ) : null}
+            </div>
+            <p className="mt-3 text-xs text-text-secondary">
+              Dev is meant for payment testing and controlled evaluation. It only increases the user AI allowance.
+            </p>
+          </div>
+
           <div className="rounded-3xl border border-border bg-card/95 p-6 shadow-sm">
             <div className="flex flex-wrap items-start justify-between gap-4 sm:flex-nowrap">
               <div className="min-w-0 flex-1">
@@ -897,6 +1012,10 @@ export default function BillingPage() {
               {
                 title: "Pro",
                 detail: "Unlimited AI belongs to the user account and follows that user everywhere."
+              },
+              {
+                title: "Dev",
+                detail: "Dev keeps Free-level product access and raises the user AI allowance to 100 each month."
               },
               {
                 title: "Team",

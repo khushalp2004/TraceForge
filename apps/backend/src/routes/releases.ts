@@ -184,3 +184,53 @@ releasesRouter.post("/", async (req, res) => {
 
   return res.status(201).json({ release: created });
 });
+
+releasesRouter.delete("/:releaseId", async (req, res) => {
+  const userId = req.user?.id;
+  const releaseId = typeof req.params.releaseId === "string" ? req.params.releaseId.trim() : "";
+
+  if (!userId) {
+    return res.status(401).json({ error: "Unauthorized" });
+  }
+
+  if (!releaseId) {
+    return res.status(400).json({ error: "Release id is required" });
+  }
+
+  const release = await prisma.release.findUnique({
+    where: { id: releaseId },
+    select: {
+      id: true,
+      projectId: true,
+      version: true
+    }
+  });
+
+  if (!release) {
+    return res.status(404).json({ error: "Release not found" });
+  }
+
+  const projects = await getAccessibleProjects(userId);
+  const hasAccess = projects.some((project) => project.id === release.projectId);
+
+  if (!hasAccess) {
+    return res.status(403).json({ error: "Forbidden" });
+  }
+
+  await prisma.$transaction(async (tx) => {
+    await tx.errorEvent.updateMany({
+      where: { releaseId: release.id },
+      data: { releaseId: null }
+    });
+
+    await tx.release.delete({
+      where: { id: release.id }
+    });
+  });
+
+  return res.json({
+    ok: true,
+    releaseId: release.id,
+    version: release.version
+  });
+});

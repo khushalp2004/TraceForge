@@ -1,6 +1,8 @@
 import { Router } from "express";
 import prisma from "../db/prisma.js";
 import {
+  DEV_MONTHLY_AI_LIMIT,
+  DEV_MONTHLY_PRICE_PAISE,
   FREE_MONTHLY_AI_LIMIT,
   FREE_ORG_CREATION_LIMIT,
   FREE_ORG_MEMBER_LIMIT,
@@ -27,6 +29,10 @@ publicBillingRouter.get("/pricing", async (_req, res) => {
       aiLimitMonthly: FREE_MONTHLY_AI_LIMIT,
       orgMemberLimit: FREE_ORG_MEMBER_LIMIT,
       orgCreationLimit: FREE_ORG_CREATION_LIMIT
+    },
+    dev: {
+      monthlyPriceInr: DEV_MONTHLY_PRICE_PAISE / 100,
+      aiLimitMonthly: DEV_MONTHLY_AI_LIMIT
     },
     pro: {
       launch: {

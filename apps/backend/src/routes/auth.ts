@@ -10,12 +10,16 @@ import { rateLimitByIp, rateLimitByUser } from "../middleware/rateLimit.js";
 import { signToken } from "../utils/jwt.js";
 import { encryptIntegrationSecret } from "../utils/integrationSecrets.js";
 import {
+  DEV_MONTHLY_AI_LIMIT,
   FREE_MONTHLY_AI_LIMIT,
   TEAM_MONTHLY_AI_LIMIT,
+  isUserDevActive,
   isOrgTeamActive,
   isUserProActive
 } from "../utils/billing.js";
-import { ensureFreeEmailUsageFloor, getEffectiveAiUsage } from "../utils/aiUsage.js";
+import { getEffectiveAiUsage } from "../utils/aiUsage.js";
+import { isSuperAdminEmail } from "../utils/superAdmin.js";
+import { deleteUserAccount, UserLifecycleError } from "../utils/userLifecycle.js";
 import {
   findActiveVerificationCode,
   isVerificationCodeMatch,
@@ -72,10 +76,6 @@ const frontendUrl = process.env.FRONTEND_URL || process.env.APP_PUBLIC_URL || "h
 const googleClientId = process.env.GOOGLE_CLIENT_ID || "";
 const googleClientSecret = process.env.GOOGLE_CLIENT_SECRET || "";
 const googleRedirectUri = process.env.GOOGLE_REDIRECT_URI || "";
-const chooseTransferTarget = (
-  members: Array<{ userId: string; role: "OWNER" | "MEMBER" }>
-) => members.find((member) => member.role === "OWNER") ?? members[0] ?? null;
-
 type SocialAuthMode = "login" | "signup";
 type SocialProvider = "google" | "github";
 
@@ -126,6 +126,29 @@ const buildFrontendRedirect = (path: string, params: Record<string, string | und
   }
   return url.toString();
 };
+
+const serializeAuthUser = (user: {
+  id: string;
+  fullName?: string | null;
+  address?: string | null;
+  email: string;
+  plan?: string | null;
+  planExpiresAt?: Date | null;
+  planInterval?: string | null;
+  proPricingTier?: string | null;
+  subscriptionStatus?: string | null;
+}) => ({
+  id: user.id,
+  fullName: user.fullName ?? null,
+  address: user.address ?? null,
+  email: user.email,
+  plan: user.plan ?? "FREE",
+  planInterval: user.planInterval ?? null,
+  proPricingTier: user.proPricingTier ?? null,
+  planExpiresAt: user.planExpiresAt ?? null,
+  subscriptionStatus: user.subscriptionStatus ?? null,
+  isSuperAdmin: isSuperAdminEmail(user.email)
+});
 
 const buildGoogleAuthUrl = (mode: SocialAuthMode, next: string) => {
   const state = jwt.sign(
@@ -313,6 +336,12 @@ const resolveSocialSignupRedirect = async ({
       });
     }
 
+    if (existingUser.disabledAt) {
+      return buildFrontendRedirect("/signin", {
+        oauthError: "account_disabled"
+      });
+    }
+
     const verifiedUser = existingUser.emailVerifiedAt
       ? existingUser
       : await prisma.user.update({
@@ -330,6 +359,12 @@ const resolveSocialSignupRedirect = async ({
   }
 
   if (existingUser?.fullName?.trim() && existingUser.address?.trim()) {
+    if (existingUser.disabledAt) {
+      return buildFrontendRedirect("/signin", {
+        oauthError: "account_disabled"
+      });
+    }
+
     const verifiedUser = existingUser.emailVerifiedAt
       ? existingUser
       : await prisma.user.update({
@@ -394,7 +429,7 @@ authRouter.get("/me", requireAuth, async (req, res) => {
     return res.status(404).json({ error: "User not found" });
   }
 
-  return res.json({ user });
+  return res.json({ user: serializeAuthUser(user) });
 });
 
 authRouter.get("/usage", requireAuth, async (req, res) => {
@@ -435,6 +470,29 @@ authRouter.get("/usage", requireAuth, async (req, res) => {
         percentUsed: 0,
         label: "Unlimited AI",
         detail: "Unlimited AI analyses on your Pro plan."
+      }
+    });
+  }
+
+  if (isUserDevActive(user)) {
+    const devLimit = DEV_MONTHLY_AI_LIMIT;
+    const devUsed = await getEffectiveAiUsage({
+      userId,
+      now
+    });
+    const safeDevUsed = Math.max(0, devUsed);
+    const devRemaining = Math.max(0, devLimit - safeDevUsed);
+
+    return res.json({
+      usage: {
+        scope: "USER",
+        plan: "DEV",
+        used: safeDevUsed,
+        limit: devLimit,
+        remaining: devRemaining,
+        percentUsed: Math.min(100, Math.round((safeDevUsed / devLimit) * 100)),
+        label: `${devRemaining} left`,
+        detail: `${safeDevUsed} of ${devLimit} AI analyses used this month on your Dev plan.`
       }
     });
   }
@@ -537,6 +595,9 @@ authRouter.post("/register", registerRateLimit, async (req, res) => {
 
   const normalizedEmail = normalizeEmail(email);
   const existing = await prisma.user.findUnique({ where: { email: normalizedEmail } });
+  if (existing?.disabledAt) {
+    return res.status(403).json({ error: "This account has been suspended. Contact support for help." });
+  }
   if (existing?.emailVerifiedAt) {
     return res.status(409).json({ error: "Email already registered" });
   }
@@ -586,6 +647,10 @@ authRouter.post("/login", loginRateLimit, async (req, res) => {
     return res.status(401).json({ error: "Invalid credentials" });
   }
 
+  if (user.disabledAt) {
+    return res.status(403).json({ error: "This account has been suspended. Contact support for help." });
+  }
+
   const isValid = await bcrypt.compare(password, user.passwordHash);
   if (!isValid) {
     return res.status(401).json({ error: "Invalid credentials" });
@@ -603,14 +668,7 @@ authRouter.post("/login", loginRateLimit, async (req, res) => {
 
   return res.json({
     token,
-    user: {
-      id: user.id,
-      fullName: user.fullName,
-      address: user.address,
-      email: user.email,
-      plan: user.plan,
-      planExpiresAt: user.planExpiresAt
-    }
+    user: serializeAuthUser(user)
   });
 });
 
@@ -953,19 +1011,16 @@ authRouter.post("/oauth/complete-signup", socialCompleteRateLimit, async (req, r
         }
       });
 
+  if (user.disabledAt) {
+    return res.status(403).json({ error: "This account has been suspended. Contact support for help." });
+  }
+
   const token = signToken({ sub: user.id, email: user.email });
 
   return res.json({
     token,
     next: payload.next,
-    user: {
-      id: user.id,
-      fullName: user.fullName,
-      address: user.address,
-      email: user.email,
-      plan: user.plan,
-      planExpiresAt: user.planExpiresAt
-    }
+    user: serializeAuthUser(user)
   });
 });
 
@@ -985,20 +1040,17 @@ authRouter.post("/verify-email", verifyCodeRateLimit, async (req, res) => {
     return res.status(400).json({ error: "Invalid verification code" });
   }
 
+  if (user.disabledAt) {
+    return res.status(403).json({ error: "This account has been suspended. Contact support for help." });
+  }
+
   if (user.emailVerifiedAt) {
     const token = signToken({ sub: user.id, email: user.email });
 
     return res.json({
       status: "already_verified",
       token,
-      user: {
-        id: user.id,
-        fullName: user.fullName,
-        address: user.address,
-        email: user.email,
-        plan: user.plan,
-        planExpiresAt: user.planExpiresAt
-      }
+      user: serializeAuthUser(user)
     });
   }
 
@@ -1027,14 +1079,7 @@ authRouter.post("/verify-email", verifyCodeRateLimit, async (req, res) => {
   return res.json({
     status: "verified",
     token,
-    user: {
-      id: user.id,
-      fullName: user.fullName,
-      address: user.address,
-      email: user.email,
-      plan: user.plan,
-      planExpiresAt: user.planExpiresAt
-    }
+    user: serializeAuthUser(user)
   });
 });
 
@@ -1052,6 +1097,10 @@ authRouter.post("/verify-email/resend", resendVerificationRateLimit, async (req,
 
   if (!user) {
     return res.json({ status: "ok" });
+  }
+
+  if (user.disabledAt) {
+    return res.status(403).json({ error: "This account has been suspended. Contact support for help." });
   }
 
   if (user.emailVerifiedAt) {
@@ -1234,238 +1283,17 @@ authRouter.delete("/account", requireAuth, accountMutationRateLimit, async (req,
     return res.status(401).json({ error: "Password confirmation is incorrect" });
   }
 
-  const memberships = await prisma.organizationMember.findMany({
-    where: { userId },
-    include: {
-      organization: {
-        select: {
-          id: true,
-          name: true
-        }
-      }
-    }
-  });
-
-  const orgIds = memberships.map((membership) => membership.organizationId);
-  const otherMembers = orgIds.length
-    ? await prisma.organizationMember.findMany({
-        where: {
-          organizationId: { in: orgIds },
-          userId: { not: userId }
-        },
-        select: {
-          organizationId: true,
-          userId: true,
-          role: true
-        }
-      })
-    : [];
-
-  const transferTargetByOrg = new Map<string, { userId: string; role: "OWNER" | "MEMBER" }>();
-  const blockingOrganizations: string[] = [];
-
-  for (const membership of memberships) {
-    const candidates = otherMembers.filter(
-      (entry) => entry.organizationId === membership.organizationId
-    );
-    const transferTarget = chooseTransferTarget(candidates);
-
-    if (!transferTarget) {
-      blockingOrganizations.push(membership.organization.name);
-      continue;
+  try {
+    await deleteUserAccount(userId);
+    return res.json({ status: "deleted" });
+  } catch (error) {
+    if (error instanceof UserLifecycleError) {
+      return res.status(error.status).json({
+        error: error.message,
+        ...(error.blockers ? { blockers: error.blockers } : {})
+      });
     }
 
-    transferTargetByOrg.set(membership.organizationId, transferTarget);
+    throw error;
   }
-
-  if (blockingOrganizations.length > 0) {
-    return res.status(409).json({
-      error:
-        "Leave or reassign organizations that do not have another member before deleting this account.",
-      blockers: {
-        organizations: blockingOrganizations
-      }
-    });
-  }
-
-  if (!isUserProActive(user)) {
-    const now = new Date();
-    const freeUsage = await getEffectiveAiUsage({
-      userId,
-      email: user.email,
-      now
-    });
-
-    if (freeUsage > 0) {
-      await ensureFreeEmailUsageFloor({
-        email: user.email,
-        amount: Math.min(freeUsage, FREE_MONTHLY_AI_LIMIT),
-        now
-      });
-    }
-  }
-
-  await prisma.$transaction(async (tx) => {
-    for (const membership of memberships) {
-      const transferTarget = transferTargetByOrg.get(membership.organizationId);
-      if (!transferTarget) {
-        continue;
-      }
-
-      if (membership.role === "OWNER" && transferTarget.role !== "OWNER") {
-        await tx.organizationMember.update({
-          where: {
-            organizationId_userId: {
-              organizationId: membership.organizationId,
-              userId: transferTarget.userId
-            }
-          },
-          data: {
-            role: "OWNER"
-          }
-        });
-      }
-
-      await tx.project.updateMany({
-        where: {
-          userId,
-          orgId: membership.organizationId
-        },
-        data: {
-          userId: transferTarget.userId
-        }
-      });
-    }
-
-    const personalProjects = await tx.project.findMany({
-      where: {
-        userId,
-        orgId: null
-      },
-      select: {
-        id: true
-      }
-    });
-
-    const personalProjectIds = personalProjects.map((project) => project.id);
-
-    if (personalProjectIds.length > 0) {
-      const personalErrors = await tx.error.findMany({
-        where: {
-          projectId: {
-            in: personalProjectIds
-          }
-        },
-        select: {
-          id: true
-        }
-      });
-
-      const personalErrorIds = personalErrors.map((error) => error.id);
-
-      await tx.alertDelivery.deleteMany({
-        where: {
-          OR: [
-            {
-              projectId: {
-                in: personalProjectIds
-              }
-            },
-            personalErrorIds.length > 0
-              ? {
-                  errorId: {
-                    in: personalErrorIds
-                  }
-                }
-              : undefined
-          ].filter(Boolean) as Array<Record<string, unknown>>
-        }
-      });
-
-      if (personalErrorIds.length > 0) {
-        await tx.errorAnalysis.deleteMany({
-          where: {
-            errorId: {
-              in: personalErrorIds
-            }
-          }
-        });
-
-        await tx.errorEvent.deleteMany({
-          where: {
-            errorId: {
-              in: personalErrorIds
-            }
-          }
-        });
-
-        await tx.error.deleteMany({
-          where: {
-            id: {
-              in: personalErrorIds
-            }
-          }
-        });
-      }
-
-      await tx.release.deleteMany({
-        where: {
-          projectId: {
-            in: personalProjectIds
-          }
-        }
-      });
-
-      await tx.alertRule.deleteMany({
-        where: {
-          projectId: {
-            in: personalProjectIds
-          }
-        }
-      });
-
-      await tx.project.deleteMany({
-        where: {
-          id: {
-            in: personalProjectIds
-          }
-        }
-      });
-    }
-
-    await tx.passwordResetToken.deleteMany({
-      where: { userId }
-    });
-    await tx.emailVerificationCode.deleteMany({
-      where: { userId }
-    });
-    await tx.organizationInvite.deleteMany({
-      where: { createdById: userId }
-    });
-    await tx.orgJoinRequest.deleteMany({
-      where: { requesterId: userId }
-    });
-    await tx.orgJoinRequest.updateMany({
-      where: { resolvedById: userId },
-      data: { resolvedById: null }
-    });
-    await tx.orgAuditLog.updateMany({
-      where: { actorId: userId },
-      data: { actorId: null }
-    });
-    await tx.alertRule.deleteMany({
-      where: { userId }
-    });
-    await tx.payment.deleteMany({
-      where: { userId }
-    });
-    await tx.organizationMember.deleteMany({
-      where: { userId }
-    });
-    await tx.user.delete({
-      where: { id: userId }
-    });
-  });
-
-  return res.json({ status: "deleted" });
 });

@@ -7,7 +7,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { useAuth } from "../../../context/AuthContext";
 import { useGlobalSearch } from "../../components/GlobalSearchProvider";
 
-const topNavItems = [
+const baseTopNavItems = [
   { href: "/dashboard", label: "Overview" },
   { href: "/dashboard/issues", label: "Issues" },
   { href: "/dashboard/projects", label: "Projects" },
@@ -46,8 +46,22 @@ export default function DashboardTopNav() {
     return parts.map((part) => part[0]?.toUpperCase() || "").join("").slice(0, 2);
   }, [user?.email, user?.fullName]);
 
-  const primaryItems = useMemo(() => topNavItems.slice(0, 6), []);
-  const overflowItems = useMemo(() => topNavItems.slice(6), []);
+  const topNavItems = useMemo(() => {
+    if (!user?.isSuperAdmin) {
+      return baseTopNavItems;
+    }
+
+    const organizationIndex = baseTopNavItems.findIndex((item) => item.href === "/dashboard/orgs");
+    const nextItems = [...baseTopNavItems];
+    nextItems.splice(organizationIndex + 1, 0, {
+      href: "/dashboard/admin",
+      label: "Admin"
+    });
+    return nextItems;
+  }, [user?.isSuperAdmin]);
+
+  const primaryItems = useMemo(() => topNavItems.slice(0, 6), [topNavItems]);
+  const overflowItems = useMemo(() => topNavItems.slice(6), [topNavItems]);
   const activeOverflowItem = useMemo(
     () => overflowItems.find((item) => isActiveRoute(pathname, item.href)) ?? null,
     [overflowItems, pathname]

@@ -10,8 +10,9 @@ type AuthUser = {
   fullName?: string | null;
   address?: string | null;
   email: string;
-  plan?: "FREE" | "PRO" | "TEAM";
+  plan?: "FREE" | "DEV" | "PRO" | "TEAM";
   planExpiresAt?: string | null;
+  isSuperAdmin?: boolean;
 };
 
 const readStoredUser = (): AuthUser | null => {

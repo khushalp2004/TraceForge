@@ -3,9 +3,11 @@ import prisma from "./db/prisma.js";
 import { connectRedis, redis } from "./db/redis.js";
 import { generateExplanation } from "./services/groq.js";
 import {
+  DEV_MONTHLY_AI_LIMIT,
   FREE_MONTHLY_AI_LIMIT,
   TEAM_MONTHLY_AI_LIMIT,
   isOrgTeamActive,
+  isUserDevActive,
   isUserProActive
 } from "./utils/billing.js";
 
@@ -190,21 +192,28 @@ const processError = async ({ errorId, requestedByUserId }: AiQueueJob) => {
   });
 
   const proActive = isUserProActive(requester);
+  const devActive = isUserDevActive(requester);
   const teamActive = Boolean(errorRecord.project.orgId && isOrgTeamActive(errorRecord.project.org));
 
   if (!proActive) {
     const usageKey = teamActive
       ? `usage:ai:org:${errorRecord.project.orgId}:${currentMonthKey(now)}`
-      : requester?.email
+      : !devActive && requester?.email
         ? getFreeEmailUsageRedisKey(requester.email, currentMonthKey(now))
         : `usage:ai:user:${effectiveRequesterId}:${currentMonthKey(now)}`;
-    const limit = teamActive ? TEAM_MONTHLY_AI_LIMIT : FREE_MONTHLY_AI_LIMIT;
+    const limit = teamActive
+      ? TEAM_MONTHLY_AI_LIMIT
+      : devActive
+        ? DEV_MONTHLY_AI_LIMIT
+        : FREE_MONTHLY_AI_LIMIT;
     const limitMessage = teamActive
       ? "Monthly AI analysis limit reached for this team."
-      : "Monthly AI analysis limit reached for this account.";
+      : devActive
+        ? "Monthly AI analysis limit reached for your Dev plan."
+        : "Monthly AI analysis limit reached for this account.";
 
     if (redis.isOpen) {
-      if (!teamActive && requester?.email) {
+      if (!teamActive && !devActive && requester?.email) {
         const persistedFreeUsage = await getPersistedFreeUsageByEmail(requester.email, now);
         const existingRedisUsage = Number((await redis.get(usageKey)) || "0");
         if (existingRedisUsage < persistedFreeUsage) {
@@ -242,7 +251,7 @@ const processError = async ({ errorId, requestedByUserId }: AiQueueJob) => {
               }
             }
           })
-        : requester?.email
+        : !devActive && requester?.email
           ? await getPersistedFreeUsageByEmail(requester.email, now)
           : await prisma.errorAnalysis.count({
               where: {

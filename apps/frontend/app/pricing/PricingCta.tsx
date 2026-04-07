@@ -7,11 +7,11 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
 const tokenKey = "traceforge_token";
 
 type User = {
-  plan: "FREE" | "PRO";
+  plan: "FREE" | "DEV" | "PRO";
   planExpiresAt: string | null;
 };
 
-export function PricingCta({ intent }: { intent: "free" | "pro" | "team" }) {
+export function PricingCta({ intent }: { intent: "free" | "dev" | "pro" | "team" }) {
   const [user, setUser] = useState<User | null>(null);
 
   useEffect(() => {
@@ -50,6 +50,14 @@ export function PricingCta({ intent }: { intent: "free" | "pro" | "team" }) {
         href={user ? "/dashboard/billing?intent=team" : "/signup"}
       >
         {user ? "Choose Team" : "Start with Team"}
+      </Link>
+    );
+  }
+
+  if (intent === "dev") {
+    return (
+      <Link className="tf-button mt-6 inline-flex px-4 py-2 text-xs" href={user ? "/dashboard/billing" : "/signup"}>
+        {user?.plan === "DEV" ? "Manage Dev plan" : user ? "Choose Dev" : "Start with Dev"}
       </Link>
     );
   }

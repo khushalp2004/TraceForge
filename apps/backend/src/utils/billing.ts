@@ -1,9 +1,11 @@
 import prisma from "../db/prisma.js";
 
 export const FREE_MONTHLY_AI_LIMIT = 50;
+export const DEV_MONTHLY_AI_LIMIT = 100;
 export const TEAM_MONTHLY_AI_LIMIT = 200;
 export const FREE_ORG_MEMBER_LIMIT = 5;
 export const FREE_ORG_CREATION_LIMIT = 3;
+export const DEV_MONTHLY_PRICE_PAISE = 100;
 export const PRO_LAUNCH_MONTHLY_PRICE_PAISE = 39900;
 export const PRO_STANDARD_MONTHLY_PRICE_PAISE = 59900;
 export const PRO_LAUNCH_YEARLY_PRICE_PAISE = 358800;
@@ -12,7 +14,7 @@ export const TEAM_MONTHLY_PRICE_PAISE = 79900;
 export const TEAM_YEARLY_PRICE_PAISE = 838800;
 
 export type BillingIntervalValue = "MONTHLY" | "YEARLY";
-export type UserPlanValue = "FREE" | "PRO";
+export type UserPlanValue = "FREE" | "DEV" | "PRO";
 export type OrgPlanValue = "FREE" | "TEAM";
 
 export const isFutureDate = (value?: Date | null) =>
@@ -22,6 +24,11 @@ export const isUserProActive = (input?: {
   plan?: string | null;
   planExpiresAt?: Date | null;
 } | null) => input?.plan === "PRO" && (!input.planExpiresAt || isFutureDate(input.planExpiresAt));
+
+export const isUserDevActive = (input?: {
+  plan?: string | null;
+  planExpiresAt?: Date | null;
+} | null) => input?.plan === "DEV" && (!input.planExpiresAt || isFutureDate(input.planExpiresAt));
 
 export const isOrgTeamActive = (input?: {
   plan?: string | null;
@@ -59,12 +66,19 @@ export const getProPriceForInterval = (
 export const getTeamPriceForInterval = (interval: BillingIntervalValue) =>
   interval === "YEARLY" ? TEAM_YEARLY_PRICE_PAISE : TEAM_MONTHLY_PRICE_PAISE;
 
+export const getDevPriceForInterval = (_interval: BillingIntervalValue) => DEV_MONTHLY_PRICE_PAISE;
+
 export const normalizeInterval = (value: string | undefined | null): BillingIntervalValue =>
   value === "YEARLY" ? "YEARLY" : "MONTHLY";
 
 export const getUserAiAllowance = () => ({
   kind: "user_free" as const,
   limit: FREE_MONTHLY_AI_LIMIT
+});
+
+export const getDevAiAllowance = () => ({
+  kind: "user_dev" as const,
+  limit: DEV_MONTHLY_AI_LIMIT
 });
 
 export const getTeamAiAllowance = () => ({

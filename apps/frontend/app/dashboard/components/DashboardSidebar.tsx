@@ -12,7 +12,7 @@ const dashboardPrefsKey = "traceforge_dashboard_prefs_v1";
 
 type UsageSummary = {
   scope: "USER" | "ORGANIZATION";
-  plan: "FREE" | "PRO" | "TEAM";
+  plan: "FREE" | "DEV" | "PRO" | "TEAM";
   used: number;
   limit: number | null;
   remaining: number | null;
@@ -21,39 +21,19 @@ type UsageSummary = {
   detail: string;
 };
 
-const navSections = [
-  {
-    label: "Core",
-    items: [
-      { href: "/dashboard", label: "Overview", icon: "overview" },
-      { href: "/dashboard/issues", label: "Issues", icon: "issues" },
-      { href: "/dashboard/projects", label: "Projects", icon: "projects" },
-      { href: "/dashboard/releases", label: "Releases", icon: "releases" },
-      { href: "/dashboard/insights", label: "Insights", icon: "insights" }
-    ]
-  },
-  {
-    label: "Operations",
-    items: [
-      { href: "/dashboard/alerts", label: "Alerts", icon: "alerts" },
-      { href: "/dashboard/orgs", label: "Organization", icon: "team" },
-      { href: "/dashboard/repo-analysis", label: "Repo Analysis", icon: "repo-analysis" }
-    ]
-  },
-  {
-    label: "Support",
-    items: [{ href: "/docs", label: "Documentation", icon: "docs" }]
-  },
-  {
-    label: "Admin",
-    items: [
-      { href: "/dashboard/settings", label: "Settings", icon: "settings" },
-      { href: "/dashboard/billing", label: "Billing", icon: "billing" }
-    ]
-  }
+const baseNavItems = [
+  { href: "/dashboard", label: "Overview", icon: "overview" },
+  { href: "/dashboard/issues", label: "Issues", icon: "issues" },
+  { href: "/dashboard/projects", label: "Projects", icon: "projects" },
+  { href: "/dashboard/orgs", label: "Organization", icon: "team" },
+  { href: "/dashboard/releases", label: "Releases", icon: "releases" },
+  { href: "/dashboard/insights", label: "Insights", icon: "insights" },
+  { href: "/dashboard/alerts", label: "Alerts", icon: "alerts" },
+  { href: "/dashboard/repo-analysis", label: "Repo Analysis", icon: "repo-analysis" },
+  { href: "/docs", label: "Documentation", icon: "docs" },
+  { href: "/dashboard/settings", label: "Settings", icon: "settings" },
+  { href: "/dashboard/billing", label: "Billing", icon: "billing" }
 ];
-
-const navItems = navSections.flatMap((section) => section.items);
 
 const isActiveRoute = (pathname: string, href: string) => {
   if (href === "/dashboard") return pathname === "/dashboard";
@@ -191,6 +171,18 @@ function NavIcon({
           <line x1="7" y1="15" x2="11" y2="15" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
         </svg>
       );
+    case "shield":
+      return (
+        <svg aria-hidden="true" className={common} viewBox="0 0 24 24" fill="none">
+          <path
+            d="M12 3l7 3v5c0 4.5-2.7 7.8-7 10-4.3-2.2-7-5.5-7-10V6l7-3z"
+            stroke="currentColor"
+            strokeWidth="1.8"
+            strokeLinejoin="round"
+          />
+          <path d="M9.5 11.5 11.2 13l3.3-3.5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+      );
     default:
       return (
         <svg aria-hidden="true" className={common} viewBox="0 0 24 24" fill="none">
@@ -250,6 +242,23 @@ export default function DashboardSidebar({
   const [profileOpen, setProfileOpen] = useState(false);
   const [selectedOrgId, setSelectedOrgId] = useState("");
   const [usage, setUsage] = useState<UsageSummary | null>(null);
+  const navItems = useMemo(
+    () => {
+      if (!user?.isSuperAdmin) {
+        return baseNavItems;
+      }
+
+      const organizationIndex = baseNavItems.findIndex((item) => item.href === "/dashboard/orgs");
+      const nextItems = [...baseNavItems];
+      nextItems.splice(organizationIndex + 1, 0, {
+        href: "/dashboard/admin",
+        label: "Admin Panel",
+        icon: "shield"
+      });
+      return nextItems;
+    },
+    [user?.isSuperAdmin]
+  );
   const profileRef = useRef<HTMLDivElement | null>(null);
   const displayName = user?.fullName?.trim() || user?.email?.split("@")[0] || "Account";
   const initials = useMemo(() => {
@@ -480,7 +489,9 @@ export default function DashboardSidebar({
               <p className="mt-1 truncate text-xs text-text-secondary">
                 {usage.plan === "PRO"
                   ? "Unlimited AI analysis"
-                  : `${usage.label} · ${usage.plan === "TEAM" ? "Team plan" : "Free plan"}`}
+                  : `${usage.label} · ${
+                      usage.plan === "TEAM" ? "Team plan" : usage.plan === "DEV" ? "Dev plan" : "Free plan"
+                    }`}
               </p>
             </div>
           </div>

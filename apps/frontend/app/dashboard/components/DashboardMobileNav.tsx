@@ -4,20 +4,22 @@ import { useEffect, useMemo, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useAuth } from "../../../context/AuthContext";
 import { useGlobalSearch } from "../../components/GlobalSearchProvider";
 
-const mobileItems = [
+const baseMobileItems = [
   { href: "/dashboard", label: "Overview", icon: "overview" },
   { href: "/dashboard/issues", label: "Issues", icon: "issues" },
   { href: "/dashboard/projects", label: "Projects", icon: "projects" },
+  { href: "/dashboard/orgs", label: "Organization", icon: "team" },
   { href: "/dashboard/alerts", label: "Alerts", icon: "alerts" },
   { href: "/dashboard/releases", label: "Releases", icon: "releases" },
   { href: "/dashboard/insights", label: "Insights", icon: "insights" },
-  { href: "/dashboard/orgs", label: "Organization", icon: "team" },
   { href: "/dashboard/repo-analysis", label: "Repo Analysis", icon: "repo-analysis" },
   { href: "/docs", label: "Documentation", icon: "docs" },
   { href: "/dashboard/settings", label: "Settings", icon: "settings" },
-  { href: "/dashboard/billing", label: "Billing", icon: "billing" }
+  { href: "/dashboard/billing", label: "Billing", icon: "billing" },
+  { href: "/dashboard/admin", label: "Admin", icon: "shield" }
 ];
 
 const isActiveRoute = (pathname: string, href: string) => {
@@ -150,6 +152,24 @@ function MobileNavIcon({
           <line x1="7" y1="15" x2="11" y2="15" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
         </svg>
       );
+    case "shield":
+      return (
+        <svg aria-hidden="true" className={common} viewBox="0 0 24 24" fill="none">
+          <path
+            d="M12 3l7 3v5c0 4.5-2.7 7.8-7 10-4.3-2.2-7-5.5-7-10V6l7-3z"
+            stroke="currentColor"
+            strokeWidth="1.8"
+            strokeLinejoin="round"
+          />
+          <path
+            d="M9.5 11.5 11.2 13l3.3-3.5"
+            stroke="currentColor"
+            strokeWidth="1.8"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+        </svg>
+      );
     default:
       return (
         <svg aria-hidden="true" className={common} viewBox="0 0 24 24" fill="none">
@@ -160,9 +180,14 @@ function MobileNavIcon({
 }
 
 export default function DashboardMobileNav() {
+  const { user } = useAuth();
   const pathname = usePathname() ?? "/dashboard";
   const { openSearch } = useGlobalSearch();
   const [menuOpen, setMenuOpen] = useState(false);
+  const mobileItems = useMemo(
+    () => (user?.isSuperAdmin ? baseMobileItems : baseMobileItems.filter((item) => item.href !== "/dashboard/admin")),
+    [user?.isSuperAdmin]
+  );
   const primaryItems = mobileItems.slice(0, 4);
   const overflowItems = mobileItems.slice(4);
   const activeOverflowItem = useMemo(

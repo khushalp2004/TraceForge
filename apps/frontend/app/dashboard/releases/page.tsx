@@ -65,6 +65,18 @@ const RELEASE_PAGE_SIZE_OPTIONS = [
   { value: 15, label: "15 / page" }
 ];
 
+const summarizeReleases = (items: ReleaseItem[]): ReleaseSummary =>
+  items.reduce(
+    (acc, release) => {
+      acc.total += 1;
+      if (release.health === "healthy") acc.healthy += 1;
+      if (release.health === "monitoring") acc.monitoring += 1;
+      if (release.health === "regression") acc.regressions += 1;
+      return acc;
+    },
+    { total: 0, healthy: 0, monitoring: 0, regressions: 0 }
+  );
+
 export default function ReleasesPage() {
   return (
     <Suspense fallback={<div className="tf-page tf-dashboard-page" />}>
@@ -100,6 +112,8 @@ function ReleasesPageInner() {
   const [highlightReleaseId, setHighlightReleaseId] = useState("");
   const [releasesPage, setReleasesPage] = useState(1);
   const [releasesPageSize, setReleasesPageSize] = useState(5);
+  const [deleteTarget, setDeleteTarget] = useState<ReleaseItem | null>(null);
+  const [deletingReleaseId, setDeletingReleaseId] = useState<string | null>(null);
 
   const showToast = (message: string, tone: Toast["tone"]) => {
     setToast({ message, tone });
@@ -182,19 +196,13 @@ function ReleasesPageInner() {
     const res = await fetch(`${API_URL}/releases?${params.toString()}`, {
       headers: { Authorization: `Bearer ${token}` }
     });
-    const data = await res.json();
-    if (!res.ok) {
-      throw new Error(data.error || "Failed to load releases");
-    }
-    setReleases(data.releases || []);
-    setSummary(
-      data.summary || {
-        total: 0,
-        healthy: 0,
-        monitoring: 0,
-        regressions: 0
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || "Failed to load releases");
       }
-    );
+    const nextReleases = (data.releases || []) as ReleaseItem[];
+    setReleases(nextReleases);
+    setSummary(data.summary || summarizeReleases(nextReleases));
   };
 
   useEffect(() => {
@@ -292,6 +300,43 @@ function ReleasesPageInner() {
       showToast(err instanceof Error ? err.message : "Failed to create release", "error");
     } finally {
       setCreatingRelease(false);
+    }
+  };
+
+  const deleteRelease = async () => {
+    const token = localStorage.getItem(tokenKey);
+    if (!token || !deleteTarget) {
+      return;
+    }
+
+    setDeletingReleaseId(deleteTarget.id);
+    try {
+      const res = await fetch(`${API_URL}/releases/${deleteTarget.id}`, {
+        method: "DELETE",
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || "Failed to delete release");
+      }
+
+      setReleases((prev) => {
+        const nextReleases = prev.filter((release) => release.id !== deleteTarget.id);
+        setSummary(summarizeReleases(nextReleases));
+        return nextReleases;
+      });
+      showToast("Release deleted", "success");
+      setDeleteTarget(null);
+      if (highlightReleaseId === deleteTarget.id) {
+        setHighlightReleaseId("");
+      }
+    } catch (err) {
+      showToast(err instanceof Error ? err.message : "Failed to delete release", "error");
+    } finally {
+      setDeletingReleaseId(null);
     }
   };
 
@@ -533,6 +578,15 @@ function ReleasesPageInner() {
                       </div>
                     )}
                   </div>
+                  <div className="flex shrink-0 items-start">
+                    <button
+                      type="button"
+                      className="rounded-full border border-border px-3 py-2 text-xs font-semibold text-text-secondary transition hover:border-red-300 hover:bg-red-50 hover:text-red-600 dark:hover:border-red-500/30 dark:hover:bg-red-500/10 dark:hover:text-red-300"
+                      onClick={() => setDeleteTarget(release)}
+                    >
+                      Delete
+                    </button>
+                  </div>
                 </div>
               </article>
             ))}
@@ -635,6 +689,56 @@ function ReleasesPageInner() {
                 disabled={creatingRelease}
               >
                 <LoadingButtonContent loading={creatingRelease} loadingLabel="Saving..." idleLabel="Save release" />
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {deleteTarget && (
+        <div className="fixed inset-x-0 top-[73px] bottom-[calc(env(safe-area-inset-bottom)+5.75rem)] z-50 flex items-start justify-center overflow-y-auto bg-black/40 px-4 py-4 sm:inset-0 sm:items-center sm:px-6 sm:py-6">
+          <div className="w-full max-w-lg rounded-[28px] border border-border bg-card/95 p-4 shadow-xl backdrop-blur sm:p-6">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-red-500">
+              Delete Release
+            </p>
+            <h3 className="mt-2 font-display text-lg font-semibold text-text-primary">
+              Remove {deleteTarget.version}
+            </h3>
+            <p className="mt-2 text-sm text-text-secondary">
+              This will delete the release marker from the timeline. Linked error events will be kept,
+              but they will no longer point to this release.
+            </p>
+
+            <div className="mt-4 rounded-2xl border border-border bg-secondary/20 px-4 py-3 text-sm text-text-secondary">
+              <p>
+                <span className="font-semibold text-text-primary">Project:</span> {deleteTarget.project.name}
+              </p>
+              <p className="mt-1">
+                <span className="font-semibold text-text-primary">Released:</span>{" "}
+                {new Date(deleteTarget.releasedAt).toLocaleString()}
+              </p>
+            </div>
+
+            <div className="mt-5 flex flex-col-reverse gap-3 sm:flex-row sm:items-center sm:justify-end">
+              <button
+                type="button"
+                className="tf-button-ghost px-4 py-2 text-sm"
+                onClick={() => setDeleteTarget(null)}
+                disabled={deletingReleaseId === deleteTarget.id}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                className="inline-flex items-center justify-center rounded-full bg-red-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-red-500 disabled:cursor-not-allowed disabled:opacity-60"
+                onClick={deleteRelease}
+                disabled={deletingReleaseId === deleteTarget.id}
+              >
+                <LoadingButtonContent
+                  loading={deletingReleaseId === deleteTarget.id}
+                  loadingLabel="Deleting..."
+                  idleLabel="Delete release"
+                />
               </button>
             </div>
           </div>

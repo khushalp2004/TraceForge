@@ -255,3 +255,61 @@ export const buildHelpRequestEmail = ({
 
   return { text, html };
 };
+
+export const buildSuperAdminAccessRequestEmail = ({
+  requesterEmail,
+  requesterName,
+  reason,
+  productUrl
+}: {
+  requesterEmail: string;
+  requesterName?: string | null;
+  reason?: string | null;
+  productUrl: string;
+}) => {
+  const text = [
+    "TraceForge super admin access request",
+    "",
+    `Requester: ${requesterName?.trim() || "Unknown user"}`,
+    `Email: ${requesterEmail}`,
+    `Product URL: ${productUrl}`,
+    "",
+    "Reason:",
+    reason?.trim() || "No additional reason provided."
+  ].join("\n");
+
+  const html = renderLayout({
+    preheader: `Super admin access request from ${requesterEmail}.`,
+    eyebrow: "Admin access",
+    title: "New super admin access request",
+    intro: [
+      "A logged-in TraceForge user requested super admin access.",
+      "Review the request below before deciding whether to add the sender to the super admin allowlist."
+    ],
+    body: `
+      <div style="display: grid; gap: 14px;">
+        <div style="display: grid; gap: 14px; grid-template-columns: repeat(2, minmax(0, 1fr));">
+          <div style="border-radius: 18px; border: 1px solid #e2e8f0; background: #f8fafc; padding: 16px 18px;">
+            <p style="margin: 0 0 6px; font-size: 12px; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; color: #64748b;">Requester</p>
+            <p style="margin: 0; font-size: 15px; line-height: 24px; color: #0f172a;">${escapeHtml(requesterName?.trim() || "Unknown user")}</p>
+          </div>
+          <div style="border-radius: 18px; border: 1px solid #e2e8f0; background: #f8fafc; padding: 16px 18px;">
+            <p style="margin: 0 0 6px; font-size: 12px; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; color: #64748b;">Email</p>
+            <p style="margin: 0; font-size: 15px; line-height: 24px; color: #0f172a;">${escapeHtml(requesterEmail)}</p>
+          </div>
+        </div>
+        <div style="border-radius: 18px; border: 1px solid #e2e8f0; background: #f8fafc; padding: 16px 18px;">
+          <p style="margin: 0 0 6px; font-size: 12px; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; color: #64748b;">Workspace</p>
+          <p style="margin: 0; font-size: 15px; line-height: 24px; color: #0f172a;">${escapeHtml(productUrl)}</p>
+        </div>
+        <div style="border-radius: 20px; border: 1px solid #fed7aa; background: linear-gradient(180deg, #fff7ed 0%, #fffbeb 100%); padding: 18px 20px;">
+          <p style="margin: 0 0 10px; font-size: 12px; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; color: #c2410c;">Reason</p>
+          <p style="margin: 0; white-space: pre-wrap; font-size: 15px; line-height: 26px; color: #7c2d12;">${escapeHtml(reason?.trim() || "No additional reason provided.")}</p>
+        </div>
+      </div>
+    `,
+    note: "Add the requester email to SUPER_ADMIN_EMAILS only if this access is approved."
+  });
+
+  return { text, html };
+};

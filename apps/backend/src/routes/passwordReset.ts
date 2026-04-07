@@ -37,6 +37,10 @@ passwordResetRouter.post("/request", passwordResetRequestRateLimit, async (req, 
     return res.json({ status: "ok" });
   }
 
+  if (user.disabledAt) {
+    return res.json({ status: "ok" });
+  }
+
   const { token, tokenHash } = generateResetToken();
   const expiresAt = new Date();
   expiresAt.setHours(expiresAt.getHours() + 1);
@@ -85,6 +89,10 @@ passwordResetRouter.post("/confirm", passwordResetConfirmRateLimit, async (req, 
 
   if (!record || record.usedAt || record.expiresAt < new Date()) {
     return res.status(400).json({ error: "Invalid or expired token" });
+  }
+
+  if (record.user.disabledAt) {
+    return res.status(403).json({ error: "This account has been suspended. Contact support for help." });
   }
 
   const passwordHash = await bcrypt.hash(password, 12);

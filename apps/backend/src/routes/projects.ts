@@ -17,8 +17,10 @@ import {
   incrementFreeEmailUsage
 } from "../utils/aiUsage.js";
 import {
+  DEV_MONTHLY_AI_LIMIT,
   FREE_MONTHLY_AI_LIMIT,
   TEAM_MONTHLY_AI_LIMIT,
+  isUserDevActive,
   isOrgTeamActive,
   isUserProActive
 } from "../utils/billing.js";
@@ -733,12 +735,19 @@ projectsRouter.post("/:id/github-analysis/analyze", async (req, res) => {
   }
 
   const proActive = isUserProActive(requester);
+  const devActive = isUserDevActive(requester);
   const teamActive = Boolean(project.orgId && project.org && isOrgTeamActive(project.org));
   const organizationId = teamActive ? project.orgId : null;
-  const usageLimit = teamActive ? TEAM_MONTHLY_AI_LIMIT : FREE_MONTHLY_AI_LIMIT;
+  const usageLimit = teamActive
+    ? TEAM_MONTHLY_AI_LIMIT
+    : devActive
+      ? DEV_MONTHLY_AI_LIMIT
+      : FREE_MONTHLY_AI_LIMIT;
   const limitMessage = teamActive
     ? "Monthly AI analysis limit reached for this team."
-    : "Monthly AI analysis limit reached for this account.";
+    : devActive
+      ? "Monthly AI analysis limit reached for your Dev plan."
+      : "Monthly AI analysis limit reached for this account.";
   const now = new Date();
   const monthKey = currentMonthKey(now);
   const usageKey = teamActive
@@ -747,7 +756,7 @@ projectsRouter.post("/:id/github-analysis/analyze", async (req, res) => {
         organizationId,
         monthKey
       })
-    : requester.email
+    : !devActive && requester.email
       ? getFreeEmailUsageRedisKey({
           email: requester.email,
           monthKey
@@ -764,7 +773,7 @@ projectsRouter.post("/:id/github-analysis/analyze", async (req, res) => {
     const used = await getEffectiveAiUsage({
       userId,
       organizationId,
-      email: requester.email,
+      email: devActive ? null : requester.email,
       now
     });
 
@@ -773,7 +782,7 @@ projectsRouter.post("/:id/github-analysis/analyze", async (req, res) => {
     }
 
     if (redis.isOpen) {
-      if (!teamActive && requester.email) {
+      if (!teamActive && !devActive && requester.email) {
         const existingRedisUsage = Number((await redis.get(usageKey)) || "0");
         if (existingRedisUsage < used) {
           await redis.set(usageKey, String(used));

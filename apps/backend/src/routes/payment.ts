@@ -6,11 +6,14 @@ import { requireAuth } from "../middleware/auth.js";
 import { rateLimitByUser, rateLimitByIp } from "../middleware/rateLimit.js";
 import {
   BillingIntervalValue,
+  DEV_MONTHLY_PRICE_PAISE,
   PRO_STANDARD_MONTHLY_PRICE_PAISE,
   TEAM_MONTHLY_PRICE_PAISE,
+  getDevPriceForInterval,
   getLaunchSlotsRemaining,
   getProPriceForInterval,
   getTeamPriceForInterval,
+  isUserDevActive,
   isOrgTeamActive,
   isUserProActive,
   normalizeInterval
@@ -18,7 +21,7 @@ import {
 
 const RAZORPAY_API_BASE = "https://api.razorpay.com/v1";
 const PROVIDER = "razorpay";
-type CheckoutPlan = "PRO" | "TEAM";
+type CheckoutPlan = "DEV" | "PRO" | "TEAM";
 type BillingScope = "USER" | "ORGANIZATION";
 type PricingTier = "LAUNCH" | "STANDARD" | null;
 
@@ -43,6 +46,7 @@ const getRazorpayKeys = () => {
     keyId,
     keySecret,
     webhookSecret,
+    devMonthlyPlanId: process.env.RAZORPAY_PLAN_DEV_MONTHLY_ID?.trim() || "",
     proLaunchMonthlyPlanId: process.env.RAZORPAY_PLAN_PRO_MONTHLY_ID?.trim() || "",
     proStandardMonthlyPlanId:
       process.env.RAZORPAY_PLAN_PRO_MONTHLY_STANDARD_ID?.trim() || "",
@@ -149,6 +153,8 @@ const getPlanAmount = ({
 }) =>
   plan === "TEAM"
     ? getTeamPriceForInterval(interval)
+    : plan === "DEV"
+      ? getDevPriceForInterval(interval)
     : getProPriceForInterval(interval, pricingTier === "STANDARD" ? "STANDARD" : "LAUNCH");
 
 const subscriptionExpiryFromEntity = (
@@ -187,6 +193,10 @@ const getEffectiveUserPlan = async (userId: string) => {
   }
 
   if (isUserProActive(user)) {
+    return user;
+  }
+
+  if (isUserDevActive(user)) {
     return user;
   }
 
@@ -267,6 +277,18 @@ const resolvePlanSelection = async ({
     };
   }
 
+  if (plan === "DEV") {
+    if (!keys.devMonthlyPlanId) {
+      throw Object.assign(new Error("Missing RAZORPAY_PLAN_DEV_MONTHLY_ID"), { status: 501 });
+    }
+
+    return {
+      planId: keys.devMonthlyPlanId,
+      amount: getDevPriceForInterval("MONTHLY"),
+      pricingTier: null as PricingTier
+    };
+  }
+
   const user = await prisma.user.findUnique({
     where: { id: userId },
     select: { proPricingTier: true }
@@ -320,8 +342,8 @@ paymentRouter.post("/create-order", requireAuth, paymentMutationRateLimit, async
       interval?: string;
       organizationId?: string;
     };
-    const plan = body.plan === "TEAM" ? "TEAM" : "PRO";
-    const interval = normalizeInterval(body.interval);
+    const plan = body.plan === "TEAM" ? "TEAM" : body.plan === "DEV" ? "DEV" : "PRO";
+    const interval = plan === "DEV" ? "MONTHLY" : normalizeInterval(body.interval);
     const organizationId =
       typeof body.organizationId === "string" && body.organizationId.trim()
         ? body.organizationId.trim()
@@ -349,12 +371,17 @@ paymentRouter.post("/create-order", requireAuth, paymentMutationRateLimit, async
       }
     } else {
       const userState = await getEffectiveUserPlan(userId);
-      if (userState?.plan === "PRO") {
+      if (userState?.plan === plan) {
         return res.json({
           alreadyActive: true,
-          plan: "pro",
+          plan: plan.toLowerCase(),
           interval: userState.planInterval?.toLowerCase() || interval.toLowerCase(),
           expiresAt: userState.planExpiresAt?.toISOString() || null
+        });
+      }
+      if (userState && userState.plan !== "FREE") {
+        return res.status(400).json({
+          error: "Cancel your current personal subscription before switching plans."
         });
       }
     }
@@ -472,6 +499,7 @@ paymentRouter.post("/verify", requireAuth, paymentMutationRateLimit, async (req,
       }
       const keys = getRazorpayKeys();
       const allowedPlanIds = [
+        keys.devMonthlyPlanId,
         keys.proLaunchMonthlyPlanId,
         keys.proStandardMonthlyPlanId,
         keys.proLaunchYearlyPlanId,
@@ -536,7 +564,13 @@ paymentRouter.post("/verify", requireAuth, paymentMutationRateLimit, async (req,
     }
 
     const now = new Date();
-    const plan = pendingPayment?.plan === "TEAM" ? "TEAM" : "PRO";
+    const plan =
+      pendingPayment?.plan === "TEAM"
+        ? "TEAM"
+        : pendingPayment?.plan === "DEV" ||
+            String(subscriptionEntity?.notes?.plan || "").toUpperCase() === "DEV"
+          ? "DEV"
+          : "PRO";
     const interval = normalizeInterval(pendingPayment?.interval || String(subscriptionEntity?.notes?.interval || ""));
     const organizationId =
       typeof pendingPayment?.organizationId === "string"
@@ -561,7 +595,7 @@ paymentRouter.post("/verify", requireAuth, paymentMutationRateLimit, async (req,
           existingOrganization.planExpiresAt.getTime() > now.getTime()
           ? existingOrganization.planExpiresAt
           : now
-        : existingUser?.plan === "PRO" &&
+        : existingUser?.plan === plan &&
             existingUser.planExpiresAt &&
             existingUser.planExpiresAt.getTime() > now.getTime()
           ? existingUser.planExpiresAt
@@ -631,7 +665,7 @@ paymentRouter.post("/verify", requireAuth, paymentMutationRateLimit, async (req,
         await tx.user.update({
           where: { id: userId },
           data: {
-            plan: "PRO",
+            plan,
             planInterval: interval,
             subscriptionStatus: "active",
             planExpiresAt: expiresAt,
@@ -639,15 +673,17 @@ paymentRouter.post("/verify", requireAuth, paymentMutationRateLimit, async (req,
             lastPaymentId: razorpay_payment_id,
             razorpaySubscriptionId: razorpay_subscription_id ?? undefined,
             proPricingTier:
-              existingUser?.proPricingTier ??
-              (pendingPayment?.payload &&
-              typeof (pendingPayment.payload as Record<string, unknown>)?.pricingTier === "string"
-                ? ((pendingPayment.payload as Record<string, unknown>).pricingTier as "LAUNCH" | "STANDARD")
-                : subscriptionEntity?.notes?.pricingTier === "STANDARD"
-                  ? "STANDARD"
-                  : subscriptionEntity?.notes?.pricingTier === "LAUNCH"
-                    ? "LAUNCH"
-                    : undefined)
+              plan === "PRO"
+                ? existingUser?.proPricingTier ??
+                  (pendingPayment?.payload &&
+                  typeof (pendingPayment.payload as Record<string, unknown>)?.pricingTier === "string"
+                    ? ((pendingPayment.payload as Record<string, unknown>).pricingTier as "LAUNCH" | "STANDARD")
+                    : subscriptionEntity?.notes?.pricingTier === "STANDARD"
+                      ? "STANDARD"
+                      : subscriptionEntity?.notes?.pricingTier === "LAUNCH"
+                        ? "LAUNCH"
+                        : undefined)
+                : null
           }
         });
       }
@@ -836,11 +872,11 @@ paymentRouter.post("/cancel", requireAuth, paymentMutationRateLimit, async (req,
   const subscriptionHolder = normalizedOrganizationId
     ? await prisma.organization.findUnique({
         where: { id: normalizedOrganizationId },
-        select: { razorpaySubscriptionId: true }
+        select: { razorpaySubscriptionId: true, plan: true }
       })
     : await prisma.user.findUnique({
         where: { id: userId },
-        select: { razorpaySubscriptionId: true }
+        select: { razorpaySubscriptionId: true, plan: true }
       });
 
   if (!subscriptionHolder?.razorpaySubscriptionId) {
@@ -878,10 +914,17 @@ paymentRouter.post("/cancel", requireAuth, paymentMutationRateLimit, async (req,
       await prisma.user.update({
         where: { id: userId },
         data: {
-          plan: cancelAtCycleEnd ? "PRO" : "FREE",
+          plan:
+            cancelAtCycleEnd && subscriptionHolder?.plan === "DEV"
+              ? "DEV"
+              : cancelAtCycleEnd
+                ? "PRO"
+                : "FREE",
           planInterval: cancelAtCycleEnd ? undefined : null,
           subscriptionStatus: cancelAtCycleEnd ? "cancel_at_cycle_end" : cancelled.status || "cancelled",
-          planExpiresAt: expiresAt || null
+          planExpiresAt: expiresAt || null,
+          proPricingTier:
+            cancelAtCycleEnd && subscriptionHolder?.plan === "PRO" ? undefined : null
         }
       });
     }
@@ -1115,7 +1158,13 @@ paymentRouter.post("/webhook", webhookRateLimit, async (req, res) => {
     if (eventType === "payment.captured") {
       const now = new Date();
       const subscriptionEntity = subscriptionId ? await fetchSubscription(subscriptionId).catch(() => null) : null;
-      const plan = record?.plan === "TEAM" ? "TEAM" : "PRO";
+      const plan =
+        record?.plan === "TEAM"
+          ? "TEAM"
+          : record?.plan === "DEV" ||
+              String(subscriptionEntity?.notes?.plan || "").toUpperCase() === "DEV"
+            ? "DEV"
+            : "PRO";
       const interval = normalizeInterval(
         String(record?.interval || subscriptionEntity?.notes?.interval || "MONTHLY")
       );
@@ -1147,7 +1196,7 @@ paymentRouter.post("/webhook", webhookRateLimit, async (req, res) => {
             existingOrganization.planExpiresAt.getTime() > now.getTime()
             ? existingOrganization.planExpiresAt
             : now
-          : existingUser?.plan === "PRO" &&
+          : existingUser?.plan === plan &&
               existingUser.planExpiresAt &&
               existingUser.planExpiresAt.getTime() > now.getTime()
             ? existingUser.planExpiresAt
@@ -1217,7 +1266,7 @@ paymentRouter.post("/webhook", webhookRateLimit, async (req, res) => {
           await tx.user.update({
             where: { id: ownerId },
             data: {
-              plan: "PRO",
+              plan,
               planInterval: interval,
               subscriptionStatus: "active",
               planExpiresAt: expiresAt,
@@ -1225,15 +1274,23 @@ paymentRouter.post("/webhook", webhookRateLimit, async (req, res) => {
               lastPaymentId: paymentId || undefined,
               razorpaySubscriptionId: subscriptionId || undefined,
               proPricingTier:
-                existingUser?.proPricingTier ??
-                (pricingTier === "STANDARD" ? "STANDARD" : "LAUNCH")
+                plan === "PRO"
+                  ? existingUser?.proPricingTier ??
+                    (pricingTier === "STANDARD" ? "STANDARD" : "LAUNCH")
+                  : null
             }
           });
         }
       });
     } else if (eventType === "payment.failed") {
       const subscriptionEntity = subscriptionId ? await fetchSubscription(subscriptionId).catch(() => null) : null;
-      const plan = record?.plan === "TEAM" ? "TEAM" : "PRO";
+      const plan =
+        record?.plan === "TEAM"
+          ? "TEAM"
+          : record?.plan === "DEV" ||
+              String(subscriptionEntity?.notes?.plan || "").toUpperCase() === "DEV"
+            ? "DEV"
+            : "PRO";
       const interval = normalizeInterval(
         String(record?.interval || subscriptionEntity?.notes?.interval || "MONTHLY")
       );
