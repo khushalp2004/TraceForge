@@ -789,8 +789,8 @@ export default function ErrorDetailPage({ params }: { params: { id: string } }) 
       )}
 
       {showGithubModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 px-4 py-4 sm:px-6">
-          <div className="flex max-h-[min(92vh,48rem)] w-full max-w-2xl flex-col rounded-[28px] border border-border bg-card/95 p-4 shadow-xl backdrop-blur sm:p-6">
+        <div className="fixed inset-0 z-50 overflow-y-auto bg-black/45 px-3 pb-[calc(env(safe-area-inset-bottom)+5.75rem)] pt-[calc(env(safe-area-inset-top)+0.75rem)] sm:flex sm:items-center sm:justify-center sm:px-6 sm:py-6">
+          <div className="mx-auto flex max-h-[calc(100dvh-env(safe-area-inset-top)-env(safe-area-inset-bottom)-6.75rem)] w-full max-w-2xl flex-col overflow-hidden rounded-[28px] border border-border bg-card/95 p-4 shadow-xl backdrop-blur sm:max-h-[min(92vh,48rem)] sm:p-6">
             <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
               <div className="min-w-0">
                 <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-text-secondary">
@@ -860,7 +860,7 @@ export default function ErrorDetailPage({ params }: { params: { id: string } }) 
                   <label className="tf-filter-field">
                     <span className="tf-filter-label">Description</span>
                     <textarea
-                      className="tf-textarea min-h-[240px]"
+                      className="tf-textarea min-h-[180px] sm:min-h-[240px]"
                       value={githubIssueBody}
                       onChange={(event) => setGithubIssueBody(event.target.value)}
                     />
