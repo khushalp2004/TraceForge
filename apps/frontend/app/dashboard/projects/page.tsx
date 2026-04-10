@@ -625,7 +625,8 @@ export default function ProjectSettingsPage() {
               }`}
               onClick={() => setShowArchived((value) => !value)}
             >
-              {showArchived ? "Hide archived" : "Show archived"}
+              <span className="hidden sm:inline">{showArchived ? "Hide archived" : "Show archived"}</span>
+              <span className="sm:hidden">{showArchived ? "Hide archi..." : "Show archi..."}</span>
             </button>
             <button
               className="tf-button inline-flex min-w-0 flex-1 items-center justify-center whitespace-nowrap px-3.5 py-2 text-sm max-[639px]:text-[12px] max-[639px]:leading-none"

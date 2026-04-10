@@ -321,8 +321,8 @@ export default function OrgsPage() {
       </div>
 
       {renameTarget && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-6">
-          <div className="w-full max-w-md rounded-2xl border border-border bg-card/95 p-6 shadow-xl backdrop-blur">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4 py-6 sm:px-6">
+          <div className="w-full max-w-md rounded-2xl border border-border bg-card/95 p-5 shadow-xl backdrop-blur sm:p-6">
             <h3 className="font-display text-lg font-semibold text-text-primary">
               Rename Organization
             </h3>
@@ -335,9 +335,9 @@ export default function OrgsPage() {
               value={renameInput}
               onChange={(event) => setRenameInput(event.target.value)}
             />
-            <div className="mt-5 flex items-center justify-end gap-3">
+            <div className="mt-5 flex flex-col-reverse gap-3 sm:flex-row sm:items-center sm:justify-end">
               <button
-                className="rounded-full border border-border px-4 py-2 text-sm font-semibold text-text-secondary transition hover:bg-secondary/70"
+                className="w-full rounded-full border border-border px-4 py-2 text-sm font-semibold text-text-secondary transition hover:bg-secondary/70 sm:w-auto"
                 onClick={() => {
                   setRenameTarget(null);
                   setRenameInput("");
@@ -347,7 +347,7 @@ export default function OrgsPage() {
                 Cancel
               </button>
               <button
-                className="tf-button px-4 py-2 text-sm font-semibold"
+                className="tf-button w-full px-4 py-2 text-sm font-semibold sm:w-auto"
                 onClick={handleRenameOrg}
                 disabled={loading || !renameInput.trim()}
               >
@@ -359,8 +359,8 @@ export default function OrgsPage() {
       )}
 
       {deleteTarget && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-6">
-          <div className="w-full max-w-md rounded-2xl border border-border bg-card/95 p-6 shadow-xl backdrop-blur">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4 py-6 sm:px-6">
+          <div className="w-full max-w-md rounded-2xl border border-border bg-card/95 p-5 shadow-xl backdrop-blur sm:p-6">
             <h3 className="font-display text-lg font-semibold text-text-primary">Delete Organization</h3>
             <p className="mt-2 text-sm text-text-secondary">
               This will permanently delete <span className="font-semibold">{deleteTarget.name}</span>.
@@ -372,16 +372,16 @@ export default function OrgsPage() {
               value={deleteInput}
               onChange={(event) => setDeleteInput(event.target.value)}
             />
-            <div className="mt-5 flex items-center justify-end gap-3">
+            <div className="mt-5 flex flex-col-reverse gap-3 sm:flex-row sm:items-center sm:justify-end">
               <button
-                className="rounded-full border border-border px-4 py-2 text-sm font-semibold text-text-secondary transition hover:bg-secondary/70"
+                className="w-full rounded-full border border-border px-4 py-2 text-sm font-semibold text-text-secondary transition hover:bg-secondary/70 sm:w-auto"
                 onClick={() => setDeleteTarget(null)}
                 disabled={loading}
               >
                 Cancel
               </button>
               <button
-                className="tf-danger-solid rounded-full border px-4 py-2 text-sm font-semibold transition disabled:opacity-50"
+                className="tf-danger-solid w-full rounded-full border px-4 py-2 text-sm font-semibold transition disabled:opacity-50 sm:w-auto"
                 onClick={handleDeleteOrg}
                 disabled={loading || deleteInput.trim() !== deleteTarget.name}
               >
@@ -397,8 +397,8 @@ export default function OrgsPage() {
       )}
 
       {showCreateModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-6">
-          <div className="w-full max-w-md rounded-2xl border border-border bg-card/95 p-6 shadow-xl backdrop-blur">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4 py-6 sm:px-6">
+          <div className="w-full max-w-md rounded-2xl border border-border bg-card/95 p-5 shadow-xl backdrop-blur sm:p-6">
             <h3 className="font-display text-lg font-semibold text-text-primary">Create Organization</h3>
             <p className="mt-2 text-sm text-text-secondary">
               Create a new organization to manage members and projects.
@@ -409,16 +409,16 @@ export default function OrgsPage() {
               value={newOrgName}
               onChange={(event) => setNewOrgName(event.target.value)}
             />
-            <div className="mt-5 flex items-center justify-end gap-3">
+            <div className="mt-5 flex flex-col-reverse gap-3 sm:flex-row sm:items-center sm:justify-end">
               <button
-                className="rounded-full border border-border px-4 py-2 text-sm font-semibold text-text-secondary transition hover:bg-secondary/70"
+                className="w-full rounded-full border border-border px-4 py-2 text-sm font-semibold text-text-secondary transition hover:bg-secondary/70 sm:w-auto"
                 onClick={() => setShowCreateModal(false)}
                 disabled={loading}
               >
                 Cancel
               </button>
               <button
-                className="tf-button px-4 py-2 text-sm font-semibold"
+                className="tf-button w-full px-4 py-2 text-sm font-semibold sm:w-auto"
                 onClick={handleCreateOrg}
                 disabled={loading}
               >

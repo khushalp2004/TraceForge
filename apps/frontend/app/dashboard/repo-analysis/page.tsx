@@ -420,8 +420,8 @@ export default function RepoAnalysisPage() {
       </div>
 
       {reportTarget ? (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4 sm:px-6">
-          <div className="max-h-[85vh] w-full max-w-3xl overflow-hidden rounded-[28px] border border-border bg-card/95 p-6 shadow-xl backdrop-blur">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4 py-4 sm:px-6">
+          <div className="flex max-h-[min(92vh,48rem)] w-full max-w-3xl flex-col overflow-hidden rounded-[28px] border border-border bg-card/95 p-4 shadow-xl backdrop-blur sm:p-6">
             <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
               <div className="min-w-0">
                 <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-text-secondary">
@@ -446,7 +446,7 @@ export default function RepoAnalysisPage() {
               </button>
             </div>
 
-            <div className="tf-scroll-rail mt-5 max-h-[65vh] space-y-4 overflow-y-auto pr-1">
+            <div className="tf-scroll-rail mt-5 flex-1 space-y-4 overflow-y-auto pr-1">
               {reportLoading ? (
                 <div className="rounded-2xl border border-border bg-secondary/20 px-4 py-4 text-sm text-text-secondary">
                   Loading report...

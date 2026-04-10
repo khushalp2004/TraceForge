@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useAuth } from "../../../context/AuthContext";
 import { useGlobalSearch } from "../../components/GlobalSearchProvider";
 
@@ -11,16 +11,29 @@ const baseMobileItems = [
   { href: "/dashboard", label: "Overview", icon: "overview" },
   { href: "/dashboard/issues", label: "Issues", icon: "issues" },
   { href: "/dashboard/projects", label: "Projects", icon: "projects" },
-  { href: "/dashboard/orgs", label: "Organization", icon: "team" },
+  { href: "/dashboard/orgs", label: "Organization", mobileLabel: "Orgs", icon: "team" },
   { href: "/dashboard/alerts", label: "Alerts", icon: "alerts" },
   { href: "/dashboard/releases", label: "Releases", icon: "releases" },
   { href: "/dashboard/insights", label: "Insights", icon: "insights" },
-  { href: "/dashboard/repo-analysis", label: "Repo Analysis", icon: "repo-analysis" },
+  { href: "/dashboard/repo-analysis", label: "Repo Analysis", mobileLabel: "Repo", icon: "repo-analysis" },
   { href: "/docs", label: "Documentation", icon: "docs" },
   { href: "/dashboard/settings", label: "Settings", icon: "settings" },
   { href: "/dashboard/billing", label: "Billing", icon: "billing" },
   { href: "/dashboard/admin", label: "Admin", icon: "shield" }
 ];
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
+const dashboardPrefsKey = "traceforge_dashboard_prefs_v1";
+
+type UsageSummary = {
+  scope: "USER" | "ORGANIZATION";
+  plan: "FREE" | "DEV" | "PRO" | "TEAM";
+  used: number;
+  limit: number | null;
+  remaining: number | null;
+  percentUsed: number;
+  label: string;
+  detail: string;
+};
 
 const isActiveRoute = (pathname: string, href: string) => {
   if (href === "/dashboard") return pathname === "/dashboard";
@@ -180,10 +193,12 @@ function MobileNavIcon({
 }
 
 export default function DashboardMobileNav() {
-  const { user } = useAuth();
+  const { user, token, logout } = useAuth();
   const pathname = usePathname() ?? "/dashboard";
+  const router = useRouter();
   const { openSearch } = useGlobalSearch();
   const [menuOpen, setMenuOpen] = useState(false);
+  const [usage, setUsage] = useState<UsageSummary | null>(null);
   const mobileItems = useMemo(
     () => (user?.isSuperAdmin ? baseMobileItems : baseMobileItems.filter((item) => item.href !== "/dashboard/admin")),
     [user?.isSuperAdmin]
@@ -199,6 +214,56 @@ export default function DashboardMobileNav() {
       ? `${activeOverflowItem.label.slice(0, 8)}...`
       : activeOverflowItem.label
     : "More";
+  const displayName = user?.fullName?.trim() || user?.email?.split("@")[0] || "Account";
+  const currentPlanLabel =
+    user?.plan === "PRO" ? "Pro" : user?.plan === "DEV" ? "Dev" : user?.plan === "TEAM" ? "Team" : "Free";
+
+  useEffect(() => {
+    if (!token) {
+      setUsage(null);
+      return;
+    }
+
+    let cancelled = false;
+    let selectedOrgId = "";
+    if (typeof window !== "undefined") {
+      try {
+        const raw = window.localStorage.getItem(dashboardPrefsKey);
+        const parsed = raw ? (JSON.parse(raw) as { orgId?: string }) : {};
+        selectedOrgId = typeof parsed.orgId === "string" ? parsed.orgId : "";
+      } catch {
+        selectedOrgId = "";
+      }
+    }
+
+    const query = selectedOrgId ? `?orgId=${encodeURIComponent(selectedOrgId)}` : "";
+
+    const loadUsage = async () => {
+      try {
+        const res = await fetch(`${API_URL}/auth/usage${query}`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        const data = (await res.json()) as { usage?: UsageSummary };
+        if (!res.ok) {
+          throw new Error("Failed to load usage");
+        }
+        if (!cancelled) {
+          setUsage(data.usage || null);
+        }
+      } catch {
+        if (!cancelled) {
+          setUsage(null);
+        }
+      }
+    };
+
+    void loadUsage();
+    window.addEventListener("focus", loadUsage);
+    return () => {
+      cancelled = true;
+      window.removeEventListener("focus", loadUsage);
+    };
+  }, [token]);
 
   useEffect(() => {
     setMenuOpen(false);
@@ -323,6 +388,74 @@ export default function DashboardMobileNav() {
                 );
               })}
             </div>
+
+            <div className="mt-4 rounded-[24px] border border-border bg-background/75 p-4">
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-text-secondary">
+                    Account
+                  </p>
+                  <p className="mt-1 truncate text-sm font-semibold text-text-primary">{displayName}</p>
+                  <p className="truncate text-xs text-text-secondary">{user?.email}</p>
+                </div>
+                <span className="rounded-full border border-border bg-card px-2.5 py-1 text-[11px] font-semibold text-text-secondary">
+                  {currentPlanLabel}
+                </span>
+              </div>
+
+              {usage ? (
+                <div className="mt-4 rounded-2xl border border-border bg-card/80 px-3.5 py-3">
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="min-w-0">
+                      <p className="text-xs font-semibold text-text-primary">Usage this month</p>
+                      <p className="mt-1 text-[11px] text-text-secondary">
+                        {usage.plan === "PRO"
+                          ? "Unlimited AI"
+                          : `${usage.used} used • ${usage.remaining} left`}
+                      </p>
+                    </div>
+                    <span className="rounded-full border border-border bg-secondary/60 px-2 py-1 text-[11px] font-semibold text-text-secondary">
+                      {usage.limit ? `${Math.min(99, Math.max(0, usage.percentUsed))}%` : "∞"}
+                    </span>
+                  </div>
+                </div>
+              ) : null}
+
+              <div className="mt-4 grid grid-cols-[minmax(0,1fr)_3rem] gap-3">
+                <Link
+                  href="/dashboard/account/details"
+                  className="inline-flex w-full items-center justify-center rounded-2xl border border-border bg-card px-3 py-2.5 text-sm font-semibold text-text-primary transition hover:border-primary/20 hover:bg-card/90"
+                >
+                  Account details
+                </Link>
+                <button
+                  type="button"
+                  className="inline-flex h-12 w-12 items-center justify-center rounded-2xl border border-[hsl(var(--destructive)/0.28)] bg-[hsl(var(--destructive)/0.12)] text-[hsl(var(--destructive))] transition hover:bg-[hsl(var(--destructive)/0.18)]"
+                  onClick={() => {
+                    setMenuOpen(false);
+                    logout();
+                    router.push("/signin");
+                  }}
+                  aria-label="Sign out"
+                  title="Sign out"
+                >
+                  <svg
+                    aria-hidden="true"
+                    className="h-4 w-4"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="1.8"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
+                    <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+                    <path d="M16 17l5-5-5-5" />
+                    <path d="M21 12H9" />
+                  </svg>
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       ) : null}
@@ -347,7 +480,7 @@ export default function DashboardMobileNav() {
                 }`}
               >
                 <MobileNavIcon name={item.icon} active={isActive} />
-                <span className="truncate">{item.label}</span>
+                <span className="truncate">{item.mobileLabel || item.label}</span>
               </Link>
             );
           })}

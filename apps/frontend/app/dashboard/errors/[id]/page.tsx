@@ -789,8 +789,8 @@ export default function ErrorDetailPage({ params }: { params: { id: string } }) 
       )}
 
       {showGithubModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 px-4 sm:px-6">
-          <div className="w-full max-w-2xl rounded-[28px] border border-border bg-card/95 p-6 shadow-xl backdrop-blur">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 px-4 py-4 sm:px-6">
+          <div className="flex max-h-[min(92vh,48rem)] w-full max-w-2xl flex-col rounded-[28px] border border-border bg-card/95 p-4 shadow-xl backdrop-blur sm:p-6">
             <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
               <div className="min-w-0">
                 <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-text-secondary">
@@ -804,17 +804,9 @@ export default function ErrorDetailPage({ params }: { params: { id: string } }) 
                   repositories.
                 </p>
               </div>
-              <button
-                type="button"
-                className="tf-button-ghost w-full px-4 py-2 text-sm sm:w-auto"
-                onClick={() => setShowGithubModal(false)}
-                disabled={creatingGithubIssue}
-              >
-                Close
-              </button>
             </div>
 
-            <div className="mt-5 space-y-4">
+            <div className="tf-scroll-rail mt-5 flex-1 space-y-4 overflow-y-auto pr-1">
               <div className="rounded-2xl border border-border bg-secondary/20 px-4 py-4">
                 <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-text-secondary">
                   TraceForge issue
@@ -883,7 +875,7 @@ export default function ErrorDetailPage({ params }: { params: { id: string } }) 
               ) : null}
             </div>
 
-            <div className="mt-5 flex w-full flex-nowrap items-center justify-end gap-3">
+            <div className="mt-5 flex w-full flex-col-reverse gap-3 sm:flex-row sm:flex-nowrap sm:items-center sm:justify-end">
               <button
                 type="button"
                 className="tf-button-ghost inline-flex min-w-0 flex-1 items-center justify-center px-3 py-2 text-sm sm:flex-none sm:px-4"
