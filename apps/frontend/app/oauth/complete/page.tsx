@@ -15,24 +15,16 @@ function OauthCompleteContent() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const token = searchParams.get("token") || "";
     const next = searchParams.get("next") || "/dashboard";
     const mode = searchParams.get("mode") === "signup" ? "signup" : "login";
     const providerParam = searchParams.get("provider") || "";
     const provider =
       providerParam === "github" ? "GitHub" : providerParam === "google" ? "Google" : "OAuth";
 
-    if (!token) {
-      setError("OAuth session is missing. Please try again.");
-      return;
-    }
-
     const completeLogin = async () => {
       try {
         const res = await fetch(`${API_URL}/auth/me`, {
-          headers: {
-            Authorization: `Bearer ${token}`
-          }
+          credentials: "include"
         });
 
         const data = await res.json();
@@ -53,7 +45,7 @@ function OauthCompleteContent() {
           );
         }
 
-        login(token, data.user);
+        login("cookie-session", data.user);
         router.replace(next);
       } catch (err) {
         setError(err instanceof Error ? err.message : "Failed to finish sign in");

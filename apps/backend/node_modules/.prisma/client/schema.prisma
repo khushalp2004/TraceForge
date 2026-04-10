@@ -224,6 +224,7 @@ model Project {
   orgId            String?
   name             String
   apiKey           String    @unique
+  apiKeyHash       String?   @unique
   aiModel          String    @default("groq/compound")
   githubRepoId     String?
   githubRepoName   String?

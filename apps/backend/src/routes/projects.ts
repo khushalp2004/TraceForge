@@ -32,6 +32,11 @@ import {
 import { parseGithubMetadata } from "../utils/integrationConnectionState.js";
 import { decryptIntegrationSecret } from "../utils/integrationSecrets.js";
 import {
+  decryptProjectApiKey,
+  isEncryptedProjectApiKey,
+  sealProjectApiKey
+} from "../utils/projectApiKeys.js";
+import {
   fetchGithubRepoFile,
   fetchGithubRepoSummary,
   fetchGithubRepos,
@@ -48,6 +53,7 @@ const projectSelect = {
   id: true,
   name: true,
   apiKey: true,
+  apiKeyHash: true,
   aiModel: true,
   githubRepoId: true,
   githubRepoName: true,
@@ -84,34 +90,15 @@ const projectSelect = {
 const PROJECT_CONFIGURATION_STALE_DAYS = 30;
 const PROJECT_CONFIGURATION_STALE_MS =
   PROJECT_CONFIGURATION_STALE_DAYS * 24 * 60 * 60 * 1000;
+type ProjectRecord = Prisma.ProjectGetPayload<{ select: typeof projectSelect }>;
 
 const serializeProject = <
-  T extends {
-    id: string;
-    name: string;
-    apiKey: string;
-    aiModel: string;
-    githubRepoId: string | null;
-    githubRepoName: string | null;
-    githubRepoUrl: string | null;
-    createdAt: Date;
-    archivedAt: Date | null;
-    configuredAt: Date | null;
-    lastConfiguredAt: Date | null;
-    orgId: string | null;
-    githubRepoAnalysis?: {
-      status: "PENDING" | "PROCESSING" | "READY" | "FAILED";
-      summary: string | null;
-      generatedAt: Date | null;
-      lastError: string | null;
-      updatedAt: Date;
-    } | null;
-    errors: Array<{ lastSeen: Date }>;
-    _count: { errors: number };
-  }
->(
-  project: T
- ) => {
+  T extends ProjectRecord
+>(project: T) => {
+  const resolvedApiKey =
+    project.apiKeyHash || isEncryptedProjectApiKey(project.apiKey)
+      ? decryptProjectApiKey(project.apiKey)
+      : project.apiKey;
   const now = Date.now();
   const lastEventAt = project.errors[0]?.lastSeen ?? null;
   const lastSignalAt = project.lastConfiguredAt ?? project.configuredAt ?? lastEventAt;
@@ -132,32 +119,45 @@ const serializeProject = <
       : "pending";
 
   return {
-  id: project.id,
-  name: project.name,
-  apiKey: project.apiKey,
-  aiModel: resolveAiModel(project.aiModel),
-  githubRepoId: project.githubRepoId,
-  githubRepoName: project.githubRepoName,
-  githubRepoUrl: project.githubRepoUrl,
-  createdAt: project.createdAt,
-  archivedAt: project.archivedAt,
-  configuredAt: project.configuredAt ?? lastEventAt,
-  lastConfiguredAt: project.lastConfiguredAt ?? lastEventAt,
-  orgId: project.orgId,
-  githubRepoAnalysis: project.githubRepoAnalysis
-    ? {
-        status: project.githubRepoAnalysis.status,
-        summary: project.githubRepoAnalysis.summary,
-        generatedAt: project.githubRepoAnalysis.generatedAt,
-        lastError: project.githubRepoAnalysis.lastError,
-        updatedAt: project.githubRepoAnalysis.updatedAt
-      }
-    : null,
-  telemetryStatus: isConfigured ? "configured" : "not_configured",
-  configurationSource,
-  lastEventAt,
-  eventCount: project._count.errors
+    id: project.id,
+    name: project.name,
+    apiKey: resolvedApiKey,
+    aiModel: resolveAiModel(project.aiModel),
+    githubRepoId: project.githubRepoId,
+    githubRepoName: project.githubRepoName,
+    githubRepoUrl: project.githubRepoUrl,
+    createdAt: project.createdAt,
+    archivedAt: project.archivedAt,
+    configuredAt: project.configuredAt ?? lastEventAt,
+    lastConfiguredAt: project.lastConfiguredAt ?? lastEventAt,
+    orgId: project.orgId,
+    githubRepoAnalysis: project.githubRepoAnalysis
+      ? {
+          status: project.githubRepoAnalysis.status,
+          summary: project.githubRepoAnalysis.summary,
+          generatedAt: project.githubRepoAnalysis.generatedAt,
+          lastError: project.githubRepoAnalysis.lastError,
+          updatedAt: project.githubRepoAnalysis.updatedAt
+        }
+      : null,
+    telemetryStatus: isConfigured ? "configured" : "not_configured",
+    configurationSource,
+    lastEventAt,
+    eventCount: project._count.errors
   };
+};
+
+const secureProjectApiKeyRecord = async (project: ProjectRecord): Promise<ProjectRecord> => {
+  if (project.apiKeyHash || isEncryptedProjectApiKey(project.apiKey)) {
+    return project;
+  }
+
+  const secured = sealProjectApiKey(project.apiKey);
+  return prisma.project.update({
+    where: { id: project.id },
+    data: secured,
+    select: projectSelect
+  });
 };
 
 const getUserOrgIds = async (userId: string) => {
@@ -401,9 +401,10 @@ projectsRouter.get("/", async (req, res) => {
     orderBy: { createdAt: "desc" },
     select: projectSelect
   });
+  const securedProjects = await Promise.all(projects.map((project) => secureProjectApiKeyRecord(project)));
 
   return res.json({
-    projects: projects.map(serializeProject),
+    projects: securedProjects.map(serializeProject),
     availableAiModels: supportedAiModels,
     defaultAiModel
   });
@@ -487,6 +488,7 @@ projectsRouter.post("/", async (req, res) => {
   }
 
   const apiKey = crypto.randomBytes(24).toString("hex");
+  const sealedApiKey = sealProjectApiKey(apiKey);
   let mappedGithubRepo: Awaited<ReturnType<typeof resolveMappedGithubRepo>>;
   try {
     mappedGithubRepo = await resolveMappedGithubRepo({
@@ -504,7 +506,7 @@ projectsRouter.post("/", async (req, res) => {
     data: {
       userId,
       name: normalizedName,
-      apiKey,
+      ...sealedApiKey,
       orgId: normalizedOrgId ?? null,
       aiModel: normalizedAiModel,
       ...mappedGithubRepo
@@ -512,7 +514,7 @@ projectsRouter.post("/", async (req, res) => {
     select: projectSelect
   });
 
-  return res.status(201).json({ project: serializeProject(project) });
+  return res.status(201).json({ project: serializeProject(await secureProjectApiKeyRecord(project)) });
 });
 
 projectsRouter.patch("/:id", async (req, res) => {
@@ -576,7 +578,7 @@ projectsRouter.patch("/:id", async (req, res) => {
     select: projectSelect
   });
 
-  return res.json({ project: serializeProject(updated) });
+  return res.json({ project: serializeProject(await secureProjectApiKeyRecord(updated)) });
 });
 
 projectsRouter.post("/:id/github-repo", async (req, res) => {
@@ -625,7 +627,7 @@ projectsRouter.post("/:id/github-repo", async (req, res) => {
       select: projectSelect
     });
 
-    return res.json({ project: serializeProject(updated) });
+    return res.json({ project: serializeProject(await secureProjectApiKeyRecord(updated)) });
   } catch (error) {
     const status = (error as { status?: number }).status || 400;
     return res.status(status).json({
@@ -981,14 +983,15 @@ projectsRouter.post("/:id/rotate-key", async (req, res) => {
   }
 
   const newKey = crypto.randomBytes(24).toString("hex");
+  const sealedApiKey = sealProjectApiKey(newKey);
 
   const updated = await prisma.project.update({
     where: { id: projectId },
-    data: { apiKey: newKey },
+    data: sealedApiKey,
     select: projectSelect
   });
 
-  return res.json({ project: serializeProject(updated) });
+  return res.json({ project: serializeProject(await secureProjectApiKeyRecord(updated)) });
 });
 
 projectsRouter.post("/:id/ai-model", async (req, res) => {
@@ -1039,7 +1042,7 @@ projectsRouter.post("/:id/ai-model", async (req, res) => {
     select: projectSelect
   });
 
-  return res.json({ project: serializeProject(updated) });
+  return res.json({ project: serializeProject(await secureProjectApiKeyRecord(updated)) });
 });
 
 projectsRouter.post("/:id/restore", async (req, res) => {
@@ -1081,7 +1084,7 @@ projectsRouter.post("/:id/restore", async (req, res) => {
     select: projectSelect
   });
 
-  return res.json({ project: serializeProject(updated) });
+  return res.json({ project: serializeProject(await secureProjectApiKeyRecord(updated)) });
 });
 
 projectsRouter.delete("/:id", async (req, res) => {
@@ -1128,7 +1131,7 @@ projectsRouter.delete("/:id", async (req, res) => {
     select: projectSelect
   });
 
-  return res.json({ project: serializeProject(updated) });
+  return res.json({ project: serializeProject(await secureProjectApiKeyRecord(updated)) });
 });
 
 projectsRouter.delete("/:id/permanent", async (req, res) => {

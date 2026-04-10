@@ -255,6 +255,7 @@ function AuthScreenInner({ mode }: AuthScreenProps) {
       const res = await fetch(endpoint, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        credentials: "include",
         body: JSON.stringify({
           fullName: mode === "signup" ? fullName : undefined,
           address: mode === "signup" ? address : undefined,

@@ -2,6 +2,7 @@ import { Router } from "express";
 import prisma from "../db/prisma.js";
 import { requireAuth } from "../middleware/auth.js";
 import { verifyToken } from "../utils/jwt.js";
+import { readAuthTokenFromRequest } from "../utils/authCookies.js";
 import {
   subscribeToNotifications,
   unsubscribeFromNotifications
@@ -93,7 +94,9 @@ notificationsRouter.post("/dismissals", requireAuth, async (req, res) => {
 });
 
 notificationsRouter.get("/stream", (req, res) => {
-  const token = typeof req.query.token === "string" ? req.query.token : "";
+  const token =
+    (typeof req.query.token === "string" ? req.query.token : "").trim() ||
+    readAuthTokenFromRequest(req);
 
   if (!token) {
     return res.status(401).json({ error: "Missing token" });

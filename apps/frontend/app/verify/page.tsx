@@ -136,6 +136,7 @@ function VerifyEmailPageInner() {
       const res = await fetch(`${API_URL}/auth/verify-email`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        credentials: "include",
         body: JSON.stringify({
           email: email.trim(),
           code: code.trim()
@@ -182,6 +183,7 @@ function VerifyEmailPageInner() {
       const res = await fetch(`${API_URL}/auth/verify-email/resend`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        credentials: "include",
         body: JSON.stringify({
           email: email.trim()
         })

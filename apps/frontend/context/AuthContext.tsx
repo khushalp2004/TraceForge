@@ -2,8 +2,10 @@
 
 import React, { createContext, useContext, useEffect, useState } from "react";
 
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
 const tokenKey = "traceforge_token";
 const userKey = "traceforge_user";
+const sessionTokenValue = "cookie-session";
 
 type AuthUser = {
   id: string;
@@ -51,58 +53,107 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [isReady, setIsReady] = useState(false);
 
   useEffect(() => {
-    const storedToken = localStorage.getItem(tokenKey);
-    const storedUser = readStoredUser();
+    const rawApiUrl = API_URL;
+    const originalFetch = window.fetch.bind(window);
+    const apiOrigin = new URL(rawApiUrl, window.location.origin).origin;
 
-    if (storedToken) {
-      setToken(storedToken);
-      setUser(storedUser);
-      setIsReady(true);
-      void fetchUser(storedToken);
-      return;
-    }
+    window.fetch = (async (input: RequestInfo | URL, init?: RequestInit) => {
+      const requestUrl =
+        typeof input === "string"
+          ? input
+          : input instanceof URL
+            ? input.toString()
+            : input.url;
+      const shouldIncludeCredentials = requestUrl.startsWith(apiOrigin);
 
-    if (storedUser) {
-      localStorage.removeItem(userKey);
-    }
+      if (!shouldIncludeCredentials || init?.credentials) {
+        return originalFetch(input, init);
+      }
 
-    setIsReady(true);
+      if (input instanceof Request) {
+        return originalFetch(new Request(input, { credentials: "include" }));
+      }
+
+      return originalFetch(input, {
+        ...init,
+        credentials: "include"
+      });
+    }) as typeof window.fetch;
+
+    return () => {
+      window.fetch = originalFetch;
+    };
   }, []);
 
-  const fetchUser = async (token: string) => {
-    try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'}/auth/me`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      if (res.ok) {
-        const data = await res.json();
-        setUser(data.user);
-        localStorage.setItem(userKey, JSON.stringify(data.user));
-        return;
-      }
-
-      if (res.status === 401) {
-        localStorage.removeItem(tokenKey);
-        localStorage.removeItem(userKey);
-        setToken(null);
-        setUser(null);
-      }
-    } catch {}
-  };
-
-  const login = (newToken: string, newUser: AuthUser) => {
-    localStorage.setItem(tokenKey, newToken);
-    localStorage.setItem(userKey, JSON.stringify(newUser));
-    setToken(newToken);
-    setUser(newUser);
-    setIsReady(true);
-  };
-
-  const logout = () => {
+  const clearSession = () => {
     localStorage.removeItem(tokenKey);
     localStorage.removeItem(userKey);
     setToken(null);
     setUser(null);
+  };
+
+  const persistSession = (nextUser: AuthUser) => {
+    localStorage.setItem(tokenKey, sessionTokenValue);
+    localStorage.setItem(userKey, JSON.stringify(nextUser));
+    setToken(sessionTokenValue);
+    setUser(nextUser);
+  };
+
+  const fetchUser = async () => {
+    try {
+      const res = await fetch(`${API_URL}/auth/me`, {
+        credentials: "include"
+      });
+      if (res.ok) {
+        const data = await res.json();
+        persistSession(data.user);
+        return true;
+      }
+
+      if (res.status === 401) {
+        clearSession();
+      }
+
+      return false;
+    } catch {
+      return false;
+    }
+  };
+
+  useEffect(() => {
+    const storedToken = localStorage.getItem(tokenKey);
+    const storedUser = readStoredUser();
+
+    if (storedToken || storedUser) {
+      setToken(sessionTokenValue);
+      setUser(storedUser);
+    }
+
+    const restoreSession = async () => {
+      const hasActiveSession = await fetchUser();
+
+      if (!hasActiveSession && !storedToken && !storedUser) {
+        clearSession();
+      }
+
+      setIsReady(true);
+    };
+
+    void restoreSession();
+  }, []);
+
+  const login = (newToken: string, newUser: AuthUser) => {
+    void newToken;
+    persistSession(newUser);
+    setIsReady(true);
+  };
+
+  const logout = () => {
+    clearSession();
+    void fetch(`${API_URL}/auth/logout`, {
+      method: "POST",
+      credentials: "include"
+    }).catch(() => undefined);
   };
 
   const value = {

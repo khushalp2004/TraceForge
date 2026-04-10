@@ -1,10 +1,11 @@
 import crypto from "crypto";
 
 const resolveEncryptionKey = () => {
-  const seed =
-    process.env.INTEGRATIONS_ENCRYPTION_KEY ||
-    process.env.JWT_SECRET ||
-    "traceforge-local-integrations-key";
+  const seed = process.env.INTEGRATIONS_ENCRYPTION_KEY?.trim();
+
+  if (!seed) {
+    throw new Error("INTEGRATIONS_ENCRYPTION_KEY must be set");
+  }
 
   return crypto.createHash("sha256").update(seed).digest();
 };

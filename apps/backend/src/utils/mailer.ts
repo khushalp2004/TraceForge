@@ -9,6 +9,7 @@ const smtpUser = process.env.SMTP_USER;
 const smtpPass = process.env.SMTP_PASS;
 const smtpSecure = process.env.SMTP_SECURE === "true";
 const smtpFrom = process.env.SMTP_FROM || "TraceForge <no-reply@traceforge.local>";
+const isProduction = process.env.NODE_ENV === "production";
 
 let transporterPromise: Promise<Transporter> | null = null;
 
@@ -77,7 +78,9 @@ export const sendEmail = async ({ to, subject, text, html, replyTo }: SendEmailI
   }
 
   if (!smtpHost) {
-    console.log(`[mail:disabled] To=${to} Subject=${subject}\n${text}`);
+    if (!isProduction) {
+      console.info(`[mail:disabled] To=${to} Subject=${subject}\n${text}`);
+    }
     return;
   }
 

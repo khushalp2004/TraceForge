@@ -1,5 +1,11 @@
 import { NextFunction, Request, Response } from "express";
 import prisma from "../db/prisma.js";
+import {
+  decryptProjectApiKey,
+  hashProjectApiKey,
+  isEncryptedProjectApiKey,
+  sealProjectApiKey
+} from "../utils/projectApiKeys.js";
 
 export const requireProjectApiKey = async (
   req: Request,
@@ -12,10 +18,24 @@ export const requireProjectApiKey = async (
     return res.status(401).json({ error: "Missing X-Traceforge-Key header" });
   }
 
-  const project = await prisma.project.findUnique({ where: { apiKey } });
+  const apiKeyHash = hashProjectApiKey(apiKey);
+  let project =
+    (await prisma.project.findUnique({
+      where: { apiKeyHash }
+    })) ||
+    (await prisma.project.findUnique({
+      where: { apiKey }
+    }));
 
   if (!project) {
     return res.status(401).json({ error: "Invalid project API key" });
+  }
+
+  if (!project.apiKeyHash && !isEncryptedProjectApiKey(project.apiKey)) {
+    project = await prisma.project.update({
+      where: { id: project.id },
+      data: sealProjectApiKey(project.apiKey)
+    });
   }
 
   if (project.archivedAt) {
@@ -25,7 +45,10 @@ export const requireProjectApiKey = async (
   req.project = {
     id: project.id,
     name: project.name,
-    apiKey: project.apiKey,
+    apiKey:
+      project.apiKeyHash || isEncryptedProjectApiKey(project.apiKey)
+        ? decryptProjectApiKey(project.apiKey)
+        : project.apiKey,
     userId: project.userId,
     orgId: project.orgId
   };

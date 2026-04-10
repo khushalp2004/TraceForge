@@ -1063,10 +1063,10 @@ export default function BillingPage() {
               onChange={(event) => setCancelConfirmationInput(event.target.value)}
               disabled={actionLoading}
             />
-            <div className="mt-5 flex w-full flex-nowrap items-center justify-end gap-3">
+            <div className="mt-5 flex w-full flex-col-reverse gap-3 sm:flex-row sm:items-center sm:justify-end">
               <button
                 type="button"
-                className="tf-button-ghost inline-flex min-w-0 flex-1 items-center justify-center px-3 py-2 text-sm sm:flex-none sm:px-4"
+                className="tf-button-ghost inline-flex w-full items-center justify-center px-3 py-2 text-sm sm:w-auto sm:min-w-[144px] sm:px-4"
                 onClick={closeCancelModal}
                 disabled={actionLoading}
               >
@@ -1074,7 +1074,7 @@ export default function BillingPage() {
               </button>
               <button
                 type="button"
-                className="tf-danger-solid inline-flex min-w-0 flex-1 items-center justify-center whitespace-nowrap rounded-full border px-3 py-2 text-sm font-semibold transition disabled:opacity-50 sm:flex-none sm:px-4"
+                className="tf-danger-solid inline-flex w-full items-center justify-center whitespace-nowrap rounded-full border px-3 py-2 text-sm font-semibold transition disabled:opacity-50 sm:w-auto sm:min-w-[180px] sm:px-4"
                 onClick={() => void confirmCancelSubscription()}
                 disabled={actionLoading || cancelConfirmationInput.trim() !== "Cancel your subscription"}
               >

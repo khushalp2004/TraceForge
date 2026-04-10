@@ -4,6 +4,7 @@ import prisma from "./db/prisma.js";
 import { connectRedis, redis } from "./db/redis.js";
 
 const port = Number(process.env.PORT || 3001);
+const isProduction = process.env.NODE_ENV === "production";
 
 const start = async () => {
   await prisma.$connect();
@@ -12,11 +13,15 @@ const start = async () => {
   const app = createApp();
 
   const server = app.listen(port, () => {
-    console.log(`TraceForge API listening on port ${port}`);
+    if (!isProduction) {
+      console.info(`TraceForge API listening on port ${port}`);
+    }
   });
 
   const shutdown = async () => {
-    console.log("Shutting down TraceForge API...");
+    if (!isProduction) {
+      console.info("Shutting down TraceForge API...");
+    }
     await prisma.$disconnect();
     if (redis.isOpen) {
       await redis.quit();

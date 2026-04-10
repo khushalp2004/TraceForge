@@ -25,6 +25,7 @@ import {
   isVerificationCodeMatch,
   issueEmailVerificationCode
 } from "../utils/emailVerification.js";
+import { clearAuthCookie, setAuthCookie } from "../utils/authCookies.js";
 
 export const authRouter = Router();
 
@@ -149,6 +150,31 @@ const serializeAuthUser = (user: {
   subscriptionStatus: user.subscriptionStatus ?? null,
   isSuperAdmin: isSuperAdminEmail(user.email)
 });
+
+const createSessionResponse = (
+  res: Parameters<typeof setAuthCookie>[0],
+  user: {
+    id: string;
+    fullName?: string | null;
+    address?: string | null;
+    email: string;
+    plan?: string | null;
+    planInterval?: string | null;
+    proPricingTier?: string | null;
+    planExpiresAt?: Date | null;
+    subscriptionStatus?: string | null;
+  },
+  extra: Record<string, unknown> = {}
+) => {
+  const token = signToken({ sub: user.id, email: user.email });
+  setAuthCookie(res, token);
+
+  return {
+    token: "cookie-session",
+    user: serializeAuthUser(user),
+    ...extra
+  };
+};
 
 const buildGoogleAuthUrl = (mode: SocialAuthMode, next: string) => {
   const state = jwt.sign(
@@ -322,7 +348,22 @@ const resolveSocialSignupRedirect = async ({
   next: string;
   email: string;
   displayName: string;
-}) => {
+}): Promise<
+  {
+    redirectUrl: string;
+    authUser?: {
+      id: string;
+      fullName?: string | null;
+      address?: string | null;
+      email: string;
+      plan?: string | null;
+      planInterval?: string | null;
+      proPricingTier?: string | null;
+      planExpiresAt?: Date | null;
+      subscriptionStatus?: string | null;
+    };
+  }
+> => {
   const normalizedEmail = normalizeEmail(email);
   const existingUser = await prisma.user.findUnique({
     where: { email: normalizedEmail }
@@ -330,16 +371,20 @@ const resolveSocialSignupRedirect = async ({
 
   if (mode === "login") {
     if (!existingUser) {
-      return buildFrontendRedirect("/signin", {
-        oauthError: `${provider}_no_account`,
-        email: normalizedEmail
-      });
+      return {
+        redirectUrl: buildFrontendRedirect("/signin", {
+          oauthError: `${provider}_no_account`,
+          email: normalizedEmail
+        })
+      };
     }
 
     if (existingUser.disabledAt) {
-      return buildFrontendRedirect("/signin", {
-        oauthError: "account_disabled"
-      });
+      return {
+        redirectUrl: buildFrontendRedirect("/signin", {
+          oauthError: "account_disabled"
+        })
+      };
     }
 
     const verifiedUser = existingUser.emailVerifiedAt
@@ -349,20 +394,23 @@ const resolveSocialSignupRedirect = async ({
           data: { emailVerifiedAt: new Date() }
         });
 
-    const token = signToken({ sub: verifiedUser.id, email: verifiedUser.email });
-    return buildFrontendRedirect("/oauth/complete", {
-      token,
-      next,
-      mode: "login",
-      provider
-    });
+    return {
+      redirectUrl: buildFrontendRedirect("/oauth/complete", {
+        next,
+        mode: "login",
+        provider
+      }),
+      authUser: verifiedUser
+    };
   }
 
   if (existingUser?.fullName?.trim() && existingUser.address?.trim()) {
     if (existingUser.disabledAt) {
-      return buildFrontendRedirect("/signin", {
-        oauthError: "account_disabled"
-      });
+      return {
+        redirectUrl: buildFrontendRedirect("/signin", {
+          oauthError: "account_disabled"
+        })
+      };
     }
 
     const verifiedUser = existingUser.emailVerifiedAt
@@ -372,13 +420,14 @@ const resolveSocialSignupRedirect = async ({
           data: { emailVerifiedAt: new Date() }
         });
 
-    const token = signToken({ sub: verifiedUser.id, email: verifiedUser.email });
-    return buildFrontendRedirect("/oauth/complete", {
-      token,
-      next,
-      mode: "signup",
-      provider
-    });
+    return {
+      redirectUrl: buildFrontendRedirect("/oauth/complete", {
+        next,
+        mode: "signup",
+        provider
+      }),
+      authUser: verifiedUser
+    };
   }
 
   const signupToken = jwt.sign(
@@ -393,13 +442,15 @@ const resolveSocialSignupRedirect = async ({
     { expiresIn: "20m" }
   );
 
-  return buildFrontendRedirect("/signup", {
-    socialProvider: provider,
-    socialSignupToken: signupToken,
-    email: normalizedEmail,
-    fullName: displayName,
-    next
-  });
+  return {
+    redirectUrl: buildFrontendRedirect("/signup", {
+      socialProvider: provider,
+      socialSignupToken: signupToken,
+      email: normalizedEmail,
+      fullName: displayName,
+      next
+    })
+  };
 };
 
 authRouter.get("/me", requireAuth, async (req, res) => {
@@ -664,12 +715,7 @@ authRouter.post("/login", loginRateLimit, async (req, res) => {
     });
   }
 
-  const token = signToken({ sub: user.id, email: user.email });
-
-  return res.json({
-    token,
-    user: serializeAuthUser(user)
-  });
+  return res.json(createSessionResponse(res, user));
 });
 
 authRouter.get("/google/start", socialStartRateLimit, async (req, res) => {
@@ -752,15 +798,19 @@ authRouter.get("/google/callback", async (req, res) => {
       );
     }
 
-    return res.redirect(
-      await resolveSocialSignupRedirect({
-        provider: "google",
-        mode: parsedState.mode,
-        next: parsedState.next,
-        email: googleProfile.email,
-        displayName: googleProfile.name?.trim() || ""
-      })
-    );
+    const socialResult = await resolveSocialSignupRedirect({
+      provider: "google",
+      mode: parsedState.mode,
+      next: parsedState.next,
+      email: googleProfile.email,
+      displayName: googleProfile.name?.trim() || ""
+    });
+
+    if (socialResult.authUser) {
+      createSessionResponse(res, socialResult.authUser);
+    }
+
+    return res.redirect(socialResult.redirectUrl);
   } catch {
     return res.redirect(
       buildFrontendRedirect(
@@ -920,15 +970,19 @@ authRouter.get("/github/callback", async (req, res) => {
       );
     }
 
-    return res.redirect(
-      await resolveSocialSignupRedirect({
-        provider: "github",
-        mode: parsedState.mode,
-        next: parsedState.next,
-        email: githubProfile.email,
-        displayName: githubProfile.name
-      })
-    );
+    const socialResult = await resolveSocialSignupRedirect({
+      provider: "github",
+      mode: parsedState.mode,
+      next: parsedState.next,
+      email: githubProfile.email,
+      displayName: githubProfile.name
+    });
+
+    if (socialResult.authUser) {
+      createSessionResponse(res, socialResult.authUser);
+    }
+
+    return res.redirect(socialResult.redirectUrl);
   } catch {
     if (parsedState.purpose === "integration_oauth") {
       return res.redirect(
@@ -1015,13 +1069,11 @@ authRouter.post("/oauth/complete-signup", socialCompleteRateLimit, async (req, r
     return res.status(403).json({ error: "This account has been suspended. Contact support for help." });
   }
 
-  const token = signToken({ sub: user.id, email: user.email });
-
-  return res.json({
-    token,
-    next: payload.next,
-    user: serializeAuthUser(user)
-  });
+  return res.json(
+    createSessionResponse(res, user, {
+      next: payload.next
+    })
+  );
 });
 
 authRouter.post("/verify-email", verifyCodeRateLimit, async (req, res) => {
@@ -1045,13 +1097,11 @@ authRouter.post("/verify-email", verifyCodeRateLimit, async (req, res) => {
   }
 
   if (user.emailVerifiedAt) {
-    const token = signToken({ sub: user.id, email: user.email });
-
-    return res.json({
-      status: "already_verified",
-      token,
-      user: serializeAuthUser(user)
-    });
+    return res.json(
+      createSessionResponse(res, user, {
+        status: "already_verified"
+      })
+    );
   }
 
   const activeCode = await findActiveVerificationCode(user.id);
@@ -1074,13 +1124,16 @@ authRouter.post("/verify-email", verifyCodeRateLimit, async (req, res) => {
     })
   ]);
 
-  const token = signToken({ sub: user.id, email: user.email });
+  return res.json(
+    createSessionResponse(res, user, {
+      status: "verified"
+    })
+  );
+});
 
-  return res.json({
-    status: "verified",
-    token,
-    user: serializeAuthUser(user)
-  });
+authRouter.post("/logout", async (_req, res) => {
+  clearAuthCookie(res);
+  return res.json({ status: "ok" });
 });
 
 authRouter.post("/verify-email/resend", resendVerificationRateLimit, async (req, res) => {
@@ -1285,6 +1338,7 @@ authRouter.delete("/account", requireAuth, accountMutationRateLimit, async (req,
 
   try {
     await deleteUserAccount(userId);
+    clearAuthCookie(res);
     return res.json({ status: "deleted" });
   } catch (error) {
     if (error instanceof UserLifecycleError) {
