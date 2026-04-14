@@ -328,10 +328,10 @@ export default function DashboardMobileNav() {
       </div>
 
       {menuOpen ? (
-        <div className="fixed inset-0 z-40 bg-foreground/25 backdrop-blur-[2px] lg:hidden" onClick={() => setMenuOpen(false)}>
+        <div className="fixed inset-x-0 top-[73px] bottom-0 z-40 bg-foreground/25 backdrop-blur-[2px] lg:hidden" onClick={() => setMenuOpen(false)}>
           <div
             id="dashboard-mobile-more-nav"
-            className="absolute inset-x-4 bottom-[calc(env(safe-area-inset-bottom)+5.75rem)] rounded-[28px] border border-border bg-card/95 p-4 shadow-2xl backdrop-blur"
+            className="absolute inset-x-4 bottom-[calc(env(safe-area-inset-bottom)+5.5rem)] flex max-h-[calc(100dvh-73px-env(safe-area-inset-bottom)-7rem)] flex-col rounded-[28px] border border-border bg-card/95 p-4 shadow-2xl backdrop-blur"
             onClick={(event) => event.stopPropagation()}
           >
             <div className="flex items-center justify-between gap-3">
@@ -364,7 +364,8 @@ export default function DashboardMobileNav() {
               </button>
             </div>
 
-            <div className="mt-4 grid grid-cols-2 gap-3">
+            <div className="mt-4 min-h-0 flex-1 overflow-y-auto pr-1">
+              <div className="grid grid-cols-2 gap-3">
               {overflowItems.map((item) => {
                 const isActive = isActiveRoute(pathname, item.href);
                 const compactLabel =
@@ -387,6 +388,7 @@ export default function DashboardMobileNav() {
                   </Link>
                 );
               })}
+              </div>
             </div>
 
             <div className="mt-4 rounded-[24px] border border-border bg-background/75 p-4">
@@ -461,11 +463,11 @@ export default function DashboardMobileNav() {
       ) : null}
 
       <div
-        className="fixed inset-x-0 bottom-0 z-40 border-t border-border bg-background/95 px-3 pb-[calc(env(safe-area-inset-bottom)+0.75rem)] pt-2 backdrop-blur lg:hidden"
+        className="fixed inset-x-3 bottom-3 z-40 rounded-[28px] border border-border bg-background/95 px-2 pb-[calc(env(safe-area-inset-bottom)+0.45rem)] pt-2 shadow-xl backdrop-blur lg:hidden"
         role="navigation"
         aria-label="Mobile dashboard navigation"
       >
-        <div className="mx-auto grid max-w-xl grid-cols-5 gap-2">
+        <div className="mx-auto flex max-w-xl items-stretch gap-2 overflow-x-auto px-1 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
           {primaryItems.map((item) => {
             const isActive = isActiveRoute(pathname, item.href);
 
@@ -473,7 +475,7 @@ export default function DashboardMobileNav() {
               <Link
                 key={item.href}
                 href={item.href}
-                className={`flex min-w-0 flex-col items-center justify-center gap-1 rounded-2xl border px-2 py-2 text-[11px] font-semibold transition ${
+                className={`flex min-w-[4.25rem] flex-1 flex-col items-center justify-center gap-1 rounded-2xl border px-2 py-2 text-[11px] font-semibold transition ${
                   isActive
                     ? "border-border/70 bg-card/90 text-primary shadow-sm backdrop-blur"
                     : "border-transparent text-text-secondary hover:bg-card/90 hover:text-text-primary"
@@ -487,7 +489,7 @@ export default function DashboardMobileNav() {
 
           <button
             type="button"
-            className={`flex min-w-0 flex-col items-center justify-center gap-1 rounded-2xl border px-2 py-2 text-[11px] font-semibold transition ${
+            className={`flex min-w-[4.25rem] flex-1 flex-col items-center justify-center gap-1 rounded-2xl border px-2 py-2 text-[11px] font-semibold transition ${
               menuOpen || activeOverflowItem
                 ? "border-border/70 bg-card/90 text-primary shadow-sm backdrop-blur"
                 : "border-transparent text-text-secondary hover:bg-card/90 hover:text-text-primary"
