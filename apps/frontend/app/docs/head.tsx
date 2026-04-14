@@ -4,7 +4,7 @@ const title = `Docs | ${SITE_NAME}`;
 const description =
   "Read the TraceForge developer docs to install the SDK, send errors, tag releases, and connect alerts with issue triage.";
 const canonical = absoluteUrl("/docs");
-const image = absoluteUrl("/traceforge.png");
+const image = absoluteUrl("/traceforge-logo.svg");
 
 export default function Head() {
   return (

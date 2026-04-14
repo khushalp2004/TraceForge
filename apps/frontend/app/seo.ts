@@ -64,7 +64,7 @@ export function createPageMetadata({
       type: "website",
       images: [
         {
-          url: "/traceforge.png",
+          url: "/traceforge-logo.svg",
           width: 512,
           height: 512,
           alt: `${SITE_NAME} logo`
@@ -75,7 +75,7 @@ export function createPageMetadata({
       card: "summary_large_image",
       title: fullTitle,
       description,
-      images: ["/traceforge.png"]
+      images: ["/traceforge-logo.svg"]
     },
     robots: noIndex
       ? {

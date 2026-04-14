@@ -767,9 +767,9 @@ function DashboardPageInner() {
       return;
     }
 
-    const stream = new EventSource(
-      `${NOTIFICATIONS_URL}?token=${encodeURIComponent(token)}`
-    );
+    const stream = new EventSource(NOTIFICATIONS_URL, {
+      withCredentials: true
+    });
 
     stream.onmessage = (event) => {
       try {

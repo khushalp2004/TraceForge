@@ -131,6 +131,21 @@ type UsersResponse = {
   };
 };
 
+type SubscribersResponse = {
+  summary: {
+    totalSubscribers: number;
+    matchingSubscribers: number;
+  };
+  subscribers: Array<{
+    id: string;
+    email: string;
+    sourcePath: string | null;
+    status: string;
+    subscribedAt: string;
+    updatedAt: string;
+  }>;
+};
+
 const PAGE_SIZE_OPTIONS = [
   { value: 10, label: "10 / page" },
   { value: 20, label: "20 / page" },
@@ -172,17 +187,23 @@ export default function AdminDashboardPage() {
   const [toast, setToast] = useState<Toast | null>(null);
   const [overview, setOverview] = useState<AdminOverview | null>(null);
   const [usersResponse, setUsersResponse] = useState<UsersResponse | null>(null);
+  const [subscribersResponse, setSubscribersResponse] = useState<SubscribersResponse | null>(null);
   const [overviewLoading, setOverviewLoading] = useState(true);
   const [usersLoading, setUsersLoading] = useState(true);
+  const [subscribersLoading, setSubscribersLoading] = useState(true);
   const [requestingAccess, setRequestingAccess] = useState(false);
   const [reason, setReason] = useState("");
   const [searchInput, setSearchInput] = useState("");
   const [search, setSearch] = useState("");
+  const [subscriberSearchInput, setSubscriberSearchInput] = useState("");
+  const [subscriberSearch, setSubscriberSearch] = useState("");
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
   const [pendingPlans, setPendingPlans] = useState<Record<string, "FREE" | "DEV" | "PRO">>({});
   const [pendingDurations, setPendingDurations] = useState<Record<string, number>>({});
   const [savingUserId, setSavingUserId] = useState<string | null>(null);
+  const [sendingTestAnnouncement, setSendingTestAnnouncement] = useState(false);
+  const [sendingAnnouncement, setSendingAnnouncement] = useState(false);
   const [statusUpdatingUserId, setStatusUpdatingUserId] = useState<string | null>(null);
   const [detailLoading, setDetailLoading] = useState(false);
   const [detailTarget, setDetailTarget] = useState<AdminUser | null>(null);
@@ -192,6 +213,8 @@ export default function AdminDashboardPage() {
   const [deleteTarget, setDeleteTarget] = useState<AdminUser | null>(null);
   const [deleteConfirmationInput, setDeleteConfirmationInput] = useState("");
   const [deletingUserId, setDeletingUserId] = useState<string | null>(null);
+  const [announcementSubject, setAnnouncementSubject] = useState("");
+  const [announcementMessage, setAnnouncementMessage] = useState("");
 
   const showToast = (message: string, tone: Toast["tone"]) => {
     setToast({ message, tone });
@@ -245,6 +268,29 @@ export default function AdminDashboardPage() {
     }
   };
 
+  const loadSubscribers = async () => {
+    if (!token || !isSuperAdmin) return;
+    setSubscribersLoading(true);
+    try {
+      const params = new URLSearchParams({ take: "25" });
+      if (subscriberSearch.trim()) {
+        params.set("search", subscriberSearch.trim());
+      }
+      const res = await fetch(`${API_URL}/admin/subscribers?${params.toString()}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      const data = (await res.json()) as SubscribersResponse & { error?: string };
+      if (!res.ok) {
+        throw new Error(data.error || "Failed to load subscribers");
+      }
+      setSubscribersResponse(data);
+    } catch (error) {
+      showToast(error instanceof Error ? error.message : "Failed to load subscribers", "error");
+    } finally {
+      setSubscribersLoading(false);
+    }
+  };
+
   useEffect(() => {
     if (!isReady || !token || !isSuperAdmin) {
       setOverviewLoading(false);
@@ -261,6 +307,14 @@ export default function AdminDashboardPage() {
     }
     void loadUsers();
   }, [isReady, token, isSuperAdmin, page, pageSize, search]);
+
+  useEffect(() => {
+    if (!isReady || !token || !isSuperAdmin) {
+      setSubscribersLoading(false);
+      return;
+    }
+    void loadSubscribers();
+  }, [isReady, token, isSuperAdmin, subscriberSearch]);
 
   useEffect(() => {
     if (!usersResponse?.users?.length) return;
@@ -326,6 +380,75 @@ export default function AdminDashboardPage() {
       showToast(error instanceof Error ? error.message : "Unable to send the access request", "error");
     } finally {
       setRequestingAccess(false);
+    }
+  };
+
+  const submitAnnouncement = async (mode: "test" | "send") => {
+    if (!token) {
+      showToast("Please sign in again to send announcements.", "error");
+      return;
+    }
+
+    const subject = announcementSubject.trim();
+    const message = announcementMessage.trim();
+
+    if (subject.length < 4) {
+      showToast("Add a clearer subject before sending.", "error");
+      return;
+    }
+
+    if (message.length < 20) {
+      showToast("Write a little more detail in the announcement.", "error");
+      return;
+    }
+
+    if (mode === "test") {
+      setSendingTestAnnouncement(true);
+    } else {
+      setSendingAnnouncement(true);
+    }
+
+    try {
+      const res = await fetch(
+        `${API_URL}/admin/announcements/${mode === "test" ? "test" : "send"}`,
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({ subject, message })
+        }
+      );
+      const data = (await res.json()) as {
+        error?: string;
+        sentTo?: string;
+        sentCount?: number;
+        totalSubscribers?: number;
+        failedCount?: number;
+      };
+      if (!res.ok) {
+        throw new Error(data.error || "Failed to send announcement");
+      }
+
+      if (mode === "test") {
+        showToast(`Test email sent to ${data.sentTo || "the super admin inbox"}.`, "success");
+      } else {
+        showToast(
+          `Announcement sent to ${data.sentCount || 0} of ${data.totalSubscribers || 0} subscribers.`,
+          data.failedCount ? "error" : "success"
+        );
+      }
+
+      await loadSubscribers();
+    } catch (error) {
+      showToast(error instanceof Error ? error.message : "Failed to send announcement", "error");
+    } finally {
+      if (mode === "test") {
+        setSendingTestAnnouncement(false);
+      } else {
+        setSendingAnnouncement(false);
+      }
     }
   };
 
@@ -729,6 +852,158 @@ export default function AdminDashboardPage() {
             </tbody>
           </table>
         </div>
+      </section>
+
+      <section className="mt-6 grid gap-6 xl:grid-cols-[1.15fr_0.85fr]">
+        <article className="rounded-3xl border border-border bg-card/95 p-5 shadow-sm">
+          <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+            <div>
+              <h2 className="text-lg font-semibold text-text-primary">Announcements</h2>
+              <p className="mt-1 text-sm text-text-secondary">
+                Send product updates or launch offers to everyone subscribed from the footer and signup flows.
+              </p>
+            </div>
+            <span className="tf-muted-tag">
+              {subscribersLoading
+                ? "Loading subscribers..."
+                : `${subscribersResponse?.summary.totalSubscribers?.toLocaleString("en-IN") || 0} subscribed`}
+            </span>
+          </div>
+
+          <div className="mt-5 grid gap-4">
+            <div>
+              <label className="text-sm font-semibold text-text-primary" htmlFor="announcement-subject">
+                Subject
+              </label>
+              <input
+                id="announcement-subject"
+                value={announcementSubject}
+                onChange={(event) => setAnnouncementSubject(event.target.value)}
+                className="mt-2 w-full rounded-2xl border border-border bg-background px-4 py-3 text-sm text-text-primary outline-none transition focus:border-primary/30 focus:ring-2 focus:ring-primary/10"
+                placeholder="What are we announcing?"
+              />
+            </div>
+
+            <div>
+              <label className="text-sm font-semibold text-text-primary" htmlFor="announcement-message">
+                Message
+              </label>
+              <textarea
+                id="announcement-message"
+                value={announcementMessage}
+                onChange={(event) => setAnnouncementMessage(event.target.value)}
+                rows={8}
+                className="mt-2 w-full rounded-2xl border border-border bg-background px-4 py-3 text-sm text-text-primary outline-none transition focus:border-primary/30 focus:ring-2 focus:ring-primary/10"
+                placeholder="Share the update, offer, or launch note you want subscribers to receive."
+              />
+            </div>
+
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <p className="text-xs leading-6 text-text-secondary">
+                Start with a test email to <span className="font-semibold text-text-primary">team@usetraceforge.com</span>, then send the final version to subscribers.
+              </p>
+              <div className="flex flex-col gap-3 sm:flex-row">
+                <button
+                  type="button"
+                  className="rounded-2xl border border-border px-4 py-2.5 text-sm font-semibold text-text-secondary transition hover:border-primary/20 hover:text-text-primary"
+                  onClick={() => void submitAnnouncement("test")}
+                  disabled={sendingTestAnnouncement || sendingAnnouncement}
+                >
+                  <LoadingButtonContent
+                    loading={sendingTestAnnouncement}
+                    loadingLabel="Sending test..."
+                    idleLabel="Send test"
+                  />
+                </button>
+                <button
+                  type="button"
+                  className="tf-button inline-flex px-4 py-2.5 text-sm"
+                  onClick={() => void submitAnnouncement("send")}
+                  disabled={sendingAnnouncement || sendingTestAnnouncement}
+                >
+                  <LoadingButtonContent
+                    loading={sendingAnnouncement}
+                    loadingLabel="Sending..."
+                    idleLabel="Send to subscribers"
+                  />
+                </button>
+              </div>
+            </div>
+          </div>
+        </article>
+
+        <article className="rounded-3xl border border-border bg-card/95 p-5 shadow-sm">
+          <div className="flex flex-col gap-3">
+            <div>
+              <h2 className="text-lg font-semibold text-text-primary">Subscribers</h2>
+              <p className="mt-1 text-sm text-text-secondary">
+                Recent subscribed emails from footer signups and account registration flows.
+              </p>
+            </div>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <div className="rounded-2xl border border-border bg-background/70 px-4 py-3">
+                <p className="text-xs font-semibold uppercase tracking-[0.12em] text-text-secondary">
+                  Total subscribed
+                </p>
+                <p className="mt-2 text-2xl font-semibold text-text-primary">
+                  {subscribersLoading
+                    ? "—"
+                    : subscribersResponse?.summary.totalSubscribers?.toLocaleString("en-IN") || "0"}
+                </p>
+              </div>
+              <div className="rounded-2xl border border-border bg-background/70 px-4 py-3">
+                <p className="text-xs font-semibold uppercase tracking-[0.12em] text-text-secondary">
+                  Showing now
+                </p>
+                <p className="mt-2 text-2xl font-semibold text-text-primary">
+                  {subscribersLoading
+                    ? "—"
+                    : subscribersResponse?.summary.matchingSubscribers?.toLocaleString("en-IN") || "0"}
+                </p>
+              </div>
+            </div>
+
+            <div className="flex gap-3">
+              <input
+                value={subscriberSearchInput}
+                onChange={(event) => setSubscriberSearchInput(event.target.value)}
+                onKeyDown={(event) => {
+                  if (event.key === "Enter") {
+                    setSubscriberSearch(subscriberSearchInput.trim());
+                  }
+                }}
+                className="w-full rounded-2xl border border-border bg-background px-4 py-3 text-sm text-text-primary outline-none transition focus:border-primary/30 focus:ring-2 focus:ring-primary/10"
+                placeholder="Search by email or source"
+              />
+              <button
+                type="button"
+                className="rounded-2xl border border-border px-4 py-2 text-sm font-semibold text-text-secondary transition hover:border-primary/20 hover:text-text-primary"
+                onClick={() => setSubscriberSearch(subscriberSearchInput.trim())}
+              >
+                Search
+              </button>
+            </div>
+
+            <div className="space-y-3">
+              {(subscribersResponse?.subscribers || []).map((subscriber) => (
+                <div key={subscriber.id} className="rounded-2xl border border-border bg-background/70 px-4 py-4">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <p className="font-semibold text-text-primary">{subscriber.email}</p>
+                    <span className="tf-success-tag">{subscriber.status}</span>
+                  </div>
+                  <p className="mt-2 text-xs text-text-secondary">
+                    Source {subscriber.sourcePath || "unknown"} • subscribed {formatDateTime(subscriber.subscribedAt)}
+                  </p>
+                </div>
+              ))}
+              {!subscribersLoading && !subscribersResponse?.subscribers?.length ? (
+                <p className="rounded-2xl border border-dashed border-border bg-background/50 px-4 py-5 text-sm text-text-secondary">
+                  No subscribers match this search yet.
+                </p>
+              ) : null}
+            </div>
+          </div>
+        </article>
       </section>
 
       <section className="mt-6 rounded-3xl border border-border bg-card/95 p-5 shadow-sm">

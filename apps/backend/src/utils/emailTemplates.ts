@@ -313,3 +313,54 @@ export const buildSuperAdminAccessRequestEmail = ({
 
   return { text, html };
 };
+
+export const buildMarketingAnnouncementEmail = ({
+  subject,
+  message
+}: {
+  subject: string;
+  message: string;
+}) => {
+  const cleanSubject = subject.trim();
+  const cleanMessage = message.trim();
+  const paragraphs = cleanMessage
+    .split(/\n\s*\n/g)
+    .map((entry) => entry.trim())
+    .filter(Boolean);
+
+  const text = [cleanSubject, "", ...paragraphs, "", `Open TraceForge: ${webBaseUrl}`].join("\n");
+
+  const html = renderLayout({
+    preheader: cleanSubject,
+    eyebrow: "Product update",
+    title: cleanSubject,
+    intro: [
+      "Here’s a quick update from TraceForge.",
+      "We’re sharing this with subscribers who asked to hear about product updates and launch offers."
+    ],
+    body: `
+      <div style="display: grid; gap: 12px;">
+        ${paragraphs
+          .map(
+            (paragraph) => `
+              <div style="border-radius: 18px; border: 1px solid #e2e8f0; background: #f8fafc; padding: 16px 18px;">
+                <p style="margin: 0; white-space: pre-wrap; font-size: 15px; line-height: 26px; color: #334155;">${escapeHtml(paragraph)}</p>
+              </div>
+            `
+          )
+          .join("")}
+        <div style="padding-top: 4px;">
+          <a
+            href="${escapeHtml(webBaseUrl)}"
+            style="display: inline-block; border-radius: 999px; background: #0f172a; color: #ffffff; text-decoration: none; font-size: 14px; font-weight: 700; padding: 12px 18px;"
+          >
+            Open TraceForge
+          </a>
+        </div>
+      </div>
+    `,
+    note: "You received this because you subscribed to TraceForge product updates."
+  });
+
+  return { text, html };
+};

@@ -69,7 +69,7 @@ export default function SiteHeader() {
       <div className="tf-container flex items-center justify-between gap-4 px-[30px] py-3">
         <Link href="/" className="flex items-center gap-1">
           <Image
-            src="/traceforge.png"
+            src="/traceforge-logo.svg"
             alt="TraceForge logo"
             width={44}
             height={44}

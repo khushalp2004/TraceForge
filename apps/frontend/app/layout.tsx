@@ -33,7 +33,7 @@ export const metadata: Metadata = {
     type: "website",
     images: [
       {
-        url: "/traceforge.png",
+        url: "/traceforge-logo.svg",
         width: 512,
         height: 512,
         alt: `${SITE_NAME} logo`
@@ -44,16 +44,16 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title: SITE_NAME,
     description: SITE_DESCRIPTION,
-    images: ["/traceforge.png"]
+    images: ["/traceforge-logo.svg"]
   },
   robots: {
     index: true,
     follow: true
   },
   icons: {
-    icon: "/traceforge.png",
-    shortcut: "/traceforge.png",
-    apple: "/traceforge.png"
+    icon: "/traceforge-logo.svg",
+    shortcut: "/traceforge-logo.svg",
+    apple: "/traceforge-logo.svg"
   }
 };
 

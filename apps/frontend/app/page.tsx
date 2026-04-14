@@ -36,7 +36,7 @@ export default function HomePage() {
       "@type": "Organization",
       name: SITE_NAME,
       url: absoluteUrl("/"),
-      logo: absoluteUrl("/traceforge.png")
+      logo: absoluteUrl("/traceforge-logo.svg")
     },
     {
       "@context": "https://schema.org",
@@ -47,7 +47,7 @@ export default function HomePage() {
       description:
         "AI-powered error monitoring for engineering teams, with issue grouping, release context, alerts, and remediation guidance.",
       url: absoluteUrl("/"),
-      image: absoluteUrl("/traceforge.png")
+      image: absoluteUrl("/traceforge-logo.svg")
     }
   ];
 

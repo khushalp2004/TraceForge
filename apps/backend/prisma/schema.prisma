@@ -40,6 +40,18 @@ model User {
   aiUsageEntries AiUsageEntry[]
 }
 
+model MarketingSubscriber {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  sourcePath   String?
+  status       String   @default("SUBSCRIBED")
+  subscribedAt DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([status])
+  @@index([subscribedAt])
+}
+
 enum BillingPlan {
   FREE
   DEV

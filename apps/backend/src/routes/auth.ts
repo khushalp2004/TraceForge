@@ -26,6 +26,7 @@ import {
   issueEmailVerificationCode
 } from "../utils/emailVerification.js";
 import { clearAuthCookie, setAuthCookie } from "../utils/authCookies.js";
+import { subscribeMarketingEmail } from "../utils/marketingSubscribers.js";
 
 export const authRouter = Router();
 
@@ -679,6 +680,15 @@ authRouter.post("/register", registerRateLimit, async (req, res) => {
     fullName: user.fullName
   });
 
+  try {
+    await subscribeMarketingEmail({
+      email: user.email,
+      sourcePath: "/signup"
+    });
+  } catch (error) {
+    console.error("Failed to auto-subscribe registered user", error);
+  }
+
   return res.status(201).json({
     status: "verification_required",
     email: user.email
@@ -1064,6 +1074,15 @@ authRouter.post("/oauth/complete-signup", socialCompleteRateLimit, async (req, r
           emailVerifiedAt: new Date()
         }
       });
+
+  try {
+    await subscribeMarketingEmail({
+      email: user.email,
+      sourcePath: "/oauth/complete-signup"
+    });
+  } catch (error) {
+    console.error("Failed to auto-subscribe social signup user", error);
+  }
 
   if (user.disabledAt) {
     return res.status(403).json({ error: "This account has been suspended. Contact support for help." });

@@ -1,6 +1,6 @@
 "use client";
 
-import { useId } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import {
   Area,
   AreaChart,
@@ -70,6 +70,8 @@ export function SparkAreaChart({
   variant?: "area" | "bar";
   showXAxis?: boolean;
 }) {
+  const containerRef = useRef<HTMLDivElement | null>(null);
+  const [isChartReady, setIsChartReady] = useState(false);
   const gradientId = useId();
   const stroke = tone === "primary" ? "hsl(var(--primary))" : "hsl(var(--muted-foreground))";
   const cursorStroke = "hsl(var(--border))";
@@ -79,8 +81,30 @@ export function SparkAreaChart({
   const yAxisWidth = height < 140 ? 30 : 36;
   const chartMargin = { top: 10, right: 12, left: 0, bottom: showXAxisTicks ? 24 : 0 } as const;
 
+  useEffect(() => {
+    const element = containerRef.current;
+    if (!element) {
+      return;
+    }
+
+    const updateSize = () => {
+      const nextReady = element.clientWidth > 0 && element.clientHeight > 0;
+      setIsChartReady(nextReady);
+    };
+
+    updateSize();
+
+    const observer = new ResizeObserver(() => {
+      updateSize();
+    });
+
+    observer.observe(element);
+    return () => observer.disconnect();
+  }, [height]);
+
   return (
-    <div style={{ height }}>
+    <div ref={containerRef} className="min-w-0" style={{ height }}>
+      {isChartReady ? (
       <ResponsiveContainer width="100%" height="100%">
         {variant === "bar" ? (
           <BarChart data={data} margin={chartMargin}>
@@ -175,6 +199,9 @@ export function SparkAreaChart({
           </AreaChart>
         )}
       </ResponsiveContainer>
+      ) : (
+        <div className="h-full w-full rounded-xl bg-secondary/20" aria-hidden="true" />
+      )}
     </div>
   );
 }

@@ -12,9 +12,9 @@ export default function manifest(): MetadataRoute.Manifest {
     theme_color: "#f59e0b",
     icons: [
       {
-        src: "/traceforge.png",
-        sizes: "512x512",
-        type: "image/png"
+        src: "/traceforge-logo.svg",
+        sizes: "any",
+        type: "image/svg+xml"
       }
     ]
   };

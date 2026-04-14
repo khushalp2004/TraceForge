@@ -410,7 +410,7 @@ export default function DashboardSidebar({
                 collapsed ? "h-8 w-8" : "h-9 w-9"
               }`}
             >
-              <Image src="/traceforge.png" alt="TraceForge" width={22} height={22} />
+              <Image src="/traceforge-logo.svg" alt="TraceForge" width={22} height={22} />
             </div>
             <div className={`min-w-0 ${collapsed ? "hidden tf-reveal-block" : "block"}`}>
               <p className="text-[11px] uppercase tracking-[0.18em] text-text-secondary">

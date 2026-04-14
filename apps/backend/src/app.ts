@@ -21,6 +21,7 @@ import { publicBillingRouter } from "./routes/publicBilling.js";
 import { integrationsRouter } from "./routes/integrations.js";
 import { supportRouter } from "./routes/support.js";
 import { adminRouter } from "./routes/admin.js";
+import { marketingRouter } from "./routes/marketing.js";
 
 export const createApp = () => {
   const app = express();
@@ -92,6 +93,7 @@ export const createApp = () => {
   app.use("/public/fx", fxRouter);
   app.use("/public/billing", publicBillingRouter);
   app.use("/support", supportRouter);
+  app.use("/marketing", marketingRouter);
   app.use("/admin", adminRouter);
   app.use("/integrations", integrationsRouter);
   app.use("/projects", projectsRouter);
