@@ -477,36 +477,47 @@ export default function DashboardSidebar({
       </div>
 
       {usage ? (
-        <div
-          className={`group relative mt-5 rounded-2xl border border-border bg-card px-3 py-3 shadow-sm ${
-            collapsed ? "hidden group-hover/nav:block" : ""
-          }`}
-        >
-          <div className="flex items-center gap-3">
-            <UsageRing used={usage.used} limit={usage.limit} percentUsed={usage.percentUsed} />
-            <div className="min-w-0 flex-1">
-              <p className="text-xs font-semibold text-text-primary">Usage this month</p>
-              <p className="mt-1 truncate text-xs text-text-secondary">
-                {usage.plan === "PRO"
-                  ? "Unlimited AI analysis"
-                  : `${usage.label} · ${
-                      usage.plan === "TEAM" ? "Team plan" : usage.plan === "DEV" ? "Dev plan" : "Free plan"
-                    }`}
+        collapsed ? (
+          <div className="group/usage relative mt-5 flex justify-center">
+            <button
+              type="button"
+              className="inline-flex h-14 w-14 items-center justify-center rounded-2xl border border-border bg-card shadow-sm transition hover:border-primary/30 hover:bg-secondary/50"
+              aria-label="View monthly usage"
+            >
+              <UsageRing used={usage.used} limit={usage.limit} percentUsed={usage.percentUsed} />
+            </button>
+            <div className="pointer-events-none absolute left-full top-1/2 z-50 ml-3 hidden w-56 -translate-y-1/2 rounded-2xl border border-border bg-card/95 p-3 text-xs text-text-secondary shadow-xl backdrop-blur group-hover/usage:block group-focus-within/usage:block">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-text-secondary">
+                Usage this month
               </p>
+              <p className="mt-2 font-semibold text-text-primary">
+                {usage.plan === "PRO" ? "Unlimited AI" : `${usage.used} used / ${usage.limit} total`}
+              </p>
+              <p className="mt-1">
+                {usage.plan === "PRO"
+                  ? "Your Pro plan includes unlimited AI analyses everywhere in TraceForge."
+                  : `${usage.remaining} left this month.`}
+              </p>
+              <p className="mt-2">{usage.detail}</p>
             </div>
           </div>
-          <div className="pointer-events-none absolute bottom-full left-0 mb-3 hidden w-56 rounded-2xl border border-border bg-card/95 p-3 text-xs text-text-secondary shadow-xl backdrop-blur group-hover:block">
-            <p className="font-semibold text-text-primary">
-              {usage.plan === "PRO" ? "Unlimited AI" : `${usage.used} used / ${usage.limit} total`}
-            </p>
-            <p className="mt-1">
-              {usage.plan === "PRO"
-                ? "Your Pro plan includes unlimited AI analyses everywhere in TraceForge."
-                : `${usage.remaining} left this month.`}
-            </p>
-            <p className="mt-2">{usage.detail}</p>
+        ) : (
+          <div className="relative mt-5 rounded-2xl border border-border bg-card px-3 py-3 shadow-sm">
+            <div className="flex items-center gap-3">
+              <UsageRing used={usage.used} limit={usage.limit} percentUsed={usage.percentUsed} />
+              <div className="min-w-0 flex-1">
+                <p className="text-xs font-semibold text-text-primary">Usage this month</p>
+                <p className="mt-1 truncate text-xs text-text-secondary">
+                  {usage.plan === "PRO"
+                    ? "Unlimited AI analysis"
+                    : `${usage.label} · ${
+                        usage.plan === "TEAM" ? "Team plan" : usage.plan === "DEV" ? "Dev plan" : "Free plan"
+                      }`}
+                </p>
+              </div>
+            </div>
           </div>
-        </div>
+        )
       ) : null}
 
       <div className="relative mt-5" ref={profileRef}>

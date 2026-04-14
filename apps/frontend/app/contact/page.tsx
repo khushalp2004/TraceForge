@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { createPageMetadata } from "../seo";
 
-const supportEmail = process.env.NEXT_PUBLIC_SUPPORT_EMAIL || "hello@usetraceforge.com";
+const supportEmail = process.env.NEXT_PUBLIC_SUPPORT_EMAIL || "team@usetraceforge.com";
 
 export const metadata: Metadata = createPageMetadata({
   title: "Contact Us",

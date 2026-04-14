@@ -7,6 +7,20 @@ import { usePathname, useRouter } from "next/navigation";
 import { useAuth } from "../../../context/AuthContext";
 import { useGlobalSearch } from "../../components/GlobalSearchProvider";
 
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
+const dashboardPrefsKey = "traceforge_dashboard_prefs_v1";
+
+type UsageSummary = {
+  scope: "USER" | "ORGANIZATION";
+  plan: "FREE" | "DEV" | "PRO" | "TEAM";
+  used: number;
+  limit: number | null;
+  remaining: number | null;
+  percentUsed: number;
+  label: string;
+  detail: string;
+};
+
 const baseTopNavItems = [
   { href: "/dashboard", label: "Overview" },
   { href: "/dashboard/issues", label: "Issues" },
@@ -26,8 +40,44 @@ const isActiveRoute = (pathname: string, href: string) => {
   return pathname.startsWith(href);
 };
 
+function UsageRing({
+  used,
+  limit,
+  percentUsed
+}: {
+  used: number;
+  limit: number | null;
+  percentUsed: number;
+}) {
+  const radius = 18;
+  const circumference = 2 * Math.PI * radius;
+  const progress = limit ? circumference - (Math.min(100, percentUsed) / 100) * circumference : circumference * 0.72;
+
+  return (
+    <div className="relative h-11 w-11 shrink-0">
+      <svg className="h-11 w-11 -rotate-90" viewBox="0 0 44 44" fill="none">
+        <circle cx="22" cy="22" r={radius} stroke="currentColor" strokeWidth="4" className="text-border/80" />
+        <circle
+          cx="22"
+          cy="22"
+          r={radius}
+          stroke="currentColor"
+          strokeWidth="4"
+          strokeLinecap="round"
+          strokeDasharray={circumference}
+          strokeDashoffset={progress}
+          className={limit ? "text-primary" : "text-emerald-400"}
+        />
+      </svg>
+      <span className="absolute inset-0 flex items-center justify-center text-[10px] font-semibold text-text-primary">
+        {limit ? `${Math.min(99, Math.max(0, percentUsed))}%` : "∞"}
+      </span>
+    </div>
+  );
+}
+
 export default function DashboardTopNav() {
-  const { user, logout } = useAuth();
+  const { user, logout, token } = useAuth();
   const { openSearch } = useGlobalSearch();
   const router = useRouter();
   const pathname = usePathname() ?? "/dashboard";
@@ -35,6 +85,8 @@ export default function DashboardTopNav() {
   const moreRef = useRef<HTMLDivElement | null>(null);
   const [profileOpen, setProfileOpen] = useState(false);
   const profileRef = useRef<HTMLDivElement | null>(null);
+  const [selectedOrgId, setSelectedOrgId] = useState("");
+  const [usage, setUsage] = useState<UsageSummary | null>(null);
   const displayName = user?.fullName?.trim() || user?.email?.split("@")[0] || "Account";
   const initials = useMemo(() => {
     const source = user?.fullName?.trim() || user?.email || "TF";
@@ -106,6 +158,79 @@ export default function DashboardTopNav() {
     setMoreOpen(false);
     setProfileOpen(false);
   }, [pathname]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") {
+      return;
+    }
+
+    const syncSelectedOrg = () => {
+      try {
+        const raw = window.localStorage.getItem(dashboardPrefsKey);
+        if (!raw) {
+          setSelectedOrgId("");
+          return;
+        }
+
+        const parsed = JSON.parse(raw) as { orgId?: string };
+        setSelectedOrgId(typeof parsed.orgId === "string" ? parsed.orgId : "");
+      } catch {
+        setSelectedOrgId("");
+      }
+    };
+
+    syncSelectedOrg();
+    const intervalId = window.setInterval(syncSelectedOrg, 1200);
+    window.addEventListener("focus", syncSelectedOrg);
+    return () => {
+      window.clearInterval(intervalId);
+      window.removeEventListener("focus", syncSelectedOrg);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!token) {
+      setUsage(null);
+      return;
+    }
+
+    let cancelled = false;
+    const query = selectedOrgId ? `?orgId=${encodeURIComponent(selectedOrgId)}` : "";
+
+    const loadUsage = async () => {
+      try {
+        const res = await fetch(`${API_URL}/auth/usage${query}`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        const data = (await res.json()) as { usage?: UsageSummary; error?: string };
+        if (!res.ok) {
+          throw new Error(data.error || "Failed to load usage");
+        }
+        if (!cancelled) {
+          setUsage(data.usage || null);
+        }
+      } catch {
+        if (!cancelled) {
+          setUsage(null);
+        }
+      }
+    };
+
+    void loadUsage();
+    const intervalId = window.setInterval(() => {
+      void loadUsage();
+    }, 8000);
+    const handleFocus = () => {
+      void loadUsage();
+    };
+    window.addEventListener("focus", handleFocus);
+
+    return () => {
+      cancelled = true;
+      window.clearInterval(intervalId);
+      window.removeEventListener("focus", handleFocus);
+    };
+  }, [pathname, selectedOrgId, token]);
 
   const openSettings = () => {
     setProfileOpen(false);
@@ -222,6 +347,32 @@ export default function DashboardTopNav() {
           </nav>
 
           <div className="flex items-center gap-2">
+            {usage ? (
+              <div className="group relative">
+                <button
+                  type="button"
+                  className="inline-flex h-12 w-12 items-center justify-center rounded-full border border-border bg-card text-text-secondary shadow-sm transition hover:border-primary/25 hover:text-text-primary"
+                  aria-label="View monthly usage"
+                >
+                  <UsageRing used={usage.used} limit={usage.limit} percentUsed={usage.percentUsed} />
+                </button>
+                <div className="pointer-events-none absolute right-0 top-[calc(100%+10px)] z-50 hidden w-60 rounded-2xl border border-border bg-card/95 p-3 text-xs text-text-secondary shadow-xl backdrop-blur group-hover:block group-focus-within:block">
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-text-secondary">
+                    Usage this month
+                  </p>
+                  <p className="mt-2 font-semibold text-text-primary">
+                    {usage.plan === "PRO" ? "Unlimited AI" : `${usage.used} used / ${usage.limit} total`}
+                  </p>
+                  <p className="mt-1">
+                    {usage.plan === "PRO"
+                      ? "Your Pro plan includes unlimited AI analyses everywhere in TraceForge."
+                      : `${usage.remaining} left this month.`}
+                  </p>
+                  <p className="mt-2">{usage.detail}</p>
+                </div>
+              </div>
+            ) : null}
+
             <button
               type="button"
               onClick={() => openSearch()}
