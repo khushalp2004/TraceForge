@@ -1,11 +1,15 @@
 /** @type {import('next').NextConfig} */
 const apiOrigin = process.env.NEXT_PUBLIC_API_URL || "";
 const isProduction = process.env.NODE_ENV === "production";
+const razorpaySources = [
+  "https://checkout.razorpay.com",
+  "https://api.razorpay.com",
+  "https://*.razorpay.com"
+];
 const connectSources = [
   "'self'",
   apiOrigin,
-  "https://api.razorpay.com",
-  "https://checkout.razorpay.com",
+  ...razorpaySources,
   "https:",
   ...(isProduction ? [] : ["http:", "ws:", "wss:"])
 ].filter(Boolean);
@@ -14,11 +18,11 @@ const cspDirectives = [
   "base-uri 'self'",
   "frame-ancestors 'none'",
   "object-src 'none'",
-  `script-src 'self' 'unsafe-inline' https://checkout.razorpay.com${isProduction ? "" : " 'unsafe-eval'"}`,
+  `script-src 'self' 'unsafe-inline' ${razorpaySources.join(" ")}${isProduction ? "" : " 'unsafe-eval'"}`,
   "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
   "img-src 'self' data: blob: https:",
   "font-src 'self' data: https://fonts.gstatic.com",
-  "frame-src 'self' https://checkout.razorpay.com",
+  `frame-src 'self' ${razorpaySources.join(" ")}`,
   `connect-src ${connectSources.join(" ")}`,
   "form-action 'self'",
   ...(isProduction ? ["upgrade-insecure-requests"] : [])
