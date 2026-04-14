@@ -467,7 +467,7 @@ export default function DashboardMobileNav() {
         role="navigation"
         aria-label="Mobile dashboard navigation"
       >
-        <div className="mx-auto flex max-w-xl items-stretch gap-2 overflow-x-auto px-1 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+        <div className="mx-auto grid max-w-xl grid-cols-5 gap-2 px-1 pb-1">
           {primaryItems.map((item) => {
             const isActive = isActiveRoute(pathname, item.href);
 
@@ -475,7 +475,7 @@ export default function DashboardMobileNav() {
               <Link
                 key={item.href}
                 href={item.href}
-                className={`flex min-w-[4.25rem] flex-1 flex-col items-center justify-center gap-1 rounded-2xl border px-2 py-2 text-[11px] font-semibold transition ${
+                className={`flex min-w-0 flex-col items-center justify-center gap-1 rounded-2xl border px-2 py-2 text-[11px] font-semibold transition ${
                   isActive
                     ? "border-border/70 bg-card/90 text-primary shadow-sm backdrop-blur"
                     : "border-transparent text-text-secondary hover:bg-card/90 hover:text-text-primary"
@@ -489,7 +489,7 @@ export default function DashboardMobileNav() {
 
           <button
             type="button"
-            className={`flex min-w-[4.25rem] flex-1 flex-col items-center justify-center gap-1 rounded-2xl border px-2 py-2 text-[11px] font-semibold transition ${
+            className={`flex min-w-0 flex-col items-center justify-center gap-1 rounded-2xl border px-2 py-2 text-[11px] font-semibold transition ${
               menuOpen || activeOverflowItem
                 ? "border-border/70 bg-card/90 text-primary shadow-sm backdrop-blur"
                 : "border-transparent text-text-secondary hover:bg-card/90 hover:text-text-primary"
