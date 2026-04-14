@@ -1022,10 +1022,6 @@ export default function BillingPage() {
                 detail: "Unlimited AI belongs to the user account and follows that user everywhere."
               },
               {
-                title: "Dev",
-                detail: "Dev keeps Free-level product access and raises the user AI allowance to 100 each month."
-              },
-              {
                 title: "Team",
                 detail: "200 shared AI analyses each month for the selected organization."
               },

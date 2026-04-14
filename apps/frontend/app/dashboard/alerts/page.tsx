@@ -1155,14 +1155,14 @@ function AlertsPageInner() {
 
           <div className="min-h-0 lg:flex lg:flex-col">
             <div className="rounded-2xl border border-border bg-card/90 p-5 shadow-sm lg:flex lg:min-h-0 lg:flex-1 lg:flex-col lg:overflow-hidden">
-              <div className="flex items-center justify-between gap-3">
-                <div>
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
                   <h2 className="text-lg font-semibold text-text-primary">Recent activity</h2>
                   <p className="mt-1 text-sm text-text-secondary">
                     Latest alert deliveries and quick jumps into issues.
                   </p>
                 </div>
-                <span className="rounded-full border border-border bg-card px-3 py-1 text-xs font-semibold text-text-secondary">
+                <span className="ml-auto shrink-0 whitespace-nowrap rounded-full border border-border bg-card px-3 py-1 text-xs font-semibold text-text-secondary">
                   {filteredEvents.length} events
                 </span>
               </div>
@@ -1219,7 +1219,7 @@ function AlertsPageInner() {
 
                       <div className="mt-4">
                         <Link
-                          className="tf-button-ghost px-4 py-2 text-sm"
+                          className="inline-flex rounded-full border border-border px-3 py-1.5 text-xs font-semibold text-text-secondary transition hover:bg-secondary/70 hover:text-text-primary"
                           href={`/dashboard/errors/${event.error.id}`}
                         >
                           Open issue

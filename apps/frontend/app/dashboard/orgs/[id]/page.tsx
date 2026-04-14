@@ -483,14 +483,14 @@ function OrganizationDetailPageInner({ params }: { params: { id: string } }) {
             {loading && <p className="mt-2 text-sm text-text-secondary">Working...</p>}
 
             <div className="mt-6">
-              <div className="mb-3 flex items-center justify-between gap-3">
+              <div className="mb-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <div>
                   <h2 className="tf-section-title">Members</h2>
                   <p className="mt-1 text-sm text-text-secondary">
                     Manage roles and membership for this organization.
                   </p>
                 </div>
-                <div className="rounded-full border border-border bg-card px-3 py-1 text-xs font-semibold text-text-secondary">
+                <div className="w-fit max-w-full rounded-full border border-border bg-card px-3 py-1 text-xs font-semibold text-text-secondary">
                   {members.length} {members.length === 1 ? "member" : "members"}
                 </div>
               </div>

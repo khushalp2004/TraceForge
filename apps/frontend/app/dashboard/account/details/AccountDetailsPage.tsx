@@ -693,10 +693,10 @@ export default function AccountDetailsPage() {
               </div>
             )}
 
-            <div className="mt-5 flex items-center justify-end gap-3">
+            <div className="mt-5 flex flex-col-reverse gap-3 sm:flex-row sm:items-center sm:justify-end">
               <button
                 type="button"
-                className="min-w-[144px] rounded-full border border-border bg-card px-4 py-2 text-sm font-semibold text-text-secondary transition hover:bg-secondary/50 hover:text-text-primary"
+                className="w-full rounded-full border border-border bg-card px-4 py-2 text-sm font-semibold text-text-secondary transition hover:bg-secondary/50 hover:text-text-primary sm:w-auto sm:min-w-[144px]"
                 onClick={() => {
                   setShowLeaveConfirm(false);
                   setLeaveBlockers([]);
@@ -707,7 +707,7 @@ export default function AccountDetailsPage() {
               </button>
               <button
                 type="button"
-                className="min-w-[144px] rounded-full border border-primary/25 bg-primary/12 px-4 py-2 text-sm font-semibold text-text-primary transition hover:bg-primary/18"
+                className="w-full rounded-full border border-primary/25 bg-primary/12 px-4 py-2 text-sm font-semibold text-text-primary transition hover:bg-primary/18 sm:w-auto sm:min-w-[144px]"
                 onClick={leaveAllOrganizations}
                 disabled={busyAction === "leave-organizations"}
               >

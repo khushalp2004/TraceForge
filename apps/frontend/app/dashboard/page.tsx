@@ -1856,7 +1856,7 @@ function DashboardPageInner() {
                   return (
                     <div
                       key={item.id}
-                      className="rounded-xl border border-border px-4 py-4 transition hover:border-primary/30 hover:bg-accent-soft"
+                      className="min-w-0 overflow-hidden rounded-xl border border-border px-4 py-4 transition hover:border-primary/30 hover:bg-accent-soft"
                     >
                       <div className="flex flex-wrap items-start justify-between gap-4">
                         <div className="min-w-0">
@@ -1868,7 +1868,7 @@ function DashboardPageInner() {
                             Last seen {new Date(item.lastSeen).toLocaleString()}
                           </p>
                         </div>
-                        <div className="flex flex-wrap items-center gap-2">
+                        <div className="flex max-w-full flex-wrap items-center gap-2">
                           <span className="rounded-full bg-accent-soft px-3 py-1 text-xs font-semibold text-text-primary">
                             {item.count} hits
                           </span>
@@ -1894,7 +1894,7 @@ function DashboardPageInner() {
                         </p>
                       )}
                       {isExpanded && item.stackTrace && (
-                        <pre className="mt-3 max-h-56 overflow-auto rounded-xl bg-ink p-3 text-xs text-white/90">
+                        <pre className="mt-3 max-h-56 max-w-full overflow-auto whitespace-pre-wrap break-words rounded-xl bg-ink p-3 text-xs text-white/90">
                           {item.stackTrace}
                         </pre>
                       )}
