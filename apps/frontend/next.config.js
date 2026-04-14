@@ -4,6 +4,8 @@ const isProduction = process.env.NODE_ENV === "production";
 const connectSources = [
   "'self'",
   apiOrigin,
+  "https://api.razorpay.com",
+  "https://checkout.razorpay.com",
   "https:",
   ...(isProduction ? [] : ["http:", "ws:", "wss:"])
 ].filter(Boolean);
@@ -12,10 +14,11 @@ const cspDirectives = [
   "base-uri 'self'",
   "frame-ancestors 'none'",
   "object-src 'none'",
-  `script-src 'self' 'unsafe-inline'${isProduction ? "" : " 'unsafe-eval'"}`,
+  `script-src 'self' 'unsafe-inline' https://checkout.razorpay.com${isProduction ? "" : " 'unsafe-eval'"}`,
   "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
   "img-src 'self' data: blob: https:",
   "font-src 'self' data: https://fonts.gstatic.com",
+  "frame-src 'self' https://checkout.razorpay.com",
   `connect-src ${connectSources.join(" ")}`,
   "form-action 'self'",
   ...(isProduction ? ["upgrade-insecure-requests"] : [])
