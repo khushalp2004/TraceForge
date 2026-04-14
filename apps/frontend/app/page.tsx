@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import HomeHeroPreview from "./components/HomeHeroPreview";
 import { absoluteUrl, createPageMetadata, SITE_NAME } from "./seo";
 
 export const metadata: Metadata = createPageMetadata({
@@ -122,70 +123,7 @@ export default function HomePage() {
             </div>
           </div>
 
-          <div className="tf-glow-card p-1">
-            <div className="rounded-[22px] border border-border bg-gradient-to-br from-card/95 to-secondary/70 p-4 sm:p-6 backdrop-blur-md">
-              <div className="flex items-center justify-between gap-3">
-                <div>
-                  <p className="text-xs font-semibold text-text-secondary">Live issue preview</p>
-                  <p className="mt-1 text-sm font-semibold text-text-primary">Checkout · null pointer</p>
-                </div>
-                <span className="rounded-full border border-border bg-card px-2 py-1 text-[10px] font-semibold text-text-secondary">
-                  New
-                </span>
-              </div>
-
-              <div className="mt-4 grid gap-3">
-                <div className="rounded-xl border border-border bg-card px-3 py-3 sm:px-4">
-                  <div className="flex flex-wrap items-center justify-between gap-3">
-                    <p className="text-xs font-semibold text-text-secondary">Fingerprint</p>
-                    <span className="tf-pill">2 services</span>
-                  </div>
-                  <p className="mt-2 font-mono text-[10px] sm:text-[11px] text-text-secondary break-words">
-                    9e7b… · hash("TypeError" + "at submitOrder…")
-                  </p>
-                </div>
-
-                <div className="rounded-xl border border-border bg-card px-3 py-3 sm:px-4">
-                  <p className="text-xs font-semibold text-text-secondary">Stack (top frames)</p>
-                  <pre className="mt-2 overflow-x-auto whitespace-pre-wrap break-words rounded-lg bg-ink px-3 py-2 text-[10px] sm:text-[11px] leading-5 text-white/90">
-{`TypeError: Cannot read properties of undefined
-  at submitOrder (checkout.ts:88:13)
-  at onClick (Button.tsx:42:9)`}
-                  </pre>
-                </div>
-
-                <div className="rounded-xl border border-primary/15 bg-accent-soft px-3 py-3 sm:px-4 text-xs text-text-primary break-words">
-                  <span className="font-semibold">AI brief:</span> root cause introduced in checkout
-                  refactor. Add a null guard for <span className="font-mono">customer.email</span>{" "}
-                  before calling <span className="font-mono">sendReceipt()</span>.
-                </div>
-
-                <div className="rounded-xl border border-border bg-card px-3 py-3 sm:px-4">
-                  <div className="flex flex-wrap items-center justify-between gap-3">
-                    <p className="text-xs font-semibold text-text-secondary">Connected workflow</p>
-                    <span className="tf-pill">GitHub + Slack</span>
-                  </div>
-                  <p className="mt-2 text-xs leading-6 text-text-secondary">
-                    Create the GitHub issue, send the alert into Slack, and keep the fix work tied
-                    to the same incident thread.
-                  </p>
-                </div>
-              </div>
-
-              <div className="mt-4 grid gap-3 sm:grid-cols-2">
-                <div className="tf-stat">
-                  <p className="tf-stat-label">Frequency</p>
-                  <p className="tf-stat-value">58</p>
-                  <p className="tf-stat-hint">steady trend</p>
-                </div>
-                <div className="tf-stat">
-                  <p className="tf-stat-label">Last seen</p>
-                  <p className="tf-stat-value">2m ago</p>
-                  <p className="tf-stat-hint">active incident</p>
-                </div>
-              </div>
-            </div>
-          </div>
+          <HomeHeroPreview />
         </section>
 
         <section className="mt-14 rounded-3xl border border-border bg-card/90 p-5 sm:p-6 shadow-sm">
