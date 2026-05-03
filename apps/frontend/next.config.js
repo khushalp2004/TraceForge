@@ -55,12 +55,77 @@ if (isProduction) {
 
 const nextConfig = {
   reactStrictMode: true,
+  // Use standalone output for optimized production Docker build
   output: "standalone",
+  
+  // Optimize images for CDN
+  images: {
+    unoptimized: false,
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: '**',
+      },
+    ],
+  },
+  
+  // Enable compression for better performance
+  compress: true,
+  
+  // Optimize production builds
+  swcMinify: true,
+  
+  // Disable source maps in production
+  productionBrowserSourceMaps: false,
+  
+  // Optimize for static generation where possible
+  // Pages will be pre-rendered at build time if they don't use getServerSideProps
+  generateEtags: true,
+  
+  // Power header configuration for Cloudflare CDN
   async headers() {
     return [
       {
         source: "/:path*",
         headers: securityHeaders
+      },
+      // Cache static assets with long TTL
+      {
+        source: "/_next/static/:path*",
+        headers: [
+          {
+            key: "Cache-Control",
+            value: "public, max-age=31536000, immutable"
+          }
+        ]
+      },
+      {
+        source: "/static/:path*",
+        headers: [
+          {
+            key: "Cache-Control",
+            value: "public, max-age=31536000, immutable"
+          }
+        ]
+      },
+      {
+        source: "/images/:path*",
+        headers: [
+          {
+            key: "Cache-Control",
+            value: "public, max-age=31536000, immutable"
+          }
+        ]
+      },
+      // Don't cache API routes
+      {
+        source: "/api/:path*",
+        headers: [
+          {
+            key: "Cache-Control",
+            value: "no-store, no-cache, must-revalidate"
+          }
+        ]
       }
     ];
   }
