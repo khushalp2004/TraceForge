@@ -3,6 +3,7 @@ import crypto from "crypto";
 import { Prisma } from "@prisma/client";
 import prisma from "../db/prisma.js";
 import { requireAuth } from "../middleware/auth.js";
+import { cacheMiddleware } from "../middleware/cache.js";
 import { publishNotificationToUser } from "../utils/notifications.js";
 import { deleteProjectGraph } from "../utils/projectDeletion.js";
 import {
@@ -87,7 +88,7 @@ const findOrganizationWithSameName = async (name: string, excludeOrgId?: string)
     select: { id: true }
   });
 
-orgsRouter.get("/", async (req, res) => {
+orgsRouter.get("/", cacheMiddleware({ ttl: 60, keyPrefix: "orgs:list" }), async (req, res) => {
   const userId = req.user?.id;
   if (!userId) {
     return res.status(401).json({ error: "Unauthorized" });

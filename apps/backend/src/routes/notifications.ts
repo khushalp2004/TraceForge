@@ -1,16 +1,18 @@
 import { Router } from "express";
 import prisma from "../db/prisma.js";
 import { requireAuth } from "../middleware/auth.js";
+import { cacheMiddleware } from "../middleware/cache.js";
 import { verifyToken } from "../utils/jwt.js";
 import { readAuthTokenFromRequest } from "../utils/authCookies.js";
 import {
+  canSubscribeToNotifications,
   subscribeToNotifications,
   unsubscribeFromNotifications
 } from "../utils/notifications.js";
 
 export const notificationsRouter = Router();
 
-notificationsRouter.get("/dismissals", requireAuth, async (req, res) => {
+notificationsRouter.get("/dismissals", requireAuth, cacheMiddleware({ ttl: 30, keyPrefix: "notifications:dismissals" }), async (req, res) => {
   const userId = req.user?.id;
 
   if (!userId) {
@@ -105,6 +107,12 @@ notificationsRouter.get("/stream", (req, res) => {
   try {
     const payload = verifyToken(token);
 
+    if (!canSubscribeToNotifications(payload.sub)) {
+      return res.status(429).json({
+        error: "Too many live notification connections. Close another session and try again."
+      });
+    }
+
     res.setHeader("Content-Type", "text/event-stream");
     res.setHeader("Cache-Control", "no-cache, no-transform");
     res.setHeader("Connection", "keep-alive");
@@ -112,12 +120,7 @@ notificationsRouter.get("/stream", (req, res) => {
 
     subscribeToNotifications(payload.sub, res);
 
-    const keepAlive = setInterval(() => {
-      res.write(": keep-alive\n\n");
-    }, 20000);
-
     req.on("close", () => {
-      clearInterval(keepAlive);
       unsubscribeFromNotifications(payload.sub, res);
       res.end();
     });

@@ -1,0 +1,313 @@
+# Instructions
+
+- Following Playwright test failed.
+- Explain why, be concise, respect Playwright best practices.
+- Provide a snippet of code with the fix, if possible.
+
+# Test info
+
+- Name: public-smoke.spec.ts >> public smoke >> pricing page renders plans
+- Location: e2e/public-smoke.spec.ts:16:3
+
+# Error details
+
+```
+Test timeout of 30000ms exceeded.
+```
+
+```
+Tearing down "context" exceeded the test timeout of 30000ms.
+```
+
+# Page snapshot
+
+```yaml
+- generic [active] [ref=e1]:
+  - banner [ref=e2]:
+    - generic [ref=e3]:
+      - link "TraceForge logo TraceForge" [ref=e4] [cursor=pointer]:
+        - /url: /
+        - img "TraceForge logo" [ref=e5]
+        - paragraph [ref=e7]: TraceForge
+      - navigation [ref=e8]:
+        - link "Product" [ref=e9] [cursor=pointer]:
+          - /url: /product
+        - link "Pricing" [ref=e10] [cursor=pointer]:
+          - /url: /pricing
+        - link "Solutions" [ref=e11] [cursor=pointer]:
+          - /url: /solutions
+        - link "Docs" [ref=e12] [cursor=pointer]:
+          - /url: /docs
+        - link "About" [ref=e13] [cursor=pointer]:
+          - /url: /about
+        - link "Blog" [ref=e14] [cursor=pointer]:
+          - /url: /blog
+      - generic [ref=e15]:
+        - button "Open global search" [ref=e16] [cursor=pointer]:
+          - img
+          - generic [ref=e17]:
+            - text: Search TraceForge
+            - generic [ref=e18]: /
+        - link "Login" [ref=e19] [cursor=pointer]:
+          - /url: /signin
+        - link "Get Started" [ref=e20] [cursor=pointer]:
+          - /url: /signup
+  - main [ref=e21]:
+    - generic [ref=e22]:
+      - generic [ref=e23]:
+        - paragraph [ref=e24]: Pricing
+        - heading "Simple pricing that scales with you." [level=1] [ref=e25]
+        - paragraph [ref=e26]: Start free, upgrade to Pro for personal unlimited AI, or choose Team for shared organization capacity.
+      - generic [ref=e27]:
+        - generic [ref=e28]:
+          - generic [ref=e29]:
+            - paragraph [ref=e30]: Pricing
+            - heading "Choose the plan that works for you." [level=2] [ref=e31]
+            - paragraph [ref=e32]: Start free, unlock unlimited personal AI with Pro, or move your organization onto a shared Team plan. Every plan includes grouped issues, release context, GitHub issue creation, and connected workflows that can grow into repo analysis and shared incident routing.
+          - generic [ref=e33]:
+            - button "Annually" [ref=e34] [cursor=pointer]
+            - button "Monthly" [ref=e35] [cursor=pointer]
+        - generic [ref=e36]:
+          - generic [ref=e37]: First 20 Pro customers get ₹399/month instead of ₹599/month.
+          - generic [ref=e38]: INR pricing
+          - generic [ref=e39]:
+            - button "₹ INR" [ref=e40] [cursor=pointer]
+            - button "$ USD" [ref=e41] [cursor=pointer]
+      - generic [ref=e42]:
+        - article [ref=e43]:
+          - generic [ref=e44]:
+            - heading "Free" [level=3] [ref=e45]
+            - generic [ref=e46]:
+              - generic [ref=e47]: ₹0
+              - generic [ref=e48]: per month
+            - paragraph [ref=e49]: Core monitoring for early builds and smaller teams.
+          - generic [ref=e50]: Start without a card
+          - list [ref=e51]:
+            - listitem [ref=e52]:
+              - img [ref=e54]
+              - generic [ref=e56]: 3 personal projects
+            - listitem [ref=e57]:
+              - img [ref=e59]
+              - generic [ref=e61]: 1k errors / mo
+            - listitem [ref=e62]:
+              - img [ref=e64]
+              - generic [ref=e66]: 50 AI / mo
+            - listitem [ref=e67]:
+              - img [ref=e69]
+              - generic [ref=e71]: Repo analysis available
+            - listitem [ref=e72]:
+              - img [ref=e74]
+              - generic [ref=e76]: 3 organizations
+            - listitem [ref=e77]:
+              - img [ref=e79]
+              - generic [ref=e81]: 5 org members
+            - listitem [ref=e82]:
+              - img [ref=e84]
+              - generic [ref=e87]: Unlimited AI
+            - listitem [ref=e88]:
+              - img [ref=e90]
+              - generic [ref=e93]: Unlimited organizations
+            - listitem [ref=e94]:
+              - img [ref=e96]
+              - generic [ref=e99]: Unlimited repo analysis
+          - paragraph [ref=e100]: Good for validating TraceForge in a live project before your usage grows.
+          - link "Start free" [ref=e102] [cursor=pointer]:
+            - /url: /signup
+        - article [ref=e103]:
+          - generic [ref=e104]: Launch offer
+          - generic [ref=e105]:
+            - heading "Pro" [level=3] [ref=e106]
+            - generic [ref=e107]:
+              - generic [ref=e108]: ₹399
+              - generic [ref=e109]: per month
+              - generic [ref=e110]: ₹599
+            - paragraph [ref=e111]: Unlimited personal AI for solo power users.
+          - generic [ref=e112]: "Launch offer: ₹399/month instead of ₹599/month"
+          - list [ref=e113]:
+            - listitem [ref=e114]:
+              - img [ref=e116]
+              - generic [ref=e118]: Unlimited projects
+            - listitem [ref=e119]:
+              - img [ref=e121]
+              - generic [ref=e123]: Unlimited errors
+            - listitem [ref=e124]:
+              - img [ref=e126]
+              - generic [ref=e128]: Unlimited AI
+            - listitem [ref=e129]:
+              - img [ref=e131]
+              - generic [ref=e133]: Unlimited repo analysis
+            - listitem [ref=e134]:
+              - img [ref=e136]
+              - generic [ref=e138]: Unlimited organizations
+            - listitem [ref=e139]:
+              - img [ref=e141]
+              - generic [ref=e143]: No limit to add member by you
+            - listitem [ref=e144]:
+              - img [ref=e146]
+              - generic [ref=e148]: Works in every org
+            - listitem [ref=e149]:
+              - img [ref=e151]
+              - generic [ref=e153]: Launch pricing
+          - paragraph [ref=e154]: 20 of 20 launch slots left.
+          - link "Start with Pro" [ref=e156] [cursor=pointer]:
+            - /url: /signup
+        - article [ref=e157]:
+          - generic [ref=e158]:
+            - heading "Team" [level=3] [ref=e159]
+            - generic [ref=e160]:
+              - generic [ref=e161]: ₹799
+              - generic [ref=e162]: per month
+            - paragraph [ref=e163]: Shared AI and centralized billing for one organization.
+          - generic [ref=e164]: Billed monthly
+          - list [ref=e165]:
+            - listitem [ref=e166]:
+              - img [ref=e168]
+              - generic [ref=e170]: Org-wide billing
+            - listitem [ref=e171]:
+              - img [ref=e173]
+              - generic [ref=e175]: Unlimited org scale
+            - listitem [ref=e176]:
+              - img [ref=e178]
+              - generic [ref=e180]: 200 shared AI / mo
+            - listitem [ref=e181]:
+              - img [ref=e183]
+              - generic [ref=e185]: Repo analysis from team quota
+            - listitem [ref=e186]:
+              - img [ref=e188]
+              - generic [ref=e190]: No limit to add member
+            - listitem [ref=e191]:
+              - img [ref=e193]
+              - generic [ref=e195]: Shared workflows
+            - listitem [ref=e196]:
+              - img [ref=e198]
+              - generic [ref=e201]: Unlimited organizations
+            - listitem [ref=e202]:
+              - img [ref=e204]
+              - generic [ref=e207]: Unlimited personal AI
+          - paragraph [ref=e208]: Best for growing engineering teams that need shared capacity.
+          - link "Start with Team" [ref=e210] [cursor=pointer]:
+            - /url: /signup
+      - generic [ref=e211]:
+        - generic [ref=e212]:
+          - paragraph [ref=e213]: Repo analysis
+          - paragraph [ref=e214]: Generate a structured GitHub repo report with architecture, entry points, and onboarding notes.
+        - generic [ref=e215]:
+          - paragraph [ref=e216]: Connected workflows
+          - paragraph [ref=e217]: Push alerts into Slack and Jira, and open GitHub issues directly from TraceForge.
+        - generic [ref=e218]:
+          - paragraph [ref=e219]: Usage that matches plan
+          - paragraph [ref=e220]: Free and Team keep clear monthly AI limits, while Pro removes the cap for the individual user.
+      - paragraph [ref=e221]: USD prices use live USD/INR conversion for display only. Billing is charged in INR via Razorpay.
+      - generic [ref=e223]:
+        - generic [ref=e224]:
+          - heading "Need a custom plan?" [level=2] [ref=e225]
+          - paragraph [ref=e226]: We can tailor TraceForge for your compliance, security, and scale needs.
+        - link "Talk to Sales" [ref=e227] [cursor=pointer]:
+          - /url: mailto:sales@usetraceforge.com
+  - contentinfo [ref=e228]:
+    - generic [ref=e229]:
+      - generic [ref=e231]:
+        - generic [ref=e232]:
+          - paragraph [ref=e233]: Stay in the loop
+          - heading "Get TraceForge updates, launch offers, and practical release workflow tips." [level=2] [ref=e234]
+          - paragraph [ref=e235]: We’ll send short product notes when new monitoring, AI, and incident workflow improvements land — plus the occasional early-access offer.
+          - generic [ref=e236]:
+            - generic [ref=e237]: Product updates
+            - generic [ref=e238]: Launch offers
+            - generic [ref=e239]: No spam
+          - generic [ref=e240]:
+            - link "Read quickstart" [ref=e241] [cursor=pointer]:
+              - /url: /docs
+            - link "Compare plans" [ref=e242] [cursor=pointer]:
+              - /url: /pricing
+        - generic [ref=e243]:
+          - generic [ref=e244]:
+            - img [ref=e246]
+            - generic [ref=e249]:
+              - paragraph [ref=e250]: Subscribe for email updates
+              - paragraph [ref=e251]: Use your work email and we’ll keep you posted on app updates, product notes, and launch offers.
+          - generic [ref=e252]:
+            - generic [ref=e253]:
+              - img [ref=e254]
+              - generic [ref=e257]: Fresh product updates
+            - generic [ref=e258]:
+              - img [ref=e259]
+              - generic [ref=e262]: Special offers when we launch them
+          - generic [ref=e263]:
+            - generic [ref=e264]:
+              - generic [ref=e265]: Email address
+              - textbox "Email address" [ref=e266]:
+                - /placeholder: Enter your work email
+              - button "Subscribe" [ref=e267] [cursor=pointer]
+            - paragraph [ref=e268]: Monthly notes only. No spam. You can unsubscribe anytime.
+      - generic [ref=e269]:
+        - generic [ref=e270]:
+          - link "TraceForge" [ref=e271] [cursor=pointer]:
+            - /url: /
+          - paragraph [ref=e272]: Error monitoring that groups noise, explains likely causes, routes alerts, and carries incident context into GitHub, Slack, and Jira.
+          - generic [ref=e273]:
+            - generic [ref=e274]: Grouped issues
+            - generic [ref=e275]: Repo analysis
+            - generic [ref=e276]: Slack + Jira
+        - generic [ref=e277]:
+          - paragraph [ref=e278]: Product
+          - generic [ref=e279]:
+            - link "Product" [ref=e280] [cursor=pointer]:
+              - /url: /product
+            - link "Solutions" [ref=e281] [cursor=pointer]:
+              - /url: /solutions
+            - link "Pricing" [ref=e282] [cursor=pointer]:
+              - /url: /pricing
+            - link "Docs" [ref=e283] [cursor=pointer]:
+              - /url: /docs
+        - generic [ref=e284]:
+          - paragraph [ref=e285]: Company
+          - generic [ref=e286]:
+            - link "About" [ref=e287] [cursor=pointer]:
+              - /url: /about
+            - link "Blog" [ref=e288] [cursor=pointer]:
+              - /url: /blog
+            - link "Sign in" [ref=e289] [cursor=pointer]:
+              - /url: /signin
+            - link "Create account" [ref=e290] [cursor=pointer]:
+              - /url: /signup
+        - generic [ref=e291]:
+          - paragraph [ref=e292]: Trust & support
+          - generic [ref=e293]:
+            - link "Terms" [ref=e294] [cursor=pointer]:
+              - /url: /terms
+            - link "Privacy" [ref=e295] [cursor=pointer]:
+              - /url: /privacy
+            - link "Security & compliance" [ref=e296] [cursor=pointer]:
+              - /url: /security
+            - link "Help" [ref=e297] [cursor=pointer]:
+              - /url: /help
+            - link "Contact us" [ref=e298] [cursor=pointer]:
+              - /url: /contact
+            - link "LinkedIn" [ref=e299] [cursor=pointer]:
+              - /url: https://www.linkedin.com/company/traceforge
+        - generic [ref=e300]:
+          - paragraph [ref=e301]: Start here
+          - generic [ref=e302]:
+            - link "Quickstart" [ref=e303] [cursor=pointer]:
+              - /url: /docs
+            - link "Compare plans" [ref=e304] [cursor=pointer]:
+              - /url: /pricing
+            - link "See workflows" [ref=e305] [cursor=pointer]:
+              - /url: /solutions
+            - link "Repo analysis" [ref=e306] [cursor=pointer]:
+              - /url: /blog/repo-analysis-for-faster-onboarding
+      - generic [ref=e307]:
+        - paragraph [ref=e308]: © 2026 TraceForge. Built for teams that want calmer production workflows.
+        - generic [ref=e309]:
+          - link "Documentation" [ref=e310] [cursor=pointer]:
+            - /url: /docs
+          - link "Privacy" [ref=e311] [cursor=pointer]:
+            - /url: /privacy
+          - link "Terms" [ref=e312] [cursor=pointer]:
+            - /url: /terms
+          - link "Plans" [ref=e313] [cursor=pointer]:
+            - /url: /pricing
+          - link "Start free" [ref=e314] [cursor=pointer]:
+            - /url: /signup
+```

@@ -101,7 +101,7 @@ type AlertRuleNotificationResponse = {
 type Project = {
   id: string;
   name: string;
-  apiKey: string;
+  apiKey: string | null;
   createdAt: string;
   orgId?: string | null;
 };
@@ -908,6 +908,36 @@ function DashboardPageInner() {
     return projects.find((project) => project.id === selectedProject) || null;
   }, [projects, selectedProject]);
 
+  const fetchProjectApiKey = async (projectId: string) => {
+    if (!token) {
+      throw new Error("Missing auth token. Please log in again.");
+    }
+
+    const response = await fetch(`${API_URL}/projects/${projectId}/api-key`, {
+      headers: {
+        Authorization: `Bearer ${token}`
+      }
+    });
+    const data = await response.json().catch(() => ({}));
+
+    if (!response.ok || typeof data.apiKey !== "string") {
+      throw new Error(data.error || "Failed to load API key");
+    }
+
+    setProjects((prev) =>
+      prev.map((project) =>
+        project.id === projectId
+          ? {
+              ...project,
+              apiKey: data.apiKey
+            }
+          : project
+      )
+    );
+
+    return data.apiKey as string;
+  };
+
   const displayedProjects = useMemo(() => {
     if (!selectedOrgId) {
       return projects.filter((project) => !project.orgId);
@@ -918,15 +948,37 @@ function DashboardPageInner() {
   const selectedOrg = orgs.find((org) => org.id === selectedOrgId) || null;
 
   const handleCopyApiKey = async () => {
-    if (!selectedProjectMeta?.apiKey) {
+    if (!selectedProjectMeta) {
       return;
     }
 
     try {
-      await navigator.clipboard.writeText(selectedProjectMeta.apiKey);
+      const apiKey =
+        selectedProjectMeta.apiKey ?? (await fetchProjectApiKey(selectedProjectMeta.id));
+      await navigator.clipboard.writeText(apiKey);
       showToast("API key copied", "success");
-    } catch {
-      showToast("Failed to copy API key", "error");
+    } catch (error) {
+      showToast(error instanceof Error ? error.message : "Failed to copy API key", "error");
+    }
+  };
+
+  const handleToggleApiKey = async () => {
+    if (!selectedProjectMeta) {
+      return;
+    }
+
+    if (showApiKey) {
+      setShowApiKey(false);
+      return;
+    }
+
+    try {
+      if (!selectedProjectMeta.apiKey) {
+        await fetchProjectApiKey(selectedProjectMeta.id);
+      }
+      setShowApiKey(true);
+    } catch (error) {
+      showToast(error instanceof Error ? error.message : "Failed to load API key", "error");
     }
   };
 
@@ -1640,7 +1692,7 @@ function DashboardPageInner() {
               {selectedProjectMeta && (
                 <button
                   className="rounded-full border border-border px-3 py-2 text-xs font-semibold text-text-secondary"
-                  onClick={() => setShowApiKey((value) => !value)}
+                  onClick={() => void handleToggleApiKey()}
                 >
                   {showApiKey ? "Hide key" : "Show key"}
                 </button>
@@ -1658,7 +1710,7 @@ function DashboardPageInner() {
                     Copy
                   </button>
                 </div>
-                <p className="mt-1 break-all">{selectedProjectMeta.apiKey}</p>
+                <p className="mt-1 break-all">{selectedProjectMeta.apiKey ?? "Loading…"}</p>
               </div>
             )}
             <div className="mt-4 grid gap-3 md:grid-cols-2">

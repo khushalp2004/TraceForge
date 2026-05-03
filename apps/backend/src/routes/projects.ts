@@ -3,6 +3,10 @@ import crypto from "crypto";
 import { Prisma } from "@prisma/client";
 import prisma from "../db/prisma.js";
 import { requireAuth } from "../middleware/auth.js";
+import { limitConcurrentRequests } from "../middleware/concurrency.js";
+import { groqRequestRateLimits } from "../middleware/groqRateLimit.js";
+import { cacheMiddleware } from "../middleware/cache.js";
+import { getCachedUserOrgIds } from "../utils/access.js";
 import {
   defaultAiModel,
   isSupportedAiModel,
@@ -10,11 +14,7 @@ import {
   supportedAiModels
 } from "../utils/aiModels.js";
 import {
-  currentMonthKey,
-  getEffectiveAiUsage,
-  getFreeEmailUsageRedisKey,
-  getRedisUsageKey,
-  incrementFreeEmailUsage
+  getEffectiveAiUsage
 } from "../utils/aiUsage.js";
 import {
   DEV_MONTHLY_AI_LIMIT,
@@ -26,21 +26,18 @@ import {
 } from "../utils/billing.js";
 import {
   GITHUB_REPO_ANALYSIS_COST,
-  GITHUB_REPO_ANALYSIS_MODEL,
-  generateGithubRepoAnalysis
+  GITHUB_REPO_ANALYSIS_MODEL
 } from "../utils/githubRepoAnalysis.js";
 import { parseGithubMetadata } from "../utils/integrationConnectionState.js";
 import { decryptIntegrationSecret } from "../utils/integrationSecrets.js";
+import { githubAnalysisQueue } from "../queue/queues.js";
 import {
   decryptProjectApiKey,
   isEncryptedProjectApiKey,
   sealProjectApiKey
 } from "../utils/projectApiKeys.js";
 import {
-  fetchGithubRepoFile,
-  fetchGithubRepoSummary,
-  fetchGithubRepos,
-  fetchGithubRepoTree
+  fetchGithubRepos
 } from "../utils/integrationProviders.js";
 import { deleteProjectGraph } from "../utils/projectDeletion.js";
 import { redis } from "../db/redis.js";
@@ -48,6 +45,12 @@ import { redis } from "../db/redis.js";
 export const projectsRouter = Router();
 
 projectsRouter.use(requireAuth);
+
+const projectListConcurrencyLimit = limitConcurrentRequests({
+  namespace: "projects:list",
+  maxConcurrent: 40,
+  message: "Project list is busy right now. Please try again in a moment."
+});
 
 const projectSelect = {
   id: true,
@@ -92,13 +95,18 @@ const PROJECT_CONFIGURATION_STALE_MS =
   PROJECT_CONFIGURATION_STALE_DAYS * 24 * 60 * 60 * 1000;
 type ProjectRecord = Prisma.ProjectGetPayload<{ select: typeof projectSelect }>;
 
-const serializeProject = <
-  T extends ProjectRecord
->(project: T) => {
-  const resolvedApiKey =
-    project.apiKeyHash || isEncryptedProjectApiKey(project.apiKey)
-      ? decryptProjectApiKey(project.apiKey)
-      : project.apiKey;
+const resolveProjectApiKey = (project: Pick<ProjectRecord, "apiKey" | "apiKeyHash">) =>
+  project.apiKeyHash || isEncryptedProjectApiKey(project.apiKey)
+    ? decryptProjectApiKey(project.apiKey)
+    : project.apiKey;
+
+const serializeProject = <T extends ProjectRecord>(
+  project: T,
+  options?: {
+    includeApiKey?: boolean;
+  }
+) => {
+  const includeApiKey = options?.includeApiKey ?? true;
   const now = Date.now();
   const lastEventAt = project.errors[0]?.lastSeen ?? null;
   const lastSignalAt = project.lastConfiguredAt ?? project.configuredAt ?? lastEventAt;
@@ -121,7 +129,7 @@ const serializeProject = <
   return {
     id: project.id,
     name: project.name,
-    apiKey: resolvedApiKey,
+    apiKey: includeApiKey ? resolveProjectApiKey(project) : null,
     aiModel: resolveAiModel(project.aiModel),
     githubRepoId: project.githubRepoId,
     githubRepoName: project.githubRepoName,
@@ -145,27 +153,6 @@ const serializeProject = <
     lastEventAt,
     eventCount: project._count.errors
   };
-};
-
-const secureProjectApiKeyRecord = async (project: ProjectRecord): Promise<ProjectRecord> => {
-  if (project.apiKeyHash || isEncryptedProjectApiKey(project.apiKey)) {
-    return project;
-  }
-
-  const secured = sealProjectApiKey(project.apiKey);
-  return prisma.project.update({
-    where: { id: project.id },
-    data: secured,
-    select: projectSelect
-  });
-};
-
-const getUserOrgIds = async (userId: string) => {
-  const memberships = await prisma.organizationMember.findMany({
-    where: { userId },
-    select: { organizationId: true }
-  });
-  return memberships.map((m) => m.organizationId);
 };
 
 const findProjectWithSameName = async ({
@@ -286,112 +273,14 @@ const getAccessibleProjectForUser = async (projectId: string, userId: string) =>
   return project;
 };
 
-const buildRepoAnalysisContext = async ({
-  accessToken,
-  repoFullName
-}: {
-  accessToken: string;
-  repoFullName: string;
-}) => {
-  const summary = await fetchGithubRepoSummary(accessToken, repoFullName);
-  const tree = await fetchGithubRepoTree({
-    accessToken,
-    repoFullName,
-    branch: summary.defaultBranch
-  });
-
-  const rootEntries = tree
-    .filter((entry) => !entry.path.includes("/"))
-    .map((entry) => `${entry.type === "tree" ? "dir" : "file"}: ${entry.path}`)
-    .slice(0, 80);
-
-  const interestingFilePatterns = [
-    "README.md",
-    "readme.md",
-    "package.json",
-    "pnpm-workspace.yaml",
-    "pnpm-lock.yaml",
-    "package-lock.json",
-    "yarn.lock",
-    "turbo.json",
-    "nx.json",
-    "tsconfig.json",
-    "vite.config.ts",
-    "vite.config.js",
-    "next.config.js",
-    "next.config.mjs",
-    "Dockerfile",
-    "docker-compose.yml",
-    "docker-compose.yaml",
-    "requirements.txt",
-    "pyproject.toml",
-    "Cargo.toml",
-    "go.mod",
-    "pom.xml",
-    "build.gradle",
-    "build.gradle.kts",
-    "composer.json",
-    "Gemfile"
-  ];
-
-  const selectedFiles = Array.from(
-    new Set(
-      interestingFilePatterns.flatMap((pattern) =>
-        tree
-          .filter((entry) => entry.type === "blob" && entry.path.toLowerCase() === pattern.toLowerCase())
-          .map((entry) => entry.path)
-      )
-    )
-  ).slice(0, 12);
-
-  const fetchedFiles = await Promise.all(
-    selectedFiles.map(async (path) => {
-      const file = await fetchGithubRepoFile({
-        accessToken,
-        repoFullName,
-        branch: summary.defaultBranch,
-        path
-      });
-
-      if (!file) return null;
-      return {
-        path: file.path,
-        content: file.content.slice(0, 12000)
-      };
-    })
-  );
-
-  const fileSections = fetchedFiles
-    .filter((file): file is { path: string; content: string } => Boolean(file?.content))
-    .map(
-      (file) => `### ${file.path}\n${file.content}`
-    );
-
-  return {
-    repoDescription: summary.description,
-    defaultBranch: summary.defaultBranch,
-    rootEntries,
-    totalFiles: tree.filter((entry) => entry.type === "blob").length,
-    totalDirectories: tree.filter((entry) => entry.type === "tree").length,
-    context: [
-      `Default branch: ${summary.defaultBranch}`,
-      summary.description ? `Description: ${summary.description}` : "",
-      `Top-level structure:\n${rootEntries.join("\n")}`,
-      fileSections.length ? `Sampled files:\n\n${fileSections.join("\n\n")}` : ""
-    ]
-      .filter(Boolean)
-      .join("\n\n")
-  };
-};
-
-projectsRouter.get("/", async (req, res) => {
+projectsRouter.get("/", projectListConcurrencyLimit, cacheMiddleware({ ttl: 60, keyPrefix: "projects:list" }), async (req, res) => {
   const userId = req.user?.id;
   const includeArchived = req.query.includeArchived === "true";
   if (!userId) {
     return res.status(401).json({ error: "Unauthorized" });
   }
 
-  const orgIds = await getUserOrgIds(userId);
+  const orgIds = await getCachedUserOrgIds(userId);
 
   const projects = await prisma.project.findMany({
     where: {
@@ -401,10 +290,9 @@ projectsRouter.get("/", async (req, res) => {
     orderBy: { createdAt: "desc" },
     select: projectSelect
   });
-  const securedProjects = await Promise.all(projects.map((project) => secureProjectApiKeyRecord(project)));
 
   return res.json({
-    projects: securedProjects.map(serializeProject),
+    projects: projects.map((project) => serializeProject(project, { includeApiKey: false })),
     availableAiModels: supportedAiModels,
     defaultAiModel
   });
@@ -514,7 +402,7 @@ projectsRouter.post("/", async (req, res) => {
     select: projectSelect
   });
 
-  return res.status(201).json({ project: serializeProject(await secureProjectApiKeyRecord(project)) });
+  return res.status(201).json({ project: serializeProject(project) });
 });
 
 projectsRouter.patch("/:id", async (req, res) => {
@@ -578,7 +466,7 @@ projectsRouter.patch("/:id", async (req, res) => {
     select: projectSelect
   });
 
-  return res.json({ project: serializeProject(await secureProjectApiKeyRecord(updated)) });
+  return res.json({ project: serializeProject(updated) });
 });
 
 projectsRouter.post("/:id/github-repo", async (req, res) => {
@@ -627,7 +515,7 @@ projectsRouter.post("/:id/github-repo", async (req, res) => {
       select: projectSelect
     });
 
-    return res.json({ project: serializeProject(await secureProjectApiKeyRecord(updated)) });
+    return res.json({ project: serializeProject(updated) });
   } catch (error) {
     const status = (error as { status?: number }).status || 400;
     return res.status(status).json({
@@ -637,6 +525,27 @@ projectsRouter.post("/:id/github-repo", async (req, res) => {
           : "Failed to update project GitHub repository"
     });
   }
+});
+
+projectsRouter.get("/:id/api-key", async (req, res) => {
+  const userId = req.user?.id;
+  const projectId = req.params.id;
+
+  if (!userId) {
+    return res.status(401).json({ error: "Unauthorized" });
+  }
+
+  const project = await getAccessibleProjectForUser(projectId, userId);
+
+  if (!project) {
+    return res.status(404).json({ error: "Project not found" });
+  }
+
+  if (project.archivedAt) {
+    return res.status(400).json({ error: "Archived project keys are unavailable" });
+  }
+
+  return res.json({ apiKey: resolveProjectApiKey(project) });
 });
 
 projectsRouter.get("/:id/github-analysis", async (req, res) => {
@@ -682,7 +591,7 @@ projectsRouter.get("/:id/github-analysis", async (req, res) => {
   });
 });
 
-projectsRouter.post("/:id/github-analysis/analyze", async (req, res) => {
+projectsRouter.post("/:id/github-analysis/analyze", ...groqRequestRateLimits, async (req, res) => {
   const userId = req.user?.id;
   const projectId = req.params.id;
 
@@ -751,25 +660,6 @@ projectsRouter.post("/:id/github-analysis/analyze", async (req, res) => {
       ? "Monthly AI analysis limit reached for your Dev plan."
       : "Monthly AI analysis limit reached for this account.";
   const now = new Date();
-  const monthKey = currentMonthKey(now);
-  const usageKey = teamActive
-    ? getRedisUsageKey({
-        userId,
-        organizationId,
-        monthKey
-      })
-    : !devActive && requester.email
-      ? getFreeEmailUsageRedisKey({
-          email: requester.email,
-          monthKey
-        })
-      : getRedisUsageKey({
-          userId,
-          organizationId,
-          monthKey
-        });
-
-  let usageReservedInRedis = false;
 
   if (!proActive) {
     const used = await getEffectiveAiUsage({
@@ -782,26 +672,6 @@ projectsRouter.post("/:id/github-analysis/analyze", async (req, res) => {
     if (used + GITHUB_REPO_ANALYSIS_COST > usageLimit) {
       return res.status(402).json({ error: limitMessage });
     }
-
-    if (redis.isOpen) {
-      if (!teamActive && !devActive && requester.email) {
-        const existingRedisUsage = Number((await redis.get(usageKey)) || "0");
-        if (existingRedisUsage < used) {
-          await redis.set(usageKey, String(used));
-          await redis.expire(usageKey, 60 * 60 * 24 * 45);
-        }
-      }
-
-      const nextUsed = await redis.incrBy(usageKey, GITHUB_REPO_ANALYSIS_COST);
-      usageReservedInRedis = true;
-      if (nextUsed === GITHUB_REPO_ANALYSIS_COST) {
-        await redis.expire(usageKey, 60 * 60 * 24 * 45);
-      }
-      if (nextUsed > usageLimit) {
-        await redis.decrBy(usageKey, GITHUB_REPO_ANALYSIS_COST);
-        return res.status(402).json({ error: limitMessage });
-      }
-    }
   }
 
   await prisma.githubRepoAnalysis.upsert({
@@ -810,7 +680,7 @@ projectsRouter.post("/:id/github-analysis/analyze", async (req, res) => {
       repoId: project.githubRepoId,
       repoName: project.githubRepoName,
       repoUrl: project.githubRepoUrl,
-      status: "PROCESSING",
+      status: "PENDING",
       model: resolveAiModel(project.aiModel),
       lastError: null
     },
@@ -819,108 +689,61 @@ projectsRouter.post("/:id/github-analysis/analyze", async (req, res) => {
       repoId: project.githubRepoId,
       repoName: project.githubRepoName,
       repoUrl: project.githubRepoUrl,
-      status: "PROCESSING",
+      status: "PENDING",
       model: GITHUB_REPO_ANALYSIS_MODEL
     }
   });
 
   try {
-    const accessToken = decryptIntegrationSecret(connection.accessTokenEncrypted);
-    const repoContext = await buildRepoAnalysisContext({
-      accessToken,
-      repoFullName: project.githubRepoName
-    });
-
-    const report = await generateGithubRepoAnalysis({
-      repoName: project.githubRepoName,
-      context: repoContext.context
-    });
-
-    const updated = await prisma.githubRepoAnalysis.upsert({
-      where: { projectId: project.id },
-      update: {
-        repoId: project.githubRepoId,
-        repoName: project.githubRepoName,
-        repoUrl: project.githubRepoUrl,
-        status: "READY",
-        model: GITHUB_REPO_ANALYSIS_MODEL,
-        summary: report.summary,
-        architecture: report.architecture,
-        runtimeFlow: report.runtimeFlow,
-        developmentFlow: report.developmentFlow,
-        techStack: report.techStack as unknown as Prisma.InputJsonValue,
-        keyModules: report.keyModules as unknown as Prisma.InputJsonValue,
-        entryPoints: report.entryPoints as unknown as Prisma.InputJsonValue,
-        risks: report.risks as unknown as Prisma.InputJsonValue,
-        onboardingTips: report.onboardingTips as unknown as Prisma.InputJsonValue,
-        lastError: null,
-        generatedAt: new Date()
-      },
-      create: {
-        projectId: project.id,
-        repoId: project.githubRepoId,
-        repoName: project.githubRepoName,
-        repoUrl: project.githubRepoUrl,
-        status: "READY",
-        model: resolveAiModel(project.aiModel),
-        summary: report.summary,
-        architecture: report.architecture,
-        runtimeFlow: report.runtimeFlow,
-        developmentFlow: report.developmentFlow,
-        techStack: report.techStack as unknown as Prisma.InputJsonValue,
-        keyModules: report.keyModules as unknown as Prisma.InputJsonValue,
-        entryPoints: report.entryPoints as unknown as Prisma.InputJsonValue,
-        risks: report.risks as unknown as Prisma.InputJsonValue,
-        onboardingTips: report.onboardingTips as unknown as Prisma.InputJsonValue,
-        generatedAt: new Date()
-      }
-    });
-
-    if (!proActive) {
-      await prisma.aiUsageEntry.create({
-        data: {
-          userId,
-          organizationId,
-          projectId: project.id,
-          kind: "GITHUB_REPO_ANALYSIS",
-          amount: GITHUB_REPO_ANALYSIS_COST
-        }
-      });
-
-      if (!teamActive && requester.email) {
-        await incrementFreeEmailUsage({
-          email: requester.email,
-          amount: GITHUB_REPO_ANALYSIS_COST,
-          now
-        });
-      }
+    if (!redis.isOpen) {
+      throw new Error("Repo analysis queue is unavailable");
     }
 
-    return res.json({
+    await githubAnalysisQueue.add(
+      "analyze-github-repository",
+      {
+        projectId: project.id,
+        userId,
+        orgId: organizationId,
+        requesterEmail: requester.email || null,
+        chargeCredits: !proActive,
+        incrementFreeEmailUsage: !teamActive && !devActive && Boolean(requester.email),
+        usageCost: GITHUB_REPO_ANALYSIS_COST,
+        enqueuedAt: new Date().toISOString()
+      },
+      {
+        attempts: Number(process.env.GITHUB_ANALYSIS_WORKER_MAX_ATTEMPTS || "2"),
+        backoff: {
+          type: "exponential",
+          delay: 3_000
+        },
+        removeOnComplete: 500,
+        removeOnFail: 1000
+      }
+    );
+
+    return res.status(202).json({
       ok: true,
+      queued: true,
       analysisCost: GITHUB_REPO_ANALYSIS_COST,
       analysis: {
-        status: updated.status,
-        model: updated.model,
-        summary: updated.summary,
-        architecture: updated.architecture,
-        runtimeFlow: updated.runtimeFlow,
-        developmentFlow: updated.developmentFlow,
-        techStack: updated.techStack || [],
-        keyModules: updated.keyModules || [],
-        entryPoints: updated.entryPoints || [],
-        risks: updated.risks || [],
-        onboardingTips: updated.onboardingTips || [],
-        lastError: updated.lastError,
-        generatedAt: updated.generatedAt,
-        updatedAt: updated.updatedAt
+        status: "PENDING",
+        model: GITHUB_REPO_ANALYSIS_MODEL,
+        summary: null,
+        architecture: null,
+        runtimeFlow: null,
+        developmentFlow: null,
+        techStack: [],
+        keyModules: [],
+        entryPoints: [],
+        risks: [],
+        onboardingTips: [],
+        lastError: null,
+        generatedAt: null,
+        updatedAt: new Date().toISOString()
       }
     });
   } catch (error) {
-    if (usageReservedInRedis) {
-      await redis.decrBy(usageKey, GITHUB_REPO_ANALYSIS_COST);
-    }
-
     await prisma.githubRepoAnalysis.upsert({
       where: { projectId: project.id },
       update: {
@@ -991,7 +814,7 @@ projectsRouter.post("/:id/rotate-key", async (req, res) => {
     select: projectSelect
   });
 
-  return res.json({ project: serializeProject(await secureProjectApiKeyRecord(updated)) });
+  return res.json({ project: serializeProject(updated) });
 });
 
 projectsRouter.post("/:id/ai-model", async (req, res) => {
@@ -1042,7 +865,7 @@ projectsRouter.post("/:id/ai-model", async (req, res) => {
     select: projectSelect
   });
 
-  return res.json({ project: serializeProject(await secureProjectApiKeyRecord(updated)) });
+  return res.json({ project: serializeProject(updated) });
 });
 
 projectsRouter.post("/:id/restore", async (req, res) => {
@@ -1084,7 +907,7 @@ projectsRouter.post("/:id/restore", async (req, res) => {
     select: projectSelect
   });
 
-  return res.json({ project: serializeProject(await secureProjectApiKeyRecord(updated)) });
+  return res.json({ project: serializeProject(updated) });
 });
 
 projectsRouter.delete("/:id", async (req, res) => {
@@ -1131,7 +954,7 @@ projectsRouter.delete("/:id", async (req, res) => {
     select: projectSelect
   });
 
-  return res.json({ project: serializeProject(await secureProjectApiKeyRecord(updated)) });
+  return res.json({ project: serializeProject(updated) });
 });
 
 projectsRouter.delete("/:id/permanent", async (req, res) => {

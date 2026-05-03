@@ -12,6 +12,7 @@
   },
   "dependencies": {
     "@prisma/client": "^5.18.0",
+    "bullmq": "^5.12.6",
     "dotenv": "^16.4.5",
     "redis": "^4.7.0"
   },

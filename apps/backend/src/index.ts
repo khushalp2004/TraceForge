@@ -1,7 +1,8 @@
 import "dotenv/config";
 import { createApp } from "./app.js";
 import prisma from "./db/prisma.js";
-import { connectRedis, redis } from "./db/redis.js";
+import { connectRedis, redis, redisPublisher, redisSubscriber } from "./db/redis.js";
+import { closeQueues } from "./queue/queues.js";
 
 const port = Number(process.env.PORT || 3001);
 const isProduction = process.env.NODE_ENV === "production";
@@ -22,10 +23,13 @@ const start = async () => {
     if (!isProduction) {
       console.info("Shutting down TraceForge API...");
     }
+    await closeQueues().catch(() => undefined);
     await prisma.$disconnect();
-    if (redis.isOpen) {
-      await redis.quit();
-    }
+    await Promise.all([
+      redis.isOpen ? redis.quit().catch(() => undefined) : Promise.resolve(),
+      redisPublisher.isOpen ? redisPublisher.quit().catch(() => undefined) : Promise.resolve(),
+      redisSubscriber.isOpen ? redisSubscriber.quit().catch(() => undefined) : Promise.resolve()
+    ]);
     server.close(() => process.exit(0));
   };
 

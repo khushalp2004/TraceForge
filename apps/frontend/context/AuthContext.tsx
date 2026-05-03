@@ -2,7 +2,7 @@
 
 import React, { createContext, useContext, useEffect, useState } from "react";
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:80";
 const tokenKey = "traceforge_token";
 const userKey = "traceforge_user";
 const sessionTokenValue = "cookie-session";

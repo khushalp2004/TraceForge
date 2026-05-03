@@ -10,7 +10,8 @@ import DashboardSidebar from "./DashboardSidebar";
 import DashboardTopNav from "./DashboardTopNav";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
-const NOTIFICATIONS_URL = `${API_URL}/notifications/stream`;
+const REALTIME_URL = process.env.NEXT_PUBLIC_REALTIME_URL || API_URL;
+const NOTIFICATIONS_URL = `${REALTIME_URL}/notifications/stream`;
 const PREFETCH_ROUTES = [
   "/dashboard",
   "/dashboard/issues",

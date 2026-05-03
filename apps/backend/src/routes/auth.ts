@@ -6,7 +6,9 @@ import { Prisma } from "@prisma/client";
 import prisma from "../db/prisma.js";
 import { redis } from "../db/redis.js";
 import { requireAuth } from "../middleware/auth.js";
+import { limitConcurrentRequests } from "../middleware/concurrency.js";
 import { rateLimitByIp, rateLimitByUser } from "../middleware/rateLimit.js";
+import { cacheMiddleware } from "../middleware/cache.js";
 import { signToken } from "../utils/jwt.js";
 import { encryptIntegrationSecret } from "../utils/integrationSecrets.js";
 import {
@@ -17,7 +19,7 @@ import {
   isOrgTeamActive,
   isUserProActive
 } from "../utils/billing.js";
-import { getEffectiveAiUsage } from "../utils/aiUsage.js";
+import { currentMonthKey, getEffectiveAiUsage } from "../utils/aiUsage.js";
 import { isSuperAdminEmail } from "../utils/superAdmin.js";
 import { deleteUserAccount, UserLifecycleError } from "../utils/userLifecycle.js";
 import {
@@ -64,6 +66,12 @@ const accountMutationRateLimit = rateLimitByUser("auth:account-mutation", {
   windowSeconds: 5 * 60,
   maxRequests: 20,
   message: "Too many account changes. Please wait and try again."
+});
+const USAGE_SUMMARY_CACHE_TTL_SECONDS = 15;
+const usageSummaryConcurrencyLimit = limitConcurrentRequests({
+  namespace: "auth:usage",
+  maxConcurrent: 60,
+  message: "Usage is refreshing for a lot of users right now. Please retry in a moment."
 });
 
 const isValidEmail = (email: string) => /\S+@\S+\.\S+/.test(email);
@@ -175,6 +183,55 @@ const createSessionResponse = (
     user: serializeAuthUser(user),
     ...extra
   };
+};
+
+type UsageSummaryPayload = {
+  usage: {
+    scope: "USER" | "ORGANIZATION";
+    plan: "FREE" | "PRO" | "DEV" | "TEAM";
+    used: number;
+    limit: number | null;
+    remaining: number | null;
+    percentUsed: number;
+    label: string;
+    detail: string;
+  };
+};
+
+const getUsageSummaryCacheKey = ({
+  userId,
+  organizationId,
+  now
+}: {
+  userId: string;
+  organizationId?: string | null;
+  now: Date;
+}) =>
+  `usage:summary:${organizationId ? `org:${organizationId}` : `user:${userId}`}:${currentMonthKey(now)}`;
+
+const readUsageSummaryCache = async (cacheKey: string) => {
+  if (!redis.isOpen) {
+    return null;
+  }
+
+  const cached = await redis.get(cacheKey);
+  if (!cached) {
+    return null;
+  }
+
+  try {
+    return JSON.parse(cached) as UsageSummaryPayload;
+  } catch {
+    return null;
+  }
+};
+
+const writeUsageSummaryCache = async (cacheKey: string, payload: UsageSummaryPayload) => {
+  if (!redis.isOpen) {
+    return;
+  }
+
+  await redis.setEx(cacheKey, USAGE_SUMMARY_CACHE_TTL_SECONDS, JSON.stringify(payload));
 };
 
 const buildGoogleAuthUrl = (mode: SocialAuthMode, next: string) => {
@@ -454,7 +511,7 @@ const resolveSocialSignupRedirect = async ({
   };
 };
 
-authRouter.get("/me", requireAuth, async (req, res) => {
+authRouter.get("/me", requireAuth, cacheMiddleware({ ttl: 60, keyPrefix: "auth:me" }), async (req, res) => {
   const userId = req.user?.id;
 
   if (!userId) {
@@ -484,7 +541,7 @@ authRouter.get("/me", requireAuth, async (req, res) => {
   return res.json({ user: serializeAuthUser(user) });
 });
 
-authRouter.get("/usage", requireAuth, async (req, res) => {
+authRouter.get("/usage", requireAuth, usageSummaryConcurrencyLimit, cacheMiddleware({ ttl: 120, keyPrefix: "auth:usage" }), async (req, res) => {
   const userId = req.user?.id;
 
   if (!userId) {
@@ -497,6 +554,7 @@ authRouter.get("/usage", requireAuth, async (req, res) => {
       : null;
 
   const now = new Date();
+  const personalCacheKey = getUsageSummaryCacheKey({ userId, now });
 
   const user = await prisma.user.findUnique({
     where: { id: userId },
@@ -511,8 +569,15 @@ authRouter.get("/usage", requireAuth, async (req, res) => {
     return res.status(404).json({ error: "User not found" });
   }
 
+  if (!organizationId) {
+    const cachedPersonalUsage = await readUsageSummaryCache(personalCacheKey);
+    if (cachedPersonalUsage) {
+      return res.json(cachedPersonalUsage);
+    }
+  }
+
   if (isUserProActive(user)) {
-    return res.json({
+    const payload = {
       usage: {
         scope: "USER",
         plan: "PRO",
@@ -523,7 +588,9 @@ authRouter.get("/usage", requireAuth, async (req, res) => {
         label: "Unlimited AI",
         detail: "Unlimited AI analyses on your Pro plan."
       }
-    });
+    } satisfies UsageSummaryPayload;
+    await writeUsageSummaryCache(personalCacheKey, payload);
+    return res.json(payload);
   }
 
   if (isUserDevActive(user)) {
@@ -535,7 +602,7 @@ authRouter.get("/usage", requireAuth, async (req, res) => {
     const safeDevUsed = Math.max(0, devUsed);
     const devRemaining = Math.max(0, devLimit - safeDevUsed);
 
-    return res.json({
+    const payload = {
       usage: {
         scope: "USER",
         plan: "DEV",
@@ -546,7 +613,9 @@ authRouter.get("/usage", requireAuth, async (req, res) => {
         label: `${devRemaining} left`,
         detail: `${safeDevUsed} of ${devLimit} AI analyses used this month on your Dev plan.`
       }
-    });
+    } satisfies UsageSummaryPayload;
+    await writeUsageSummaryCache(personalCacheKey, payload);
+    return res.json(payload);
   }
 
   if (organizationId) {
@@ -578,6 +647,16 @@ authRouter.get("/usage", requireAuth, async (req, res) => {
       return res.status(404).json({ error: "Organization not found" });
     }
 
+    const orgCacheKey = getUsageSummaryCacheKey({
+      userId,
+      organizationId: organization.id,
+      now
+    });
+    const cachedOrganizationUsage = await readUsageSummaryCache(orgCacheKey);
+    if (cachedOrganizationUsage) {
+      return res.json(cachedOrganizationUsage);
+    }
+
     if (isOrgTeamActive(organization)) {
       const limit = TEAM_MONTHLY_AI_LIMIT;
       const used = await getEffectiveAiUsage({
@@ -588,7 +667,7 @@ authRouter.get("/usage", requireAuth, async (req, res) => {
 
       const safeUsed = Math.max(0, used);
       const remaining = Math.max(0, limit - safeUsed);
-      return res.json({
+      const payload = {
         usage: {
           scope: "ORGANIZATION",
           plan: "TEAM",
@@ -599,7 +678,9 @@ authRouter.get("/usage", requireAuth, async (req, res) => {
           label: `${remaining} left`,
           detail: `${safeUsed} of ${limit} AI analyses used this month for ${organization.name}.`
         }
-      });
+      } satisfies UsageSummaryPayload;
+      await writeUsageSummaryCache(orgCacheKey, payload);
+      return res.json(payload);
     }
   }
 
@@ -613,7 +694,7 @@ authRouter.get("/usage", requireAuth, async (req, res) => {
   const safeFreeUsed = Math.max(0, freeUsed);
   const freeRemaining = Math.max(0, freeLimit - safeFreeUsed);
 
-  return res.json({
+  const payload = {
     usage: {
       scope: "USER",
       plan: "FREE",
@@ -624,7 +705,9 @@ authRouter.get("/usage", requireAuth, async (req, res) => {
       label: `${freeRemaining} left`,
       detail: `${safeFreeUsed} of ${freeLimit} AI analyses used this month on your free plan.`
     }
-  });
+  } satisfies UsageSummaryPayload;
+  await writeUsageSummaryCache(personalCacheKey, payload);
+  return res.json(payload);
 });
 
 authRouter.post("/register", registerRateLimit, async (req, res) => {

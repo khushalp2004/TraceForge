@@ -1,6 +1,8 @@
 import { NextFunction, Request, Response } from "express";
 import { redis } from "../db/redis.js";
 
+const areRateLimitsDisabled = () => process.env.DISABLE_RATE_LIMITS === "true";
+
 type RateLimitOptions = {
   namespace: string;
   windowSeconds: number;
@@ -49,6 +51,10 @@ const resolveRateLimitKey = (req: Request, options: RateLimitOptions) => {
 
 export const createRateLimit = (options: RateLimitOptions) => {
   return async (req: Request, res: Response, next: NextFunction) => {
+    if (areRateLimitsDisabled()) {
+      return next();
+    }
+
     const key = resolveRateLimitKey(req, options);
     const windowMs = options.windowSeconds * 1000;
     const now = Date.now();

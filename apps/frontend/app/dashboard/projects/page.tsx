@@ -20,7 +20,7 @@ type Org = {
 type Project = {
   id: string;
   name: string;
-  apiKey: string;
+  apiKey: string | null;
   aiModel: string;
   githubRepoId?: string | null;
   githubRepoName?: string | null;
@@ -182,6 +182,35 @@ export default function ProjectSettingsPage() {
   const showToast = (message: string, tone: Toast["tone"]) => {
     setToast({ message, tone });
     window.setTimeout(() => setToast(null), 2400);
+  };
+
+  const fetchProjectApiKey = async (projectId: string) => {
+    const token = localStorage.getItem(tokenKey);
+    if (!token) {
+      throw new Error("Missing auth token. Please log in again.");
+    }
+
+    const response = await fetch(`${API_URL}/projects/${projectId}/api-key`, {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+    const data = await response.json().catch(() => ({}));
+
+    if (!response.ok || typeof data.apiKey !== "string") {
+      throw new Error(data.error || "Failed to load API key");
+    }
+
+    setProjects((prev) =>
+      prev.map((project) =>
+        project.id === projectId
+          ? {
+              ...project,
+              apiKey: data.apiKey
+            }
+          : project
+      )
+    );
+
+    return data.apiKey as string;
   };
 
   useEffect(() => {
@@ -428,12 +457,29 @@ export default function ProjectSettingsPage() {
     }
   };
 
-  const copyApiKey = async (apiKey: string) => {
+  const copyApiKey = async (project: Project) => {
     try {
+      const apiKey = project.apiKey ?? (await fetchProjectApiKey(project.id));
       await navigator.clipboard.writeText(apiKey);
       showToast("API key copied", "success");
-    } catch {
-      showToast("Failed to copy API key", "error");
+    } catch (err) {
+      showToast(err instanceof Error ? err.message : "Failed to copy API key", "error");
+    }
+  };
+
+  const toggleRevealProjectKey = async (project: Project) => {
+    if (revealedProjectId === project.id) {
+      setRevealedProjectId(null);
+      return;
+    }
+
+    try {
+      if (!project.apiKey) {
+        await fetchProjectApiKey(project.id);
+      }
+      setRevealedProjectId(project.id);
+    } catch (err) {
+      showToast(err instanceof Error ? err.message : "Failed to reveal API key", "error");
     }
   };
 
@@ -674,11 +720,7 @@ export default function ProjectSettingsPage() {
                 </div>
                 <button
                   className="rounded-full border border-border px-3 py-1 text-[11px] font-semibold text-text-secondary"
-                  onClick={() =>
-                    setRevealedProjectId(
-                      revealedProjectId === project.id ? null : project.id
-                    )
-                  }
+                  onClick={() => void toggleRevealProjectKey(project)}
                 >
                   {revealedProjectId === project.id ? "Hide key" : "Reveal key"}
                 </button>
@@ -687,8 +729,10 @@ export default function ProjectSettingsPage() {
                 <p className="font-semibold text-text-secondary">API Key</p>
                 <p className="mt-1 break-all">
                   {revealedProjectId === project.id
-                    ? project.apiKey
-                    : project.apiKey.replace(/.(?=.{6})/g, "•")}
+                    ? (project.apiKey ?? "Loading…")
+                    : project.apiKey
+                      ? project.apiKey.replace(/.(?=.{6})/g, "•")
+                      : "Reveal to load"}
                 </p>
               </div>
               <div className="mt-3 flex flex-wrap items-center gap-2 text-[11px] text-text-secondary">
@@ -757,7 +801,7 @@ export default function ProjectSettingsPage() {
                 </p>
               </div>
               <div className="mt-3 flex flex-wrap items-center gap-2">
-                <button className="tf-pill" onClick={() => copyApiKey(project.apiKey)}>
+                <button className="tf-pill" onClick={() => void copyApiKey(project)}>
                   Copy
                 </button>
                 <button

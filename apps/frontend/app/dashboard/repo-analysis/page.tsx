@@ -78,6 +78,10 @@ const statusMeta = {
   PENDING: { label: "Pending", className: "tf-muted-tag" },
   FAILED: { label: "Failed", className: "tf-danger-tag" }
 } as const;
+type RepoAnalysisStatus = Report["status"];
+
+const isAnalysisInFlight = (status?: RepoAnalysisStatus) =>
+  status === "PENDING" || status === "PROCESSING";
 
 export default function RepoAnalysisPage() {
   const hydratedRef = useRef(false);
@@ -137,7 +141,7 @@ export default function RepoAnalysisPage() {
     showToast(error, "error");
   }, [error]);
 
-  const loadData = async () => {
+  const loadData = async (options?: { background?: boolean }) => {
     const token = localStorage.getItem(tokenKey);
     if (!token) {
       setError("Missing auth token. Please log in again.");
@@ -145,7 +149,9 @@ export default function RepoAnalysisPage() {
       return;
     }
 
-    setLoading(true);
+    if (!options?.background) {
+      setLoading(true);
+    }
     setError(null);
 
     try {
@@ -174,7 +180,9 @@ export default function RepoAnalysisPage() {
     } catch (err) {
       setError(err instanceof Error ? err.message : "Unexpected error");
     } finally {
-      setLoading(false);
+      if (!options?.background) {
+        setLoading(false);
+      }
     }
   };
 
@@ -224,10 +232,10 @@ export default function RepoAnalysisPage() {
       }
 
       setAnalysisCost(data.analysisCost || 50);
-      await loadData();
+      await loadData({ background: true });
       setReportTarget(project);
       setReport(data);
-      showToast("Repository analysis ready", "success");
+      showToast("Repository analysis queued", "success");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to analyze repository");
     } finally {
@@ -235,13 +243,15 @@ export default function RepoAnalysisPage() {
     }
   };
 
-  const openReport = async (project: Project) => {
+  const openReport = async (project: Project, options?: { background?: boolean }) => {
     const token = localStorage.getItem(tokenKey);
     if (!token) return;
 
     setReportTarget(project);
-    setReportLoading(true);
-    setReport(null);
+    if (!options?.background) {
+      setReportLoading(true);
+      setReport(null);
+    }
     setError(null);
 
     try {
@@ -260,9 +270,31 @@ export default function RepoAnalysisPage() {
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to load analysis report");
     } finally {
-      setReportLoading(false);
+      if (!options?.background) {
+        setReportLoading(false);
+      }
     }
   };
+
+  useEffect(() => {
+    const hasInFlightProject = projects.some((project) =>
+      isAnalysisInFlight(project.githubRepoAnalysis?.status)
+    );
+    const hasInFlightReport = isAnalysisInFlight(report?.analysis?.status);
+
+    if (!hasInFlightProject && !hasInFlightReport) {
+      return;
+    }
+
+    const interval = window.setInterval(() => {
+      void loadData({ background: true }).catch(() => undefined);
+      if (reportTarget) {
+        void openReport(reportTarget, { background: true }).catch(() => undefined);
+      }
+    }, 2500);
+
+    return () => window.clearInterval(interval);
+  }, [projects, report?.analysis?.status, reportTarget]);
 
   return (
     <main className="tf-page tf-dashboard-page">
@@ -348,7 +380,11 @@ export default function RepoAnalysisPage() {
                       </p>
                       <p className="mt-2 text-sm leading-6 text-text-secondary">
                         {project.githubRepoAnalysis?.summary ||
-                          "No report generated yet. Run the first analysis to build the repository summary."}
+                          (project.githubRepoAnalysis?.status === "PROCESSING"
+                            ? "The repository report is currently being generated in the background."
+                            : project.githubRepoAnalysis?.status === "PENDING"
+                              ? "The repository report is queued and will start as soon as a worker is free."
+                              : "No report generated yet. Run the first analysis to build the repository summary.")}
                       </p>
                     </div>
 
@@ -454,6 +490,21 @@ export default function RepoAnalysisPage() {
               ) : !report?.analysis ? (
                 <div className="rounded-2xl border border-border bg-secondary/20 px-4 py-4 text-sm text-text-secondary">
                   No analysis available yet. Run the first repo analysis to generate a report.
+                </div>
+              ) : isAnalysisInFlight(report.analysis.status) ? (
+                <div className="rounded-2xl border border-border bg-secondary/20 px-4 py-4">
+                  <p className="text-xs font-semibold uppercase tracking-[0.14em] text-text-secondary">
+                    Status
+                  </p>
+                  <p className="mt-2 text-sm font-semibold text-text-primary">
+                    {report.analysis.status === "PROCESSING"
+                      ? "Repository analysis is running"
+                      : "Repository analysis is queued"}
+                  </p>
+                  <p className="mt-2 text-sm leading-6 text-text-secondary">
+                    We&apos;re working on the repository report in the background. This modal refreshes
+                    automatically and will show the report as soon as it&apos;s ready.
+                  </p>
                 </div>
               ) : (
                 <>

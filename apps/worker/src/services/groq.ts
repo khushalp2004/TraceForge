@@ -64,10 +64,15 @@ export const generateExplanation = async (input: {
   message: string;
   stackTrace: string;
   model?: string;
+  timeoutMs?: number;
 }) => {
   if (!groqApiKey) {
     throw new Error("Missing GROQ_API_KEY");
   }
+
+  const timeoutMs = Math.max(5_000, input.timeoutMs ?? 45_000);
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), timeoutMs);
 
   const messages: GroqMessage[] = [
     {
@@ -81,21 +86,33 @@ export const generateExplanation = async (input: {
     }
   ];
 
-  const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${groqApiKey}`
-    },
-    body: JSON.stringify({
-      model: resolveAiModel(input.model),
-      messages,
-      temperature: 0.2,
-      response_format: {
-        type: "json_object"
-      }
-    })
-  });
+  let response: Response;
+  try {
+    response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${groqApiKey}`
+      },
+      body: JSON.stringify({
+        model: resolveAiModel(input.model),
+        messages,
+        temperature: 0.2,
+        response_format: {
+          type: "json_object"
+        }
+      }),
+      signal: controller.signal
+    });
+  } catch (error) {
+    if (error instanceof Error && error.name === "AbortError") {
+      throw new Error(`Groq request timed out after ${timeoutMs}ms`);
+    }
+
+    throw error;
+  } finally {
+    clearTimeout(timeout);
+  }
 
   if (!response.ok) {
     const errorBody = await response.text();

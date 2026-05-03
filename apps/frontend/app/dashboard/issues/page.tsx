@@ -32,6 +32,13 @@ type Issue = {
   aiStatus: "PENDING" | "PROCESSING" | "READY" | "FAILED";
   aiRequestedAt?: string | null;
   aiLastError?: string | null;
+  queue?: {
+    available: boolean;
+    state: "queued" | "processing" | "idle" | "unavailable";
+    queuePosition: number | null;
+    pendingCount: number;
+    processingCount: number;
+  } | null;
   analysis?: {
     aiExplanation: string;
     suggestedFix?: string | null;
@@ -101,16 +108,35 @@ const formatRelative = (value: string) => {
   return `${diffDays}d ago`;
 };
 
-const wait = (ms: number) => new Promise((resolve) => window.setTimeout(resolve, ms));
 const hasAiResult = (issue: Pick<Issue, "analysis">) => Boolean(issue.analysis?.aiExplanation);
 const hasAiRequest = (issue: Pick<Issue, "aiRequestedAt" | "analysis">) =>
   Boolean(issue.aiRequestedAt || issue.analysis?.aiExplanation);
 const getAiSummary = (issue: Pick<Issue, "analysis">) => issue.analysis?.aiExplanation?.trim() ?? "";
-const getAiBadgeLabel = (issue: Pick<Issue, "aiStatus" | "aiRequestedAt" | "analysis">) => {
+const isAiWorkInFlight = (issue: Pick<Issue, "aiStatus">) =>
+  issue.aiStatus === "PENDING" || issue.aiStatus === "PROCESSING";
+const getQueueStatusMessage = (issue: Pick<Issue, "queue" | "aiStatus">) => {
+  if (issue.queue?.state === "processing" || issue.aiStatus === "PROCESSING") {
+    return "AI solution is generating now.";
+  }
+
+  if (issue.queue?.state === "queued") {
+    const position =
+      typeof issue.queue.queuePosition === "number" && issue.queue.queuePosition > 0
+        ? ` · #${issue.queue.queuePosition}`
+        : "";
+    return `AI queued${position}`;
+  }
+
+  if (issue.aiStatus === "PENDING") {
+    return "AI queued";
+  }
+
+  return "AI not generated";
+};
+const getAiBadgeLabel = (issue: Pick<Issue, "aiStatus" | "aiRequestedAt" | "analysis" | "queue">) => {
   if (hasAiResult(issue)) return "AI solution ready";
   if (issue.aiStatus === "FAILED" && hasAiRequest(issue)) return "AI failed";
-  if (issue.aiStatus === "PROCESSING") return "AI generating";
-  if (issue.aiStatus === "PENDING" && hasAiRequest(issue)) return "AI queued";
+  if (isAiWorkInFlight(issue) && hasAiRequest(issue)) return getQueueStatusMessage(issue);
   return "AI not generated";
 };
 
@@ -380,6 +406,33 @@ function IssuesPageInner() {
     pagination.pageSize
   ]);
 
+  useEffect(() => {
+    if (!issues.some((issue) => !issue.isManualAlertIssue && isAiWorkInFlight(issue))) {
+      return;
+    }
+
+    const token = localStorage.getItem(tokenKey);
+    if (!token) {
+      return;
+    }
+
+    const interval = window.setInterval(() => {
+      void loadIssues(token).catch(() => {});
+    }, 2000);
+
+    return () => window.clearInterval(interval);
+  }, [
+    issues,
+    selectedProjectId,
+    environmentFilter,
+    severityFilter,
+    sortBy,
+    deferredSearch,
+    viewMode,
+    pagination.page,
+    pagination.pageSize
+  ]);
+
   const projectMap = useMemo(
     () => new Map(projects.map((project) => [project.id, project])),
     [projects]
@@ -446,49 +499,28 @@ function IssuesPageInner() {
       if (!res.ok) {
         throw new Error(data.error || "Failed to generate AI solution");
       }
-
-      let ready = false;
-      let failed = false;
-      const queueDepth = typeof data.queueDepth === "number" ? data.queueDepth : 0;
-      for (let attempt = 0; attempt < 8; attempt += 1) {
-        await wait(1200);
-
-        const detailRes = await fetch(`${API_URL}/errors/${issueId}`, {
-          headers: {
-            Authorization: `Bearer ${token}`
-          }
-        });
-
-        if (!detailRes.ok) {
-          continue;
-        }
-
-        const detailData = await detailRes.json();
-        if (
-          detailData.error?.aiStatus === "READY" &&
-          detailData.error?.analysis?.aiExplanation
-        ) {
-          ready = true;
-          break;
-        }
-
-        if (detailData.error?.aiStatus === "FAILED") {
-          failed = true;
-          break;
-        }
-      }
-
-      await loadIssues(token);
-      showToast(
-        ready
-          ? "AI solution ready"
-          : failed
-          ? "AI solution failed. Check the issue for details."
-          : queueDepth > 1
-          ? `Your AI request is in queue (${queueDepth} pending). It will appear when processing finishes.`
-          : "Your AI request is in queue. It will appear when processing finishes.",
-        failed ? "error" : "success"
+      setIssues((currentIssues) =>
+        currentIssues.map((issue) =>
+          issue.id === issueId
+            ? {
+                ...issue,
+                aiStatus: data.status ?? "PENDING",
+                aiRequestedAt: new Date().toISOString(),
+                aiLastError: null,
+                queue: data.queue ?? issue.queue ?? null
+              }
+            : issue
+        )
       );
+      showToast(
+        data.queue?.state === "processing"
+          ? "AI solution is being generated now. It will appear automatically when ready."
+          : data.queue?.state === "queued" && data.queue?.queuePosition
+          ? `AI solution queued at position ${data.queue.queuePosition}. It will appear automatically when ready.`
+          : "AI solution queued. It will appear automatically when ready.",
+        "success"
+      );
+      void loadIssues(token).catch(() => {});
     } catch (err) {
       showToast(err instanceof Error ? err.message : "Failed to generate AI solution", "error");
     } finally {
@@ -994,6 +1026,21 @@ function IssuesPageInner() {
                           </div>
                         )}
 
+                        {!hasAiResult(issue) && isAiWorkInFlight(issue) && (
+                          <div className="mt-4 rounded-2xl border border-primary/15 bg-accent-soft/40 px-4 py-3">
+                            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-primary/80">
+                              AI status
+                            </p>
+                            <p className="mt-2 text-sm text-text-secondary">
+                              {issue.queue?.state === "queued" && issue.queue?.queuePosition
+                                ? `Queued at position ${issue.queue.queuePosition}. We’ll refresh this card automatically when the result is ready.`
+                                : issue.queue?.state === "processing" || issue.aiStatus === "PROCESSING"
+                                ? "Generating a fresh solution now. This card refreshes automatically when it finishes."
+                                : "Queued for AI processing. This card refreshes automatically when it finishes."}
+                            </p>
+                          </div>
+                        )}
+
                         {issue.aiStatus === "FAILED" && hasAiRequest(issue) && issue.aiLastError && (
                           <div className="mt-4 rounded-2xl border border-red-200 bg-red-50 px-4 py-3">
                             <p className="text-xs font-semibold uppercase tracking-[0.14em] text-red-700">
@@ -1081,25 +1128,13 @@ function IssuesPageInner() {
                                 <button
                                   className="tf-button inline-flex h-10 w-full items-center justify-center gap-1.5 px-3 py-2 text-[13px] text-center"
                                   onClick={() => regenerateIssue(issue.id)}
-                                  disabled={regeneratingId === issue.id}
+                                  disabled={regeneratingId === issue.id || isAiWorkInFlight(issue)}
                                 >
                                   <LoadingButtonContent
                                     loading={regeneratingId === issue.id}
                                     loadingLabel="Generating..."
-                                    idleLabel={
-                                      issue.aiStatus === "FAILED" && hasAiRequest(issue)
-                                        ? "Regenerate"
-                                        : hasAiResult(issue)
-                                        ? "Regenerate"
-                                        : "Generate"
-                                    }
-                                    icon={
-                                      issue.aiStatus === "FAILED" && hasAiRequest(issue)
-                                        ? RotateCcw
-                                        : hasAiResult(issue)
-                                        ? RotateCcw
-                                        : Sparkles
-                                    }
+                                    idleLabel="Generate"
+                                    icon={Sparkles}
                                     iconClassName="h-3.5 w-3.5"
                                     spinnerClassName="h-3.5 w-3.5"
                                   />

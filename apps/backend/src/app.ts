@@ -1,8 +1,10 @@
 import crypto from "crypto";
+import { performance } from "node:perf_hooks";
 import express from "express";
 import cors from "cors";
 import helmet from "helmet";
 import morgan from "morgan";
+import compression from "compression";
 
 import { healthRouter } from "./routes/health.js";
 import { authRouter } from "./routes/auth.js";
@@ -22,14 +24,22 @@ import { integrationsRouter } from "./routes/integrations.js";
 import { supportRouter } from "./routes/support.js";
 import { adminRouter } from "./routes/admin.js";
 import { marketingRouter } from "./routes/marketing.js";
+import { dashboardRouter } from "./routes/dashboard.js";
+import { recordRequestMetric } from "./utils/requestMetrics.js";
 
 export const createApp = () => {
   const app = express();
+  const notificationsOnly = process.env.NOTIFICATIONS_ONLY === "true";
+  const apiOnly = process.env.API_ONLY === "true";
+  const enableNotificationsStream = !apiOnly;
   const allowedOrigins = [
     process.env.FRONTEND_URL,
     process.env.APP_PUBLIC_URL,
     "http://localhost:3000",
-    "http://127.0.0.1:3000"
+    "http://127.0.0.1:3000",
+    "http://localhost:80",
+    "http://127.0.0.1:80",
+    "http://host.docker.internal:80"
   ].filter((value): value is string => Boolean(value && value.trim()));
   const corsOptions = {
     origin(
@@ -57,6 +67,7 @@ export const createApp = () => {
     })
   );
   app.use(cors(corsOptions));
+  app.use(compression());
   app.use(
     express.json({
       limit: "512kb",
@@ -74,6 +85,41 @@ export const createApp = () => {
     res.setHeader("X-Request-Id", requestId);
     next();
   });
+  app.use((req, res, next) => {
+    const startedAt = performance.now();
+    const originalWriteHead = res.writeHead.bind(res);
+    let recorded = false;
+
+    const record = () => {
+      if (recorded) {
+        return;
+      }
+      recorded = true;
+
+      const routePath =
+        typeof (req.route as { path?: string } | undefined)?.path === "string"
+          ? (req.route as { path: string }).path
+          : req.path;
+      const routeKey = `${req.method} ${req.baseUrl || ""}${routePath || ""}` || `${req.method} ${req.originalUrl}`;
+      recordRequestMetric({
+        key: routeKey.trim(),
+        statusCode: res.statusCode,
+        durationMs: performance.now() - startedAt
+      });
+    };
+
+    res.writeHead = ((...args: Parameters<typeof res.writeHead>) => {
+      const durationMs = performance.now() - startedAt;
+      res.setHeader("Server-Timing", `app;dur=${durationMs.toFixed(1)}`);
+      res.setHeader("X-Response-Time-Ms", durationMs.toFixed(1));
+      return originalWriteHead(...args);
+    }) as typeof res.writeHead;
+
+    res.on("finish", record);
+    res.on("close", record);
+
+    next();
+  });
   app.use(morgan(":method :url :status :response-time ms req=:reqid"));
 
   app.get("/", (_req, res) => {
@@ -84,23 +130,27 @@ export const createApp = () => {
   });
 
   app.use("/health", healthRouter);
-  app.use("/auth", authRouter);
-  app.use("/auth/password", passwordResetRouter);
   app.use("/notifications", notificationsRouter);
-  app.use("/alerts", alertsRouter);
-  app.use("/releases", releasesRouter);
-  app.use("/api/payment", paymentRouter);
-  app.use("/public/fx", fxRouter);
-  app.use("/public/billing", publicBillingRouter);
-  app.use("/support", supportRouter);
-  app.use("/marketing", marketingRouter);
-  app.use("/admin", adminRouter);
-  app.use("/integrations", integrationsRouter);
-  app.use("/projects", projectsRouter);
-  app.use("/orgs", orgsRouter);
-  app.use("/ingest", ingestRouter);
-  app.use("/errors", errorsRouter);
-  app.use("/analytics", analyticsRouter);
+
+  if (!notificationsOnly) {
+    app.use("/auth", authRouter);
+    app.use("/dashboard", dashboardRouter);
+    app.use("/auth/password", passwordResetRouter);
+    app.use("/alerts", alertsRouter);
+    app.use("/releases", releasesRouter);
+    app.use("/api/payment", paymentRouter);
+    app.use("/public/fx", fxRouter);
+    app.use("/public/billing", publicBillingRouter);
+    app.use("/support", supportRouter);
+    app.use("/marketing", marketingRouter);
+    app.use("/admin", adminRouter);
+    app.use("/integrations", integrationsRouter);
+    app.use("/projects", projectsRouter);
+    app.use("/orgs", orgsRouter);
+    app.use("/ingest", ingestRouter);
+    app.use("/errors", errorsRouter);
+    app.use("/analytics", analyticsRouter);
+  }
 
   app.use((err: unknown, _req: express.Request, res: express.Response, next: express.NextFunction) => {
     if ((err as { type?: string; message?: string })?.type === "entity.too.large") {

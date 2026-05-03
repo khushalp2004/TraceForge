@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { Copy, Github, RotateCcw, Sparkles } from "lucide-react";
+import { Copy, Github, Sparkles } from "lucide-react";
 import { LoadingButtonContent } from "../../../../components/ui/loading-button-content";
 import { useDebouncedValue } from "../../../hooks/useDebouncedValue";
 
@@ -27,6 +27,14 @@ type ErrorDetail = {
   aiStatus: "PENDING" | "PROCESSING" | "READY" | "FAILED";
   aiRequestedAt?: string | null;
   aiLastError?: string | null;
+  queue?: {
+    available: boolean;
+    state: "queued" | "processing" | "idle" | "unavailable";
+    reason?: "redis_unavailable" | "worker_unhealthy" | null;
+    queuePosition: number | null;
+    pendingCount: number;
+    processingCount: number;
+  } | null;
   analysis?: { aiExplanation: string; suggestedFix?: string | null } | null;
   events: ErrorEvent[];
   project: {
@@ -82,7 +90,6 @@ const parseStack = (stackTrace: string): Frame[] => {
     });
 };
 
-const wait = (ms: number) => new Promise((resolve) => window.setTimeout(resolve, ms));
 const hasAiResult = (detail: Pick<ErrorDetail, "analysis">) => Boolean(detail.analysis?.aiExplanation);
 const hasAiRequest = (detail: Pick<ErrorDetail, "aiRequestedAt" | "analysis">) =>
   Boolean(detail.aiRequestedAt || detail.analysis?.aiExplanation);
@@ -90,6 +97,50 @@ const getAiSummary = (detail: Pick<ErrorDetail, "analysis">) =>
   detail.analysis?.aiExplanation?.trim() ?? "";
 const getAiDetail = (detail: Pick<ErrorDetail, "analysis">) =>
   detail.analysis?.suggestedFix?.trim() ?? "";
+const isAiWorkInFlight = (detail: Pick<ErrorDetail, "aiStatus" | "aiRequestedAt" | "queue">) => {
+  if (detail.queue?.state === "queued" || detail.queue?.state === "processing") {
+    return true;
+  }
+
+  if (detail.aiStatus === "PROCESSING") {
+    return true;
+  }
+
+  if (detail.aiStatus === "PENDING" && detail.aiRequestedAt) {
+    return true;
+  }
+
+  return false;
+};
+const getQueueStatusMessage = (detail: Pick<ErrorDetail, "queue" | "aiStatus" | "aiRequestedAt">) => {
+  if (detail.queue?.state === "unavailable") {
+    if (detail.queue.reason === "redis_unavailable") {
+      return "AI queue is temporarily unavailable. Please try again shortly.";
+    }
+    if (detail.queue.reason === "worker_unhealthy") {
+      return "AI worker is currently unavailable. Your request will run when worker health recovers.";
+    }
+    return "AI queue is currently unavailable. Please try again shortly.";
+  }
+
+  if (detail.queue?.state === "processing" || detail.aiStatus === "PROCESSING") {
+    return "AI solution is currently being generated.";
+  }
+
+  if (detail.queue?.state === "queued") {
+    const position =
+      typeof detail.queue.queuePosition === "number" && detail.queue.queuePosition > 0
+        ? ` at position ${detail.queue.queuePosition}`
+        : "";
+    return `AI solution is queued${position}. It will appear automatically when ready.`;
+  }
+
+  if (detail.aiStatus === "PENDING" && detail.aiRequestedAt) {
+    return "AI solution is queued. It will appear automatically when ready.";
+  }
+
+  return "Generate an AI solution when you want a fresh explanation and suggested fix for this grouped issue.";
+};
 
 const buildGithubIssueTitle = (detail: Pick<ErrorDetail, "message">) =>
   `[TraceForge] ${detail.message}`.slice(0, 240);
@@ -157,6 +208,26 @@ export default function ErrorDetailPage({ params }: { params: { id: string } }) 
     showToast(error, "error");
   }, [error]);
 
+  useEffect(() => {
+    if (!errorDetail || errorDetail.isManualAlertIssue) {
+      return;
+    }
+
+    if (errorDetail.aiStatus === "READY" && hasAiResult(errorDetail)) {
+      setAiStatus("AI solution ready.");
+      return;
+    }
+
+    if (errorDetail.aiStatus === "FAILED" && hasAiRequest(errorDetail)) {
+      setAiStatus("AI solution failed. Check the details below.");
+      return;
+    }
+
+    if (isAiWorkInFlight(errorDetail)) {
+      setAiStatus(getQueueStatusMessage(errorDetail));
+    }
+  }, [errorDetail]);
+
   const loadDetail = async () => {
     const token = localStorage.getItem(tokenKey);
     if (!token) {
@@ -192,6 +263,18 @@ export default function ErrorDetailPage({ params }: { params: { id: string } }) 
     loadDetail();
   }, [params.id]);
 
+  useEffect(() => {
+    if (!errorDetail || errorDetail.isManualAlertIssue || !isAiWorkInFlight(errorDetail)) {
+      return;
+    }
+
+    const interval = window.setInterval(() => {
+      void loadDetail();
+    }, 2000);
+
+    return () => window.clearInterval(interval);
+  }, [errorDetail?.id, errorDetail?.aiStatus, errorDetail?.aiRequestedAt, errorDetail?.queue?.state, errorDetail?.isManualAlertIssue]);
+
   const handleCopyStack = async () => {
     if (!errorDetail?.stackTrace) return;
     try {
@@ -209,7 +292,6 @@ export default function ErrorDetailPage({ params }: { params: { id: string } }) 
     if (!token) return;
 
     setRegenerating(true);
-    setAiStatus(null);
     try {
       const res = await fetch(`${API_URL}/errors/${params.id}/regenerate`, {
         method: "POST",
@@ -218,37 +300,30 @@ export default function ErrorDetailPage({ params }: { params: { id: string } }) 
 
       const data = await res.json();
       if (!res.ok) {
-        throw new Error(data.error || "Failed to generate AI solution");
+        showToast(data.error || "Failed to generate AI solution", "error");
+        return;
       }
-
-      let ready = false;
-      let failed = false;
-      const queueDepth = typeof data.queueDepth === "number" ? data.queueDepth : 0;
-      for (let attempt = 0; attempt < 8; attempt += 1) {
-        await wait(1200);
-        const detail = await loadDetail();
-        if (detail?.aiStatus === "READY" && detail?.analysis?.aiExplanation) {
-          ready = true;
-          break;
-        }
-
-        if (detail?.aiStatus === "FAILED") {
-          failed = true;
-          break;
-        }
-      }
-
-      setAiStatus(
-        ready
-          ? "AI solution ready."
-          : failed
-          ? "AI solution failed. Check the details below."
-          : queueDepth > 1
-          ? `Your AI request is under queue (${queueDepth} pending). It will appear when processing finishes.`
-          : "Your AI request is under queue. It will appear when processing finishes."
+      setErrorDetail((current) =>
+        current
+          ? {
+              ...current,
+              aiStatus: data.queue?.state === "processing" ? "PROCESSING" : "PENDING",
+              aiRequestedAt: new Date().toISOString(),
+              aiLastError: null,
+              queue: data.queue ?? current.queue ?? null
+            }
+          : current
       );
+      setAiStatus(
+        data.queue?.state === "processing"
+          ? "AI solution is currently being generated."
+          : data.queue?.state === "queued" && data.queue?.queuePosition
+          ? `AI solution queued at position ${data.queue.queuePosition}. It will appear automatically when ready.`
+          : "AI solution queued. It will appear automatically when ready."
+      );
+      await loadDetail();
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Unexpected error");
+      showToast(err instanceof Error ? err.message : "Unexpected error", "error");
     } finally {
       setRegenerating(false);
     }
@@ -430,25 +505,13 @@ export default function ErrorDetailPage({ params }: { params: { id: string } }) 
                 <button
                   className="tf-button inline-flex w-full items-center justify-center gap-2 px-4 py-2 text-sm sm:w-auto"
                   onClick={handleRegenerate}
-                  disabled={regenerating}
+                  disabled={regenerating || isAiWorkInFlight(errorDetail)}
                 >
                   <LoadingButtonContent
                     loading={regenerating}
                     loadingLabel="Generating..."
-                    idleLabel={
-                      errorDetail.aiStatus === "FAILED" && hasAiRequest(errorDetail)
-                        ? "Retry AI solution"
-                        : hasAiResult(errorDetail)
-                        ? "Regenerate AI solution"
-                        : "Generate AI solution"
-                    }
-                    icon={
-                      errorDetail.aiStatus === "FAILED" && hasAiRequest(errorDetail)
-                        ? RotateCcw
-                        : hasAiResult(errorDetail)
-                        ? RotateCcw
-                        : Sparkles
-                    }
+                    idleLabel="Generate AI solution"
+                    icon={Sparkles}
                   />
                 </button>
               )}
@@ -678,7 +741,7 @@ export default function ErrorDetailPage({ params }: { params: { id: string } }) 
                   </p>
                   <p className="mt-1 text-sm text-text-secondary">
                     {hasAiRequest(errorDetail)
-                      ? "Your request is under queue or currently generating. Refresh shortly if the result does not appear automatically."
+                      ? getQueueStatusMessage(errorDetail)
                       : "Generate an AI solution when you want a fresh explanation and suggested fix for this grouped issue."}
                   </p>
                 </div>
@@ -729,25 +792,13 @@ export default function ErrorDetailPage({ params }: { params: { id: string } }) 
                     type="button"
                     className="tf-button-ghost flex w-full items-center justify-center gap-2 px-4 py-2 text-center text-sm"
                     onClick={handleRegenerate}
-                    disabled={regenerating}
+                    disabled={regenerating || isAiWorkInFlight(errorDetail)}
                   >
                     <LoadingButtonContent
                       loading={regenerating}
                       loadingLabel="Generating..."
-                      idleLabel={
-                        errorDetail.aiStatus === "FAILED" && hasAiRequest(errorDetail)
-                          ? "Retry AI solution"
-                          : hasAiResult(errorDetail)
-                          ? "Regenerate AI solution"
-                          : "Generate AI solution"
-                      }
-                      icon={
-                        errorDetail.aiStatus === "FAILED" && hasAiRequest(errorDetail)
-                          ? RotateCcw
-                          : hasAiResult(errorDetail)
-                          ? RotateCcw
-                          : Sparkles
-                      }
+                      idleLabel="Generate AI Solution"
+                      icon={Sparkles}
                     />
                   </button>
                 )}

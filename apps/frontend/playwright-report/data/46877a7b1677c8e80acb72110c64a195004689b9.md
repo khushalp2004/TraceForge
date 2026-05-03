@@ -1,0 +1,389 @@
+# Instructions
+
+- Following Playwright test failed.
+- Explain why, be concise, respect Playwright best practices.
+- Provide a snippet of code with the fix, if possible.
+
+# Test info
+
+- Name: public-smoke.spec.ts >> public smoke >> homepage renders core story and CTA
+- Location: e2e/public-smoke.spec.ts:4:3
+
+# Error details
+
+```
+Test timeout of 30000ms exceeded.
+```
+
+```
+Tearing down "context" exceeded the test timeout of 30000ms.
+```
+
+# Page snapshot
+
+```yaml
+- generic [active] [ref=e1]:
+  - banner [ref=e2]:
+    - generic [ref=e3]:
+      - link "TraceForge logo TraceForge" [ref=e4] [cursor=pointer]:
+        - /url: /
+        - img "TraceForge logo" [ref=e5]
+        - paragraph [ref=e7]: TraceForge
+      - navigation [ref=e8]:
+        - link "Product" [ref=e9] [cursor=pointer]:
+          - /url: /product
+        - link "Pricing" [ref=e10] [cursor=pointer]:
+          - /url: /pricing
+        - link "Solutions" [ref=e11] [cursor=pointer]:
+          - /url: /solutions
+        - link "Docs" [ref=e12] [cursor=pointer]:
+          - /url: /docs
+        - link "About" [ref=e13] [cursor=pointer]:
+          - /url: /about
+        - link "Blog" [ref=e14] [cursor=pointer]:
+          - /url: /blog
+      - generic [ref=e15]:
+        - button "Open global search" [ref=e16] [cursor=pointer]:
+          - img
+          - generic [ref=e17]:
+            - text: Search TraceForge
+            - generic [ref=e18]: /
+        - link "Login" [ref=e19] [cursor=pointer]:
+          - /url: /signin
+        - link "Get Started" [ref=e20] [cursor=pointer]:
+          - /url: /signup
+  - main [ref=e21]:
+    - generic [ref=e22]:
+      - generic [ref=e23]:
+        - generic [ref=e24]:
+          - generic [ref=e25]: AI-assisted error monitoring, minus the bloat
+          - heading "Turn production errors into fixes, ownership, and calmer releases." [level=1] [ref=e27]
+          - paragraph [ref=e28]: TraceForge groups noisy errors into clean issues, generates AI summaries, routes alerts to the right tools, links work to GitHub, and now analyzes connected repos so teams can move from incident to implementation with context already in place.
+          - generic [ref=e29]:
+            - generic [ref=e30]:
+              - link "Start trial" [ref=e31] [cursor=pointer]:
+                - /url: /signup
+              - link "Quickstart guide" [ref=e32] [cursor=pointer]:
+                - /url: /docs
+            - generic [ref=e33]:
+              - generic [ref=e34]: No credit card
+              - generic [ref=e35]: SOC 2-ready
+              - generic [ref=e36]: 5-min setup
+          - generic [ref=e37]:
+            - generic [ref=e38]:
+              - paragraph [ref=e39]: Issue workflow
+              - paragraph [ref=e40]: grouped + owned
+            - generic [ref=e41]:
+              - paragraph [ref=e42]: GitHub actions
+              - paragraph [ref=e43]: issues + repo analysis
+            - generic [ref=e44]:
+              - paragraph [ref=e45]: Routing
+              - paragraph [ref=e46]: in-app, Slack, Jira
+        - generic [ref=e49]:
+          - generic [ref=e50]:
+            - generic [ref=e51]:
+              - paragraph [ref=e52]: Live issue preview
+              - paragraph [ref=e53]: Checkout · null pointer
+            - generic [ref=e54]: New
+          - generic [ref=e55]:
+            - generic [ref=e56]:
+              - generic [ref=e57]:
+                - paragraph [ref=e58]: Fingerprint
+                - generic [ref=e59]: 2 services
+              - paragraph [ref=e60]: 9e7b… · hash("TypeError" + "at submitOrder…")
+            - generic [ref=e61]:
+              - paragraph [ref=e62]: Stack (top frames)
+              - generic [ref=e63]: "TypeError: Cannot read properties of undefined at submitOrder (checkout.ts:88:13) at onClick (Button.tsx:42:9)"
+            - generic [ref=e65]:
+              - generic [ref=e66]: AI brief
+              - generic [ref=e67]: likely fix
+            - generic [ref=e71]:
+              - generic [ref=e72]:
+                - paragraph [ref=e73]: Connected workflow
+                - generic [ref=e74]: GitHub + Slack
+              - paragraph [ref=e75]: Create the GitHub issue, send the alert into Slack, and keep the fix work tied to the same incident thread.
+          - generic [ref=e76]:
+            - generic [ref=e77]:
+              - paragraph [ref=e78]: Frequency
+              - paragraph [ref=e79]: "58"
+              - paragraph [ref=e80]: steady trend
+            - generic [ref=e81]:
+              - paragraph [ref=e82]: Last seen
+              - paragraph [ref=e83]: 2m ago
+              - paragraph [ref=e84]: active incident
+      - generic [ref=e86]:
+        - generic [ref=e87]: Built for modern reliability teams
+        - generic [ref=e88]:
+          - generic [ref=e89]: SOC 2-ready
+          - generic [ref=e90]: Audit logs
+          - generic [ref=e91]: SSO ready
+          - generic [ref=e92]: Role-based access
+          - generic [ref=e93]: Data retention controls
+      - generic [ref=e95]:
+        - generic [ref=e96]: GitHub Actions
+        - generic [ref=e97]: Vercel
+        - generic [ref=e98]: AWS Lambda
+        - generic [ref=e99]: Kubernetes
+        - generic [ref=e100]: Sentry Migration
+        - generic [ref=e101]: Slack Alerts
+        - generic [ref=e102]: PagerDuty
+        - generic [ref=e103]: Datadog Logs
+        - generic [ref=e104]: OpenTelemetry
+        - generic [ref=e105]: Node.js
+        - generic [ref=e106]: Python
+        - generic [ref=e107]: Go
+        - generic [ref=e108]: Postgres
+        - generic [ref=e109]: Redis
+        - generic [ref=e110]: Vite
+        - generic [ref=e111]: Next.js
+        - generic [ref=e112]: GitHub Actions
+        - generic [ref=e113]: Vercel
+        - generic [ref=e114]: AWS Lambda
+        - generic [ref=e115]: Kubernetes
+        - generic [ref=e116]: Sentry Migration
+        - generic [ref=e117]: Slack Alerts
+        - generic [ref=e118]: PagerDuty
+        - generic [ref=e119]: Datadog Logs
+        - generic [ref=e120]: OpenTelemetry
+        - generic [ref=e121]: Node.js
+        - generic [ref=e122]: Python
+        - generic [ref=e123]: Go
+        - generic [ref=e124]: Postgres
+        - generic [ref=e125]: Redis
+        - generic [ref=e126]: Vite
+        - generic [ref=e127]: Next.js
+      - generic [ref=e128]:
+        - generic [ref=e129]:
+          - heading "Instant signal" [level=3] [ref=e130]
+          - paragraph [ref=e131]: Fingerprinting collapses noisy stacks into issues that stay stable across deploys.
+        - generic [ref=e132]:
+          - heading "Team workflows" [level=3] [ref=e133]
+          - paragraph [ref=e134]: Invite teammates, manage org ownership, and keep project routing clean across shared workspaces.
+        - generic [ref=e135]:
+          - heading "Connected response" [level=3] [ref=e136]
+          - paragraph [ref=e137]: Push alerts into Slack and Jira, create GitHub issues, and keep the response moving from one system.
+      - generic [ref=e138]:
+        - generic [ref=e139]:
+          - generic [ref=e140]:
+            - paragraph [ref=e141]: Latest capabilities
+            - heading "Built for the way teams debug now, not last year." [level=2] [ref=e142]
+            - paragraph [ref=e143]: TraceForge has moved beyond grouped error feeds. The product now carries more of the response workflow so teams can stay in one place longer and switch tools less often.
+          - link "See the full workflow →" [ref=e144] [cursor=pointer]:
+            - /url: /solutions
+        - generic [ref=e145]:
+          - generic [ref=e146]:
+            - paragraph [ref=e147]: Repo analysis
+            - paragraph [ref=e148]: Generate a structured GitHub repo report with architecture, runtime flow, entry points, and onboarding notes.
+          - generic [ref=e149]:
+            - paragraph [ref=e150]: GitHub issue creation
+            - paragraph [ref=e151]: Create a GitHub issue from any TraceForge issue or error detail page without leaving the workflow.
+          - generic [ref=e152]:
+            - paragraph [ref=e153]: Slack + Jira routing
+            - paragraph [ref=e154]: Connect workspace integrations and send alert context into Slack channels or Jira projects.
+          - generic [ref=e155]:
+            - paragraph [ref=e156]: Project-aware AI
+            - paragraph [ref=e157]: Choose an AI model per project, keep usage visible, and give teams clear limits across Free, Pro, and Team.
+      - generic [ref=e158]:
+        - generic [ref=e159]:
+          - paragraph [ref=e160]: Live Workflow
+          - heading "See what broke, why it broke, and how to fix it in minutes." [level=2] [ref=e161]
+          - paragraph [ref=e162]: TraceForge enriches stack traces with deploy context, ownership, and AI guidance so on-call engineers can ship a patch without context switching.
+          - generic [ref=e163]:
+            - generic [ref=e164]:
+              - paragraph [ref=e165]: Ingest
+              - paragraph [ref=e166]: SDK captures errors with full trace context.
+            - generic [ref=e167]:
+              - paragraph [ref=e168]: Group
+              - paragraph [ref=e169]: Hashing collapses noisy stacks into stable issues.
+            - generic [ref=e170]:
+              - paragraph [ref=e171]: Diagnose
+              - paragraph [ref=e172]: AI brief highlights likely root causes.
+            - generic [ref=e173]:
+              - paragraph [ref=e174]: Fix
+              - paragraph [ref=e175]: Suggested patch hints help you ship fast.
+        - generic [ref=e176]:
+          - paragraph [ref=e177]: Outcome
+          - heading "Make incidents feel smaller." [level=3] [ref=e178]
+          - generic [ref=e179]:
+            - generic [ref=e180]:
+              - paragraph [ref=e181]: Median triage
+              - paragraph [ref=e182]: 6m
+              - paragraph [ref=e183]: down from 28m
+            - generic [ref=e184]:
+              - paragraph [ref=e185]: Issue noise
+              - paragraph [ref=e186]: "-62%"
+              - paragraph [ref=e187]: fewer duplicate tickets
+            - generic [ref=e188]:
+              - paragraph [ref=e189]: MTTR
+              - paragraph [ref=e190]: 1.9h
+              - paragraph [ref=e191]: with AI guidance
+      - generic [ref=e193]:
+        - generic [ref=e194]:
+          - paragraph [ref=e195]: How it works
+          - heading "From exception to fix in one workflow." [level=2] [ref=e196]
+          - paragraph [ref=e197]: Capture errors from any service, enrich with context, and keep your team aligned on what matters most.
+          - link "Explore the quickstart →" [ref=e198] [cursor=pointer]:
+            - /url: /docs
+        - generic [ref=e199]:
+          - generic [ref=e200]:
+            - paragraph [ref=e201]: Step 1
+            - paragraph [ref=e202]: Install SDK
+            - paragraph [ref=e203]: Drop in the client with a single API key.
+          - generic [ref=e204]:
+            - paragraph [ref=e205]: Step 2
+            - paragraph [ref=e206]: See grouped errors
+            - paragraph [ref=e207]: Noise collapses into clean, actionable threads.
+          - generic [ref=e208]:
+            - paragraph [ref=e209]: Step 3
+            - paragraph [ref=e210]: Invite teammates
+            - paragraph [ref=e211]: Owners review access and approve invites.
+          - generic [ref=e212]:
+            - paragraph [ref=e213]: Step 4
+            - paragraph [ref=e214]: Fix with AI
+            - paragraph [ref=e215]: Root-cause summaries guide the patch.
+      - generic [ref=e216]:
+        - generic [ref=e217]:
+          - paragraph [ref=e218]: Security
+          - heading "Built for regulated environments." [level=2] [ref=e219]
+          - paragraph [ref=e220]: TraceForge supports audit-ready workflows, role-based access, and secure data handling aligned with enterprise compliance requirements.
+          - generic [ref=e221]:
+            - generic [ref=e222]: SAML-ready
+            - generic [ref=e223]: Audit logs
+            - generic [ref=e224]: Data retention controls
+            - generic [ref=e225]: Private projects
+        - generic [ref=e226]:
+          - paragraph [ref=e227]: Reliability Outcomes
+          - heading "Faster triage with fewer false alarms." [level=2] [ref=e228]
+          - paragraph [ref=e229]: Consolidated issues, AI summaries, and context-rich traces reduce on-call toil and help teams ship fixes with less back-and-forth.
+          - generic [ref=e230]:
+            - generic [ref=e231]:
+              - paragraph [ref=e232]: Alert noise
+              - paragraph [ref=e233]: "-40%"
+            - generic [ref=e234]:
+              - paragraph [ref=e235]: Time to first fix
+              - paragraph [ref=e236]: "-32%"
+            - generic [ref=e237]:
+              - paragraph [ref=e238]: Issue grouping
+              - paragraph [ref=e239]: 2.6x
+      - generic [ref=e240]:
+        - generic [ref=e241]:
+          - generic [ref=e242]:
+            - heading "Ready to make errors boring?" [level=2] [ref=e243]
+            - paragraph [ref=e244]: Create a workspace, connect a project, invite your team, and start shipping with grouped issues, AI summaries, GitHub workflows, and real alert routing on day one.
+          - generic [ref=e245]:
+            - link "Create your workspace" [ref=e246] [cursor=pointer]:
+              - /url: /signup
+            - link "View pricing" [ref=e247] [cursor=pointer]:
+              - /url: /pricing
+        - generic [ref=e248]:
+          - generic [ref=e249]: No demo required
+          - generic [ref=e250]: Start free
+          - generic [ref=e251]: Use real projects
+          - generic [ref=e252]: Upgrade when the team is ready
+  - contentinfo [ref=e253]:
+    - generic [ref=e254]:
+      - generic [ref=e256]:
+        - generic [ref=e257]:
+          - paragraph [ref=e258]: Stay in the loop
+          - heading "Get TraceForge updates, launch offers, and practical release workflow tips." [level=2] [ref=e259]
+          - paragraph [ref=e260]: We’ll send short product notes when new monitoring, AI, and incident workflow improvements land — plus the occasional early-access offer.
+          - generic [ref=e261]:
+            - generic [ref=e262]: Product updates
+            - generic [ref=e263]: Launch offers
+            - generic [ref=e264]: No spam
+          - generic [ref=e265]:
+            - link "Read quickstart" [ref=e266] [cursor=pointer]:
+              - /url: /docs
+            - link "Compare plans" [ref=e267] [cursor=pointer]:
+              - /url: /pricing
+        - generic [ref=e268]:
+          - generic [ref=e269]:
+            - img [ref=e271]
+            - generic [ref=e274]:
+              - paragraph [ref=e275]: Subscribe for email updates
+              - paragraph [ref=e276]: Use your work email and we’ll keep you posted on app updates, product notes, and launch offers.
+          - generic [ref=e277]:
+            - generic [ref=e278]:
+              - img [ref=e279]
+              - generic [ref=e282]: Fresh product updates
+            - generic [ref=e283]:
+              - img [ref=e284]
+              - generic [ref=e287]: Special offers when we launch them
+          - generic [ref=e288]:
+            - generic [ref=e289]:
+              - generic [ref=e290]: Email address
+              - textbox "Email address" [ref=e291]:
+                - /placeholder: Enter your work email
+              - button "Subscribe" [ref=e292] [cursor=pointer]
+            - paragraph [ref=e293]: Monthly notes only. No spam. You can unsubscribe anytime.
+      - generic [ref=e294]:
+        - generic [ref=e295]:
+          - link "TraceForge" [ref=e296] [cursor=pointer]:
+            - /url: /
+          - paragraph [ref=e297]: Error monitoring that groups noise, explains likely causes, routes alerts, and carries incident context into GitHub, Slack, and Jira.
+          - generic [ref=e298]:
+            - generic [ref=e299]: Grouped issues
+            - generic [ref=e300]: Repo analysis
+            - generic [ref=e301]: Slack + Jira
+        - generic [ref=e302]:
+          - paragraph [ref=e303]: Product
+          - generic [ref=e304]:
+            - link "Product" [ref=e305] [cursor=pointer]:
+              - /url: /product
+            - link "Solutions" [ref=e306] [cursor=pointer]:
+              - /url: /solutions
+            - link "Pricing" [ref=e307] [cursor=pointer]:
+              - /url: /pricing
+            - link "Docs" [ref=e308] [cursor=pointer]:
+              - /url: /docs
+        - generic [ref=e309]:
+          - paragraph [ref=e310]: Company
+          - generic [ref=e311]:
+            - link "About" [ref=e312] [cursor=pointer]:
+              - /url: /about
+            - link "Blog" [ref=e313] [cursor=pointer]:
+              - /url: /blog
+            - link "Sign in" [ref=e314] [cursor=pointer]:
+              - /url: /signin
+            - link "Create account" [ref=e315] [cursor=pointer]:
+              - /url: /signup
+        - generic [ref=e316]:
+          - paragraph [ref=e317]: Trust & support
+          - generic [ref=e318]:
+            - link "Terms" [ref=e319] [cursor=pointer]:
+              - /url: /terms
+            - link "Privacy" [ref=e320] [cursor=pointer]:
+              - /url: /privacy
+            - link "Security & compliance" [ref=e321] [cursor=pointer]:
+              - /url: /security
+            - link "Help" [ref=e322] [cursor=pointer]:
+              - /url: /help
+            - link "Contact us" [ref=e323] [cursor=pointer]:
+              - /url: /contact
+            - link "LinkedIn" [ref=e324] [cursor=pointer]:
+              - /url: https://www.linkedin.com/company/traceforge
+        - generic [ref=e325]:
+          - paragraph [ref=e326]: Start here
+          - generic [ref=e327]:
+            - link "Quickstart" [ref=e328] [cursor=pointer]:
+              - /url: /docs
+            - link "Compare plans" [ref=e329] [cursor=pointer]:
+              - /url: /pricing
+            - link "See workflows" [ref=e330] [cursor=pointer]:
+              - /url: /solutions
+            - link "Repo analysis" [ref=e331] [cursor=pointer]:
+              - /url: /blog/repo-analysis-for-faster-onboarding
+      - generic [ref=e332]:
+        - paragraph [ref=e333]: © 2026 TraceForge. Built for teams that want calmer production workflows.
+        - generic [ref=e334]:
+          - link "Documentation" [ref=e335] [cursor=pointer]:
+            - /url: /docs
+          - link "Privacy" [ref=e336] [cursor=pointer]:
+            - /url: /privacy
+          - link "Terms" [ref=e337] [cursor=pointer]:
+            - /url: /terms
+          - link "Plans" [ref=e338] [cursor=pointer]:
+            - /url: /pricing
+          - link "Start free" [ref=e339] [cursor=pointer]:
+            - /url: /signup
+```

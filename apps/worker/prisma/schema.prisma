@@ -5,6 +5,7 @@ generator client {
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
+  directUrl = env("DIRECT_DATABASE_URL")
 }
 
 model User {
@@ -27,10 +28,12 @@ model User {
   joinRequests         OrgJoinRequest[]       @relation("Requester")
   resolvedJoinRequests OrgJoinRequest[]       @relation("Resolver")
   aiUsageEntries       AiUsageEntry[]
+  integrationConnections IntegrationConnection[]
 }
 
 enum BillingPlan {
   FREE
+  DEV
   PRO
   TEAM
 }
@@ -68,6 +71,7 @@ model Organization {
   auditLogs    OrgAuditLog[]
   joinRequests OrgJoinRequest[]
   aiUsageEntries AiUsageEntry[]
+  integrationConnections IntegrationConnection[]
 
   @@index([createdAt])
 }
@@ -156,9 +160,15 @@ model Project {
   orgId           String?
   name            String
   apiKey          String          @unique
+  apiKeyHash      String?         @unique
   aiModel         String          @default("groq/compound")
+  githubRepoId    String?
+  githubRepoName  String?
+  githubRepoUrl   String?
   createdAt       DateTime        @default(now())
   archivedAt      DateTime?
+  configuredAt    DateTime?
+  lastConfiguredAt DateTime?
 
   user            User            @relation(fields: [userId], references: [id])
   org             Organization?   @relation(fields: [orgId], references: [id])
@@ -166,10 +176,13 @@ model Project {
   alertRules      AlertRule[]
   alertDeliveries AlertDelivery[]
   releases        Release[]
+  githubRepoAnalysis GithubRepoAnalysis?
   aiUsageEntries  AiUsageEntry[]
 
   @@index([archivedAt])
   @@index([orgId])
+  @@index([userId, archivedAt, createdAt])
+  @@index([orgId, archivedAt, createdAt])
 }
 
 model Error {
@@ -197,6 +210,8 @@ model Error {
   @@index([archivedAt])
   @@index([projectId])
   @@index([lastSeen])
+  @@index([projectId, archivedAt, lastSeen])
+  @@index([projectId, archivedAt, count])
 }
 
 model ErrorEvent {
@@ -212,6 +227,8 @@ model ErrorEvent {
 
   @@index([errorId])
   @@index([releaseId])
+  @@index([errorId, timestamp])
+  @@index([timestamp, environment])
 }
 
 model ErrorAnalysis {
@@ -222,6 +239,41 @@ model ErrorAnalysis {
   createdAt     DateTime @default(now())
 
   error Error @relation(fields: [errorId], references: [id])
+}
+
+enum GithubRepoAnalysisStatus {
+  PENDING
+  PROCESSING
+  READY
+  FAILED
+}
+
+model GithubRepoAnalysis {
+  id               String                   @id @default(cuid())
+  projectId        String                   @unique
+  repoId           String
+  repoName         String
+  repoUrl          String?
+  status           GithubRepoAnalysisStatus @default(PENDING)
+  model            String?
+  summary          String?
+  architecture     String?
+  runtimeFlow      String?
+  developmentFlow  String?
+  techStack        Json?
+  keyModules       Json?
+  entryPoints      Json?
+  risks            Json?
+  onboardingTips   Json?
+  lastError        String?
+  generatedAt      DateTime?
+  createdAt        DateTime                 @default(now())
+  updatedAt        DateTime                 @updatedAt
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@index([status])
+  @@index([generatedAt])
 }
 
 model FreeAiEmailUsage {
@@ -281,6 +333,23 @@ enum ReleaseSource {
   INGEST
 }
 
+enum IntegrationProvider {
+  GITHUB
+  SLACK
+  JIRA
+  PAGERDUTY
+}
+
+enum IntegrationScope {
+  USER
+  ORGANIZATION
+}
+
+enum IntegrationStatus {
+  CONNECTED
+  ERROR
+}
+
 model Release {
   id          String        @id @default(cuid())
   projectId   String
@@ -297,6 +366,7 @@ model Release {
   @@unique([projectId, version])
   @@index([projectId])
   @@index([releasedAt])
+  @@index([projectId, releasedAt])
 }
 
 model AlertRule {
@@ -323,6 +393,35 @@ model AlertRule {
   @@index([userId])
   @@index([projectId])
   @@index([isActive])
+}
+
+model IntegrationConnection {
+  id                   String            @id @default(cuid())
+  provider             IntegrationProvider
+  scope                IntegrationScope
+  status               IntegrationStatus @default(CONNECTED)
+  userId               String?
+  organizationId       String?
+  externalAccountId    String?
+  externalAccountName  String?
+  accessTokenEncrypted String
+  refreshTokenEncrypted String?
+  tokenExpiresAt       DateTime?
+  metadata             Json?
+  lastSyncedAt         DateTime?
+  createdAt            DateTime          @default(now())
+  updatedAt            DateTime          @updatedAt
+
+  user         User?         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  organization Organization? @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, userId])
+  @@unique([provider, organizationId])
+  @@index([userId])
+  @@index([organizationId])
+  @@index([provider, scope])
+  @@index([provider, organizationId, status])
+  @@index([provider, userId, status])
 }
 
 model AlertDelivery {

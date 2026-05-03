@@ -2,7 +2,9 @@ import { Router } from "express";
 import crypto from "crypto";
 import prisma from "../db/prisma.js";
 import { requireAuth } from "../middleware/auth.js";
+import { cacheMiddleware } from "../middleware/cache.js";
 import { publishNotificationToUser } from "../utils/notifications.js";
+import { getCachedAccessibleProjects } from "../utils/access.js";
 import { decryptIntegrationSecret } from "../utils/integrationSecrets.js";
 import {
   parseJiraMetadata,
@@ -22,29 +24,8 @@ const jiraClientSecret = process.env.JIRA_CLIENT_SECRET || "";
 
 alertsRouter.use(requireAuth);
 
-const getUserOrgIds = async (userId: string) => {
-  const memberships = await prisma.organizationMember.findMany({
-    where: { userId },
-    select: { organizationId: true }
-  });
-  return memberships.map((membership) => membership.organizationId);
-};
-
 const getAccessibleProjects = async (userId: string) => {
-  const orgIds = await getUserOrgIds(userId);
-
-  return prisma.project.findMany({
-    where: {
-      archivedAt: null,
-      OR: [{ userId }, { orgId: { in: orgIds } }]
-    },
-    orderBy: { createdAt: "desc" },
-    select: {
-      id: true,
-      name: true,
-      orgId: true
-    }
-  });
+  return getCachedAccessibleProjects(userId);
 };
 
 const alertInclude = {
@@ -267,7 +248,7 @@ alertsRouter.get("/rules", async (req, res) => {
   return res.json({ rules });
 });
 
-alertsRouter.get("/projects", async (req, res) => {
+alertsRouter.get("/projects", cacheMiddleware({ ttl: 60, keyPrefix: "alerts:projects" }), async (req, res) => {
   const userId = req.user?.id;
   if (!userId) {
     return res.status(401).json({ error: "Unauthorized" });

@@ -1,8 +1,12 @@
 import { Router } from "express";
 import prisma from "../db/prisma.js";
 import { requireAuth } from "../middleware/auth.js";
+import { limitConcurrentRequests } from "../middleware/concurrency.js";
+import { groqRequestRateLimits } from "../middleware/groqRateLimit.js";
 import { redis } from "../db/redis.js";
 import type { Prisma } from "@prisma/client";
+import { getCachedUserOrgIds } from "../utils/access.js";
+import { aiGenerateQueue } from "../queue/queues.js";
 import { decryptIntegrationSecret } from "../utils/integrationSecrets.js";
 import { parseGithubMetadata } from "../utils/integrationConnectionState.js";
 import { createGithubIssue, fetchGithubRepos } from "../utils/integrationProviders.js";
@@ -10,6 +14,23 @@ import { createGithubIssue, fetchGithubRepos } from "../utils/integrationProvide
 export const errorsRouter = Router();
 
 errorsRouter.use(requireAuth);
+
+const AI_REGENERATE_LOCK_TTL_SECONDS = 30;
+const AI_WORKER_INSTANCE_SET_KEY = "worker:ai:instances";
+const AI_WORKER_HEARTBEAT_PREFIX = "worker:ai:heartbeat:";
+const AI_WORKER_HEARTBEAT_STALE_MS = 45_000;
+const AI_GROQ_TIMEOUT_MS = Math.max(5_000, Number(process.env.AI_GROQ_TIMEOUT_MS || "45000"));
+const AI_PROCESSING_STALE_MS = Math.max(
+  AI_GROQ_TIMEOUT_MS + 30_000,
+  Number(process.env.AI_PROCESSING_STALE_MS || String(AI_GROQ_TIMEOUT_MS + 30_000))
+);
+const AI_STALLED_IDLE_MS = Math.max(10_000, Number(process.env.AI_STALLED_IDLE_MS || "10000"));
+const getAiRegenerateLockKey = (errorId: string) => `lock:ai:regenerate:${errorId}`;
+const regenerateConcurrencyLimit = limitConcurrentRequests({
+  namespace: "errors:regenerate",
+  maxConcurrent: 50,
+  message: "AI regenerate is currently busy. Please try again in a few seconds."
+});
 
 const isManualAlertPayload = (payload: Prisma.JsonValue | null | undefined) => {
   if (!payload || typeof payload !== "object" || Array.isArray(payload)) {
@@ -25,12 +46,197 @@ const hasManualAlertSource = (
   }>
 ) => events.some((event) => isManualAlertPayload(event.payload));
 
-const getUserOrgIds = async (userId: string) => {
-  const memberships = await prisma.organizationMember.findMany({
-    where: { userId },
-    select: { organizationId: true }
+const hasHealthyAiWorker = async () => {
+  if (!redis.isOpen) {
+    return false;
+  }
+
+  const instanceIds = await redis.sMembers(AI_WORKER_INSTANCE_SET_KEY);
+  if (!instanceIds.length) {
+    return false;
+  }
+
+  const heartbeats = await redis.mGet(
+    instanceIds.map((instanceId) => `${AI_WORKER_HEARTBEAT_PREFIX}${instanceId}`)
+  );
+  const now = Date.now();
+
+  return heartbeats.some((rawHeartbeat) => {
+    if (!rawHeartbeat) {
+      return false;
+    }
+
+    try {
+      const parsed = JSON.parse(rawHeartbeat) as { updatedAt?: string };
+      if (!parsed.updatedAt) {
+        return false;
+      }
+
+      return now - new Date(parsed.updatedAt).getTime() <= AI_WORKER_HEARTBEAT_STALE_MS;
+    } catch {
+      return false;
+    }
   });
-  return memberships.map((m) => m.organizationId);
+};
+
+const isAiInFlight = (status: "PENDING" | "PROCESSING" | "READY" | "FAILED") =>
+  status === "PENDING" || status === "PROCESSING";
+const hasAiRequestTimestamp = (value?: string | Date | null) => Boolean(value);
+
+const shouldFailStaleAiRequest = (
+  errorRecord: {
+    aiStatus: "PENDING" | "PROCESSING" | "READY" | "FAILED";
+    aiRequestedAt?: string | Date | null;
+  },
+  queueState: Awaited<ReturnType<typeof getAiQueueState>>
+) => {
+  if (!isAiInFlight(errorRecord.aiStatus) || !errorRecord.aiRequestedAt) {
+    return false;
+  }
+
+  const requestedAtMs = new Date(errorRecord.aiRequestedAt).getTime();
+  if (!Number.isFinite(requestedAtMs)) {
+    return false;
+  }
+
+  const ageMs = Date.now() - requestedAtMs;
+
+  if (!queueState.available || queueState.state === "idle") {
+    return ageMs >= AI_STALLED_IDLE_MS;
+  }
+
+  if (queueState.state === "processing") {
+    return ageMs >= AI_PROCESSING_STALE_MS;
+  }
+
+  return false;
+};
+
+const failStaleAiRequest = async (errorId: string, reason: string) => {
+  await prisma.error.update({
+    where: { id: errorId },
+    data: {
+      aiStatus: "FAILED",
+      aiLastError: reason,
+      aiCompletedAt: new Date()
+    }
+  });
+  if (redis.isOpen) {
+    await redis.del(getAiRegenerateLockKey(errorId)).catch(() => undefined);
+  }
+};
+
+const reconcileAiRequestState = async <
+  T extends {
+    id: string;
+    aiStatus: "PENDING" | "PROCESSING" | "READY" | "FAILED";
+    aiRequestedAt?: string | Date | null;
+    aiLastError?: string | null;
+    aiCompletedAt?: string | Date | null;
+  }
+>(
+  errorRecord: T
+) => {
+  if (!isAiInFlight(errorRecord.aiStatus)) {
+    return { errorRecord, queue: null as Awaited<ReturnType<typeof getAiQueueState>> | null };
+  }
+
+  const queue = await getAiQueueState(errorRecord.id);
+  if (!shouldFailStaleAiRequest(errorRecord, queue)) {
+    return { errorRecord, queue };
+  }
+
+  const aiLastError =
+    queue.state === "processing"
+      ? "AI generation timed out while processing. Please generate the solution again."
+      : "AI request stalled before the worker picked it up. Please generate the solution again.";
+
+  await failStaleAiRequest(errorRecord.id, aiLastError);
+
+  return {
+    errorRecord: {
+      ...errorRecord,
+      aiStatus: "FAILED" as const,
+      aiLastError,
+      aiCompletedAt: new Date().toISOString()
+    },
+    queue: null
+  };
+};
+
+const getAiQueueState = async (errorId: string) => {
+  if (!redis.isOpen) {
+    return {
+      available: false,
+      state: "unavailable" as const,
+      reason: "redis_unavailable" as const,
+      queuePosition: null,
+      pendingCount: 0,
+      processingCount: 0
+    };
+  }
+
+  const [
+    counts,
+    waitingJobs,
+    activeJobs
+  ] = await Promise.all([
+    aiGenerateQueue.getJobCounts("waiting", "active", "delayed", "prioritized"),
+    aiGenerateQueue.getJobs(["waiting", "prioritized", "delayed"], 0, 500, true),
+    aiGenerateQueue.getJobs(["active"], 0, 200, true)
+  ]);
+  const workerHealthy = await hasHealthyAiWorker();
+  const pendingCount =
+    (counts.waiting || 0) + (counts.delayed || 0) + (counts.prioritized || 0);
+  const processingCount = counts.active || 0;
+  if (!workerHealthy) {
+    return {
+      available: false,
+      state: "unavailable" as const,
+      reason: "worker_unhealthy" as const,
+      queuePosition: null,
+      pendingCount,
+      processingCount
+    };
+  }
+
+  const pendingIndex = waitingJobs.findIndex(
+    (job) => (job.data as { errorId?: string } | undefined)?.errorId === errorId
+  );
+  const processingIndex = activeJobs.findIndex(
+    (job) => (job.data as { errorId?: string } | undefined)?.errorId === errorId
+  );
+
+  if (processingIndex >= 0) {
+    return {
+      available: true,
+      state: "processing" as const,
+      reason: null,
+      queuePosition: 0,
+      pendingCount,
+      processingCount
+    };
+  }
+
+  if (pendingIndex >= 0) {
+    return {
+      available: true,
+      state: "queued" as const,
+      reason: null,
+      queuePosition: pendingIndex + 1,
+      pendingCount,
+      processingCount
+    };
+  }
+
+  return {
+    available: true,
+    state: "idle" as const,
+    reason: null,
+    queuePosition: null,
+    pendingCount,
+    processingCount
+  };
 };
 
 errorsRouter.get("/", async (req, res) => {
@@ -52,7 +258,7 @@ errorsRouter.get("/", async (req, res) => {
   const currentPage = Math.max(1, Number.parseInt(page || "1", 10) || 1);
   const perPage = Math.min(50, Math.max(1, Number.parseInt(pageSize || "5", 10) || 5));
 
-  const orgIds = await getUserOrgIds(userId);
+  const orgIds = await getCachedUserOrgIds(userId);
 
   const projects = await prisma.project.findMany({
     where: {
@@ -186,10 +392,17 @@ errorsRouter.get("/", async (req, res) => {
   ]);
 
   return res.json({
-    errors: errors.map((errorRecord) => ({
-      ...errorRecord,
-      isManualAlertIssue: hasManualAlertSource(errorRecord.events)
-    })),
+    errors: await Promise.all(
+      errors.map(async (errorRecord) => {
+        const { errorRecord: reconciledError, queue } = await reconcileAiRequestState(errorRecord);
+
+        return {
+          ...reconciledError,
+          isManualAlertIssue: hasManualAlertSource(errorRecord.events),
+          queue
+        };
+      })
+    ),
     pagination: {
       page: currentPage,
       pageSize: perPage,
@@ -277,9 +490,12 @@ errorsRouter.get("/:id", async (req, res) => {
     }
   }
 
+  const { errorRecord: reconciledError, queue } = await reconcileAiRequestState(errorRecord);
+
   return res.json({
     error: {
-      ...errorRecord,
+      ...reconciledError,
+      queue,
       isManualAlertIssue: hasManualAlertSource(errorRecord.events)
     }
   });
@@ -436,7 +652,7 @@ errorsRouter.post("/:id/github-issue", async (req, res) => {
   }
 });
 
-errorsRouter.post("/:id/regenerate", async (req, res) => {
+errorsRouter.post("/:id/regenerate", ...groqRequestRateLimits, regenerateConcurrencyLimit, async (req, res) => {
   const userId = req.user?.id;
   if (!userId) {
     return res.status(401).json({ error: "Unauthorized" });
@@ -449,6 +665,8 @@ errorsRouter.post("/:id/regenerate", async (req, res) => {
     select: {
       id: true,
       archivedAt: true,
+      aiStatus: true,
+      aiRequestedAt: true,
       project: {
         select: {
           userId: true,
@@ -505,10 +723,6 @@ errorsRouter.post("/:id/regenerate", async (req, res) => {
       .json({ error: "AI solution is not available for manual alert issues" });
   }
 
-  await prisma.errorAnalysis.deleteMany({
-    where: { errorId }
-  });
-
   if (!redis.isOpen) {
     await prisma.error.update({
       where: { id: errorId },
@@ -523,33 +737,142 @@ errorsRouter.post("/:id/regenerate", async (req, res) => {
     return res.status(503).json({ error: "AI worker queue is unavailable. Try again shortly." });
   }
 
-  await prisma.error.update({
-    where: { id: errorId },
-    data: {
-      aiStatus: "PENDING",
-      aiLastError: null,
-      aiRequestedAt: new Date(),
-      aiCompletedAt: null
+  if (!(await hasHealthyAiWorker())) {
+    await prisma.error.update({
+      where: { id: errorId },
+      data: {
+        aiStatus: "FAILED",
+        aiLastError: "AI worker is not currently available.",
+        aiRequestedAt: new Date(),
+        aiCompletedAt: new Date()
+      }
+    });
+
+    return res.status(503).json({ error: "AI worker is not currently available. Try again shortly." });
+  }
+
+  if (isAiInFlight(errorRecord.aiStatus) && hasAiRequestTimestamp(errorRecord.aiRequestedAt)) {
+    const queue = await getAiQueueState(errorId);
+    if (shouldFailStaleAiRequest(errorRecord, queue)) {
+      await failStaleAiRequest(
+        errorId,
+        queue.state === "processing"
+          ? "AI generation timed out while processing. Please generate the solution again."
+          : "AI request stalled before the worker picked it up. Please generate the solution again."
+      );
+    } else {
+      return res.status(202).json({
+        status: "queued",
+        deduped: true,
+        queue
+      });
     }
+  }
+
+  const lockKey = getAiRegenerateLockKey(errorId);
+  const lockAcquired = await redis.set(lockKey, userId, {
+    NX: true,
+    EX: AI_REGENERATE_LOCK_TTL_SECONDS
   });
 
-  await prisma.error.update({
-    where: { id: errorId },
-    data: {
-      aiRequestedByUserId: userId
+  if (!lockAcquired) {
+    const queue = await getAiQueueState(errorId);
+    if (shouldFailStaleAiRequest(errorRecord, queue)) {
+      await failStaleAiRequest(
+        errorId,
+        queue.state === "processing"
+          ? "AI generation timed out while processing. Please generate the solution again."
+          : "AI request stalled before the worker picked it up. Please generate the solution again."
+      );
+      const refreshedLock = await redis.set(lockKey, userId, {
+        NX: true,
+        EX: AI_REGENERATE_LOCK_TTL_SECONDS
+      });
+      if (!refreshedLock) {
+        return res.status(202).json({
+          status: "queued",
+          deduped: true,
+          queue: await getAiQueueState(errorId)
+        });
+      }
+    } else {
+      return res.status(202).json({
+        status: "queued",
+        deduped: true,
+        queue
+      });
     }
-  });
+  }
 
-  await redis.lPush(
-    "ai:queue",
-    JSON.stringify({
-      errorId,
-      requestedByUserId: userId
-    })
-  );
-  const queueDepth = await redis.lLen("ai:queue");
+  try {
+    // Add to queue BEFORE database transaction to ensure consistency
+    // If queue add fails, we don't mark the error as PENDING
+    let job;
+    try {
+      job = await aiGenerateQueue.add(
+        "generate-error-solution",
+        {
+          errorId,
+          requestedByUserId: userId,
+          enqueuedAt: new Date().toISOString()
+        },
+        {
+          attempts: Number(process.env.AI_WORKER_MAX_ATTEMPTS || "3"),
+          backoff: {
+            type: "exponential",
+            delay: 2_000
+          },
+          removeOnComplete: 1000,
+          removeOnFail: 3000
+        }
+      );
+    } catch (queueError) {
+      console.error("Failed to add job to queue:", queueError);
+      await prisma.error.update({
+        where: { id: errorId },
+        data: {
+          aiStatus: "FAILED",
+          aiLastError: "Failed to queue job for processing. Please try again.",
+          aiRequestedAt: new Date(),
+          aiCompletedAt: new Date()
+        }
+      });
+      await redis.del(lockKey);
+      return res.status(503).json({ error: "Failed to queue job. Try again shortly." });
+    }
 
-  return res.status(202).json({ status: "queued", queueDepth });
+    if (!job) {
+      throw new Error("Failed to add job to queue");
+    }
+
+    // Now update database after queue add succeeds
+    await prisma.$transaction([
+      prisma.errorAnalysis.deleteMany({
+        where: { errorId }
+      }),
+      prisma.error.update({
+        where: { id: errorId },
+        data: {
+          aiStatus: "PENDING",
+          aiLastError: null,
+          aiRequestedAt: new Date(),
+          aiRequestedByUserId: userId,
+          aiCompletedAt: null
+        }
+      })
+    ]);
+
+    return res.status(202).json({
+      status: "queued",
+      deduped: false,
+      queue: await getAiQueueState(errorId)
+    });
+  } catch (error) {
+    await redis.del(lockKey);
+    // If queue add failed, the error is not in PENDING state, which is correct
+    // If DB update failed, the job is already queued and will be picked up by worker
+    throw error;
+  }
 });
 
 errorsRouter.post("/:id/archive", async (req, res) => {

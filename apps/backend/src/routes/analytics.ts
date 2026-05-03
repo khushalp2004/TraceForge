@@ -1,8 +1,18 @@
 import { Router } from "express";
+import { Prisma } from "@prisma/client";
 import prisma from "../db/prisma.js";
 import { requireAuth } from "../middleware/auth.js";
+import { redis } from "../db/redis.js";
+import { limitConcurrentRequests } from "../middleware/concurrency.js";
+import { getCachedAccessibleProjects } from "../utils/access.js";
 
 export const analyticsRouter = Router();
+const ANALYTICS_CACHE_TTL_SECONDS = 20;
+const analyticsConcurrencyLimit = limitConcurrentRequests({
+  namespace: "analytics:overview",
+  maxConcurrent: 20,
+  message: "Analytics is busy right now. Please retry in a moment."
+});
 
 const buildComparisonMetric = (current: number, previous: number) => {
   const change = current - previous;
@@ -30,7 +40,16 @@ const severityForMessage = (message: string) => {
   return "info" as const;
 };
 
-analyticsRouter.get("/", requireAuth, async (req, res) => {
+const severityFromRank = (rank: number) => {
+  if (rank >= 3) return "CRITICAL" as const;
+  if (rank >= 2) return "WARNING" as const;
+  return "INFO" as const;
+};
+
+const sqlProjectFilter = (projectIds: string[]) =>
+  Prisma.sql`err."projectId" IN (${Prisma.join(projectIds)})`;
+
+analyticsRouter.get("/", requireAuth, analyticsConcurrencyLimit, async (req, res) => {
   const userId = req.user?.id;
   if (!userId) {
     return res.status(401).json({ error: "Unauthorized" });
@@ -38,20 +57,19 @@ analyticsRouter.get("/", requireAuth, async (req, res) => {
 
   const { projectId, days } = req.query as { projectId?: string; days?: string };
   const windowDays = Math.min(Math.max(Number(days) || 7, 1), 90);
+  const analyticsCacheKey = `analytics:${userId}:${projectId || "all"}:${windowDays}`;
+  if (redis.isOpen) {
+    const cached = await redis.get(analyticsCacheKey);
+    if (cached) {
+      try {
+        return res.json(JSON.parse(cached));
+      } catch {
+        // Ignore malformed cache and rebuild.
+      }
+    }
+  }
 
-  const memberships = await prisma.organizationMember.findMany({
-    where: { userId },
-    select: { organizationId: true }
-  });
-  const orgIds = memberships.map((m) => m.organizationId);
-
-  const projects = await prisma.project.findMany({
-    where: {
-      archivedAt: null,
-      OR: [{ userId }, { orgId: { in: orgIds } }]
-    },
-    select: { id: true, name: true }
-  });
+  const projects = await getCachedAccessibleProjects(userId);
 
   const allowedProjectIds = new Set(projects.map((p) => p.id));
   const projectNameMap = new Map(projects.map((project) => [project.id, project.name]));
@@ -61,7 +79,7 @@ analyticsRouter.get("/", requireAuth, async (req, res) => {
   }
 
   if (!projectId && allowedProjectIds.size === 0) {
-    return res.json({
+    const payload = {
       frequency: [],
       lastSeen: [],
       severityBreakdown: [],
@@ -76,7 +94,11 @@ analyticsRouter.get("/", requireAuth, async (req, res) => {
         productionEvents: buildComparisonMetric(0, 0)
       },
       days: windowDays
-    });
+    };
+    if (redis.isOpen) {
+      await redis.setEx(analyticsCacheKey, ANALYTICS_CACHE_TTL_SECONDS, JSON.stringify(payload));
+    }
+    return res.json(payload);
   }
 
   const projectFilter = projectId
@@ -91,34 +113,76 @@ analyticsRouter.get("/", requireAuth, async (req, res) => {
   previousStart.setDate(start.getDate() - windowDays);
 
   const filteredProjectIds = projectId ? [projectId] : Array.from(allowedProjectIds);
+  const projectScope = sqlProjectFilter(filteredProjectIds);
 
-  const [events, errors, topIssues, releaseEvents, alertDeliveries] = await Promise.all([
-    prisma.errorEvent.findMany({
-      where: {
-        error: {
-          ...projectFilter
-        },
-        timestamp: {
-          gte: previousStart
-        }
-      },
-      select: { timestamp: true, environment: true }
-    }),
-    prisma.error.findMany({
-      where: {
-        ...projectFilter,
-        lastSeen: {
-          gte: previousStart
-        }
-      },
-      select: {
-        id: true,
-        message: true,
-        count: true,
-        lastSeen: true,
-        projectId: true
-      }
-    }),
+  const [
+    frequencyRows,
+    lastSeenRows,
+    severityRows,
+    environmentRows,
+    projectPerformanceRows,
+    topIssues,
+    releaseImpactRows,
+    alertCorrelationRows,
+    comparisonEventRows,
+    comparisonIssueRows
+  ] = await Promise.all([
+    prisma.$queryRaw<Array<{ date: Date; count: bigint }>>(Prisma.sql`
+      SELECT DATE_TRUNC('day', e."timestamp") AS "date", COUNT(*) AS "count"
+      FROM "ErrorEvent" e
+      INNER JOIN "Error" err ON err."id" = e."errorId"
+      WHERE ${projectScope}
+        AND e."timestamp" >= ${start}
+      GROUP BY 1
+      ORDER BY 1 ASC
+    `),
+    prisma.$queryRaw<Array<{ date: Date; count: bigint }>>(Prisma.sql`
+      SELECT DATE_TRUNC('day', err."lastSeen") AS "date", COUNT(*) AS "count"
+      FROM "Error" err
+      WHERE ${projectScope}
+        AND err."lastSeen" >= ${start}
+      GROUP BY 1
+      ORDER BY 1 ASC
+    `),
+    prisma.$queryRaw<
+      Array<{ severity: "critical" | "warning" | "info"; count: bigint }>
+    >(Prisma.sql`
+      SELECT
+        CASE
+          WHEN LOWER(err."message") LIKE '%null%' OR LOWER(err."message") LIKE '%undefined%' OR LOWER(err."message") LIKE '%typeerror%' THEN 'critical'
+          WHEN LOWER(err."message") LIKE '%timeout%' OR LOWER(err."message") LIKE '%network%' OR LOWER(err."message") LIKE '%rate%' THEN 'warning'
+          ELSE 'info'
+        END AS "severity",
+        COALESCE(SUM(err."count"), 0) AS "count"
+      FROM "Error" err
+      WHERE ${projectScope}
+        AND err."lastSeen" >= ${start}
+      GROUP BY 1
+    `),
+    prisma.$queryRaw<Array<{ label: string; count: bigint }>>(Prisma.sql`
+      SELECT
+        COALESCE(NULLIF(BTRIM(e."environment"), ''), 'Unknown') AS "label",
+        COUNT(*) AS "count"
+      FROM "ErrorEvent" e
+      INNER JOIN "Error" err ON err."id" = e."errorId"
+      WHERE ${projectScope}
+        AND e."timestamp" >= ${start}
+      GROUP BY 1
+      ORDER BY "count" DESC
+    `),
+    prisma.$queryRaw<Array<{ projectId: string; label: string; count: bigint }>>(Prisma.sql`
+      SELECT
+        err."projectId" AS "projectId",
+        p."name" AS "label",
+        COALESCE(SUM(err."count"), 0) AS "count"
+      FROM "Error" err
+      INNER JOIN "Project" p ON p."id" = err."projectId"
+      WHERE ${projectScope}
+        AND err."lastSeen" >= ${start}
+      GROUP BY err."projectId", p."name"
+      ORDER BY "count" DESC
+      LIMIT 6
+    `),
     prisma.error.findMany({
       where: {
         ...projectFilter,
@@ -136,64 +200,104 @@ analyticsRouter.get("/", requireAuth, async (req, res) => {
         projectId: true
       }
     }),
-    prisma.errorEvent.findMany({
-      where: {
-        error: {
-          ...projectFilter
-        },
-        timestamp: {
-          gte: start
-        }
-      },
-      select: {
-        errorId: true,
-        releaseId: true,
-        timestamp: true,
-        payload: true,
-        error: {
-          select: {
-            projectId: true
-          }
-        }
-      }
-    }),
-    prisma.alertDelivery.findMany({
-      where: {
-        projectId: {
-          in: filteredProjectIds
-        },
-        triggeredAt: {
-          gte: start
-        }
-      },
-      orderBy: {
-        triggeredAt: "desc"
-      },
-      select: {
-        errorId: true,
-        projectId: true,
-        triggeredAt: true,
-        error: {
-          select: {
-            id: true,
-            message: true,
-            lastSeen: true
-          }
-        },
-        project: {
-          select: {
-            id: true,
-            name: true
-          }
-        },
-        alertRule: {
-          select: {
-            name: true,
-            severity: true
-          }
-        }
-      }
-    })
+    prisma.$queryRaw<
+      Array<{
+        id: string;
+        releaseId: string | null;
+        version: string;
+        environment: string | null;
+        projectId: string;
+        projectName: string;
+        eventCount: bigint;
+        issueCount: bigint;
+        lastEventAt: Date;
+      }>
+    >(Prisma.sql`
+      SELECT
+        COALESCE(e."releaseId", err."projectId" || ':' || BTRIM(e."payload"->>'release')) AS "id",
+        e."releaseId" AS "releaseId",
+        BTRIM(e."payload"->>'release') AS "version",
+        NULLIF(BTRIM(e."payload"->>'environment'), '') AS "environment",
+        err."projectId" AS "projectId",
+        p."name" AS "projectName",
+        COUNT(*) AS "eventCount",
+        COUNT(DISTINCT e."errorId") AS "issueCount",
+        MAX(e."timestamp") AS "lastEventAt"
+      FROM "ErrorEvent" e
+      INNER JOIN "Error" err ON err."id" = e."errorId"
+      INNER JOIN "Project" p ON p."id" = err."projectId"
+      WHERE ${projectScope}
+        AND e."timestamp" >= ${start}
+        AND NULLIF(BTRIM(e."payload"->>'release'), '') IS NOT NULL
+      GROUP BY 1, 2, 3, 4, 5, 6
+      ORDER BY "eventCount" DESC, "lastEventAt" DESC
+      LIMIT 5
+    `),
+    prisma.$queryRaw<
+      Array<{
+        errorId: string;
+        message: string;
+        projectId: string;
+        projectName: string;
+        alertCount: bigint;
+        lastTriggeredAt: Date;
+        ruleNames: string[];
+        severityRank: number;
+      }>
+    >(Prisma.sql`
+      SELECT
+        d."errorId" AS "errorId",
+        err."message" AS "message",
+        d."projectId" AS "projectId",
+        p."name" AS "projectName",
+        COUNT(*) AS "alertCount",
+        MAX(d."triggeredAt") AS "lastTriggeredAt",
+        ARRAY_AGG(DISTINCT ar."name") AS "ruleNames",
+        MAX(
+          CASE ar."severity"
+            WHEN 'CRITICAL' THEN 3
+            WHEN 'WARNING' THEN 2
+            ELSE 1
+          END
+        ) AS "severityRank"
+      FROM "AlertDelivery" d
+      INNER JOIN "Error" err ON err."id" = d."errorId"
+      INNER JOIN "Project" p ON p."id" = d."projectId"
+      INNER JOIN "AlertRule" ar ON ar."id" = d."alertRuleId"
+      WHERE d."projectId" IN (${Prisma.join(filteredProjectIds)})
+        AND d."triggeredAt" >= ${start}
+      GROUP BY d."errorId", err."message", d."projectId", p."name"
+      ORDER BY "alertCount" DESC, "lastTriggeredAt" DESC
+      LIMIT 5
+    `),
+    prisma.$queryRaw<
+      Array<{ window: "current" | "previous"; totalEvents: bigint; productionEvents: bigint }>
+    >(Prisma.sql`
+      SELECT
+        CASE
+          WHEN e."timestamp" >= ${start} THEN 'current'
+          ELSE 'previous'
+        END AS "window",
+        COUNT(*) AS "totalEvents",
+        COUNT(*) FILTER (WHERE LOWER(COALESCE(e."environment", '')) = 'production') AS "productionEvents"
+      FROM "ErrorEvent" e
+      INNER JOIN "Error" err ON err."id" = e."errorId"
+      WHERE ${projectScope}
+        AND e."timestamp" >= ${previousStart}
+      GROUP BY 1
+    `),
+    prisma.$queryRaw<Array<{ window: "current" | "previous"; activeIssues: bigint }>>(Prisma.sql`
+      SELECT
+        CASE
+          WHEN err."lastSeen" >= ${start} THEN 'current'
+          ELSE 'previous'
+        END AS "window",
+        COUNT(*) AS "activeIssues"
+      FROM "Error" err
+      WHERE ${projectScope}
+        AND err."lastSeen" >= ${previousStart}
+      GROUP BY 1
+    `)
   ]);
 
   const dayKey = (date: Date) => {
@@ -204,20 +308,6 @@ analyticsRouter.get("/", requireAuth, async (req, res) => {
 
   const frequencyMap = new Map<string, number>();
   const lastSeenMap = new Map<string, number>();
-  const severityMap = new Map<"critical" | "warning" | "info", number>([
-    ["critical", 0],
-    ["warning", 0],
-    ["info", 0]
-  ]);
-  const environmentMap = new Map<string, number>();
-  const projectPerformanceMap = new Map<string, { projectId: string; name: string; count: number }>();
-  let currentEventTotal = 0;
-  let previousEventTotal = 0;
-  let currentProductionTotal = 0;
-  let previousProductionTotal = 0;
-  let currentActiveIssues = 0;
-  let previousActiveIssues = 0;
-
   for (let i = 0; i < windowDays; i += 1) {
     const day = new Date(start);
     day.setDate(start.getDate() + i);
@@ -226,52 +316,12 @@ analyticsRouter.get("/", requireAuth, async (req, res) => {
     lastSeenMap.set(key, 0);
   }
 
-  events.forEach((event) => {
-    const isCurrentWindow = event.timestamp >= start;
-
-    if (isCurrentWindow) {
-      currentEventTotal += 1;
-      if ((event.environment || "").toLowerCase() === "production") {
-        currentProductionTotal += 1;
-      }
-    } else {
-      previousEventTotal += 1;
-      if ((event.environment || "").toLowerCase() === "production") {
-        previousProductionTotal += 1;
-      }
-      return;
-    }
-
-    const key = dayKey(event.timestamp);
-    frequencyMap.set(key, (frequencyMap.get(key) || 0) + 1);
-    const environmentKey = event.environment?.trim() || "Unknown";
-    environmentMap.set(environmentKey, (environmentMap.get(environmentKey) || 0) + 1);
+  frequencyRows.forEach((row) => {
+    frequencyMap.set(dayKey(row.date), Number(row.count));
   });
 
-  errors.forEach((item) => {
-    if (item.lastSeen >= start) {
-      currentActiveIssues += 1;
-    } else {
-      previousActiveIssues += 1;
-      return;
-    }
-
-    const key = dayKey(item.lastSeen);
-    lastSeenMap.set(key, (lastSeenMap.get(key) || 0) + 1);
-    const severity = severityForMessage(item.message);
-    severityMap.set(severity, (severityMap.get(severity) || 0) + item.count);
-
-    const existingProject = projectPerformanceMap.get(item.projectId);
-    if (existingProject) {
-      existingProject.count += item.count;
-      return;
-    }
-
-    projectPerformanceMap.set(item.projectId, {
-      projectId: item.projectId,
-      name: projectNameMap.get(item.projectId) || "Unknown project",
-      count: item.count
-    });
+  lastSeenRows.forEach((row) => {
+    lastSeenMap.set(dayKey(row.date), Number(row.count));
   });
 
   const frequency = Array.from(frequencyMap.entries()).map(([date, count]) => ({
@@ -284,180 +334,90 @@ analyticsRouter.get("/", requireAuth, async (req, res) => {
     count
   }));
 
-  const severityBreakdown = [
-    { label: "Critical", count: severityMap.get("critical") || 0, tone: "critical" },
-    { label: "Warning", count: severityMap.get("warning") || 0, tone: "warning" },
-    { label: "Info", count: severityMap.get("info") || 0, tone: "info" }
-  ];
+  const severityTotals = {
+    critical: 0,
+    warning: 0,
+    info: 0
+  };
 
-  const environmentHealth = Array.from(environmentMap.entries())
-    .map(([label, count]) => ({ label, count }))
-    .sort((a, b) => b.count - a.count);
-
-  const projectPerformance = Array.from(projectPerformanceMap.values())
-    .sort((a, b) => b.count - a.count)
-    .slice(0, 6)
-    .map((item) => ({
-      projectId: item.projectId,
-      label: item.name,
-      count: item.count
-    }));
-
-  const releaseImpactMap = new Map<
-    string,
-    {
-      releaseId: string | null;
-      version: string;
-      environment: string | null;
-      projectId: string;
-      projectName: string;
-      eventCount: number;
-      issueIds: Set<string>;
-      lastEventAt: Date;
-    }
-  >();
-
-  releaseEvents.forEach((event) => {
-    const payload = event.payload;
-    const payloadRelease =
-      payload &&
-      typeof payload === "object" &&
-      "release" in payload &&
-      typeof payload.release === "string"
-        ? payload.release.trim()
-        : "";
-
-    if (!payloadRelease) {
-      return;
-    }
-
-    const releaseKey = event.releaseId || `${event.error.projectId}:${payloadRelease}`;
-    const existing = releaseImpactMap.get(releaseKey);
-    if (existing) {
-      existing.eventCount += 1;
-      existing.issueIds.add(event.errorId);
-      if (event.timestamp > existing.lastEventAt) {
-        existing.lastEventAt = event.timestamp;
-      }
-      return;
-    }
-
-    releaseImpactMap.set(releaseKey, {
-      releaseId: event.releaseId || null,
-      version: payloadRelease,
-      environment:
-        payload &&
-        typeof payload === "object" &&
-        "environment" in payload &&
-        typeof payload.environment === "string"
-          ? payload.environment
-          : null,
-      projectId: event.error.projectId,
-      projectName: projectNameMap.get(event.error.projectId) || "Unknown project",
-      eventCount: 1,
-      issueIds: new Set([event.errorId]),
-      lastEventAt: event.timestamp
-    });
+  severityRows.forEach((row) => {
+    severityTotals[row.severity] = Number(row.count);
   });
 
-  const releaseImpact = Array.from(releaseImpactMap.values())
+  const severityBreakdown = [
+    { label: "Critical", count: severityTotals.critical, tone: "critical" },
+    { label: "Warning", count: severityTotals.warning, tone: "warning" },
+    { label: "Info", count: severityTotals.info, tone: "info" }
+  ];
+
+  const environmentHealth = environmentRows.map((row) => ({
+    label: row.label,
+    count: Number(row.count)
+  }));
+
+  const projectPerformance = projectPerformanceRows.map((item) => ({
+    projectId: item.projectId,
+    label: item.label,
+    count: Number(item.count)
+  }));
+
+  const releaseImpact = releaseImpactRows
     .map((item) => {
-      const issueCount = item.issueIds.size;
+      const eventCount = Number(item.eventCount);
+      const issueCount = Number(item.issueCount);
       const health =
-        item.eventCount === 0
+        eventCount === 0
           ? "healthy"
-          : item.eventCount <= 5 && issueCount <= 2
+          : eventCount <= 5 && issueCount <= 2
           ? "monitoring"
           : "regression";
 
       return {
-        id: item.releaseId || `${item.projectId}:${item.version}`,
+        id: item.id,
         version: item.version,
         environment: item.environment,
         releasedAt: item.lastEventAt,
         projectId: item.projectId,
         projectName: item.projectName,
-        eventCount: item.eventCount,
+        eventCount,
         issueCount,
         lastEventAt: item.lastEventAt,
         health
       };
-    })
-    .sort((a, b) => {
-      if (b.eventCount !== a.eventCount) {
-        return b.eventCount - a.eventCount;
-      }
-      return b.lastEventAt.getTime() - a.lastEventAt.getTime();
-    })
-    .slice(0, 5);
-
-  const alertCorrelationMap = new Map<
-    string,
-    {
-      errorId: string;
-      message: string;
-      projectId: string;
-      projectName: string;
-      alertCount: number;
-      lastTriggeredAt: Date;
-      ruleNames: Set<string>;
-      severity: "INFO" | "WARNING" | "CRITICAL";
-    }
-  >();
-
-  const severityRank = {
-    INFO: 0,
-    WARNING: 1,
-    CRITICAL: 2
-  } as const;
-
-  alertDeliveries.forEach((delivery) => {
-    const existing = alertCorrelationMap.get(delivery.errorId);
-
-    if (existing) {
-      existing.alertCount += 1;
-      existing.ruleNames.add(delivery.alertRule.name);
-      if (delivery.triggeredAt > existing.lastTriggeredAt) {
-        existing.lastTriggeredAt = delivery.triggeredAt;
-      }
-      if (severityRank[delivery.alertRule.severity] > severityRank[existing.severity]) {
-        existing.severity = delivery.alertRule.severity;
-      }
-      return;
-    }
-
-    alertCorrelationMap.set(delivery.errorId, {
-      errorId: delivery.error.id,
-      message: delivery.error.message,
-      projectId: delivery.project.id,
-      projectName: delivery.project.name,
-      alertCount: 1,
-      lastTriggeredAt: delivery.triggeredAt,
-      ruleNames: new Set([delivery.alertRule.name]),
-      severity: delivery.alertRule.severity
     });
-  });
 
-  const alertCorrelation = Array.from(alertCorrelationMap.values())
-    .sort((a, b) => {
-      if (b.alertCount !== a.alertCount) {
-        return b.alertCount - a.alertCount;
+  const alertCorrelation = alertCorrelationRows.map((item) => ({
+    errorId: item.errorId,
+    message: item.message,
+    projectId: item.projectId,
+    projectName: item.projectName,
+    alertCount: Number(item.alertCount),
+    lastTriggeredAt: item.lastTriggeredAt,
+    ruleNames: item.ruleNames,
+    severity: severityFromRank(item.severityRank)
+  }));
+
+  const comparisonEventMap = new Map(
+    comparisonEventRows.map((row) => [
+      row.window,
+      {
+        totalEvents: Number(row.totalEvents),
+        productionEvents: Number(row.productionEvents)
       }
-      return b.lastTriggeredAt.getTime() - a.lastTriggeredAt.getTime();
-    })
-    .slice(0, 5)
-    .map((item) => ({
-      errorId: item.errorId,
-      message: item.message,
-      projectId: item.projectId,
-      projectName: item.projectName,
-      alertCount: item.alertCount,
-      lastTriggeredAt: item.lastTriggeredAt,
-      ruleNames: Array.from(item.ruleNames),
-      severity: item.severity
-    }));
+    ])
+  );
+  const comparisonIssueMap = new Map(
+    comparisonIssueRows.map((row) => [row.window, Number(row.activeIssues)])
+  );
 
-  return res.json({
+  const currentEventTotal = comparisonEventMap.get("current")?.totalEvents || 0;
+  const previousEventTotal = comparisonEventMap.get("previous")?.totalEvents || 0;
+  const currentProductionTotal = comparisonEventMap.get("current")?.productionEvents || 0;
+  const previousProductionTotal = comparisonEventMap.get("previous")?.productionEvents || 0;
+  const currentActiveIssues = comparisonIssueMap.get("current") || 0;
+  const previousActiveIssues = comparisonIssueMap.get("previous") || 0;
+
+  const payload = {
     frequency,
     lastSeen,
     severityBreakdown,
@@ -478,7 +438,13 @@ analyticsRouter.get("/", requireAuth, async (req, res) => {
       projectName: projectNameMap.get(item.projectId) || "Unknown project"
     })),
     days: windowDays
-  });
+  };
+
+  if (redis.isOpen) {
+    await redis.setEx(analyticsCacheKey, ANALYTICS_CACHE_TTL_SECONDS, JSON.stringify(payload));
+  }
+
+  return res.json(payload);
 });
 
 analyticsRouter.get("/public/metrics", async (req, res) => {
