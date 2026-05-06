@@ -102,7 +102,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const fetchUser = async () => {
     try {
       const res = await fetch(`${API_URL}/auth/me`, {
-        credentials: "include"
+        credentials: "include",
+        signal: AbortSignal.timeout(15_000)
       });
       if (res.ok) {
         const data = await res.json();

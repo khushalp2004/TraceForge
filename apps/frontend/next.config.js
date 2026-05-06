@@ -55,8 +55,6 @@ if (isProduction) {
 
 const nextConfig = {
   reactStrictMode: true,
-  // Use standalone output for optimized production Docker build
-  output: "standalone",
   
   // Optimize images for CDN
   images: {

@@ -58,10 +58,25 @@ Rule Name: Cache Dashboard API
 Status: Enabled
 Match:
   - URI Path Matches Pattern: /dashboard
+  - Cookie: (none)
 Settings:
   - Cache Level: Standard
-  - Edge Cache TTL: 10 minutes (600 seconds)
-  - Browser Cache TTL: 10 minutes (600 seconds)
+  - Edge Cache TTL: 30 seconds (for semi-dynamic content)
+  - Browser Cache TTL: 30 seconds
+  - Origin Cache Control: On
+```
+
+### Rule 4: Bypass Auth Routes (Priority: High)
+```
+Rule Name: Bypass Auth Routes
+Status: Enabled
+Match:
+  - URI Path Matches Pattern: /auth/*
+  - OR URI Path Contains: /login
+  - OR URI Path Contains: /signup
+Settings:
+  - Cache Level: Bypass
+  - Disable Performance features: On
 ```
 
 ## Page Rules (Alternative to Cache Rules)
@@ -171,6 +186,7 @@ curl -I https://yourdomain.com/_next/static/chunks/main.js
 - **Backend load**: Reduced by ~40-50% (static assets served from CDN)
 - **Global latency**: 50-70% improvement for static assets
 - **Bandwidth**: Reduced by ~60% (compression + caching)
+- **Dashboard**: 30-second edge cache reduces backend load by ~30%
 
 ## Rollback Plan
 

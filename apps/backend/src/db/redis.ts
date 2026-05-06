@@ -5,22 +5,19 @@ const redisUrl = process.env.REDIS_URL || "redis://redis:6379";
 export const redis = createClient({
   url: redisUrl,
   socket: {
-    reconnectStrategy: (retries) => Math.min(retries * 50, 500),
-    lazyConnect: true
+    reconnectStrategy: (retries) => Math.min(retries * 50, 500)
   }
 });
 export const redisPublisher = createClient({
   url: redisUrl,
   socket: {
-    reconnectStrategy: (retries) => Math.min(retries * 50, 500),
-    lazyConnect: true
+    reconnectStrategy: (retries) => Math.min(retries * 50, 500)
   }
 });
 export const redisSubscriber = createClient({
   url: redisUrl,
   socket: {
-    reconnectStrategy: (retries) => Math.min(retries * 50, 500),
-    lazyConnect: true
+    reconnectStrategy: (retries) => Math.min(retries * 50, 500)
   }
 });
 

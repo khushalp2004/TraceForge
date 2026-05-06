@@ -18,17 +18,11 @@ const applyLayout = (layout: AppLayout) => {
   document.documentElement.dataset.layout = layout;
 };
 
-const initialLayout = (): AppLayout => {
-  if (typeof document === "undefined") {
-    return DEFAULT_LAYOUT;
-  }
-
-  const booted = document.documentElement.dataset.layout;
-  return isAppLayout(booted) ? booted : DEFAULT_LAYOUT;
-};
-
 export function LayoutProvider({ children }: { children: React.ReactNode }) {
-  const [layout, setLayoutState] = useState<AppLayout>(initialLayout);
+  // Always start with DEFAULT_LAYOUT so server HTML matches the first client render.
+  // The root layout boot script already sets dataset.layout from localStorage; we align
+  // React state in useEffect to avoid hydration mismatches (different layout → different SVG trees).
+  const [layout, setLayoutState] = useState<AppLayout>(DEFAULT_LAYOUT);
 
   useEffect(() => {
     if (typeof window === "undefined") {

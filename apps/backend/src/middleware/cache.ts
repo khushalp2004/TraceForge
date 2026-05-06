@@ -5,19 +5,23 @@ export interface CacheOptions {
   ttl?: number;
   keyPrefix?: string;
   skipCache?: (req: Request) => boolean;
+  useUserId?: boolean;
 }
 
 const DEFAULT_TTL = 60;
 
 export const cacheMiddleware = (options: CacheOptions = {}) => {
-  const { ttl = DEFAULT_TTL, keyPrefix = "cache", skipCache } = options;
+  const { ttl = DEFAULT_TTL, keyPrefix = "cache", skipCache, useUserId = false } = options;
 
   return async (req: Request, res: Response, next: NextFunction) => {
     if (!redis.isOpen || (skipCache && skipCache(req))) {
       return next();
     }
 
-    const cacheKey = `${keyPrefix}:${req.method}:${req.originalUrl}`;
+    const userId = (req as any).user?.id;
+    const cacheKey = useUserId && userId
+      ? `${keyPrefix}:user:${userId}:${req.method}:${req.originalUrl}`
+      : `${keyPrefix}:${req.method}:${req.originalUrl}`;
     
     try {
       const cached = await redis.get(cacheKey);
@@ -50,6 +54,22 @@ export const invalidateCache = async (pattern: string) => {
     const keys = await redis.keys(pattern);
     if (keys.length > 0) {
       await redis.del(keys);
+    }
+  } catch {
+    // Ignore cache invalidation errors
+  }
+};
+
+export const invalidateUserCache = async (userId: string) => {
+  if (!redis.isOpen) return;
+  
+  try {
+    const patterns = [`cache:user:${userId}:*`, `auth:me:${userId}`, `dashboard:data:user:${userId}`];
+    for (const pattern of patterns) {
+      const keys = await redis.keys(pattern);
+      if (keys.length > 0) {
+        await redis.del(keys);
+      }
     }
   } catch {
     // Ignore cache invalidation errors

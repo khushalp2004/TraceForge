@@ -41,6 +41,7 @@ import {
 } from "../utils/integrationProviders.js";
 import { deleteProjectGraph } from "../utils/projectDeletion.js";
 import { redis } from "../db/redis.js";
+import { invalidateCache } from "../middleware/cache.js";
 
 export const projectsRouter = Router();
 
@@ -48,7 +49,7 @@ projectsRouter.use(requireAuth);
 
 const projectListConcurrencyLimit = limitConcurrentRequests({
   namespace: "projects:list",
-  maxConcurrent: 40,
+  maxConcurrent: 250,
   message: "Project list is busy right now. Please try again in a moment."
 });
 
@@ -273,7 +274,7 @@ const getAccessibleProjectForUser = async (projectId: string, userId: string) =>
   return project;
 };
 
-projectsRouter.get("/", projectListConcurrencyLimit, cacheMiddleware({ ttl: 60, keyPrefix: "projects:list" }), async (req, res) => {
+projectsRouter.get("/", projectListConcurrencyLimit, cacheMiddleware({ ttl: 60, keyPrefix: "projects:list", useUserId: true }), async (req, res) => {
   const userId = req.user?.id;
   const includeArchived = req.query.includeArchived === "true";
   if (!userId) {
@@ -402,6 +403,9 @@ projectsRouter.post("/", async (req, res) => {
     select: projectSelect
   });
 
+  // Invalidate project list cache for this user
+  void invalidateCache(`projects:list:user:${userId}:*`);
+
   return res.status(201).json({ project: serializeProject(project) });
 });
 
@@ -465,6 +469,15 @@ projectsRouter.patch("/:id", async (req, res) => {
     data: { name: normalizedName },
     select: projectSelect
   });
+
+  // Invalidate project list cache for all users who might have access (simpler to clear user's cache)
+  void invalidateCache(`projects:list:user:${userId}:*`);
+  if (project.orgId) {
+    // If it's an org project, we might need to invalidate for all org members, 
+    // but for now, clearing the requester's cache is a good start.
+    // A more thorough fix would invalidate by pattern: projects:list:*
+    void invalidateCache(`projects:list:*`);
+  }
 
   return res.json({ project: serializeProject(updated) });
 });
@@ -907,6 +920,11 @@ projectsRouter.post("/:id/restore", async (req, res) => {
     select: projectSelect
   });
 
+  void invalidateCache(`projects:list:user:${userId}:*`);
+  if (project.orgId) {
+    void invalidateCache(`projects:list:*`);
+  }
+
   return res.json({ project: serializeProject(updated) });
 });
 
@@ -953,6 +971,11 @@ projectsRouter.delete("/:id", async (req, res) => {
     data: { archivedAt: new Date() },
     select: projectSelect
   });
+
+  void invalidateCache(`projects:list:user:${userId}:*`);
+  if (project.orgId) {
+    void invalidateCache(`projects:list:*`);
+  }
 
   return res.json({ project: serializeProject(updated) });
 });
@@ -1002,6 +1025,11 @@ projectsRouter.delete("/:id/permanent", async (req, res) => {
   await prisma.$transaction(async (tx) => {
     await deleteProjectGraph(tx, projectId);
   });
+
+  void invalidateCache(`projects:list:user:${userId}:*`);
+  if (project.orgId) {
+    void invalidateCache(`projects:list:*`);
+  }
 
   return res.json({ status: "deleted" });
 });

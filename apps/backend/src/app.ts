@@ -134,7 +134,7 @@ export const createApp = () => {
 
   if (!notificationsOnly) {
     app.use("/auth", authRouter);
-    app.use("/dashboard", dashboardRouter);
+    app.use("/api/dashboard", dashboardRouter);
     app.use("/auth/password", passwordResetRouter);
     app.use("/alerts", alertsRouter);
     app.use("/releases", releasesRouter);

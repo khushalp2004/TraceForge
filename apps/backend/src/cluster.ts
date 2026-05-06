@@ -5,13 +5,14 @@ import { connectRedis } from "./db/redis.js";
 import { closeQueues } from "./queue/queues.js";
 import prisma from "./db/prisma.js";
 
-const numCPUs = cpus().length;
+// Use WORKER_COUNT from env or default to 2 for multi-container setup
+const workerCount = Number(process.env.WORKER_COUNT || 2);
 
 if (cluster.isPrimary) {
   console.log(`Master ${process.pid} is running`);
-  console.log(`Forking ${numCPUs} workers...`);
+  console.log(`Forking ${workerCount} workers...`);
 
-  for (let i = 0; i < numCPUs; i++) {
+  for (let i = 0; i < workerCount; i++) {
     cluster.fork();
   }
 

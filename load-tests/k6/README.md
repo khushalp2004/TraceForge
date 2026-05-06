@@ -56,6 +56,22 @@ That gives us:
 - frontend at `http://127.0.0.1:3000`
 - backend at `http://127.0.0.1:3001`
 
+## Create a dedicated load-test `.env`
+
+Copy and edit:
+
+```bash
+cp load-tests/k6/.env.example load-tests/k6/.env
+```
+
+Run combined test with one normal command:
+
+```bash
+./load-tests/k6/run-combined.sh
+```
+
+This avoids k6 scenario override issues by using `LT_*` script vars (instead of k6 global option vars like `K6_DURATION`).
+
 ## Public API smoke load
 
 ```bash
@@ -112,13 +128,7 @@ k6 run load-tests/k6/worker-queue.js
 ## Combined real-system load
 
 ```bash
-K6_BASE_URL=http://127.0.0.1:3001 \
-K6_EMAIL=your-test-user@example.com \
-K6_PASSWORD='your-password' \
-K6_ERROR_ID=your-error-id \
-K6_VUS=25 \
-K6_DURATION=2m \
-k6 run load-tests/k6/combined-system.js
+./load-tests/k6/run-combined.sh
 ```
 
 If you want usage scoped to a specific org:
@@ -184,13 +194,10 @@ k6 run load-tests/k6/combined-system.js
 ## Then scale up gradually
 
 ```bash
-K6_BASE_URL=http://127.0.0.1:80 \
-K6_EMAIL=your-test-user@example.com \
-K6_PASSWORD='your-password' \
-K6_ERROR_ID=your-error-id \
-K6_VUS=100 \
-K6_DURATION=2m \
-k6 run load-tests/k6/combined-system.js
+LT_DASHBOARD_RATE=40 \
+LT_QUEUE_RATE=4 \
+LT_MAX_VUS=200 \
+./load-tests/k6/run-combined.sh
 ```
 
 ## What to watch while tests run

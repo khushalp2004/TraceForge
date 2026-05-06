@@ -8,12 +8,12 @@ const password = __ENV.K6_PASSWORD || "";
 const orgId = __ENV.K6_ORG_ID || "";
 const errorId = __ENV.K6_ERROR_ID || "";
 
-const pauseSeconds = Number(__ENV.K6_SLEEP_SECONDS || 0.75);
-const dashboardRate = Number(__ENV.K6_DASHBOARD_RATE || 20);
-const queueRate = Number(__ENV.K6_QUEUE_RATE || 5);
-const preAllocatedVUs = Number(__ENV.K6_PREALLOCATED_VUS || 30);
-const maxVUs = Number(__ENV.K6_MAX_VUS || 200);
-const duration = __ENV.K6_DURATION || "3m";
+const pauseSeconds = Number(__ENV.LT_SLEEP_SECONDS || __ENV.K6_SLEEP_SECONDS || 0.75);
+const dashboardRate = Number(__ENV.LT_DASHBOARD_RATE || __ENV.K6_DASHBOARD_RATE || 20);
+const queueRate = Number(__ENV.LT_QUEUE_RATE || __ENV.K6_QUEUE_RATE || 5);
+const preAllocatedVUs = Number(__ENV.LT_PREALLOCATED_VUS || __ENV.K6_PREALLOCATED_VUS || 30);
+const maxVUs = Number(__ENV.LT_MAX_VUS || __ENV.K6_MAX_VUS || 300);
+const duration = __ENV.LT_DURATION || "2m";
 
 export const options = {
   scenarios: {
@@ -57,7 +57,7 @@ export default function (data) {
   const usageQuery = orgId ? `?orgId=${encodeURIComponent(orgId)}` : "";
 
   // Single batched dashboard call instead of 6 separate calls
-  const dashboard = http.get(`${baseUrl}/dashboard${usageQuery}`, headers);
+  const dashboard = http.get(`${baseUrl}/api/dashboard${usageQuery}`, headers);
   check(dashboard, { "dashboard data ok": (res) => res.status === 200 });
 
   if (errorId) {
@@ -79,19 +79,19 @@ export function dashboardScenario(data) {
   const headers = authHeaders(data.cookie);
   const usageQuery = orgId ? `?orgId=${encodeURIComponent(orgId)}` : "";
 
-  const authMe = http.get(`${baseUrl}/auth/me`, headers);
+  const authMe = http.get(`${baseUrl}/api/auth/me`, headers);
   check(authMe, { "dashboard auth me ok": (res) => res.status === 200 });
   sleep(Math.max(0.2, pauseSeconds * 0.3));
 
-  const usage = http.get(`${baseUrl}/auth/usage${usageQuery}`, headers);
+  const usage = http.get(`${baseUrl}/api/auth/usage${usageQuery}`, headers);
   check(usage, { "dashboard usage ok": (res) => res.status === 200 });
   sleep(Math.max(0.2, pauseSeconds * 0.3));
 
   const dashboardBatch = http.batch([
-    ["GET", `${baseUrl}/projects`, null, headers],
-    ["GET", `${baseUrl}/orgs`, null, headers],
-    ["GET", `${baseUrl}/alerts/projects`, null, headers],
-    ["GET", `${baseUrl}/notifications/dismissals`, null, headers]
+    ["GET", `${baseUrl}/api/projects`, null, headers],
+    ["GET", `${baseUrl}/api/orgs`, null, headers],
+    ["GET", `${baseUrl}/api/alerts/projects`, null, headers],
+    ["GET", `${baseUrl}/api/notifications/dismissals`, null, headers]
   ]);
 
   check(dashboardBatch[0], { "dashboard projects ok": (res) => res.status === 200 });
