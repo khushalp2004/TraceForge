@@ -21,7 +21,7 @@
    Content: YOUR_VPS_IP
    Proxy status: Proxied (orange cloud)
    TTL: Auto
-   ```
+   ``
 
 ## Cache Rules (Cloudflare Dashboard → Caching → Cache Rules)
 
