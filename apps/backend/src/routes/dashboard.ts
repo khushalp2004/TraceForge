@@ -89,8 +89,7 @@ const alertRulesCircuitBreaker = withCircuitBreaker(
 dashboardRouter.get(
   "/",
   requireAuth,
-  cacheMiddleware({ ttl: 30, keyPrefix: "dashboard:data", useUserId: true }),
-  dashboardRateLimit,
+  cacheMiddleware({ ttl: 60, keyPrefix: "dashboard:data", useUserId: true }),
   async (req, res) => {
     const userId = req.user?.id;
 

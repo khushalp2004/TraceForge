@@ -70,7 +70,7 @@ const accountMutationRateLimit = rateLimitByUser("auth:account-mutation", {
 const USAGE_SUMMARY_CACHE_TTL_SECONDS = 15;
 const usageSummaryConcurrencyLimit = limitConcurrentRequests({
   namespace: "auth:usage",
-  maxConcurrent: 60,
+  maxConcurrent: 500,
   message: "Usage is refreshing for a lot of users right now. Please retry in a moment."
 });
 

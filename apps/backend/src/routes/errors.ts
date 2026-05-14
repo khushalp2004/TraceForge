@@ -28,7 +28,7 @@ const AI_STALLED_IDLE_MS = Math.max(10_000, Number(process.env.AI_STALLED_IDLE_M
 const getAiRegenerateLockKey = (errorId: string) => `lock:ai:regenerate:${errorId}`;
 const regenerateConcurrencyLimit = limitConcurrentRequests({
   namespace: "errors:regenerate",
-  maxConcurrent: 250,
+  maxConcurrent: 500,
   message: "AI regenerate is currently busy. Please try again in a few seconds."
 });
 

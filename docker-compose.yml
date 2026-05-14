@@ -50,11 +50,11 @@ services:
       DB_USER: ${POSTGRES_USER}
       DB_PASSWORD: ${POSTGRES_PASSWORD}
       POOL_MODE: transaction
-      DEFAULT_POOL_SIZE: 400
-      MAX_CLIENT_CONN: 1000
+      DEFAULT_POOL_SIZE: 100
+      MAX_CLIENT_CONN: 400
       MIN_POOL_SIZE: 20
-      RESERVE_POOL_SIZE: 10
-      RESERVE_POOL_TIMEOUT: 3
+      RESERVE_POOL_SIZE: 20
+      RESERVE_POOL_TIMEOUT: 5
       SERVER_IDLE_TIMEOUT: 600
       IGNORE_STARTUP_PARAMETERS: extra_float_digits
     ports:
@@ -114,6 +114,8 @@ services:
       PORT: 3001
       API_ONLY: "true"
       WORKER_COUNT: 2
+      GROQ_RATE_LIMIT_PER_MINUTE: 500
+      GROQ_RATE_LIMIT_PER_HOUR: 10000
     volumes:
       - ./apps/backend:/app
       - /app/node_modules
@@ -133,10 +135,10 @@ services:
       resources:
         limits:
           cpus: '1.0'
-          memory: 1G
+          memory: 1.25G
         reservations:
           cpus: '0.5'
-          memory: 512M
+          memory: 640M
 
   realtime:
     build:

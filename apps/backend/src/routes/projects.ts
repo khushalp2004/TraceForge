@@ -49,7 +49,7 @@ projectsRouter.use(requireAuth);
 
 const projectListConcurrencyLimit = limitConcurrentRequests({
   namespace: "projects:list",
-  maxConcurrent: 250,
+  maxConcurrent: 500,
   message: "Project list is busy right now. Please try again in a moment."
 });
 
