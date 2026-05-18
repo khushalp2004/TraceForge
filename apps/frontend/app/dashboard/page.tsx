@@ -1246,17 +1246,17 @@ function DashboardPageInner() {
               <button
                 type="button"
                 onClick={rollStyle}
-                className="group relative inline-flex h-10 w-10 items-center justify-center rounded-full border border-border bg-card/90 text-text-secondary shadow-sm transition hover:border-primary/40 hover:bg-secondary/70 hover:text-text-primary"
+                className="group relative inline-flex h-10 w-10 items-center justify-center rounded-full bg-card/90 text-text-secondary shadow-sm transition hover:border-primary/40 hover:bg-secondary/70 hover:text-text-primary"
                 aria-label="Surprise me (random theme + layout)"
               >
                 <Dices className={`h-4 w-4 transition ${diceRolling ? "tf-dice-roll" : "group-hover:rotate-12"}`} />
-                <span className="pointer-events-none absolute left-1/2 top-full z-30 mt-2 -translate-x-1/2 whitespace-nowrap rounded-full border border-border bg-card/95 px-3 py-1.5 text-[11px] font-semibold text-text-secondary opacity-0 shadow-lg backdrop-blur transition group-hover:opacity-100">
+                <span className="pointer-events-none absolute left-1/2 top-full z-30 mt-2 -translate-x-1/2 whitespace-nowrap rounded-full bg-card/95 px-3 py-1.5 text-[11px] font-semibold text-text-secondary opacity-0 shadow-lg backdrop-blur transition group-hover:opacity-100">
                   Surprise me: random theme + layout
                 </span>
               </button>
               <div className="relative" ref={notificationsRef}>
                 <button
-                  className="relative inline-flex h-10 items-center gap-2 rounded-full border border-border bg-card/90 px-3 sm:gap-2.5 sm:px-4 py-2 text-sm font-semibold text-text-secondary shadow-sm transition hover:border-primary/40 hover:bg-secondary/70 hover:text-text-primary"
+                  className="relative inline-flex h-10 items-center gap-2 rounded-full bg-card/90 px-3 sm:gap-2.5 sm:px-4 py-2 text-sm font-semibold text-text-secondary shadow-sm transition hover:border-primary/40 hover:bg-secondary/70 hover:text-text-primary"
                   onClick={() => setShowRequests((prev) => !prev)}
                   aria-label="Notifications"
                 >
@@ -1284,7 +1284,7 @@ function DashboardPageInner() {
                 </button>
                 {showRequests && (
                   <div
-                    className={`absolute right-0 top-full z-30 mt-3 rounded-2xl border border-border bg-card p-4 shadow-lg max-[639px]:fixed max-[639px]:left-4 max-[639px]:right-4 max-[639px]:top-[5.5rem] max-[639px]:mt-0 max-[639px]:w-auto max-[639px]:max-w-none ${
+                    className={`absolute right-0 top-full z-30 mt-3 rounded-2xl bg-card p-4 shadow-lg max-[639px]:fixed max-[639px]:left-4 max-[639px]:right-4 max-[639px]:top-[5.5rem] max-[639px]:mt-0 max-[639px]:w-auto max-[639px]:max-w-none ${
                       notificationsExpanded ? "w-[28rem]" : "w-72"
                     }`}
                   >
@@ -1293,14 +1293,14 @@ function DashboardPageInner() {
                       <div className="flex items-center gap-2">
                         <button
                           type="button"
-                          className="hidden rounded-full border border-border px-2.5 py-1 text-[11px] font-semibold text-text-secondary transition hover:bg-secondary/70 hover:text-text-primary sm:inline-flex"
+                          className="hidden rounded-full px-2.5 py-1 text-[11px] font-semibold text-text-secondary transition hover:bg-secondary/70 hover:text-text-primary sm:inline-flex"
                           onClick={() => setNotificationsExpanded((value) => !value)}
                         >
                           {notificationsExpanded ? "Collapse" : "Expand"}
                         </button>
                         <button
                           type="button"
-                          className="rounded-full border border-border px-2.5 py-1 text-[11px] font-semibold text-text-secondary transition hover:bg-secondary/70 hover:text-text-primary"
+                          className="rounded-full px-2.5 py-1 text-[11px] font-semibold text-text-secondary transition hover:bg-secondary/70 hover:text-text-primary"
                           onClick={() => {
                             const currentIds = alertNotifications.map((alert) => alert.id);
                             const nextIds = Array.from(
@@ -1335,10 +1335,10 @@ function DashboardPageInner() {
                       <h3 className="text-sm font-semibold text-text-secondary">Join Requests</h3>
                       <div className="mt-3 space-y-3">
                         {joinRequests.map((req) => (
-                          <div key={req.id} className="relative rounded-xl border border-border p-3 pr-11 text-xs">
+                          <div key={req.id} className="relative rounded-xl p-3 pr-11 text-xs">
                             <button
                               type="button"
-                              className="absolute right-3 top-3 inline-flex h-6 w-6 items-center justify-center rounded-full border border-border text-text-secondary transition hover:bg-secondary/70 hover:text-text-primary"
+                              className="absolute right-3 top-3 inline-flex h-6 w-6 items-center justify-center rounded-full text-text-secondary transition hover:bg-secondary/70 hover:text-text-primary"
                               onClick={() => dismissJoinRequestNotification(req.id)}
                               aria-label="Dismiss join request notification"
                             >
@@ -1362,7 +1362,7 @@ function DashboardPageInner() {
                             </p>
                             <div className="mt-2 flex gap-2">
                               <button
-                                className="rounded-full border border-border px-2 py-1 text-xs"
+                                className="rounded-full px-2 py-1 text-xs"
                                 onClick={() => handleRequestAction(req.id, "approve")}
                               >
                                 Approve
@@ -1385,11 +1385,11 @@ function DashboardPageInner() {
                         {pendingInvites.map((invite) => (
                           <div
                             key={invite.token}
-                            className="relative rounded-xl border border-border p-3 pr-11 text-xs"
+                            className="relative rounded-xl p-3 pr-11 text-xs"
                           >
                             <button
                               type="button"
-                              className="absolute right-3 top-3 inline-flex h-6 w-6 items-center justify-center rounded-full border border-border text-text-secondary transition hover:bg-secondary/70 hover:text-text-primary"
+                              className="absolute right-3 top-3 inline-flex h-6 w-6 items-center justify-center rounded-full text-text-secondary transition hover:bg-secondary/70 hover:text-text-primary"
                               onClick={() => dismissInviteNotification(invite.token)}
                               aria-label="Dismiss invite notification"
                             >
@@ -1413,7 +1413,7 @@ function DashboardPageInner() {
                             </p>
                             <div className="mt-2 flex gap-2">
                               <button
-                                className="rounded-full border border-border px-2 py-1 text-xs"
+                                className="rounded-full px-2 py-1 text-xs"
                                 onClick={() => handleAcceptInvite(invite.token)}
                               >
                                 Accept
@@ -1428,10 +1428,10 @@ function DashboardPageInner() {
                       <h3 className="mt-4 text-sm font-semibold text-text-secondary">Alerts</h3>
                       <div className="mt-3 space-y-3">
                         {alertNotifications.map((alert) => (
-                          <div key={alert.id} className="relative rounded-xl border border-border p-3 pr-11 text-xs">
+                          <div key={alert.id} className="relative rounded-xl p-3 pr-11 text-xs">
                             <button
                               type="button"
-                              className="absolute right-3 top-3 inline-flex h-6 w-6 items-center justify-center rounded-full border border-border text-text-secondary transition hover:bg-secondary/70 hover:text-text-primary"
+                              className="absolute right-3 top-3 inline-flex h-6 w-6 items-center justify-center rounded-full text-text-secondary transition hover:bg-secondary/70 hover:text-text-primary"
                               onClick={() => dismissAlertNotification(alert.id)}
                               aria-label="Dismiss alert notification"
                             >
@@ -1461,7 +1461,7 @@ function DashboardPageInner() {
                             </p>
                             <div className="mt-2 flex gap-2">
                               <Link
-                                className="rounded-full border border-border px-2 py-1 text-xs"
+                                className="rounded-full px-2 py-1 text-xs"
                                 href="/dashboard/issues"
                                 onClick={() => setShowRequests(false)}
                               >
@@ -1538,9 +1538,6 @@ function DashboardPageInner() {
             <div className="tf-filter-header">
               <div>
                 <h2 className="text-lg font-semibold text-text-primary">Workspace filters</h2>
-                <p className="tf-filter-help">
-                  Switch org scope, search recent issues, and narrow results before jumping into details.
-                </p>
               </div>
               <div className="flex flex-wrap items-center gap-2">
                 <button
@@ -1628,50 +1625,38 @@ function DashboardPageInner() {
                 </Link>
               </div>
             </div>
-            <div className="tf-filter-pills">
-              <span className="tf-filter-pill">
-                Scope: {selectedOrg ? selectedOrg.name : "Personal"}
-              </span>
-              <span className="tf-filter-pill">
-                {environmentFilter || "All environments"}
-              </span>
-              <span className="tf-filter-pill">
-                {sortBy === "count" ? "Most frequent first" : "Latest first"}
-              </span>
-            </div>
           </div>
         </header>
 
         <section className="grid gap-6">
-          <div className="tf-card overflow-hidden p-5">
+          <div className="grid gap-3 sm:grid-cols-3">
             {isInitialLoading ? (
-              <Skeleton className="h-20" />
+              <>
+                <Skeleton className="h-[76px]" />
+                <Skeleton className="h-[76px]" />
+                <Skeleton className="h-[76px]" />
+              </>
             ) : (
-              <div className="grid gap-4 sm:grid-cols-3">
-                {[
-                  { label: "Projects", value: displayedProjects.length },
-                  { label: "Total errors", value: totalErrors },
-                  { label: "Organizations", value: orgs.length }
-                ].map((stat) => (
-                  <div key={stat.label} className="min-w-0 rounded-xl border border-border bg-card/80 px-4 py-3">
-                    <p className="text-xs font-semibold text-text-secondary">{stat.label}</p>
-                    <p className="mt-1 text-xl font-semibold text-text-primary">{stat.value}</p>
-                  </div>
-                ))}
-              </div>
+              [
+                { label: "Projects", value: displayedProjects.length },
+                { label: "Total errors", value: totalErrors },
+                { label: "Organizations", value: orgs.length }
+              ].map((stat) => (
+                <div key={stat.label} className="rounded-xl border border-border bg-card/90 px-4 py-3">
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-text-secondary">{stat.label}</p>
+                  <p className="mt-1.5 text-xl font-semibold text-text-primary sm:text-[22px]">{stat.value}</p>
+                </div>
+              ))
             )}
           </div>
           <div className="tf-card overflow-hidden p-5" id="analytics">
             <div className="flex flex-wrap items-center justify-between gap-2">
               <div className="min-w-0">
                 <h2 className="text-sm font-semibold text-text-secondary">Project</h2>
-                <p className="text-xs text-text-secondary">
-                  Select a project to reveal its API key and shortcuts.
-                </p>
               </div>
               <Link
                 href="/dashboard/projects"
-                className="rounded-full border border-border px-2.5 py-1 text-[11px] font-semibold text-text-secondary"
+                className="rounded-full px-2.5 py-1 text-[11px] font-semibold text-text-secondary"
               >
                 Manage projects
               </Link>
@@ -1691,7 +1676,7 @@ function DashboardPageInner() {
               </select>
               {selectedProjectMeta && (
                 <button
-                  className="rounded-full border border-border px-3 py-2 text-xs font-semibold text-text-secondary"
+                  className="rounded-full px-3 py-2 text-xs font-semibold text-text-secondary"
                   onClick={() => void handleToggleApiKey()}
                 >
                   {showApiKey ? "Hide key" : "Show key"}
@@ -1704,7 +1689,7 @@ function DashboardPageInner() {
                   <p className="font-semibold text-text-secondary">API Key</p>
                   <button
                     type="button"
-                    className="rounded-full border border-border px-2.5 py-1 text-[11px] font-semibold text-text-secondary transition hover:bg-card hover:text-text-primary"
+                    className="rounded-full px-2.5 py-1 text-[11px] font-semibold text-text-secondary transition hover:bg-card hover:text-text-primary"
                     onClick={() => void handleCopyApiKey()}
                   >
                     Copy
@@ -1714,7 +1699,7 @@ function DashboardPageInner() {
               </div>
             )}
             <div className="mt-4 grid gap-3 md:grid-cols-2">
-              <div className="rounded-xl border border-border bg-secondary/70 p-3">
+              <div className="rounded-xl bg-secondary/70 p-3">
                 <p className="text-xs font-semibold text-text-secondary">Create Project</p>
                 <div className="mt-2 flex flex-wrap gap-2">
                   <input
@@ -1732,7 +1717,7 @@ function DashboardPageInner() {
                   </button>
                 </div>
               </div>
-              <div className="rounded-xl border border-border bg-secondary/70 p-3">
+              <div className="rounded-xl bg-secondary/70 p-3">
                 <p className="text-xs font-semibold text-text-secondary">Create Organization</p>
                 <div className="mt-2 flex flex-wrap gap-2">
                   <input
@@ -1769,7 +1754,7 @@ function DashboardPageInner() {
                   <p className="text-sm text-text-secondary">Last {days} days</p>
                 </div>
                 <div className="flex w-full flex-wrap items-center gap-3 sm:w-auto sm:justify-end">
-                  <div className="inline-flex items-center rounded-full border border-border bg-card/90 p-1 text-xs font-semibold text-text-secondary shadow-sm">
+                  <div className="inline-flex items-center rounded-full bg-card/90 p-1 text-xs font-semibold text-text-secondary shadow-sm">
                     <button
                       type="button"
                       className={`rounded-full px-3 py-1 transition ${
@@ -1805,7 +1790,7 @@ function DashboardPageInner() {
                     <option value={30}>30 days</option>
                   </select>
                   <button
-                    className="rounded-full border border-border px-3 py-1 text-xs font-semibold text-text-secondary max-[639px]:flex-1"
+                    className="rounded-full px-3 py-1 text-xs font-semibold text-text-secondary max-[639px]:flex-1"
                     onClick={() => setRefreshTick((value) => value + 1)}
                   >
                     Refresh
@@ -1814,22 +1799,21 @@ function DashboardPageInner() {
               </div>
 
               <div className="mt-6 grid gap-6 md:grid-cols-2">
-                <div className="min-w-0 rounded-2xl border border-border bg-card/70 p-4">
+                <div className="min-w-0 rounded-2xl bg-card/70 p-4">
                   <div className="flex flex-wrap items-start justify-between gap-3">
                     <div className="min-w-0">
                       <p className="text-xs font-semibold uppercase tracking-[0.2em] text-text-secondary">
                         Error Frequency
                       </p>
-                      <p className="mt-1 break-words text-xs text-text-secondary">Total {frequencyTotal} · Avg {frequencyAvg}/day · Peak {frequencyPeak}</p>
                     </div>
                     <Link
                       href="/dashboard/insights"
-                      className="rounded-full border border-border bg-card/90 px-3 py-1 text-xs font-semibold text-text-secondary transition hover:bg-secondary/70 hover:text-text-primary"
+                      className="rounded-full bg-card/90 px-3 py-1 text-xs font-semibold text-text-secondary transition hover:bg-secondary/70 hover:text-text-primary"
                     >
                       Insights
                     </Link>
                   </div>
-                  <div className="mt-4 rounded-2xl border border-border bg-secondary/20 p-3">
+                  <div className="mt-4 rounded-2xl bg-secondary/20 p-3">
                     <SparkAreaChart
                       data={frequency}
                       tone="primary"
@@ -1845,22 +1829,21 @@ function DashboardPageInner() {
                   </div>
                 </div>
 
-                <div className="min-w-0 rounded-2xl border border-border bg-card/70 p-4">
+                <div className="min-w-0 rounded-2xl bg-card/70 p-4">
                   <div className="flex flex-wrap items-start justify-between gap-3">
                     <div className="min-w-0">
                       <p className="text-xs font-semibold uppercase tracking-[0.2em] text-text-secondary">
                         Errors Last Seen
                       </p>
-                      <p className="mt-1 break-words text-xs text-text-secondary">Total {lastSeenTotal} · Avg {lastSeenAvg}/day · Peak {lastSeenPeak}</p>
                     </div>
                     <Link
                       href="/dashboard/issues"
-                      className="rounded-full border border-border bg-card/90 px-3 py-1 text-xs font-semibold text-text-secondary transition hover:bg-secondary/70 hover:text-text-primary"
+                      className="rounded-full bg-card/90 px-3 py-1 text-xs font-semibold text-text-secondary transition hover:bg-secondary/70 hover:text-text-primary"
                     >
                       Issues
                     </Link>
                   </div>
-                  <div className="mt-4 rounded-2xl border border-border bg-secondary/20 p-3">
+                  <div className="mt-4 rounded-2xl bg-secondary/20 p-3">
                     <SparkAreaChart
                       data={lastSeen}
                       tone="muted"
@@ -1885,14 +1868,6 @@ function DashboardPageInner() {
             >
               <div className="flex flex-wrap items-center justify-between gap-4">
                 <h2 className="text-lg font-semibold text-text-primary">Recent Errors</h2>
-                <div className="flex flex-wrap items-center gap-2 text-xs text-text-secondary">
-                  <span className="rounded-full border border-border bg-secondary/70 px-2.5 py-1">
-                    {environmentFilter ? environmentFilter : "All env"}
-                  </span>
-                  <span className="rounded-full border border-border bg-secondary/70 px-2.5 py-1">
-                    {sortBy === "count" ? "Most frequent" : "Last seen"}
-                  </span>
-                </div>
               </div>
 
               {dashboardLoading && <p className="mt-4 text-sm text-text-secondary">Loading...</p>}
@@ -1908,7 +1883,7 @@ function DashboardPageInner() {
                   return (
                     <div
                       key={item.id}
-                      className="min-w-0 overflow-hidden rounded-xl border border-border px-4 py-4 transition hover:border-primary/30 hover:bg-accent-soft"
+                      className="min-w-0 overflow-hidden rounded-xl px-4 py-4 transition hover:border-primary/30 hover:bg-accent-soft"
                     >
                       <div className="flex flex-wrap items-start justify-between gap-4">
                         <div className="min-w-0">
@@ -1926,12 +1901,12 @@ function DashboardPageInner() {
                           </span>
                           <Link
                             href={`/dashboard/errors/${item.id}`}
-                            className="rounded-full border border-border px-3 py-1 text-xs font-semibold text-text-secondary"
+                            className="rounded-full px-3 py-1 text-xs font-semibold text-text-secondary"
                           >
                             View
                           </Link>
                           <button
-                            className="rounded-full border border-border px-3 py-1 text-xs font-semibold text-text-secondary"
+                            className="rounded-full px-3 py-1 text-xs font-semibold text-text-secondary"
                             onClick={() =>
                               setExpandedErrorId(isExpanded ? null : item.id)
                             }
@@ -1954,7 +1929,7 @@ function DashboardPageInner() {
                   );
                 })}
                 {!dashboardLoading && !errors.length && (
-                  <div className="rounded-2xl border border-border bg-card/90 p-6 text-center">
+                  <div className="rounded-2xl bg-card/90 p-6 text-center">
                     <p className="text-sm font-semibold text-text-primary">No errors yet</p>
                     <p className="mt-2 text-sm text-text-secondary">
                       Create a project and send your first exception to see live issues here.

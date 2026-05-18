@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { ChevronDown, Eye, EyeOff } from "lucide-react";
+import { ChevronDown, Eye, EyeOff, Trash2, X } from "lucide-react";
 import { LoadingButtonContent } from "../../../../components/ui/loading-button-content";
 import { THEMES } from "../../../../app/theme";
 import { LAYOUTS } from "../../../../app/layoutPreference";
@@ -663,8 +663,8 @@ export default function AccountDetailsPage() {
       </div>
 
       {showLeaveConfirm && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-6">
-          <div className="w-full max-w-lg rounded-[28px] border border-border bg-card/95 p-6 shadow-xl backdrop-blur">
+        <div className="tf-modal-backdrop">
+          <div className="tf-modal-panel">
             <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-primary">
               Confirm organization leave
             </p>
@@ -723,94 +723,70 @@ export default function AccountDetailsPage() {
       )}
 
       {showDeleteConfirm && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-6">
-          <div className="w-full max-w-lg rounded-[28px] border border-border bg-card/95 p-6 shadow-xl backdrop-blur">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[hsl(var(--destructive))]">
-              Confirm deletion
-            </p>
-            <h3 className="mt-2 font-display text-lg font-semibold text-text-primary">
-              Delete account permanently
-            </h3>
-            <p className="mt-2 text-sm text-text-secondary">
-              This action cannot be undone. Personal projects will be removed automatically.
-              Organization projects are reassigned to another member when possible. Deletion is
-              only blocked when an organization has nobody else to hand work off to.
-            </p>
-
-            <div className="mt-5 rounded-2xl border border-[hsl(var(--destructive)/0.25)] bg-[hsl(var(--destructive)/0.08)] px-4 py-4">
-              <p className="text-sm font-medium text-[hsl(var(--destructive))]">
-                Confirm that you want to permanently remove {user?.email || "this account"}.
-              </p>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
+          <div className="w-full max-w-lg rounded-xl border border-border bg-card shadow-xl flex flex-col overflow-hidden">
+            <div className="flex items-center justify-between p-4 border-b border-border/50">
+              <h3 className="text-sm font-semibold text-text-primary">Delete Account</h3>
+              <button onClick={() => setShowDeleteConfirm(false)} className="text-text-secondary hover:text-text-primary transition-colors">
+                <X className="h-4 w-4" />
+              </button>
             </div>
-
-            <div className="mt-5 flex flex-col-reverse gap-3 sm:flex-row sm:items-center sm:justify-end">
-              <button
-                type="button"
-                className="w-full rounded-full border border-border bg-card px-4 py-2 text-sm font-semibold text-text-secondary transition hover:bg-secondary/50 hover:text-text-primary sm:w-auto sm:min-w-[144px]"
-                onClick={() => setShowDeleteConfirm(false)}
-                disabled={busyAction === "delete-account"}
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                className="w-full rounded-full border border-[hsl(var(--destructive)/0.3)] bg-[hsl(var(--destructive)/0.12)] px-4 py-2 text-sm font-semibold text-[hsl(var(--destructive))] transition hover:bg-[hsl(var(--destructive)/0.18)] sm:w-auto sm:min-w-[144px]"
-                onClick={continueDeleteAccount}
-                disabled={busyAction === "delete-account"}
-              >
-                <LoadingButtonContent
-                  loading={busyAction === "delete-account"}
-                  loadingLabel={user?.plan === "PRO" ? "Opening..." : "Deleting..."}
-                  idleLabel={user?.plan === "PRO" ? "Continue" : "Delete account"}
-                />
-              </button>
+            
+            <div className="p-6">
+               <h4 className="text-lg sm:text-xl font-bold text-text-primary mb-2">Are you sure you want to delete your account?</h4>
+               <p className="text-sm text-text-secondary">This action is permanent and cannot be undone.</p>
+            </div>
+            
+            <div className="flex flex-row-reverse items-center gap-3 p-6 pt-0">
+               <button 
+                 onClick={continueDeleteAccount} 
+                 disabled={busyAction === "delete-account"}
+                 className="flex-1 tf-danger-solid font-semibold py-2 px-4 rounded-lg transition-colors flex items-center justify-center"
+               >
+                 {user?.plan === "PRO" ? "Continue" : "Delete"}
+               </button>
+               <button 
+                 onClick={() => setShowDeleteConfirm(false)} 
+                 disabled={busyAction === "delete-account"}
+                 className="flex-1 bg-secondary/50 border border-border hover:bg-secondary/80 text-text-primary font-semibold py-2 px-4 rounded-lg transition-colors flex items-center justify-center"
+               >
+                 Cancel
+               </button>
             </div>
           </div>
         </div>
       )}
 
       {showProDeleteConfirm && (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 px-6">
-          <div className="w-full max-w-md rounded-[28px] border border-border bg-card/95 p-6 shadow-xl backdrop-blur">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[hsl(var(--destructive))]">
-              Final confirmation
-            </p>
-            <h3 className="mt-2 font-display text-lg font-semibold text-text-primary">
-              Delete Pro account
-            </h3>
-            <p className="mt-3 text-sm text-text-secondary">
-              You have Pro Plan. If you delete your account, it will be disabled and you won&apos;t
-              get any refund for that plan. Are you sure you want to delete the account?
-            </p>
-
-            <div className="mt-5 rounded-2xl border border-[hsl(var(--destructive)/0.25)] bg-[hsl(var(--destructive)/0.08)] px-4 py-4">
-              <p className="text-sm font-medium text-[hsl(var(--destructive))]">
-                This permanently removes {user?.email || "your account"} and ends access to your
-                Pro benefits on this account.
-              </p>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
+          <div className="w-full max-w-lg rounded-xl border border-border bg-card shadow-xl flex flex-col overflow-hidden">
+            <div className="flex items-center justify-between p-4 border-b border-border/50">
+              <h3 className="text-sm font-semibold text-text-primary">Delete Pro Account</h3>
+              <button onClick={() => setShowProDeleteConfirm(false)} className="text-text-secondary hover:text-text-primary transition-colors">
+                <X className="h-4 w-4" />
+              </button>
             </div>
-
-            <div className="mt-5 flex flex-col-reverse gap-3 sm:flex-row sm:items-center sm:justify-end">
-              <button
-                type="button"
-                className="w-full rounded-full border border-border bg-card px-4 py-2 text-sm font-semibold text-text-secondary transition hover:bg-secondary/50 hover:text-text-primary sm:w-auto sm:min-w-[144px]"
-                onClick={() => setShowProDeleteConfirm(false)}
-                disabled={busyAction === "delete-account"}
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                className="w-full rounded-full border border-[hsl(var(--destructive)/0.3)] bg-[hsl(var(--destructive)/0.12)] px-4 py-2 text-sm font-semibold text-[hsl(var(--destructive))] transition hover:bg-[hsl(var(--destructive)/0.18)] sm:w-auto sm:min-w-[144px]"
-                onClick={deleteAccount}
-                disabled={busyAction === "delete-account"}
-              >
-                <LoadingButtonContent
-                  loading={busyAction === "delete-account"}
-                  loadingLabel="Deleting..."
-                  idleLabel="Delete"
-                />
-              </button>
+            
+            <div className="p-6">
+               <h4 className="text-lg sm:text-xl font-bold text-text-primary mb-2">Are you sure you want to delete your Pro account?</h4>
+               <p className="text-sm text-text-secondary">Your Pro plan will be immediately disabled without refund. This action is permanent and cannot be undone.</p>
+            </div>
+            
+            <div className="flex flex-row-reverse items-center gap-3 p-6 pt-0">
+               <button 
+                 onClick={deleteAccount} 
+                 disabled={busyAction === "delete-account"}
+                 className="flex-1 tf-danger-solid font-semibold py-2 px-4 rounded-lg transition-colors flex items-center justify-center"
+               >
+                 Delete
+               </button>
+               <button 
+                 onClick={() => setShowProDeleteConfirm(false)} 
+                 disabled={busyAction === "delete-account"}
+                 className="flex-1 bg-secondary/50 border border-border hover:bg-secondary/80 text-text-primary font-semibold py-2 px-4 rounded-lg transition-colors flex items-center justify-center"
+               >
+                 Cancel
+               </button>
             </div>
           </div>
         </div>

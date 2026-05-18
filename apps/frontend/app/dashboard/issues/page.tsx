@@ -3,7 +3,7 @@
 import { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { Archive, Copy, Github, RotateCcw, Sparkles } from "lucide-react";
+import { Archive, Copy, Github, RotateCcw, Sparkles, Trash2, PlusCircle, Edit3, X } from "lucide-react";
 import { LoadingButtonContent } from "../../../components/ui/loading-button-content";
 import { useDebouncedValue } from "../../hooks/useDebouncedValue";
 
@@ -203,6 +203,8 @@ function IssuesPageInner() {
   const [regeneratingId, setRegeneratingId] = useState<string | null>(null);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [newProjectName, setNewProjectName] = useState("");
+  const [newProjectAiModel, setNewProjectAiModel] = useState("groq/compound");
+  const [newProjectGithubRepoId, setNewProjectGithubRepoId] = useState("");
   const [creatingProject, setCreatingProject] = useState(false);
   const [archiveTarget, setArchiveTarget] = useState<Issue | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<Issue | null>(null);
@@ -417,7 +419,7 @@ function IssuesPageInner() {
     }
 
     const interval = window.setInterval(() => {
-      void loadIssues(token).catch(() => {});
+      void loadIssues(token).catch(() => { });
     }, 2000);
 
     return () => window.clearInterval(interval);
@@ -503,12 +505,12 @@ function IssuesPageInner() {
         currentIssues.map((issue) =>
           issue.id === issueId
             ? {
-                ...issue,
-                aiStatus: data.status ?? "PENDING",
-                aiRequestedAt: new Date().toISOString(),
-                aiLastError: null,
-                queue: data.queue ?? issue.queue ?? null
-              }
+              ...issue,
+              aiStatus: data.status ?? "PENDING",
+              aiRequestedAt: new Date().toISOString(),
+              aiLastError: null,
+              queue: data.queue ?? issue.queue ?? null
+            }
             : issue
         )
       );
@@ -516,11 +518,11 @@ function IssuesPageInner() {
         data.queue?.state === "processing"
           ? "AI solution is being generated now. It will appear automatically when ready."
           : data.queue?.state === "queued" && data.queue?.queuePosition
-          ? `AI solution queued at position ${data.queue.queuePosition}. It will appear automatically when ready.`
-          : "AI solution queued. It will appear automatically when ready.",
+            ? `AI solution queued at position ${data.queue.queuePosition}. It will appear automatically when ready.`
+            : "AI solution queued. It will appear automatically when ready.",
         "success"
       );
-      void loadIssues(token).catch(() => {});
+      void loadIssues(token).catch(() => { });
     } catch (err) {
       showToast(err instanceof Error ? err.message : "Failed to generate AI solution", "error");
     } finally {
@@ -550,7 +552,11 @@ function IssuesPageInner() {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`
         },
-        body: JSON.stringify({ name: newProjectName.trim() })
+        body: JSON.stringify({
+          name: newProjectName.trim(),
+          aiModel: newProjectAiModel,
+          githubRepoId: newProjectGithubRepoId.trim() || undefined
+        })
       });
 
       const data = await res.json();
@@ -561,6 +567,8 @@ function IssuesPageInner() {
       setProjects((prev) => [data.project, ...prev]);
       setSelectedProjectId(data.project.id);
       setNewProjectName("");
+      setNewProjectAiModel("groq/compound");
+      setNewProjectGithubRepoId("");
       setShowCreateModal(false);
       showToast("Project created", "success");
     } catch (err) {
@@ -763,10 +771,6 @@ function IssuesPageInner() {
           <div>
             <p className="tf-kicker">Issues</p>
             <h1 className="tf-title mt-3 text-3xl">Issue inbox</h1>
-            <p className="mt-2 max-w-2xl text-sm text-text-secondary">
-              Review incoming application errors, filter by project or environment, and
-              jump into detailed debugging without leaving the dashboard.
-            </p>
           </div>
           <div className="flex flex-wrap items-center gap-3">
             <button
@@ -779,12 +783,6 @@ function IssuesPageInner() {
             >
               Create project
             </button>
-            <Link
-              className="tf-button-ghost px-4 py-2 text-sm"
-              href="/dashboard"
-            >
-              Back to overview
-            </Link>
           </div>
         </header>
 
@@ -812,25 +810,23 @@ function IssuesPageInner() {
         </section>
 
         <div className="mt-6 flex flex-wrap items-center gap-2">
-          <div className="rounded-full border border-border bg-card p-1">
+          <div className="rounded-full border border-border bg-secondary/40 p-1">
             <button
               type="button"
-              className={`rounded-full px-4 py-2 text-sm font-semibold transition ${
-                viewMode === "active"
+              className={`rounded-full px-4 py-2 text-sm font-semibold transition ${viewMode === "active"
                   ? "bg-primary text-primary-foreground shadow-sm"
-                  : "text-text-secondary hover:bg-secondary/70"
-              }`}
+                  : "text-text-secondary hover:bg-secondary/80"
+                }`}
               onClick={() => setViewMode("active")}
             >
               Active issues
             </button>
             <button
               type="button"
-              className={`rounded-full px-4 py-2 text-sm font-semibold transition ${
-                viewMode === "archived"
+              className={`rounded-full px-4 py-2 text-sm font-semibold transition ${viewMode === "archived"
                   ? "bg-primary text-primary-foreground shadow-sm"
-                  : "text-text-secondary hover:bg-secondary/70"
-              }`}
+                  : "text-text-secondary hover:bg-secondary/80"
+                }`}
               onClick={() => setViewMode("archived")}
             >
               Archived issues
@@ -935,11 +931,6 @@ function IssuesPageInner() {
             {!loading && !issues.length && (
               <div className="rounded-2xl border border-border bg-card/90 p-6 text-center">
                 <p className="text-sm font-semibold text-text-primary">No issues found</p>
-                <p className="mt-2 text-sm text-text-secondary">
-                  {viewMode === "active"
-                    ? "Adjust your filters or send new errors from a project to populate the inbox."
-                    : "No archived issues match these filters right now."}
-                </p>
                 <div className="mt-4 flex flex-wrap justify-center gap-3">
                   {viewMode === "active" && (
                     <button
@@ -988,8 +979,8 @@ function IssuesPageInner() {
                             {severity === "critical"
                               ? "Critical"
                               : severity === "warning"
-                              ? "Warning"
-                              : "Info"}
+                                ? "Warning"
+                                : "Info"}
                           </span>
                           <span className="rounded-full border border-border bg-card px-2.5 py-1 text-xs font-semibold text-text-secondary">
                             {project?.name ?? "Unknown project"}
@@ -1035,8 +1026,8 @@ function IssuesPageInner() {
                               {issue.queue?.state === "queued" && issue.queue?.queuePosition
                                 ? `Queued at position ${issue.queue.queuePosition}. We’ll refresh this card automatically when the result is ready.`
                                 : issue.queue?.state === "processing" || issue.aiStatus === "PROCESSING"
-                                ? "Generating a fresh solution now. This card refreshes automatically when it finishes."
-                                : "Queued for AI processing. This card refreshes automatically when it finishes."}
+                                  ? "Generating a fresh solution now. This card refreshes automatically when it finishes."
+                                  : "Queued for AI processing. This card refreshes automatically when it finishes."}
                             </p>
                           </div>
                         )}
@@ -1108,13 +1099,12 @@ function IssuesPageInner() {
                             </button>
 
                             <div
-                              className={`grid gap-2.5 ${
-                                viewMode === "active" && issue.isManualAlertIssue
+                              className={`grid gap-2.5 ${viewMode === "active" && issue.isManualAlertIssue
                                   ? "grid-cols-1"
                                   : viewMode === "archived"
-                                  ? "grid-cols-1 sm:grid-cols-2"
-                                  : "sm:grid-cols-2"
-                              }`}
+                                    ? "grid-cols-1 sm:grid-cols-2"
+                                    : "sm:grid-cols-2"
+                                }`}
                             >
                               <button
                                 className="tf-button-ghost inline-flex h-10 w-full items-center justify-center gap-1.5 px-3 py-2 text-[13px]"
@@ -1188,10 +1178,10 @@ function IssuesPageInner() {
                               </button>
                             )}
                           </div>
-                          </div>
                         </div>
                       </div>
                     </div>
+                  </div>
                 );
               })}
           </section>
@@ -1238,11 +1228,10 @@ function IssuesPageInner() {
                         )}
                         <button
                           type="button"
-                          className={`tf-pagination-page ${
-                            pagination.page === pageNumber
+                          className={`tf-pagination-page ${pagination.page === pageNumber
                               ? "tf-pagination-page-active"
                               : "tf-pagination-page-idle"
-                          }`}
+                            }`}
                           onClick={() =>
                             setPagination((prev) => ({ ...prev, page: pageNumber }))
                           }
@@ -1273,140 +1262,149 @@ function IssuesPageInner() {
       </div>
 
       {archiveTarget && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-6">
-          <div className="w-full max-w-lg rounded-[28px] border border-border bg-card/95 p-6 shadow-xl backdrop-blur">
-            <div className="flex items-start gap-4">
-              <div className="rounded-2xl border border-amber-200 bg-amber-50 p-3 text-amber-700 shadow-sm">
-                <Archive className="h-4 w-4" />
-              </div>
-              <div className="min-w-0 flex-1">
-                <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-amber-700">
-                  Archive Confirmation
-                </p>
-                <h3 className="font-display text-lg font-semibold text-text-primary">
-                  Archive issue
-                </h3>
-                <p className="mt-2 text-sm text-text-secondary">
-                  This will remove the issue from the active inbox without deleting its underlying
-                  data.
-                </p>
-              </div>
-            </div>
-
-            <div className="mt-5 grid gap-3">
-              <div className="rounded-2xl border border-border bg-secondary/25 px-4 py-4">
-                <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-text-secondary">
-                  Selected issue
-                </p>
-                <p className="mt-2 text-sm font-medium leading-6 text-text-primary">
-                  {archiveTarget.message}
-                </p>
-              </div>
-
-              <div className="rounded-2xl border border-dashed border-amber-500/25 bg-amber-500/12 px-4 py-3">
-                <p className="text-sm font-medium text-amber-700 dark:text-amber-300">
-                  Archived issues stay in the system, but they no longer appear in the active
-                  issues inbox.
-                </p>
-              </div>
-            </div>
-
-            <div className="mt-5 flex items-center justify-end gap-3">
-              <button
-                type="button"
-                className="tf-button-ghost inline-flex min-w-[144px] items-center justify-center px-4 py-2 text-sm"
-                onClick={() => setArchiveTarget(null)}
-                disabled={archivingIssueId === archiveTarget.id}
-              >
-                Cancel
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
+          <div className="w-full max-w-lg rounded-xl border border-border bg-card shadow-xl flex flex-col overflow-hidden">
+            <div className="flex items-center justify-between p-4 border-b border-border/50">
+              <h3 className="text-sm font-semibold text-text-primary">Archive Issue</h3>
+              <button onClick={() => setArchiveTarget(null)} className="text-text-secondary hover:text-text-primary transition-colors">
+                <X className="h-4 w-4" />
               </button>
-              <button
-                type="button"
-                className="tf-danger-button min-w-[144px] rounded-full border px-4 py-2 text-sm font-semibold transition"
-                onClick={archiveIssue}
-                disabled={archivingIssueId === archiveTarget.id}
-              >
-                <LoadingButtonContent
-                  loading={archivingIssueId === archiveTarget.id}
-                  loadingLabel="Archiving..."
-                  idleLabel="Archive issue"
-                  icon={Archive}
-                />
-              </button>
+            </div>
+            
+            <div className="p-6">
+               <h4 className="text-lg sm:text-xl font-bold text-text-primary mb-2">Are you sure you want to archive this issue?</h4>
+               <p className="text-sm text-text-secondary">Archived issues are hidden from your primary inbox but remain accessible for historical reference and audit.</p>
+            </div>
+            
+            <div className="flex flex-row-reverse items-center gap-3 p-6 pt-0">
+               <button 
+                 onClick={archiveIssue} 
+                 disabled={archivingIssueId === archiveTarget.id}
+                 className="flex-1 tf-danger-solid font-semibold py-2 px-4 rounded-lg transition-colors flex items-center justify-center"
+               >
+                 Archive
+               </button>
+               <button 
+                 onClick={() => setArchiveTarget(null)} 
+                 disabled={archivingIssueId === archiveTarget.id}
+                 className="flex-1 bg-secondary/50 border border-border hover:bg-secondary/80 text-text-primary font-semibold py-2 px-4 rounded-lg transition-colors flex items-center justify-center"
+               >
+                 Cancel
+               </button>
             </div>
           </div>
         </div>
       )}
 
       {deleteTarget && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-6">
-          <div className="w-full max-w-lg rounded-[28px] border border-border bg-card/95 p-6 shadow-xl backdrop-blur">
-            <h3 className="font-display text-lg font-semibold text-text-primary">Delete issue</h3>
-            <p className="mt-2 text-sm text-text-secondary">
-              This will permanently delete the archived issue and all of its events and AI data.
-            </p>
-            <div className="mt-5 rounded-2xl border border-border bg-secondary/25 px-4 py-4">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-text-secondary">
-                Selected issue
-              </p>
-              <p className="mt-2 text-sm font-medium leading-6 text-text-primary">
-                {deleteTarget.message}
-              </p>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
+          <div className="w-full max-w-lg rounded-xl border border-border bg-card shadow-xl flex flex-col overflow-hidden">
+            <div className="flex items-center justify-between p-4 border-b border-border/50">
+              <h3 className="text-sm font-semibold text-text-primary">Delete Issue</h3>
+              <button onClick={() => setDeleteTarget(null)} className="text-text-secondary hover:text-text-primary transition-colors">
+                <X className="h-4 w-4" />
+              </button>
             </div>
-            <div className="mt-5 flex w-full flex-nowrap items-center justify-end gap-3">
-              <button
-                type="button"
-                className="tf-button-ghost inline-flex min-w-0 flex-1 items-center justify-center px-3 py-2 text-sm sm:flex-none sm:px-4"
-                onClick={() => setDeleteTarget(null)}
-                disabled={deletingIssueId === deleteTarget.id}
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                className="tf-danger-solid inline-flex min-w-0 flex-1 items-center justify-center whitespace-nowrap rounded-full border px-3 py-2 text-sm font-semibold transition sm:flex-none sm:px-4"
-                onClick={deleteIssuePermanently}
-                disabled={deletingIssueId === deleteTarget.id}
-              >
-                <LoadingButtonContent
-                  loading={deletingIssueId === deleteTarget.id}
-                  loadingLabel="Deleting..."
-                  idleLabel="Delete"
-                />
-              </button>
+            
+            <div className="p-6">
+               <h4 className="text-lg sm:text-xl font-bold text-text-primary mb-2">Are you sure you want to delete this issue?</h4>
+               <p className="text-sm text-text-secondary">This action is permanent and cannot be undone.</p>
+            </div>
+            
+            <div className="flex flex-row-reverse items-center gap-3 p-6 pt-0">
+               <button 
+                 onClick={deleteIssuePermanently} 
+                 disabled={deletingIssueId === deleteTarget.id}
+                 className="flex-1 tf-danger-solid font-semibold py-2 px-4 rounded-lg transition-colors flex items-center justify-center"
+               >
+                 Delete
+               </button>
+               <button 
+                 onClick={() => setDeleteTarget(null)} 
+                 disabled={deletingIssueId === deleteTarget.id}
+                 className="flex-1 bg-secondary/50 border border-border hover:bg-secondary/80 text-text-primary font-semibold py-2 px-4 rounded-lg transition-colors flex items-center justify-center"
+               >
+                 Cancel
+               </button>
             </div>
           </div>
         </div>
       )}
 
       {showCreateModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-6">
-          <div className="w-full max-w-md rounded-3xl border border-border bg-card/95 p-6 shadow-xl backdrop-blur">
-            <h3 className="font-display text-lg font-semibold text-text-primary">
-              Create project
-            </h3>
-            <p className="mt-2 text-sm text-text-secondary">
-              Add a project here and start sending issues into this inbox without leaving the page.
-            </p>
-            <div className="mt-4 rounded-2xl border border-border bg-secondary/25 p-4">
-              <label className="mb-2 block text-sm font-semibold text-text-primary">
-                Project name
-              </label>
-              <input
-                className="tf-input w-full"
-                placeholder="Project name"
-                value={newProjectName}
-                onChange={(event) => setNewProjectName(event.target.value)}
-              />
+        <div className="tf-modal-backdrop">
+          <div className="tf-modal-panel">
+            <div className="tf-modal-header">
+              <div className="flex items-center gap-4">
+                <div className="relative">
+                  <div className="absolute inset-0 rounded-2xl bg-primary/20 blur-xl transition-all" />
+                  <div className="relative flex h-14 w-14 items-center justify-center rounded-2xl border border-primary/20 bg-primary/10 p-2 text-primary shadow-[inset_0_0_12px_rgba(var(--primary-rgb),0.1)]">
+                    <PlusCircle className="h-6 w-6" />
+                  </div>
+                </div>
+                <div>
+                  <h3 className="tf-modal-title">Create Project</h3>
+                  <p className="tf-modal-description">Add a new workspace to track issues and deployments.</p>
+                </div>
+              </div>
             </div>
-            <div className="mt-5 flex items-center justify-end gap-3">
+
+            <div className="tf-modal-body">
+              <div className="grid gap-4">
+                <div>
+                  <label className="mb-2 block text-[11px] font-bold uppercase tracking-[0.2em] text-text-secondary/80">
+                    Project name
+                  </label>
+                  <input
+                    className="tf-input w-full bg-card/50 backdrop-blur-sm"
+                    placeholder="e.g. Website Frontend"
+                    value={newProjectName}
+                    onChange={(event) => setNewProjectName(event.target.value)}
+                    autoFocus
+                  />
+                </div>
+                
+                <div>
+                  <label className="mb-2 block text-[11px] font-bold uppercase tracking-[0.2em] text-text-secondary/80">
+                    AI Analysis Model
+                  </label>
+                  <select
+                    className="tf-select w-full bg-card/50 backdrop-blur-sm"
+                    value={newProjectAiModel}
+                    onChange={(event) => setNewProjectAiModel(event.target.value)}
+                  >
+                    <option value="allam-2-7b">Allam 2 7B</option>
+                    <option value="groq/compound">Compound</option>
+                    <option value="groq/compound-mini">Compound Mini</option>
+                    <option value="llama-3.1-8b-instant">Llama 3.1 8B Instant</option>
+                    <option value="openai/gpt-oss-120b">GPT-OSS 120B</option>
+                    <option value="openai/gpt-oss-20b">GPT-OSS 20B</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="mb-2 block text-[11px] font-bold uppercase tracking-[0.2em] text-text-secondary/80">
+                    GitHub Repository (Optional)
+                  </label>
+                  <input
+                    className="tf-input w-full bg-card/50 backdrop-blur-sm"
+                    placeholder="owner/repo"
+                    value={newProjectGithubRepoId}
+                    onChange={(event) => setNewProjectGithubRepoId(event.target.value)}
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div className="tf-modal-footer">
               <button
                 type="button"
-                className="tf-button-ghost px-4 py-2 text-sm"
+                className="tf-button-ghost min-w-[100px]"
                 onClick={() => {
                   setShowCreateModal(false);
                   setNewProjectName("");
-                  setError(null);
+                  setNewProjectAiModel("groq/compound");
+                  setNewProjectGithubRepoId("");
                 }}
                 disabled={creatingProject}
               >
@@ -1414,14 +1412,15 @@ function IssuesPageInner() {
               </button>
               <button
                 type="button"
-                className="tf-button px-4 py-2 text-sm"
+                className="tf-button min-w-[140px]"
                 onClick={createProject}
-                disabled={creatingProject}
+                disabled={creatingProject || !newProjectName.trim()}
               >
                 <LoadingButtonContent
                   loading={creatingProject}
                   loadingLabel="Creating..."
                   idleLabel="Create project"
+                  icon={PlusCircle}
                 />
               </button>
             </div>
@@ -1430,7 +1429,7 @@ function IssuesPageInner() {
       )}
 
       {githubIssueTarget && (
-        <div className="fixed inset-x-0 top-[73px] bottom-[calc(env(safe-area-inset-bottom)+5.75rem)] z-50 flex items-start justify-center overflow-y-auto bg-black/40 px-3 py-3 sm:inset-0 sm:items-center sm:px-6 sm:py-6">
+        <div className="fixed inset-x-0 top-[73px] bottom-[calc(env(safe-area-inset-bottom)+5.75rem)] z-50 flex items-start justify-center overflow-y-auto bg-transparent backdrop-blur-2xl px-3 py-3 sm:inset-0 sm:items-center sm:bg-black/40 sm:backdrop-blur-sm sm:px-6 sm:py-6">
           <div className="mx-auto flex max-h-full w-full max-w-2xl flex-col overflow-hidden rounded-[28px] border border-border bg-card/95 p-4 shadow-xl backdrop-blur sm:max-h-[min(92vh,48rem)] sm:p-6">
             <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
               <div className="min-w-0">
@@ -1554,9 +1553,8 @@ function IssuesPageInner() {
 
       {toast && (
         <div
-          className={`tf-dashboard-toast ${
-            toast.tone === "success" ? "bg-emerald-600" : "bg-red-600"
-          }`}
+          className={`tf-dashboard-toast ${toast.tone === "success" ? "bg-emerald-600" : "bg-red-600"
+            }`}
         >
           {toast.message}
         </div>

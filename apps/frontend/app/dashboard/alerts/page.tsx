@@ -3,7 +3,7 @@
 import { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { Archive, BellRing, Pause, Play, RotateCcw, Send, Trash2 } from "lucide-react";
+import { Archive, BellRing, Pause, Play, RotateCcw, Send, Trash2, X } from "lucide-react";
 import { LoadingButtonContent } from "../../../components/ui/loading-button-content";
 import { useDebouncedValue } from "../../hooks/useDebouncedValue";
 import { DashboardPagination } from "../components/DashboardPagination";
@@ -1357,75 +1357,70 @@ function AlertsPageInner() {
       )}
 
       {archiveTarget && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-6">
-          <div className="w-full max-w-md rounded-2xl border border-border bg-card/95 p-6 shadow-xl backdrop-blur">
-            <h3 className="font-display text-lg font-semibold text-text-primary">
-              Archive alert
-            </h3>
-            <p className="mt-2 text-sm text-text-secondary">
-              This will hide the alert rule from the active list without permanently deleting it.
-            </p>
-            <p className="mt-3 rounded-2xl border border-border bg-secondary/25 px-4 py-3 text-sm text-text-primary">
-              {archiveTarget.name}
-            </p>
-            <div className="mt-5 flex items-center justify-end gap-3">
-              <button
-                type="button"
-                className="tf-button-ghost inline-flex h-10 w-28 shrink-0 items-center justify-center px-0 py-0 text-sm"
-                onClick={() => setArchiveTarget(null)}
-                disabled={archivingRuleId === archiveTarget.id}
-              >
-                Cancel
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
+          <div className="w-full max-w-lg rounded-xl border border-border bg-card shadow-xl flex flex-col overflow-hidden">
+            <div className="flex items-center justify-between p-4 border-b border-border/50">
+              <h3 className="text-sm font-semibold text-text-primary">Archive Alert</h3>
+              <button onClick={() => setArchiveTarget(null)} className="text-text-secondary hover:text-text-primary transition-colors">
+                <X className="h-4 w-4" />
               </button>
-              <button
-                type="button"
-                className="inline-flex h-10 w-28 shrink-0 items-center justify-center rounded-full border border-primary/30 bg-primary/12 px-0 py-0 text-sm font-semibold text-primary transition hover:bg-primary/18"
-                onClick={archiveRule}
-                disabled={archivingRuleId === archiveTarget.id}
-              >
-                <LoadingButtonContent
-                  loading={archivingRuleId === archiveTarget.id}
-                  loadingLabel="Archiving..."
-                  idleLabel="Archive"
-                  icon={Archive}
-                />
-              </button>
+            </div>
+            
+            <div className="p-6">
+               <h4 className="text-lg sm:text-xl font-bold text-text-primary mb-2">Are you sure you want to archive this alert?</h4>
+               <p className="text-sm text-text-secondary">This will hide the alert rule from the active list without permanently deleting it.</p>
+            </div>
+            
+            <div className="flex flex-row-reverse items-center gap-3 p-6 pt-0">
+               <button 
+                 onClick={archiveRule} 
+                 disabled={archivingRuleId === archiveTarget.id}
+                 className="flex-1 tf-danger-solid font-semibold py-2 px-4 rounded-lg transition-colors flex items-center justify-center"
+               >
+                 Archive
+               </button>
+               <button 
+                 onClick={() => setArchiveTarget(null)} 
+                 disabled={archivingRuleId === archiveTarget.id}
+                 className="flex-1 bg-secondary/50 border border-border hover:bg-secondary/80 text-text-primary font-semibold py-2 px-4 rounded-lg transition-colors flex items-center justify-center"
+               >
+                 Cancel
+               </button>
             </div>
           </div>
         </div>
       )}
 
       {deleteTarget && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-6">
-          <div className="w-full max-w-md rounded-2xl border border-border bg-card/95 p-6 shadow-xl backdrop-blur">
-            <h3 className="font-display text-lg font-semibold text-text-primary">Delete alert</h3>
-            <p className="mt-2 text-sm text-text-secondary">
-              This will permanently remove the archived alert rule and its delivery history.
-            </p>
-            <p className="mt-3 rounded-2xl border border-border bg-secondary/25 px-4 py-3 text-sm text-text-primary">
-              {deleteTarget.name}
-            </p>
-            <div className="mt-5 flex w-full flex-nowrap items-center justify-end gap-3">
-              <button
-                type="button"
-                className="tf-button-ghost inline-flex h-10 min-w-0 flex-1 items-center justify-center px-3 py-0 text-sm sm:flex-none sm:px-4"
-                onClick={() => setDeleteTarget(null)}
-                disabled={deletingRuleId === deleteTarget.id}
-              >
-                Cancel
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
+          <div className="w-full max-w-lg rounded-xl border border-border bg-card shadow-xl flex flex-col overflow-hidden">
+            <div className="flex items-center justify-between p-4 border-b border-border/50">
+              <h3 className="text-sm font-semibold text-text-primary">Delete Alert</h3>
+              <button onClick={() => setDeleteTarget(null)} className="text-text-secondary hover:text-text-primary transition-colors">
+                <X className="h-4 w-4" />
               </button>
-              <button
-                type="button"
-                className="tf-danger-solid inline-flex h-10 min-w-0 flex-1 items-center justify-center whitespace-nowrap rounded-full border px-3 py-0 text-sm font-semibold transition sm:flex-none sm:px-4"
-                onClick={deleteRulePermanently}
-                disabled={deletingRuleId === deleteTarget.id}
-              >
-                <LoadingButtonContent
-                  loading={deletingRuleId === deleteTarget.id}
-                  loadingLabel="Deleting..."
-                  idleLabel="Delete"
-                />
-              </button>
+            </div>
+            
+            <div className="p-6">
+               <h4 className="text-lg sm:text-xl font-bold text-text-primary mb-2">Are you sure you want to delete this alert?</h4>
+               <p className="text-sm text-text-secondary">This will permanently remove the archived alert rule and its delivery history.</p>
+            </div>
+            
+            <div className="flex flex-row-reverse items-center gap-3 p-6 pt-0">
+               <button 
+                 onClick={deleteRulePermanently} 
+                 disabled={deletingRuleId === deleteTarget.id}
+                 className="flex-1 tf-danger-solid font-semibold py-2 px-4 rounded-lg transition-colors flex items-center justify-center"
+               >
+                 Delete
+               </button>
+               <button 
+                 onClick={() => setDeleteTarget(null)} 
+                 disabled={deletingRuleId === deleteTarget.id}
+                 className="flex-1 bg-secondary/50 border border-border hover:bg-secondary/80 text-text-primary font-semibold py-2 px-4 rounded-lg transition-colors flex items-center justify-center"
+               >
+                 Cancel
+               </button>
             </div>
           </div>
         </div>

@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
+import { GripVertical, Archive, Trash2, X } from "lucide-react";
 import { LoadingButtonContent } from "../../../components/ui/loading-button-content";
 import { DashboardPagination } from "../components/DashboardPagination";
 
@@ -800,9 +801,18 @@ export default function ProjectSettingsPage() {
                     : "Connect GitHub and choose repositories in Settings first."}
                 </p>
               </div>
+              <div className="mt-3 border-t border-dashed border-border/60 pt-3">
+                <div className="inline-flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-text-secondary/75">
+                  <div className="flex h-5 w-5 items-center justify-center rounded-md bg-secondary/50 text-text-secondary/40">
+                    <GripVertical className="h-3 w-3" />
+                  </div>
+                  <span>Drag header to move</span>
+                </div>
+
+              </div>
               <div className="mt-3 flex flex-wrap items-center gap-2">
                 <button className="tf-pill" onClick={() => void copyApiKey(project)}>
-                  Copy
+                  Copy Key
                 </button>
                 <button
                   className="tf-pill"
@@ -819,7 +829,7 @@ export default function ProjectSettingsPage() {
                   onClick={() => rotateKey(project.id)}
                   disabled={loading}
                 >
-                  Rotate Key
+                  Rotate
                 </button>
                 <button
                   className="tf-danger-button rounded-full border px-3 py-1 text-xs font-semibold transition"
@@ -1052,80 +1062,98 @@ export default function ProjectSettingsPage() {
       )}
 
         {deleteTarget && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-6">
-            <div className="w-full max-w-md rounded-2xl border border-border bg-card/95 p-6 shadow-xl backdrop-blur">
-              <h3 className="font-display text-lg font-semibold text-text-primary">Archive Project</h3>
-              <p className="mt-2 text-sm text-text-secondary">
-                This will archive <span className="font-semibold">{deleteTarget.name}</span> and stop
-                new ingestion. Type the project name to confirm.
-              </p>
-              <input
-                className="tf-input mt-4 w-full"
-                placeholder="Project name"
-                value={deleteInput}
-                onChange={(event) => setDeleteInput(event.target.value)}
-              />
-              <div className="mt-5 flex items-center justify-end gap-3">
-                <button
-                  className="rounded-full border border-border px-4 py-2 text-sm font-semibold text-text-secondary transition hover:bg-secondary/70"
-                  onClick={() => setDeleteTarget(null)}
-                  disabled={loading}
-                >
-                  Cancel
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
+            <div className="w-full max-w-lg rounded-xl border border-border bg-card shadow-xl flex flex-col overflow-hidden">
+              <div className="flex items-center justify-between p-4 border-b border-border/50">
+                <h3 className="text-sm font-semibold text-text-primary">Archive Project</h3>
+                <button onClick={() => setDeleteTarget(null)} className="text-text-secondary hover:text-text-primary transition-colors">
+                  <X className="h-4 w-4" />
                 </button>
-                <button
-                  className="tf-danger-solid rounded-full border px-4 py-2 text-sm font-semibold transition disabled:opacity-50"
-                  onClick={() => archiveProject(deleteTarget.id)}
-                  disabled={loading || deleteInput.trim() !== deleteTarget.name}
-                >
-                  <LoadingButtonContent
-                    loading={loading}
-                    loadingLabel="Archiving..."
-                    idleLabel="Archive Project"
-                  />
-                </button>
+              </div>
+              
+              <div className="p-6">
+                 <h4 className="text-lg sm:text-xl font-bold text-text-primary mb-2">Are you sure you want to archive this project?</h4>
+                 <p className="text-sm text-text-secondary">
+                   Archived projects are hidden and stop ingesting new data. You can restore it later. Type <span className="font-semibold">{deleteTarget.name}</span> to confirm.
+                 </p>
+                 <input
+                   className="mt-4 w-full rounded-lg border border-border bg-background px-4 py-2 text-sm text-text-primary outline-none transition focus:border-primary/30 focus:ring-2 focus:ring-primary/10"
+                   placeholder={deleteTarget.name}
+                   value={deleteInput}
+                   onChange={(e) => setDeleteInput(e.target.value)}
+                   disabled={loading}
+                 />
+              </div>
+              
+              <div className="flex flex-row-reverse items-center gap-3 p-6 pt-0">
+                 <button 
+                   onClick={() => archiveProject(deleteTarget.id)} 
+                   disabled={loading || deleteInput !== deleteTarget.name}
+                   className="flex-1 tf-danger-solid disabled:opacity-50 font-semibold py-2 px-4 rounded-lg transition-colors flex items-center justify-center"
+                 >
+                   Archive
+                 </button>
+                 <button 
+                   onClick={() => setDeleteTarget(null)} 
+                   disabled={loading}
+                   className="flex-1 bg-secondary/50 border border-border hover:bg-secondary/80 text-text-primary font-semibold py-2 px-4 rounded-lg transition-colors flex items-center justify-center"
+                 >
+                   Cancel
+                 </button>
               </div>
             </div>
           </div>
         )}
 
       {permanentDeleteTarget && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-6">
-          <div className="w-full max-w-md rounded-2xl border border-border bg-card/95 p-6 shadow-xl backdrop-blur">
-            <h3 className="font-display text-lg font-semibold text-text-primary">Delete Project</h3>
-            <p className="mt-2 text-sm text-text-secondary">
-              This will permanently delete{" "}
-              <span className="font-semibold">{permanentDeleteTarget.name}</span> and all related
-              issues, releases, and alert rules. Type the project name to confirm.
-            </p>
-            <input
-              className="tf-input mt-4 w-full"
-              placeholder="Project name"
-              value={permanentDeleteInput}
-              onChange={(event) => setPermanentDeleteInput(event.target.value)}
-            />
-            <div className="mt-5 flex w-full flex-nowrap items-center justify-end gap-3">
-              <button
-                className="tf-button-ghost inline-flex min-w-0 flex-1 items-center justify-center px-3 py-2 text-sm sm:flex-none sm:px-4"
-                onClick={() => {
-                  setPermanentDeleteTarget(null);
-                  setPermanentDeleteInput("");
-                }}
-                disabled={loading}
-              >
-                Cancel
-              </button>
-              <button
-                className="tf-danger-solid inline-flex min-w-0 flex-1 items-center justify-center whitespace-nowrap rounded-full border px-3 py-2 text-sm font-semibold transition disabled:opacity-50 sm:flex-none sm:px-4"
-                onClick={deleteProjectPermanently}
-                disabled={loading || permanentDeleteInput.trim() !== permanentDeleteTarget.name}
-              >
-                <LoadingButtonContent loading={loading} loadingLabel="Deleting..." idleLabel="Delete" />
-              </button>
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
+            <div className="w-full max-w-lg rounded-xl border border-border bg-card shadow-xl flex flex-col overflow-hidden">
+              <div className="flex items-center justify-between p-4 border-b border-border/50">
+                <h3 className="text-sm font-semibold text-text-primary">Delete Project</h3>
+                <button onClick={() => {
+                    setPermanentDeleteTarget(null);
+                    setPermanentDeleteInput("");
+                  }} className="text-text-secondary hover:text-text-primary transition-colors">
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+              
+              <div className="p-6">
+                 <h4 className="text-lg sm:text-xl font-bold text-text-primary mb-2">Are you sure you want to delete this project?</h4>
+                 <p className="text-sm text-text-secondary">
+                   This action is permanent and cannot be undone. Type <span className="font-semibold">{permanentDeleteTarget.name}</span> to confirm.
+                 </p>
+                 <input
+                   className="mt-4 w-full rounded-lg border border-border bg-background px-4 py-2 text-sm text-text-primary outline-none transition focus:border-primary/30 focus:ring-2 focus:ring-primary/10"
+                   placeholder={permanentDeleteTarget.name}
+                   value={permanentDeleteInput}
+                   onChange={(e) => setPermanentDeleteInput(e.target.value)}
+                   disabled={loading}
+                 />
+              </div>
+              
+              <div className="flex flex-row-reverse items-center gap-3 p-6 pt-0">
+                 <button 
+                   onClick={deleteProjectPermanently} 
+                   disabled={loading || permanentDeleteInput !== permanentDeleteTarget.name}
+                   className="flex-1 tf-danger-solid disabled:opacity-50 font-semibold py-2 px-4 rounded-lg transition-colors flex items-center justify-center"
+                 >
+                   Delete
+                 </button>
+                 <button 
+                   onClick={() => {
+                     setPermanentDeleteTarget(null);
+                     setPermanentDeleteInput("");
+                   }} 
+                   disabled={loading}
+                   className="flex-1 bg-secondary/50 border border-border hover:bg-secondary/80 text-text-primary font-semibold py-2 px-4 rounded-lg transition-colors flex items-center justify-center"
+                 >
+                   Cancel
+                 </button>
+              </div>
             </div>
           </div>
-        </div>
-      )}
+        )}
 
       {toast && (
         <div

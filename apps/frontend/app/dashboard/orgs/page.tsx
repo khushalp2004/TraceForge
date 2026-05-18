@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { LoadingButtonContent } from "../../../components/ui/loading-button-content";
 import { DashboardPagination } from "../components/DashboardPagination";
+import { Trash2, Edit3, PlusCircle, X } from "lucide-react";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
 const tokenKey = "traceforge_token";
@@ -41,6 +42,9 @@ export default function OrgsPage() {
   const [toast, setToast] = useState<Toast | null>(null);
   const [orgsPage, setOrgsPage] = useState(1);
   const [orgsPageSize, setOrgsPageSize] = useState(6);
+  const [selectedOrgIds, setSelectedOrgIds] = useState<Set<string>>(new Set());
+  const [showBulkDeleteModal, setShowBulkDeleteModal] = useState(false);
+  const [bulkActionInput, setBulkActionInput] = useState("");
 
   const orgsTotalPages = Math.max(1, Math.ceil(orgs.length / orgsPageSize));
   const paginatedOrgs = useMemo(() => {
@@ -221,6 +225,51 @@ export default function OrgsPage() {
     }
   };
 
+  const toggleOrgSelection = (orgId: string) => {
+    setSelectedOrgIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(orgId)) {
+        next.delete(orgId);
+      } else {
+        next.add(orgId);
+      }
+      return next;
+    });
+  };
+
+  const handleBulkDeleteOrgs = async () => {
+    const token = localStorage.getItem(tokenKey);
+    if (!token || selectedOrgIds.size === 0) return;
+
+    setLoading(true);
+    try {
+      const ids = Array.from(selectedOrgIds);
+      const results = await Promise.all(
+        ids.map((id) =>
+          fetch(`${API_URL}/orgs/${id}`, {
+            method: "DELETE",
+            headers: { Authorization: `Bearer ${token}` }
+          })
+        )
+      );
+
+      const failedCount = results.filter((r) => !r.ok).length;
+      if (failedCount > 0) {
+        showToast(`Failed to delete ${failedCount} teams`, "error");
+      } else {
+        showToast(`Deleted ${ids.length} teams`, "success");
+        setSelectedOrgIds(new Set());
+      }
+      await loadOrgs();
+    } catch (err) {
+      showToast("Bulk deletion failed", "error");
+    } finally {
+      setLoading(false);
+      setShowBulkDeleteModal(false);
+      setBulkActionInput("");
+    }
+  };
+
   return (
     <main className="tf-page tf-dashboard-page">
       <div className="tf-dashboard">
@@ -247,57 +296,76 @@ export default function OrgsPage() {
         {loading && <p className="text-sm text-text-secondary">Working...</p>}
 
         <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-          {paginatedOrgs.map((org) => (
-            <Link
-              key={org.id}
-              href={`/dashboard/orgs/${org.id}`}
-              className="tf-card group flex flex-col gap-3 p-5 transition hover:border-primary/30"
-            >
-              <div className="flex items-start justify-between gap-2">
-                <div>
-                  <p className="text-base font-semibold text-text-primary">{org.name}</p>
-                  <p className="text-xs text-text-secondary">
-                    {org.role.toLowerCase()} · Created {new Date(org.createdAt).toLocaleDateString()}
-                  </p>
+          {paginatedOrgs.map((org) => {
+            const isSelected = selectedOrgIds.has(org.id);
+            return (
+              <div
+                key={org.id}
+                className={`tf-card group flex flex-col gap-3 p-5 transition-all duration-300 ${isSelected ? "is-selected" : "hover:border-primary/30"
+                  }`}
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex items-start gap-3">
+                    <input
+                      type="checkbox"
+                      className="tf-selection-checkbox mt-1"
+                      checked={isSelected}
+                      onChange={() => toggleOrgSelection(org.id)}
+                    />
+                    <div>
+                      <Link
+                        href={`/dashboard/orgs/${org.id}`}
+                        className="text-base font-semibold text-text-primary hover:text-primary transition-colors"
+                      >
+                        {org.name}
+                      </Link>
+                      <p className="text-xs text-text-secondary">
+                        {org.role.toLowerCase()} · Created {new Date(org.createdAt).toLocaleDateString()}
+                      </p>
+                    </div>
+                  </div>
+                  <Link
+                    href={`/dashboard/orgs/${org.id}`}
+                    className="rounded-full border border-border px-2 py-1 text-[11px] font-semibold text-text-secondary hover:bg-secondary/70 transition-colors"
+                  >
+                    Manage
+                  </Link>
                 </div>
-                <span className="rounded-full border border-border px-2 py-1 text-[11px] font-semibold text-text-secondary">
-                  Manage
-                </span>
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="tf-pill">{org.role}</span>
+                  <span className="tf-pill">Organization</span>
+                  {org.role === "OWNER" && (
+                    <>
+                      <button
+                        type="button"
+                        className="text-xs font-semibold text-text-secondary hover:text-primary transition-colors"
+                        onClick={(event) => {
+                          event.preventDefault();
+                          setError(null);
+                          setRenameTarget(org);
+                          setRenameInput(org.name);
+                        }}
+                      >
+                        Rename
+                      </button>
+                      <button
+                        type="button"
+                        className="text-xs font-semibold text-text-secondary hover:text-destructive transition-colors"
+                        onClick={(event) => {
+                          event.preventDefault();
+                          setError(null);
+                          setDeleteTarget(org);
+                          setDeleteInput("");
+                        }}
+                      >
+                        Delete
+                      </button>
+                    </>
+                  )}
+                </div>
               </div>
-              <div className="flex flex-wrap items-center gap-2">
-                <span className="tf-pill">{org.role}</span>
-                <span className="tf-pill">Organization</span>
-                {org.role === "OWNER" && (
-                  <>
-                    <button
-                      type="button"
-                      className="tf-pill"
-                      onClick={(event) => {
-                        event.preventDefault();
-                        setError(null);
-                        setRenameTarget(org);
-                        setRenameInput(org.name);
-                      }}
-                    >
-                      Rename
-                    </button>
-                    <button
-                      type="button"
-                      className="tf-danger-button rounded-full border px-3 py-1 text-xs font-semibold transition"
-                      onClick={(event) => {
-                        event.preventDefault();
-                        setError(null);
-                        setDeleteTarget(org);
-                        setDeleteInput("");
-                      }}
-                    >
-                      Delete
-                    </button>
-                  </>
-                )}
-              </div>
-            </Link>
-          ))}
+            );
+          })}
           {!orgs.length && !loading && (
             <div className="tf-card p-5 text-sm text-text-secondary">
               No organizations yet. Create one from the dashboard to get started.
@@ -321,23 +389,36 @@ export default function OrgsPage() {
       </div>
 
       {renameTarget && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4 py-6 sm:px-6">
-          <div className="w-full max-w-md rounded-2xl border border-border bg-card/95 p-5 shadow-xl backdrop-blur sm:p-6">
-            <h3 className="font-display text-lg font-semibold text-text-primary">
-              Rename Organization
-            </h3>
-            <p className="mt-2 text-sm text-text-secondary">
-              Update the organization name for every member.
-            </p>
-            <input
-              className="tf-input mt-4 w-full"
-              placeholder="Organization name"
-              value={renameInput}
-              onChange={(event) => setRenameInput(event.target.value)}
-            />
-            <div className="mt-5 flex flex-col-reverse gap-3 sm:flex-row sm:items-center sm:justify-end">
+        <div className="tf-modal-backdrop">
+          <div className="tf-modal-panel">
+            <div className="tf-modal-header">
+              <div className="flex items-center gap-3">
+                <div className="rounded-xl border border-primary/20 bg-accent-soft p-2 text-primary shadow-sm">
+                  <Edit3 className="h-4 w-4" />
+                </div>
+                <div>
+                  <h3 className="tf-modal-title">Rename Organization</h3>
+                  <p className="tf-modal-description">Update the organization name for every member.</p>
+                </div>
+              </div>
+            </div>
+
+            <div className="tf-modal-body">
+              <label className="mb-2 block text-[11px] font-semibold uppercase tracking-[0.14em] text-text-secondary">
+                Organization name
+              </label>
+              <input
+                className="tf-input w-full"
+                placeholder="e.g. Acme Corp"
+                value={renameInput}
+                onChange={(event) => setRenameInput(event.target.value)}
+                autoFocus
+              />
+            </div>
+
+            <div className="tf-modal-footer">
               <button
-                className="w-full rounded-full border border-border px-4 py-2 text-sm font-semibold text-text-secondary transition hover:bg-secondary/70 sm:w-auto"
+                className="tf-button-ghost min-w-[100px]"
                 onClick={() => {
                   setRenameTarget(null);
                   setRenameInput("");
@@ -347,7 +428,7 @@ export default function OrgsPage() {
                 Cancel
               </button>
               <button
-                className="tf-button w-full px-4 py-2 text-sm font-semibold sm:w-auto"
+                className="tf-button min-w-[120px]"
                 onClick={handleRenameOrg}
                 disabled={loading || !renameInput.trim()}
               >
@@ -359,68 +440,89 @@ export default function OrgsPage() {
       )}
 
       {deleteTarget && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4 py-6 sm:px-6">
-          <div className="w-full max-w-md rounded-2xl border border-border bg-card/95 p-5 shadow-xl backdrop-blur sm:p-6">
-            <h3 className="font-display text-lg font-semibold text-text-primary">Delete Organization</h3>
-            <p className="mt-2 text-sm text-text-secondary">
-              This will permanently delete <span className="font-semibold">{deleteTarget.name}</span>.
-              Type the organization name to confirm.
-            </p>
-            <input
-              className="tf-input mt-4 w-full"
-              placeholder="Organization name"
-              value={deleteInput}
-              onChange={(event) => setDeleteInput(event.target.value)}
-            />
-            <div className="mt-5 flex flex-col-reverse gap-3 sm:flex-row sm:items-center sm:justify-end">
-              <button
-                className="w-full rounded-full border border-border px-4 py-2 text-sm font-semibold text-text-secondary transition hover:bg-secondary/70 sm:w-auto"
-                onClick={() => setDeleteTarget(null)}
-                disabled={loading}
-              >
-                Cancel
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
+          <div className="w-full max-w-lg rounded-xl border border-border bg-card shadow-xl flex flex-col overflow-hidden">
+            <div className="flex items-center justify-between p-4 border-b border-border/50">
+              <h3 className="text-sm font-semibold text-text-primary">Delete Organization</h3>
+              <button onClick={() => setDeleteTarget(null)} className="text-text-secondary hover:text-text-primary transition-colors">
+                <X className="h-4 w-4" />
               </button>
-              <button
-                className="tf-danger-solid w-full rounded-full border px-4 py-2 text-sm font-semibold transition disabled:opacity-50 sm:w-auto"
-                onClick={handleDeleteOrg}
-                disabled={loading || deleteInput.trim() !== deleteTarget.name}
-              >
-                <LoadingButtonContent
-                  loading={loading}
-                  loadingLabel="Deleting..."
-                  idleLabel="Delete Organization"
-                />
-              </button>
+            </div>
+            
+            <div className="p-6">
+               <h4 className="text-lg sm:text-xl font-bold text-text-primary mb-2">Are you sure you want to delete this organization?</h4>
+               <p className="text-sm text-text-secondary">
+                 This action is permanent and cannot be undone. Type <span className="font-semibold">{deleteTarget.name}</span> to confirm.
+               </p>
+               <input
+                 className="mt-4 w-full rounded-lg border border-border bg-background px-4 py-2 text-sm text-text-primary outline-none transition focus:border-primary/30 focus:ring-2 focus:ring-primary/10"
+                 placeholder={deleteTarget.name}
+                 value={deleteInput}
+                 onChange={(e) => setDeleteInput(e.target.value)}
+                 disabled={loading}
+               />
+            </div>
+            
+            <div className="flex flex-row-reverse items-center gap-3 p-6 pt-0">
+               <button 
+                 onClick={handleDeleteOrg} 
+                 disabled={loading || deleteInput !== deleteTarget.name}
+                 className="flex-1 tf-danger-solid disabled:opacity-50 font-semibold py-2 px-4 rounded-lg transition-colors flex items-center justify-center"
+               >
+                 Delete
+               </button>
+               <button 
+                 onClick={() => setDeleteTarget(null)} 
+                 disabled={loading}
+                 className="flex-1 bg-secondary/50 border border-border hover:bg-secondary/80 text-text-primary font-semibold py-2 px-4 rounded-lg transition-colors flex items-center justify-center"
+               >
+                 Cancel
+               </button>
             </div>
           </div>
         </div>
       )}
 
       {showCreateModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4 py-6 sm:px-6">
-          <div className="w-full max-w-md rounded-2xl border border-border bg-card/95 p-5 shadow-xl backdrop-blur sm:p-6">
-            <h3 className="font-display text-lg font-semibold text-text-primary">Create Organization</h3>
-            <p className="mt-2 text-sm text-text-secondary">
-              Create a new organization to manage members and projects.
-            </p>
-            <input
-              className="tf-input mt-4 w-full"
-              placeholder="Organization name"
-              value={newOrgName}
-              onChange={(event) => setNewOrgName(event.target.value)}
-            />
-            <div className="mt-5 flex flex-col-reverse gap-3 sm:flex-row sm:items-center sm:justify-end">
+        <div className="tf-modal-backdrop">
+          <div className="tf-modal-panel">
+            <div className="tf-modal-header">
+              <div className="flex items-center gap-3">
+                <div className="rounded-xl border border-primary/20 bg-accent-soft p-2 text-primary shadow-sm">
+                  <PlusCircle className="h-4 w-4" />
+                </div>
+                <div>
+                  <h3 className="tf-modal-title">Create Organization</h3>
+                  <p className="tf-modal-description">Create a new organization to manage members and projects.</p>
+                </div>
+              </div>
+            </div>
+
+            <div className="tf-modal-body">
+              <label className="mb-2 block text-[11px] font-semibold uppercase tracking-[0.14em] text-text-secondary">
+                Organization name
+              </label>
+              <input
+                className="tf-input w-full"
+                placeholder="e.g. Acme Corp"
+                value={newOrgName}
+                onChange={(event) => setNewOrgName(event.target.value)}
+                autoFocus
+              />
+            </div>
+
+            <div className="tf-modal-footer">
               <button
-                className="w-full rounded-full border border-border px-4 py-2 text-sm font-semibold text-text-secondary transition hover:bg-secondary/70 sm:w-auto"
+                className="tf-button-ghost min-w-[100px]"
                 onClick={() => setShowCreateModal(false)}
                 disabled={loading}
               >
                 Cancel
               </button>
               <button
-                className="tf-button w-full px-4 py-2 text-sm font-semibold sm:w-auto"
+                className="tf-button min-w-[160px]"
                 onClick={handleCreateOrg}
-                disabled={loading}
+                disabled={loading || !newOrgName.trim()}
               >
                 <LoadingButtonContent
                   loading={loading}
@@ -442,6 +544,76 @@ export default function OrgsPage() {
           }}
         >
           {toast.message}
+        </div>
+      )}
+      {selectedOrgIds.size > 0 && (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-4 rounded-full border border-border/80 bg-card/95 px-4 py-3 shadow-lg backdrop-blur-md">
+          <div className="flex items-center gap-2">
+            <span className="flex h-6 w-6 items-center justify-center rounded-full bg-primary/20 text-xs font-bold text-primary">
+              {selectedOrgIds.size}
+            </span>
+            <span className="text-sm font-semibold text-text-primary">selected</span>
+          </div>
+          <div className="h-4 w-px bg-border" />
+          <div className="flex items-center gap-2">
+            <button
+              className="rounded-full px-3 py-1.5 text-xs font-semibold text-text-secondary hover:bg-secondary/80 hover:text-text-primary transition-colors"
+              onClick={() => setSelectedOrgIds(new Set())}
+            >
+              Deselect all
+            </button>
+            <button
+              className="flex items-center gap-1.5 rounded-full bg-destructive-soft border border-destructive-border px-3 py-1.5 text-xs font-semibold text-destructive hover:bg-destructive hover:text-destructive-foreground transition-all duration-300"
+              onClick={() => setShowBulkDeleteModal(true)}
+            >
+              <Trash2 className="h-3.5 w-3.5" />
+              Delete all
+            </button>
+          </div>
+        </div>
+      )}
+
+      {showBulkDeleteModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
+          <div className="w-full max-w-lg rounded-xl border border-border bg-card shadow-xl flex flex-col overflow-hidden">
+            <div className="flex items-center justify-between p-4 border-b border-border/50">
+              <h3 className="text-sm font-semibold text-text-primary">Delete Organizations</h3>
+              <button onClick={() => setShowBulkDeleteModal(false)} className="text-text-secondary hover:text-text-primary transition-colors">
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+            
+            <div className="p-6">
+               <h4 className="text-lg sm:text-xl font-bold text-text-primary mb-2">Are you sure you want to delete these organizations?</h4>
+               <p className="text-sm text-text-secondary">
+                 This action is permanent and cannot be undone. Type <span className="font-semibold">Delete organizations</span> to confirm.
+               </p>
+               <input
+                 className="mt-4 w-full rounded-lg border border-border bg-background px-4 py-2 text-sm text-text-primary outline-none transition focus:border-primary/30 focus:ring-2 focus:ring-primary/10"
+                 placeholder="Delete organizations"
+                 value={bulkActionInput}
+                 onChange={(e) => setBulkActionInput(e.target.value)}
+                 disabled={loading}
+               />
+            </div>
+            
+            <div className="flex flex-row-reverse items-center gap-3 p-6 pt-0">
+               <button 
+                 onClick={handleBulkDeleteOrgs} 
+                 disabled={loading || bulkActionInput !== "Delete organizations"}
+                 className="flex-1 tf-danger-solid disabled:opacity-50 font-semibold py-2 px-4 rounded-lg transition-colors flex items-center justify-center"
+               >
+                 Delete
+               </button>
+               <button 
+                 onClick={() => setShowBulkDeleteModal(false)} 
+                 disabled={loading}
+                 className="flex-1 bg-secondary/50 border border-border hover:bg-secondary/80 text-text-primary font-semibold py-2 px-4 rounded-lg transition-colors flex items-center justify-center"
+               >
+                 Cancel
+               </button>
+            </div>
+          </div>
         </div>
       )}
     </main>

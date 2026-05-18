@@ -809,7 +809,7 @@ export default function ErrorDetailPage({ params }: { params: { id: string } }) 
       </div>
 
       {showAiDetail && getAiDetail(errorDetail) && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/45 px-4 sm:px-6">
+        <div className="tf-modal-backdrop">
           <div className="max-h-[85vh] w-full max-w-2xl overflow-hidden rounded-[28px] border border-border bg-card/95 p-6 shadow-xl backdrop-blur">
             <div className="flex flex-col gap-4 sm:flex-row sm:flex-wrap sm:items-start sm:justify-between">
               <div className="min-w-0">
@@ -840,7 +840,7 @@ export default function ErrorDetailPage({ params }: { params: { id: string } }) 
       )}
 
       {showGithubModal && (
-        <div className="fixed inset-x-0 top-[73px] bottom-[calc(env(safe-area-inset-bottom)+5.75rem)] z-50 flex items-start justify-center overflow-y-auto bg-black/45 px-3 py-3 sm:inset-0 sm:items-center sm:px-6 sm:py-6">
+        <div className="fixed inset-x-0 top-[73px] bottom-[calc(env(safe-area-inset-bottom)+5.75rem)] z-50 flex items-start justify-center overflow-y-auto bg-transparent backdrop-blur-2xl px-3 py-3 sm:inset-0 sm:items-center sm:bg-black/45 sm:backdrop-blur-sm sm:px-6 sm:py-6">
           <div className="mx-auto flex max-h-full w-full max-w-2xl flex-col overflow-hidden rounded-[28px] border border-border bg-card/95 p-4 shadow-xl backdrop-blur sm:max-h-[min(92vh,48rem)] sm:p-6">
             <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
               <div className="min-w-0">

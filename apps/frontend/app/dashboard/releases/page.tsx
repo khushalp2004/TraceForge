@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { LoadingButtonContent } from "../../../components/ui/loading-button-content";
 import { DashboardPagination } from "../components/DashboardPagination";
+import { Trash2, Rocket, X } from "lucide-react";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
 const tokenKey = "traceforge_token";
@@ -568,7 +569,7 @@ function ReleasesPageInner() {
                               </div>
                               <Link
                                 href={`/dashboard/errors/${issue.id}`}
-                                className="rounded-full border border-border px-3 py-1.5 text-xs font-semibold text-text-secondary transition hover:bg-secondary/70 hover:text-text-primary"
+                                className="tf-interactive-pill"
                               >
                                 Open issue
                               </Link>
@@ -581,7 +582,7 @@ function ReleasesPageInner() {
                   <div className="flex shrink-0 items-start">
                     <button
                       type="button"
-                      className="rounded-full border border-border px-3 py-2 text-xs font-semibold text-text-secondary transition hover:border-red-300 hover:bg-red-50 hover:text-red-600 dark:hover:border-red-500/30 dark:hover:bg-red-500/10 dark:hover:text-red-300"
+                      className="tf-button-destructive-ghost"
                       onClick={() => setDeleteTarget(release)}
                     >
                       Delete
@@ -608,70 +609,99 @@ function ReleasesPageInner() {
       </div>
 
       {showCreateModal && (
-        <div className="fixed inset-x-0 top-[73px] bottom-[calc(env(safe-area-inset-bottom)+5.75rem)] z-50 flex items-start justify-center overflow-y-auto bg-black/40 px-4 py-4 sm:inset-0 sm:items-center sm:px-6 sm:py-6">
-          <div className="w-full max-w-lg rounded-[28px] border border-border bg-card/95 p-4 shadow-xl backdrop-blur sm:p-6 max-h-full overflow-y-auto sm:max-h-[calc(100dvh-3rem)]">
-            <div>
-              <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-primary">
-                New Release
-              </p>
-              <h3 className="mt-2 font-display text-lg font-semibold text-text-primary">
-                Add release marker
-              </h3>
-              <p className="mt-2 text-sm text-text-secondary">
-                This creates a release checkpoint so you can compare deployment timing with
-                issue spikes.
-              </p>
-            </div>
-
-            <div className="mt-5 grid gap-3">
-              <select
-                className="tf-select"
-                value={selectedProjectId}
-                onChange={(event) => setSelectedProjectId(event.target.value)}
-              >
-                <option value="">Select a project</option>
-                {projects.map((project) => (
-                  <option key={project.id} value={project.id}>
-                    {project.name}
-                  </option>
-                ))}
-              </select>
-              <input
-                className="tf-input w-full"
-                placeholder="Version, for example v1.8.2"
-                value={version}
-                onChange={(event) => setVersion(event.target.value)}
-              />
-              <div className="grid gap-3 sm:grid-cols-2">
-                <select
-                  className="tf-select"
-                  value={releaseEnvironment}
-                  onChange={(event) => setReleaseEnvironment(event.target.value)}
-                >
-                  <option value="production">Production</option>
-                  <option value="staging">Staging</option>
-                  <option value="development">Development</option>
-                  <option value="browser">Browser</option>
-                </select>
-                <input
-                  className="tf-input w-full"
-                  type="datetime-local"
-                  value={releasedAt}
-                  onChange={(event) => setReleasedAt(event.target.value)}
-                />
+        <div className="tf-modal-backdrop-content-mobile">
+          <div className="tf-modal-panel tf-modal-panel-content-mobile">
+            <div className="tf-modal-header">
+              <div className="flex items-center gap-3">
+                <div className="rounded-xl border border-primary/20 bg-accent-soft p-2 text-primary shadow-sm">
+                  <Rocket className="h-4 w-4" />
+                </div>
+                <div>
+                  <h3 className="tf-modal-title">Add release marker</h3>
+                  <p className="tf-modal-description">Create a release checkpoint to compare deployment timing with issue spikes.</p>
+                </div>
               </div>
-              <textarea
-                className="min-h-[110px] rounded-[24px] border border-border bg-card px-4 py-3 text-sm text-text-primary shadow-sm outline-none transition focus:border-primary/50 focus:ring-2 focus:ring-primary/20"
-                placeholder="Optional notes about what shipped"
-                value={notes}
-                onChange={(event) => setNotes(event.target.value)}
-              />
             </div>
 
-            <div className="mt-5 flex flex-col-reverse gap-3 sm:flex-row sm:items-center sm:justify-end">
+            <div className="tf-modal-body tf-scroll-rail overflow-y-auto">
+              <div className="grid gap-4">
+                <div>
+                  <label className="mb-2 block text-[11px] font-semibold uppercase tracking-[0.14em] text-text-secondary">
+                    Project
+                  </label>
+                  <select
+                    className="tf-select w-full"
+                    value={selectedProjectId}
+                    onChange={(event) => setSelectedProjectId(event.target.value)}
+                  >
+                    <option value="">Select a project</option>
+                    {projects.map((project) => (
+                      <option key={project.id} value={project.id}>
+                        {project.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="mb-2 block text-[11px] font-semibold uppercase tracking-[0.14em] text-text-secondary">
+                    Version
+                  </label>
+                  <input
+                    className="tf-input w-full"
+                    placeholder="e.g. v1.8.2"
+                    value={version}
+                    onChange={(event) => setVersion(event.target.value)}
+                  />
+                </div>
+
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <div>
+                    <label className="mb-2 block text-[11px] font-semibold uppercase tracking-[0.14em] text-text-secondary">
+                      Environment
+                    </label>
+                    <select
+                      className="tf-select w-full"
+                      value={releaseEnvironment}
+                      onChange={(event) => setReleaseEnvironment(event.target.value)}
+                    >
+                      <option value="production">Production</option>
+                      <option value="staging">Staging</option>
+                      <option value="development">Development</option>
+                      <option value="browser">Browser</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="mb-2 block text-[11px] font-semibold uppercase tracking-[0.14em] text-text-secondary">
+                      Release Date
+                    </label>
+                    <input
+                      className="tf-input w-full"
+                      type="datetime-local"
+                      value={releasedAt}
+                      onChange={(event) => setReleasedAt(event.target.value)}
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="mb-2 block text-[11px] font-semibold uppercase tracking-[0.14em] text-text-secondary">
+                    Release Notes
+                  </label>
+                  <textarea
+                    className="tf-input min-h-[100px] w-full resize-none py-3"
+                    placeholder="Optional notes about what shipped in this version..."
+                    value={notes}
+                    onChange={(event) => setNotes(event.target.value)}
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div className="tf-modal-footer">
               <button
                 type="button"
-                className="tf-button-ghost px-4 py-2 text-sm"
+                className="tf-button-ghost min-w-[100px]"
                 onClick={() => {
                   setShowCreateModal(false);
                   setVersion("");
@@ -684,7 +714,7 @@ function ReleasesPageInner() {
               </button>
               <button
                 type="button"
-                className="tf-button px-4 py-2 text-sm"
+                className="tf-button min-w-[140px]"
                 onClick={createRelease}
                 disabled={creatingRelease}
               >
@@ -696,50 +726,35 @@ function ReleasesPageInner() {
       )}
 
       {deleteTarget && (
-        <div className="fixed inset-x-0 top-[73px] bottom-[calc(env(safe-area-inset-bottom)+5.75rem)] z-50 flex items-start justify-center overflow-y-auto bg-black/40 px-4 py-4 sm:inset-0 sm:items-center sm:px-6 sm:py-6">
-          <div className="w-full max-w-lg rounded-[28px] border border-border bg-card/95 p-4 shadow-xl backdrop-blur sm:p-6">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-red-500">
-              Delete Release
-            </p>
-            <h3 className="mt-2 font-display text-lg font-semibold text-text-primary">
-              Remove {deleteTarget.version}
-            </h3>
-            <p className="mt-2 text-sm text-text-secondary">
-              This will delete the release marker from the timeline. Linked error events will be kept,
-              but they will no longer point to this release.
-            </p>
-
-            <div className="mt-4 rounded-2xl border border-border bg-secondary/20 px-4 py-3 text-sm text-text-secondary">
-              <p>
-                <span className="font-semibold text-text-primary">Project:</span> {deleteTarget.project.name}
-              </p>
-              <p className="mt-1">
-                <span className="font-semibold text-text-primary">Released:</span>{" "}
-                {new Date(deleteTarget.releasedAt).toLocaleString()}
-              </p>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
+          <div className="w-full max-w-lg rounded-xl border border-border bg-card shadow-xl flex flex-col overflow-hidden">
+            <div className="flex items-center justify-between p-4 border-b border-border/50">
+              <h3 className="text-sm font-semibold text-text-primary">Delete Release</h3>
+              <button onClick={() => setDeleteTarget(null)} className="text-text-secondary hover:text-text-primary transition-colors">
+                <X className="h-4 w-4" />
+              </button>
             </div>
-
-            <div className="mt-5 flex flex-col-reverse gap-3 sm:flex-row sm:items-center sm:justify-end">
-              <button
-                type="button"
-                className="tf-button-ghost px-4 py-2 text-sm"
-                onClick={() => setDeleteTarget(null)}
-                disabled={deletingReleaseId === deleteTarget.id}
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                className="inline-flex items-center justify-center rounded-full bg-red-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-red-500 disabled:cursor-not-allowed disabled:opacity-60"
-                onClick={deleteRelease}
-                disabled={deletingReleaseId === deleteTarget.id}
-              >
-                <LoadingButtonContent
-                  loading={deletingReleaseId === deleteTarget.id}
-                  loadingLabel="Deleting..."
-                  idleLabel="Delete release"
-                />
-              </button>
+            
+            <div className="p-6">
+               <h4 className="text-lg sm:text-xl font-bold text-text-primary mb-2">Are you sure you want to delete this release?</h4>
+               <p className="text-sm text-text-secondary">This action is permanent and cannot be undone. Linked error events will be preserved but association will be lost.</p>
+            </div>
+            
+            <div className="flex flex-row-reverse items-center gap-3 p-6 pt-0">
+               <button 
+                 onClick={deleteRelease} 
+                 disabled={deletingReleaseId === deleteTarget.id}
+                 className="flex-1 tf-danger-solid font-semibold py-2 px-4 rounded-lg transition-colors flex items-center justify-center"
+               >
+                 Delete
+               </button>
+               <button 
+                 onClick={() => setDeleteTarget(null)} 
+                 disabled={deletingReleaseId === deleteTarget.id}
+                 className="flex-1 bg-secondary/50 border border-border hover:bg-secondary/80 text-text-primary font-semibold py-2 px-4 rounded-lg transition-colors flex items-center justify-center"
+               >
+                 Cancel
+               </button>
             </div>
           </div>
         </div>

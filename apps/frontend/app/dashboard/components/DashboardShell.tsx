@@ -186,7 +186,7 @@ function DashboardShellInner({ children }: { children: React.ReactNode }) {
     return (
       <div className="flex min-h-screen overflow-x-hidden bg-background">
         {effectiveLayout === "topbar" ? null : (
-          <div className="hidden w-64 border-r border-border bg-card/80 p-4 lg:block">
+          <div className="hidden w-64 border-r border-border bg-card/80 p-4 lg:block shadow-sm">
             <div className="h-20 animate-pulse rounded-3xl bg-secondary/70" />
             <div className="mt-6 space-y-3">
               <div className="h-10 animate-pulse rounded-2xl bg-secondary/70" />
@@ -197,11 +197,11 @@ function DashboardShellInner({ children }: { children: React.ReactNode }) {
         )}
         <div className="flex min-h-screen min-w-0 flex-1 flex-col">
           {effectiveLayout === "topbar" ? (
-            <div className="hidden border-b border-border bg-background px-4 py-4 lg:block">
+            <div className="hidden border-b border-border bg-background px-4 py-4 lg:block shadow-sm">
               <div className="h-8 animate-pulse rounded-2xl bg-secondary/70" />
             </div>
           ) : (
-            <div className="border-b border-border bg-background px-4 py-4 lg:hidden">
+            <div className="border-b border-border bg-background px-4 py-4 lg:hidden shadow-sm">
               <div className="h-8 animate-pulse rounded-2xl bg-secondary/70" />
             </div>
           )}
@@ -238,7 +238,7 @@ function DashboardShellInner({ children }: { children: React.ReactNode }) {
           {notificationToasts.map((toast) => (
             <div
               key={toast.id}
-              className={`pointer-events-auto rounded-3xl border bg-card/95 p-4 shadow-xl backdrop-blur ${
+              className={`pointer-events-auto rounded-3xl bg-card/95 p-4 shadow-xl backdrop-blur ${
                 toast.tone === "error"
                   ? "tf-danger-surface"
                   : toast.tone === "warning"
@@ -257,7 +257,7 @@ function DashboardShellInner({ children }: { children: React.ReactNode }) {
                 </button>
                 <button
                   type="button"
-                  className="inline-flex h-7 w-7 items-center justify-center rounded-full border border-border text-text-secondary transition hover:bg-secondary/70 hover:text-text-primary"
+                  className="inline-flex h-7 w-7 items-center justify-center rounded-full text-text-secondary transition hover:bg-secondary/70 hover:text-text-primary"
                   onClick={() => removeShellToast(toast.id)}
                   aria-label="Dismiss notification"
                 >
@@ -281,7 +281,7 @@ function DashboardShellInner({ children }: { children: React.ReactNode }) {
                   className={`rounded-full border px-3 py-1.5 text-xs font-semibold transition ${
                     toast.tone === "error"
                       ? "tf-danger-button"
-                      : "border-border text-text-secondary hover:bg-secondary/70 hover:text-text-primary"
+                      : "text-text-secondary hover:bg-secondary/70 hover:text-text-primary"
                   }`}
                   onClick={() => openDashboardNotifications(toast.href, toast.id)}
                 >

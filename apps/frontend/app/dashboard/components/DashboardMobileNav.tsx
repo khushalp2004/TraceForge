@@ -297,8 +297,14 @@ export default function DashboardMobileNav() {
         <div className="border-b border-border bg-background/95 px-4 py-3 backdrop-blur">
           <div className="flex items-center justify-between gap-3">
             <Link href="/" className="flex min-w-0 items-center gap-3">
-              <div className="flex h-9 w-9 items-center justify-center rounded-full bg-primary/10">
-                <Image src="/traceforge-logo.svg" alt="TraceForge" width={22} height={22} />
+              <div className="relative flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-full bg-primary/10 transition-all duration-200">
+                <Image 
+                  src="/traceforge-logo.svg" 
+                  alt="TraceForge" 
+                  width={22} 
+                  height={22} 
+                  className="h-[22px] w-[22px] object-contain"
+                />
               </div>
               <div className="min-w-0">
                 <p className="text-[10px] uppercase tracking-[0.18em] text-text-secondary">

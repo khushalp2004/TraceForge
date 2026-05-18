@@ -31,13 +31,31 @@ export const supportedAiModels = [
   }
 ] as const;
 
+const legacyAiModelAliases: Record<string, string> = {
+  compound: "groq/compound",
+  "compound-mini": "groq/compound-mini",
+  "gpt-oss-120b": "openai/gpt-oss-120b",
+  "gpt-oss-20b": "openai/gpt-oss-20b"
+};
+
+export const normalizeAiModelId = (value: string | null | undefined) => {
+  if (!value) {
+    return value;
+  }
+
+  const trimmed = value.trim();
+  return legacyAiModelAliases[trimmed] || trimmed;
+};
+
 export const defaultAiModel =
   process.env.GROQ_MODEL && supportedAiModels.some((model) => model.id === process.env.GROQ_MODEL)
     ? process.env.GROQ_MODEL
     : "groq/compound";
 
-export const isSupportedAiModel = (value: string) =>
-  supportedAiModels.some((model) => model.id === value);
+export const isSupportedAiModel = (value: string) => {
+  const normalized = normalizeAiModelId(value);
+  return normalized ? supportedAiModels.some((model) => model.id === normalized) : false;
+};
 
 export const resolveAiModel = (value: string | null | undefined) =>
-  value && isSupportedAiModel(value) ? value : defaultAiModel;
+  value && isSupportedAiModel(value) ? normalizeAiModelId(value) : defaultAiModel;

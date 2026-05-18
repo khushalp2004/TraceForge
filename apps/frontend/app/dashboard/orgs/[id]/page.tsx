@@ -613,7 +613,7 @@ function OrganizationDetailPageInner({ params }: { params: { id: string } }) {
       </div>
 
       {showInviteModal && (
-        <div className="fixed inset-0 z-50 overflow-y-auto bg-black/45 px-4 pb-[calc(env(safe-area-inset-bottom)+6.5rem)] pt-[calc(env(safe-area-inset-top)+5.5rem)] backdrop-blur-sm sm:flex sm:items-center sm:justify-center sm:px-6 sm:py-8">
+        <div className="tf-modal-backdrop">
           <div className="mx-auto flex max-h-[calc(100dvh-env(safe-area-inset-top)-env(safe-area-inset-bottom)-8.5rem)] w-full max-w-lg flex-col overflow-hidden rounded-[28px] border border-border bg-card shadow-2xl sm:max-h-[min(92vh,48rem)]">
             <div className="border-b border-border bg-secondary/40 px-5 py-4 sm:px-6 sm:py-5">
               <p className="text-xs font-semibold uppercase tracking-[0.18em] text-primary">

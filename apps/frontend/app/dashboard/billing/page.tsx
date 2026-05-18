@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
+import { X } from "lucide-react";
 import { LoadingButtonContent } from "../../../components/ui/loading-button-content";
 import { DashboardPagination } from "../components/DashboardPagination";
 
@@ -1040,46 +1041,48 @@ export default function BillingPage() {
       </div>
 
       {cancelTarget ? (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-6">
-          <div className="w-full max-w-md rounded-2xl border border-border bg-card/95 p-6 shadow-xl backdrop-blur">
-            <h3 className="font-display text-lg font-semibold text-text-primary">
-              Cancel subscription
-            </h3>
-            <p className="mt-2 text-sm text-text-secondary">
-              You are about to cancel <span className="font-semibold">{cancelTarget.label}</span>.
-              Type <span className="font-semibold">Cancel your subscription</span> to confirm.
-            </p>
-            <div className="mt-4 rounded-2xl border border-amber-500/20 bg-amber-500/10 px-4 py-3 text-sm text-amber-700 dark:text-amber-300">
-              Cancelling stops future billing. Payments already made are non-refundable.
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
+          <div className="w-full max-w-lg rounded-xl border border-border bg-card shadow-xl flex flex-col overflow-hidden">
+            <div className="flex items-center justify-between p-4 border-b border-border/50">
+              <h3 className="text-sm font-semibold text-text-primary">Cancel subscription</h3>
+              <button onClick={closeCancelModal} className="text-text-secondary hover:text-text-primary transition-colors">
+                <X className="h-4 w-4" />
+              </button>
             </div>
-            <input
-              className="tf-input mt-4 w-full"
-              placeholder="Cancel your subscription"
-              value={cancelConfirmationInput}
-              onChange={(event) => setCancelConfirmationInput(event.target.value)}
-              disabled={actionLoading}
-            />
-            <div className="mt-5 flex w-full flex-col-reverse gap-3 sm:flex-row sm:items-center sm:justify-end">
-              <button
-                type="button"
-                className="tf-button-ghost inline-flex w-full items-center justify-center px-3 py-2 text-sm sm:w-auto sm:min-w-[144px] sm:px-4"
-                onClick={closeCancelModal}
-                disabled={actionLoading}
-              >
-                Keep plan
-              </button>
-              <button
-                type="button"
-                className="tf-danger-solid inline-flex w-full items-center justify-center whitespace-nowrap rounded-full border px-3 py-2 text-sm font-semibold transition disabled:opacity-50 sm:w-auto sm:min-w-[180px] sm:px-4"
-                onClick={() => void confirmCancelSubscription()}
-                disabled={actionLoading || cancelConfirmationInput.trim() !== "Cancel your subscription"}
-              >
-                <LoadingButtonContent
-                  loading={actionLoading}
-                  loadingLabel="Cancelling..."
-                  idleLabel="Cancel subscription"
-                />
-              </button>
+            
+            <div className="p-6">
+               <h4 className="text-lg sm:text-xl font-bold text-text-primary mb-2">Are you sure you want to cancel?</h4>
+               <p className="text-sm text-text-secondary">
+                 You are about to cancel <span className="font-semibold">{cancelTarget.label}</span>. 
+                 Type <span className="font-semibold">Cancel your subscription</span> to confirm.
+               </p>
+               <div className="mt-4 rounded-xl border border-amber-500/20 bg-amber-500/10 px-4 py-3 text-sm text-amber-700 dark:text-amber-300">
+                 Cancelling stops future billing. Payments already made are non-refundable.
+               </div>
+               <input
+                 className="mt-4 w-full rounded-lg border border-border bg-background px-4 py-2 text-sm text-text-primary outline-none transition focus:border-primary/30 focus:ring-2 focus:ring-primary/10"
+                 placeholder="Cancel your subscription"
+                 value={cancelConfirmationInput}
+                 onChange={(event) => setCancelConfirmationInput(event.target.value)}
+                 disabled={actionLoading}
+               />
+            </div>
+            
+            <div className="flex flex-row-reverse items-center gap-3 p-6 pt-0">
+               <button 
+                 onClick={() => void confirmCancelSubscription()} 
+                 disabled={actionLoading || cancelConfirmationInput.trim() !== "Cancel your subscription"}
+                 className="flex-1 tf-danger-solid disabled:opacity-50 font-semibold py-2 px-4 rounded-lg transition-colors flex items-center justify-center"
+               >
+                 Cancel subscription
+               </button>
+               <button 
+                 onClick={closeCancelModal} 
+                 disabled={actionLoading}
+                 className="flex-1 bg-secondary/50 border border-border hover:bg-secondary/80 text-text-primary font-semibold py-2 px-4 rounded-lg transition-colors flex items-center justify-center"
+               >
+                 Keep plan
+               </button>
             </div>
           </div>
         </div>

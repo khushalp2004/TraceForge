@@ -494,7 +494,7 @@ export function GlobalSearchProvider({ children }: { children: React.ReactNode }
       {children}
       {open ? (
         <div
-          className="fixed inset-0 z-[120] flex items-start justify-center bg-black/45 px-4 py-8 backdrop-blur-sm sm:px-6 sm:py-12"
+          className="fixed inset-0 z-[120] flex items-start justify-center bg-transparent backdrop-blur-2xl px-4 py-8 sm:bg-black/45 sm:backdrop-blur-sm sm:px-6 sm:py-12"
           onClick={closeSearch}
         >
           <div
@@ -509,39 +509,11 @@ export function GlobalSearchProvider({ children }: { children: React.ReactNode }
                 value={query}
                 onChange={(event) => setQuery(event.target.value)}
                 onKeyDown={onPaletteKeyDown}
-                placeholder={placeholder}
-                className="h-11 w-full bg-transparent text-[15px] font-medium text-text-primary outline-none placeholder:text-text-secondary"
+                placeholder="Type a command or search..."
+                className="h-10 w-full bg-transparent text-[15px] font-medium text-text-primary outline-none placeholder:text-text-secondary"
               />
-              <div className="hidden items-center gap-2 rounded-full border border-border bg-secondary/50 px-3 py-1 text-[11px] font-semibold text-text-secondary sm:inline-flex">
-                <span>ESC</span>
-              </div>
-              <button
-                type="button"
-                onClick={closeSearch}
-                className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-border bg-card text-text-secondary transition hover:bg-secondary/70 hover:text-text-primary"
-                aria-label="Close search"
-              >
-                <X className="h-4 w-4" />
-              </button>
-            </div>
-
-            <div className="flex items-center justify-between gap-3 border-b border-border/70 px-4 py-3 text-xs text-text-secondary sm:px-5">
-              <p className="truncate">
-                {isLoggedIn
-                  ? showDynamicResults
-                    ? "Showing matching rows and records from your workspace."
-                    : normalizedQuery
-                    ? "No row match found, so these are static page matches."
-                    : "Start with page shortcuts. Typing switches to row and record matches."
-                  : "Search pages and docs."}
-              </p>
-              <div className="hidden items-center gap-3 sm:flex">
-                <span className="rounded-full border border-border bg-secondary/50 px-2.5 py-1">
-                  ↑↓ Navigate
-                </span>
-                <span className="rounded-full border border-border bg-secondary/50 px-2.5 py-1">
-                  Enter Open
-                </span>
+              <div className="hidden items-center rounded border border-border bg-secondary/20 px-2 py-1 text-[10px] font-medium uppercase text-text-secondary sm:flex">
+                ESC
               </div>
             </div>
 
@@ -552,18 +524,15 @@ export function GlobalSearchProvider({ children }: { children: React.ReactNode }
                     <Search className="h-5 w-5 text-text-secondary" />
                   </div>
                   <p className="mt-4 text-sm font-semibold text-text-primary">No results found</p>
-                  <p className="mt-2 text-sm text-text-secondary">
-                    Try searching for a page, doc, issue text, project, organization, or alert rule.
-                  </p>
                 </div>
               ) : (
-                <div className="p-3 sm:p-4">
+                <div className="p-2 sm:p-3">
                   {groupedResults.map((section) => (
-                    <div key={section.group} className="mb-4 last:mb-0">
-                      <p className="px-2 pb-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-text-secondary">
+                    <div key={section.group} className="mb-2 last:mb-0">
+                      <p className="px-3 pb-2 pt-3 text-[11px] font-bold uppercase tracking-wider text-text-secondary">
                         {section.group}
                       </p>
-                      <div className="space-y-1">
+                      <div className="space-y-0.5">
                         {section.items.map((item) => {
                           const index = flatResults.findIndex((result) => result.id === item.id);
                           const active = index === selectedIndex;
@@ -575,18 +544,18 @@ export function GlobalSearchProvider({ children }: { children: React.ReactNode }
                               type="button"
                               onMouseEnter={() => setSelectedIndex(index)}
                               onClick={() => handleSubmit(item)}
-                              className={`flex w-full items-center gap-3 rounded-2xl px-3 py-3 text-left transition ${
+                              className={`flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left transition ${
                                 active
-                                  ? "border border-primary/25 bg-secondary/70 shadow-sm"
-                                  : "border border-transparent hover:bg-secondary/45"
+                                  ? "bg-secondary/40 shadow-sm"
+                                  : "bg-transparent hover:bg-secondary/20"
                               }`}
                             >
-                              <span className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl border border-border bg-card/90 text-text-secondary">
+                              <span className="flex shrink-0 items-center justify-center text-text-secondary">
                                 <Icon className="h-4.5 w-4.5" />
                               </span>
                               <span className="min-w-0 flex-1">
                                 <span className="flex items-center gap-2">
-                                  <span className="truncate text-sm font-semibold text-text-primary">
+                                  <span className="truncate text-[14px] font-medium text-text-primary">
                                     {item.title}
                                   </span>
                                   {item.badge ? (
@@ -595,14 +564,17 @@ export function GlobalSearchProvider({ children }: { children: React.ReactNode }
                                     </span>
                                   ) : null}
                                 </span>
-                                <span className="mt-1 block truncate text-sm text-text-secondary">
-                                  {item.description}
+                                {item.description && (
+                                  <span className="mt-0.5 block truncate text-[13px] text-text-secondary">
+                                    {item.description}
+                                  </span>
+                                )}
+                              </span>
+                              {active && (
+                                <span className="inline-flex shrink-0 items-center justify-center rounded border border-border bg-card px-1.5 py-0.5 text-[10px] text-text-secondary">
+                                  ↵
                                 </span>
-                              </span>
-                              <span className="inline-flex items-center gap-2 text-xs text-text-secondary">
-                                <span className="hidden max-w-[12rem] truncate md:inline">{item.href}</span>
-                                <ChevronRight className="h-4 w-4" />
-                              </span>
+                              )}
                             </button>
                           );
                         })}
@@ -613,17 +585,19 @@ export function GlobalSearchProvider({ children }: { children: React.ReactNode }
               )}
             </div>
 
-            <div className="flex items-center justify-between gap-3 border-t border-border px-4 py-3 text-xs text-text-secondary sm:px-5">
-              <p>
-                {bootstrapLoading || searchIssuesLoading
-                  ? "Refreshing suggestions..."
-                  : normalizedQuery
-                  ? showDynamicResults
-                    ? `${flatResults.length} dynamic matches`
-                    : `${flatResults.length} page matches`
-                  : "Start typing or press / anywhere in the app"}
-              </p>
-              <p className="hidden sm:block">⌘K or Ctrl+K</p>
+            <div className="flex items-center gap-4 border-t border-border px-4 py-3 text-xs text-text-secondary sm:px-5">
+              <div className="flex items-center gap-1.5">
+                <span className="rounded border border-border bg-secondary/50 px-1.5 py-0.5 text-[10px] leading-none">↑↓</span> 
+                navigate
+              </div>
+              <div className="flex items-center gap-1.5">
+                <span className="rounded border border-border bg-secondary/50 px-1.5 py-0.5 text-[10px] leading-none">↵</span> 
+                select
+              </div>
+              <div className="flex items-center gap-1.5">
+                <span className="rounded border border-border bg-secondary/50 px-1.5 py-0.5 text-[10px] leading-none">esc</span> 
+                close
+              </div>
             </div>
           </div>
         </div>

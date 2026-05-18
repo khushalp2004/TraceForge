@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { Trash2, X } from "lucide-react";
 import { useAuth } from "../../../context/AuthContext";
 import { LoadingButtonContent } from "../../../components/ui/loading-button-content";
 import { DashboardPagination } from "../components/DashboardPagination";
@@ -211,7 +212,6 @@ export default function AdminDashboardPage() {
   const [suspensionTarget, setSuspensionTarget] = useState<AdminUser | null>(null);
   const [suspensionReason, setSuspensionReason] = useState("");
   const [deleteTarget, setDeleteTarget] = useState<AdminUser | null>(null);
-  const [deleteConfirmationInput, setDeleteConfirmationInput] = useState("");
   const [deletingUserId, setDeletingUserId] = useState<string | null>(null);
   const [announcementSubject, setAnnouncementSubject] = useState("");
   const [announcementMessage, setAnnouncementMessage] = useState("");
@@ -582,7 +582,6 @@ export default function AdminDashboardPage() {
       }
       showToast(`Deleted ${targetUser.email}.`, "success");
       setDeleteTarget(null);
-      setDeleteConfirmationInput("");
       closeUserDetail();
       await Promise.all([loadUsers(), loadOverview()]);
     } catch (error) {
@@ -1173,7 +1172,6 @@ export default function AdminDashboardPage() {
                           className="rounded-xl border border-red-200 px-3 py-2 text-xs font-semibold text-red-600 transition hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-60 dark:border-red-500/30 dark:text-red-300 dark:hover:bg-red-500/10"
                           onClick={() => {
                             setDeleteTarget(entry);
-                            setDeleteConfirmationInput("");
                           }}
                           disabled={isDeleting || isCurrentUser}
                         >
@@ -1227,7 +1225,7 @@ export default function AdminDashboardPage() {
       ) : null}
 
       {detailTarget ? (
-        <div className="fixed inset-0 z-[75] flex items-center justify-center bg-foreground/35 px-4 backdrop-blur-[2px]">
+        <div className="tf-modal-backdrop">
           <div className="max-h-[85vh] w-full max-w-4xl overflow-y-auto rounded-[32px] border border-border bg-card p-6 shadow-2xl sm:p-8">
             <div className="flex items-start justify-between gap-4">
               <div>
@@ -1340,8 +1338,8 @@ export default function AdminDashboardPage() {
       ) : null}
 
       {suspensionTarget ? (
-        <div className="fixed inset-0 z-[75] flex items-center justify-center bg-foreground/35 px-4 backdrop-blur-[2px]">
-          <div className="w-full max-w-xl rounded-[32px] border border-border bg-card p-6 shadow-2xl sm:p-8">
+        <div className="tf-modal-backdrop">
+          <div className="tf-modal-panel">
             <p className="text-sm font-semibold uppercase tracking-[0.14em] text-text-secondary">
               {suspensionTarget.disabledAt ? "Reactivate user" : "Suspend user"}
             </p>
@@ -1400,57 +1398,35 @@ export default function AdminDashboardPage() {
       ) : null}
 
       {deleteTarget ? (
-        <div className="fixed inset-0 z-[75] flex items-center justify-center bg-foreground/35 px-4 backdrop-blur-[2px]">
-          <div className="w-full max-w-xl rounded-[32px] border border-border bg-card p-6 shadow-2xl sm:p-8">
-            <p className="text-sm font-semibold uppercase tracking-[0.14em] text-text-secondary">
-              Delete user
-            </p>
-            <h3 className="mt-4 text-2xl font-semibold text-text-primary">
-              Permanently delete {deleteTarget.fullName?.trim() || deleteTarget.email}
-            </h3>
-            <p className="mt-3 text-sm leading-7 text-text-secondary">
-              This removes the account and personal data we can safely delete. If the user is the
-              only member in an organization, deletion will be blocked until that organization has
-              another member.
-            </p>
-
-            <label className="mt-5 block text-sm font-semibold text-text-primary" htmlFor="delete-user-confirmation">
-              Type the user email to confirm
-            </label>
-            <input
-              id="delete-user-confirmation"
-              value={deleteConfirmationInput}
-              onChange={(event) => setDeleteConfirmationInput(event.target.value)}
-              className="mt-3 w-full rounded-2xl border border-border bg-background px-4 py-3 text-sm text-text-primary outline-none transition focus:border-primary/30 focus:ring-2 focus:ring-primary/10"
-              placeholder={deleteTarget.email}
-            />
-
-            <div className="mt-6 flex flex-wrap justify-end gap-3">
-              <button
-                type="button"
-                className="rounded-2xl border border-border px-4 py-2 text-sm font-semibold text-text-secondary transition hover:text-text-primary"
-                onClick={() => {
-                  setDeleteTarget(null);
-                  setDeleteConfirmationInput("");
-                }}
-              >
-                Cancel
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
+          <div className="w-full max-w-lg rounded-xl border border-border bg-card shadow-xl flex flex-col overflow-hidden">
+            <div className="flex items-center justify-between p-4 border-b border-border/50">
+              <h3 className="text-sm font-semibold text-text-primary">Delete User</h3>
+              <button onClick={() => setDeleteTarget(null)} className="text-text-secondary hover:text-text-primary transition-colors">
+                <X className="h-4 w-4" />
               </button>
-              <button
-                type="button"
-                className="inline-flex items-center justify-center rounded-2xl bg-red-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-red-500 disabled:cursor-not-allowed disabled:opacity-60"
-                disabled={
-                  deletingUserId === deleteTarget.id ||
-                  deleteConfirmationInput.trim().toLowerCase() !== deleteTarget.email.toLowerCase()
-                }
-                onClick={() => void deleteUser(deleteTarget)}
-              >
-                <LoadingButtonContent
-                  loading={deletingUserId === deleteTarget.id}
-                  loadingLabel="Deleting..."
-                  idleLabel="Delete user"
-                />
-              </button>
+            </div>
+            
+            <div className="p-6">
+               <h4 className="text-lg sm:text-xl font-bold text-text-primary mb-2">Are you sure you want to delete this user?</h4>
+               <p className="text-sm text-text-secondary">Permanently delete this user from the platform.</p>
+            </div>
+            
+            <div className="flex flex-row-reverse items-center gap-3 p-6 pt-0">
+               <button 
+                 onClick={() => void deleteUser(deleteTarget)} 
+                 disabled={deletingUserId === deleteTarget.id}
+                 className="flex-1 tf-danger-solid font-semibold py-2 px-4 rounded-lg transition-colors flex items-center justify-center"
+               >
+                 Delete
+               </button>
+               <button 
+                 onClick={() => setDeleteTarget(null)} 
+                 disabled={deletingUserId === deleteTarget.id}
+                 className="flex-1 bg-secondary/50 border border-border hover:bg-secondary/80 text-text-primary font-semibold py-2 px-4 rounded-lg transition-colors flex items-center justify-center"
+               >
+                 Cancel
+               </button>
             </div>
           </div>
         </div>

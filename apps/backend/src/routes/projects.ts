@@ -10,6 +10,7 @@ import { getCachedUserOrgIds } from "../utils/access.js";
 import {
   defaultAiModel,
   isSupportedAiModel,
+  normalizeAiModelId,
   resolveAiModel,
   supportedAiModels
 } from "../utils/aiModels.js";
@@ -308,7 +309,7 @@ projectsRouter.post("/", async (req, res) => {
     githubRepoId?: string;
   };
   const normalizedOrgId = orgId?.trim() || undefined;
-  const normalizedAiModel = aiModel?.trim() || defaultAiModel;
+  const normalizedAiModel = normalizeAiModelId(aiModel?.trim()) || defaultAiModel;
 
   if (!userId) {
     return res.status(401).json({ error: "Unauthorized" });
@@ -478,6 +479,124 @@ projectsRouter.patch("/:id", async (req, res) => {
     // A more thorough fix would invalidate by pattern: projects:list:*
     void invalidateCache(`projects:list:*`);
   }
+
+  return res.json({ project: serializeProject(updated) });
+});
+
+projectsRouter.post("/:id/move", async (req, res) => {
+  const userId = req.user?.id;
+  const projectId = req.params.id;
+  const { orgId } = req.body as { orgId?: string | null };
+  const targetOrgId = typeof orgId === "string" ? orgId.trim() || null : null;
+
+  if (!userId) {
+    return res.status(401).json({ error: "Unauthorized" });
+  }
+
+  const project = await prisma.project.findUnique({
+    where: { id: projectId }
+  });
+
+  if (!project) {
+    return res.status(404).json({ error: "Project not found" });
+  }
+
+  if (project.archivedAt) {
+    return res.status(400).json({ error: "Archived project cannot be moved" });
+  }
+
+  if (project.orgId) {
+    const sourceMembership = await prisma.organizationMember.findUnique({
+      where: {
+        organizationId_userId: {
+          organizationId: project.orgId,
+          userId
+        }
+      }
+    });
+
+    if (!sourceMembership || sourceMembership.role !== "OWNER") {
+      return res.status(403).json({ error: "Only org owners can move projects" });
+    }
+  } else if (project.userId !== userId) {
+    return res.status(403).json({ error: "Forbidden" });
+  }
+
+  if (project.orgId === targetOrgId) {
+    const unchanged = await prisma.project.findUnique({
+      where: { id: projectId },
+      select: projectSelect
+    });
+    if (!unchanged) {
+      return res.status(404).json({ error: "Project not found" });
+    }
+    return res.json({ project: serializeProject(unchanged) });
+  }
+
+  if (targetOrgId) {
+    const targetMembership = await prisma.organizationMember.findUnique({
+      where: {
+        organizationId_userId: {
+          organizationId: targetOrgId,
+          userId
+        }
+      }
+    });
+
+    if (!targetMembership || targetMembership.role !== "OWNER") {
+      return res.status(403).json({ error: "Only org owners can move projects into that organization" });
+    }
+  } else {
+    const requester = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { plan: true, planExpiresAt: true }
+    });
+    const proActive = isUserProActive(requester);
+
+    if (!proActive) {
+      const activePersonalProjects = await prisma.project.count({
+        where: {
+          userId,
+          orgId: null,
+          archivedAt: null,
+          id: { not: projectId }
+        }
+      });
+
+      if (activePersonalProjects >= 3) {
+        return res.status(402).json({
+          error: "Free plan supports up to 3 personal projects. Upgrade to Pro to move more here."
+        });
+      }
+    }
+  }
+
+  const existingProject = await findProjectWithSameName({
+    name: project.name,
+    userId,
+    orgId: targetOrgId,
+    excludeProjectId: project.id
+  });
+
+  if (existingProject) {
+    return res.status(409).json({
+      error: targetOrgId
+        ? "A project with that name already exists in the target organization."
+        : "A personal project with that name already exists."
+    });
+  }
+
+  const updated = await prisma.project.update({
+    where: { id: projectId },
+    data: {
+      orgId: targetOrgId,
+      ...(targetOrgId ? {} : { userId })
+    },
+    select: projectSelect
+  });
+
+  void invalidateCache(`projects:list:user:${userId}:*`);
+  void invalidateCache(`projects:list:*`);
 
   return res.json({ project: serializeProject(updated) });
 });
@@ -834,12 +953,13 @@ projectsRouter.post("/:id/ai-model", async (req, res) => {
   const userId = req.user?.id;
   const projectId = req.params.id;
   const { aiModel } = req.body as { aiModel?: string };
+  const normalizedAiModel = normalizeAiModelId(aiModel);
 
   if (!userId) {
     return res.status(401).json({ error: "Unauthorized" });
   }
 
-  if (!aiModel || !isSupportedAiModel(aiModel)) {
+  if (!normalizedAiModel || !isSupportedAiModel(normalizedAiModel)) {
     return res.status(400).json({ error: "Unsupported AI model" });
   }
 
@@ -874,7 +994,7 @@ projectsRouter.post("/:id/ai-model", async (req, res) => {
 
   const updated = await prisma.project.update({
     where: { id: projectId },
-    data: { aiModel },
+    data: { aiModel: normalizedAiModel },
     select: projectSelect
   });
 
@@ -962,7 +1082,8 @@ projectsRouter.delete("/:id", async (req, res) => {
     return res.status(403).json({ error: "Forbidden" });
   }
 
-  if (!name || name.trim() !== project.name) {
+  const isConfirmed = name && (name.trim() === project.name || name.trim() === "delete all");
+  if (!isConfirmed) {
     return res.status(400).json({ error: "Project name confirmation does not match" });
   }
 
@@ -1018,7 +1139,8 @@ projectsRouter.delete("/:id/permanent", async (req, res) => {
     return res.status(400).json({ error: "Archive the project before deleting it permanently" });
   }
 
-  if (!name || name.trim() !== project.name) {
+  const isConfirmed = name && (name.trim() === project.name || name.trim() === "delete all");
+  if (!isConfirmed) {
     return res.status(400).json({ error: "Project name confirmation does not match" });
   }
 
