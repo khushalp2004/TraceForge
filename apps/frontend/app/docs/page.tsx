@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { SegmentedControl } from "../../components/ui/segmented-control";
 
 const installFrontendSnippet = `cd frontend
 npm install usetraceforge`;
@@ -408,29 +409,19 @@ export default function DocsPage() {
                 Pick the part you are wiring right now
               </h2>
             </div>
-            <div className="flex items-center gap-1 rounded-full border border-border bg-secondary/20 p-1 text-xs font-semibold text-text-secondary">
-              <button
-                type="button"
-                onClick={() => setSetupView("frontend")}
-                className={`rounded-full px-3 py-1.5 transition ${
-                  setupView === "frontend"
-                    ? "bg-card text-text-primary shadow-sm"
-                    : "hover:bg-secondary/40"
-                }`}
-              >
-                Frontend
-              </button>
-              <button
-                type="button"
-                onClick={() => setSetupView("backend")}
-                className={`rounded-full px-3 py-1.5 transition ${
-                  setupView === "backend"
-                    ? "bg-card text-text-primary shadow-sm"
-                    : "hover:bg-secondary/40"
-                }`}
-              >
-                Backend
-              </button>
+            <div className="flex items-center gap-1">
+              <SegmentedControl
+                name="docs-setup-view"
+                options={[
+                  { label: "Frontend", value: "frontend" },
+                  { label: "Backend", value: "backend" }
+                ]}
+                value={setupView}
+                onChange={(val) => setSetupView(val as "frontend" | "backend")}
+                size="sm"
+                shape="pill"
+                className="bg-secondary/20 border-border"
+              />
             </div>
           </div>
 

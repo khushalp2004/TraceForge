@@ -818,7 +818,7 @@ export default function ProjectSettingsPage() {
             return (
             <div
               key={project.id}
-              className={`tf-card group flex flex-col p-5 transition-all hover:border-primary/20 bg-card border rounded-xl shadow-sm ${
+              className={`tf-card group flex min-w-0 flex-col p-5 transition-all hover:border-primary/20 bg-card border rounded-xl shadow-sm ${
                 isSelected ? "border-primary bg-primary/5" : "border-border"
               }`}
               draggable={true}
@@ -883,10 +883,10 @@ export default function ProjectSettingsPage() {
               </div>
 
               {/* Body */}
-              <div className="flex flex-col gap-4 flex-1">
+              <div className="flex min-w-0 flex-1 flex-col gap-4">
                 {/* Stats & API Key row */}
-                <div className="flex items-center justify-between text-xs border border-border bg-secondary/10 rounded-lg p-3">
-                  <div className="flex flex-col min-w-0 flex-1 mr-3">
+                <div className="flex min-w-0 items-center justify-between rounded-lg border border-border bg-secondary/10 p-3 text-xs">
+                  <div className="mr-3 flex min-w-0 flex-1 flex-col">
                      <span className="text-text-secondary text-[10px] uppercase font-semibold">API Key</span>
                      <span className="font-mono text-text-primary mt-1 truncate">
                       {revealedProjectId === project.id
@@ -1340,26 +1340,26 @@ export default function ProjectSettingsPage() {
         )}
 
       {selectedProjectIds.size > 0 && (
-        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[60] flex items-center gap-4 rounded-full border border-border/80 bg-card/95 px-4 py-3 shadow-lg backdrop-blur-md">
-          <div className="flex items-center gap-2">
-            <span className="flex h-6 w-6 items-center justify-center rounded-full bg-primary/20 text-xs font-bold text-primary">
+        <div className="fixed bottom-24 md:bottom-6 left-1/2 -translate-x-1/2 z-[60] flex w-max max-w-[95vw] items-center gap-2 sm:gap-4 rounded-full border border-border/80 bg-card/95 px-3 py-2 sm:px-4 sm:py-3 shadow-lg backdrop-blur-md">
+          <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+            <span className="flex h-5 w-5 sm:h-6 sm:w-6 items-center justify-center rounded-full bg-primary/20 text-[10px] sm:text-xs font-bold text-primary">
               {selectedProjectIds.size}
             </span>
-            <span className="text-sm font-semibold text-text-primary">selected</span>
+            <span className="text-xs sm:text-sm font-semibold text-text-primary hidden sm:inline">selected</span>
           </div>
-          <div className="h-4 w-px bg-border" />
-          <div className="flex items-center gap-2">
+          <div className="h-4 w-px bg-border hidden sm:block" />
+          <div className="flex items-center gap-1 sm:gap-2 shrink-0">
             <button
-              className="rounded-full px-3 py-1.5 text-xs font-semibold text-text-secondary hover:bg-secondary/80 hover:text-text-primary transition-colors"
+              className="rounded-full px-2 py-1.5 sm:px-3 sm:py-1.5 text-[11px] sm:text-xs font-semibold text-text-secondary hover:bg-secondary/80 hover:text-text-primary transition-colors whitespace-nowrap"
               onClick={() => setSelectedProjectIds(new Set())}
             >
               Deselect all
             </button>
             <button
-              className="flex items-center gap-1.5 rounded-full bg-destructive-soft border border-destructive-border px-3 py-1.5 text-xs font-semibold text-destructive hover:bg-destructive hover:text-destructive-foreground transition-all duration-300"
+              className="flex items-center gap-1 sm:gap-1.5 rounded-full bg-destructive-soft border border-destructive-border px-2 py-1.5 sm:px-3 sm:py-1.5 text-[11px] sm:text-xs font-semibold text-destructive hover:bg-destructive hover:text-destructive-foreground transition-all duration-300 whitespace-nowrap"
               onClick={() => setShowBulkArchiveModal(true)}
             >
-              <Trash2 className="h-3.5 w-3.5" />
+              <Trash2 className="h-3 sm:h-3.5 w-3 sm:w-3.5" />
               Archive all
             </button>
           </div>

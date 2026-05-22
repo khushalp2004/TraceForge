@@ -1256,51 +1256,55 @@ function DashboardPageInner() {
               </button>
               <div className="relative" ref={notificationsRef}>
                 <button
-                  className="relative inline-flex h-10 items-center gap-2 rounded-full bg-card/90 px-3 sm:gap-2.5 sm:px-4 py-2 text-sm font-semibold text-text-secondary shadow-sm transition hover:border-primary/40 hover:bg-secondary/70 hover:text-text-primary"
+                  className={`relative inline-flex h-10 items-center gap-2 rounded-full border border-border px-3 py-2 text-[13px] font-semibold shadow-sm transition hover:bg-secondary/80 sm:gap-2.5 sm:px-4 ${showRequests ? "bg-secondary/80 text-text-primary" : "bg-card/95 text-text-secondary hover:text-text-primary"}`}
                   onClick={() => setShowRequests((prev) => !prev)}
                   aria-label="Notifications"
                 >
-                  <span className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-secondary/80 text-text-secondary">
-                    <svg
-                      aria-hidden="true"
-                      className="h-4 w-4"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                    >
-                      <path d="M15 17h5l-1.4-1.4A2 2 0 0 1 18 14.2V11a6 6 0 1 0-12 0v3.2a2 2 0 0 1-.6 1.4L4 17h5" />
-                      <path d="M9.5 17a2.5 2.5 0 0 0 5 0" />
-                    </svg>
-                  </span>
+                  <svg
+                    aria-hidden="true"
+                    className="h-4 w-4"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
+                    <path d="M15 17h5l-1.4-1.4A2 2 0 0 1 18 14.2V11a6 6 0 1 0-12 0v3.2a2 2 0 0 1-.6 1.4L4 17h5" />
+                    <path d="M9.5 17a2.5 2.5 0 0 0 5 0" />
+                  </svg>
                   <span className="hidden sm:inline">Notifications</span>
                   {joinRequests.length + pendingInvites.length + alertNotifications.length > 0 && (
-                    <span className="absolute -right-1 -top-1 rounded-full bg-primary px-2 py-0.5 text-[11px] font-semibold text-white shadow-sm sm:static sm:px-2.5 sm:text-xs">
+                    <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-[16px] items-center justify-center rounded-full bg-primary px-1 text-[9px] font-bold text-white ring-2 ring-card sm:static sm:h-5 sm:min-w-[20px] sm:px-1.5 sm:text-[10px] sm:ring-0">
                       {joinRequests.length + pendingInvites.length + alertNotifications.length}
                     </span>
                   )}
                 </button>
                 {showRequests && (
-                  <div
-                    className={`absolute right-0 top-full z-30 mt-3 rounded-2xl bg-card p-4 shadow-lg max-[639px]:fixed max-[639px]:left-4 max-[639px]:right-4 max-[639px]:top-[5.5rem] max-[639px]:mt-0 max-[639px]:w-auto max-[639px]:max-w-none ${
-                      notificationsExpanded ? "w-[28rem]" : "w-72"
-                    }`}
-                  >
-                    <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
-                      <h3 className="text-sm font-semibold text-text-primary">Notifications</h3>
-                      <div className="flex items-center gap-2">
+                  <>
+                    <div 
+                      className="fixed inset-0 z-40 bg-background/40 backdrop-blur-sm sm:hidden" 
+                      onClick={() => setShowRequests(false)} 
+                      aria-hidden="true" 
+                    />
+                    <div
+                      className={`absolute right-0 top-[calc(100%+12px)] z-50 overflow-hidden rounded-[28px] border border-border/40 bg-card/95 shadow-2xl backdrop-blur-xl animate-in fade-in zoom-in-95 duration-200 max-[639px]:fixed max-[639px]:left-4 max-[639px]:right-4 max-[639px]:top-[5.5rem] max-[639px]:w-auto max-[639px]:max-w-none ${
+                        notificationsExpanded ? "w-[28rem]" : "w-80"
+                      }`}
+                    >
+                      <div className="flex items-center justify-between border-b border-border/40 bg-secondary/15 px-5 py-4">
+                      <h3 className="text-[14px] font-semibold text-text-primary">Notifications</h3>
+                      <div className="flex items-center gap-3">
                         <button
                           type="button"
-                          className="hidden rounded-full px-2.5 py-1 text-[11px] font-semibold text-text-secondary transition hover:bg-secondary/70 hover:text-text-primary sm:inline-flex"
+                          className="hidden text-[12px] font-medium text-text-secondary transition-colors hover:text-text-primary sm:inline-block"
                           onClick={() => setNotificationsExpanded((value) => !value)}
                         >
                           {notificationsExpanded ? "Collapse" : "Expand"}
                         </button>
                         <button
                           type="button"
-                          className="rounded-full px-2.5 py-1 text-[11px] font-semibold text-text-secondary transition hover:bg-secondary/70 hover:text-text-primary"
+                          className="text-[12px] font-medium text-text-secondary transition-colors hover:text-text-primary disabled:opacity-50"
                           onClick={() => {
                             const currentIds = alertNotifications.map((alert) => alert.id);
                             const nextIds = Array.from(
@@ -1328,154 +1332,101 @@ function DashboardPageInner() {
                       </div>
                     </div>
                     <div
-                      className={`overflow-y-auto pr-1 ${
-                        notificationsExpanded ? "max-h-[32rem]" : "max-h-80"
+                      className={`overflow-y-auto ${
+                        notificationsExpanded ? "max-h-[32rem]" : "max-h-[26rem]"
                       }`}
                     >
-                      <h3 className="text-sm font-semibold text-text-secondary">Join Requests</h3>
-                      <div className="mt-3 space-y-3">
-                        {joinRequests.map((req) => (
-                          <div key={req.id} className="relative rounded-xl p-3 pr-11 text-xs">
-                            <button
-                              type="button"
-                              className="absolute right-3 top-3 inline-flex h-6 w-6 items-center justify-center rounded-full text-text-secondary transition hover:bg-secondary/70 hover:text-text-primary"
-                              onClick={() => dismissJoinRequestNotification(req.id)}
-                              aria-label="Dismiss join request notification"
-                            >
-                              <svg
-                                aria-hidden="true"
-                                className="h-3.5 w-3.5"
-                                viewBox="0 0 16 16"
-                                fill="none"
-                                stroke="currentColor"
-                                strokeWidth="1.8"
-                                strokeLinecap="round"
-                              >
-                                <path d="M4 4l8 8" />
-                                <path d="M12 4 4 12" />
-                              </svg>
-                            </button>
-                            <p className="font-semibold text-text-primary">{req.requesterEmail}</p>
-                            <p className="text-text-secondary">{req.orgName}</p>
-                            <p className="mt-1 text-text-secondary">
-                              Requested {formatNotificationDateTime(req.createdAt)}
-                            </p>
-                            <div className="mt-2 flex gap-2">
-                              <button
-                                className="rounded-full px-2 py-1 text-xs"
-                                onClick={() => handleRequestAction(req.id, "approve")}
-                              >
-                                Approve
-                              </button>
-                              <button
-                                className="rounded-full border border-red-200 px-2 py-1 text-xs text-red-600"
-                                onClick={() => handleRequestAction(req.id, "reject")}
-                              >
-                                Reject
+                      {joinRequests.length > 0 && (
+                        <div className="px-2 py-2">
+                          <h4 className="px-3 pb-2 pt-2 text-[11px] font-semibold uppercase tracking-[0.15em] text-text-secondary">
+                            Join Requests
+                          </h4>
+                          {joinRequests.map((req) => (
+                            <div key={req.id} className="group relative flex items-start gap-3 rounded-[16px] px-3 py-3 transition-colors hover:bg-secondary/30">
+                              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
+                                <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" x2="19" y1="8" y2="14"/><line x1="22" x2="16" y1="11" y2="11"/></svg>
+                              </div>
+                              <div className="min-w-0 flex-1">
+                                <p className="truncate text-[13px] font-medium text-text-primary">{req.requesterEmail}</p>
+                                <p className="truncate text-[12px] text-text-secondary">Requested to join {req.orgName}</p>
+                                <div className="mt-2 flex items-center gap-2">
+                                  <button onClick={() => handleRequestAction(req.id, "approve")} className="rounded-full bg-primary/10 px-3 py-1 text-[11px] font-semibold text-primary transition-colors hover:bg-primary/20">Approve</button>
+                                  <button onClick={() => handleRequestAction(req.id, "reject")} className="rounded-full bg-destructive/10 px-3 py-1 text-[11px] font-semibold text-destructive transition-colors hover:bg-destructive/20">Reject</button>
+                                </div>
+                              </div>
+                              <button onClick={() => dismissJoinRequestNotification(req.id)} className="absolute right-2 top-2 flex h-6 w-6 items-center justify-center rounded-full text-text-secondary opacity-0 transition-all hover:bg-secondary/50 hover:text-text-primary group-hover:opacity-100 max-[639px]:opacity-100">
+                                <svg className="h-3 w-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
                               </button>
                             </div>
-                          </div>
-                        ))}
-                        {!joinRequests.length && (
-                          <p className="text-xs text-text-secondary">No pending requests.</p>
-                        )}
-                      </div>
-                      <h3 className="mt-4 text-sm font-semibold text-text-secondary">Invites</h3>
-                      <div className="mt-3 space-y-3">
-                        {pendingInvites.map((invite) => (
-                          <div
-                            key={invite.token}
-                            className="relative rounded-xl p-3 pr-11 text-xs"
-                          >
-                            <button
-                              type="button"
-                              className="absolute right-3 top-3 inline-flex h-6 w-6 items-center justify-center rounded-full text-text-secondary transition hover:bg-secondary/70 hover:text-text-primary"
-                              onClick={() => dismissInviteNotification(invite.token)}
-                              aria-label="Dismiss invite notification"
-                            >
-                              <svg
-                                aria-hidden="true"
-                                className="h-3.5 w-3.5"
-                                viewBox="0 0 16 16"
-                                fill="none"
-                                stroke="currentColor"
-                                strokeWidth="1.8"
-                                strokeLinecap="round"
-                              >
-                                <path d="M4 4l8 8" />
-                                <path d="M12 4 4 12" />
-                              </svg>
-                            </button>
-                            <p className="font-semibold text-text-primary">{invite.orgName}</p>
-                            <p className="text-text-secondary">Role: {invite.role.toLowerCase()}</p>
-                            <p className="text-text-secondary">
-                              Expires {formatNotificationDateTime(invite.expiresAt)}
-                            </p>
-                            <div className="mt-2 flex gap-2">
-                              <button
-                                className="rounded-full px-2 py-1 text-xs"
-                                onClick={() => handleAcceptInvite(invite.token)}
-                              >
-                                Accept
+                          ))}
+                        </div>
+                      )}
+
+                      {pendingInvites.length > 0 && (
+                        <div className="px-2 py-2">
+                          <h4 className="px-3 pb-2 pt-2 text-[11px] font-semibold uppercase tracking-[0.15em] text-text-secondary">
+                            Invites
+                          </h4>
+                          {pendingInvites.map((invite) => (
+                            <div key={invite.token} className="group relative flex items-start gap-3 rounded-[16px] px-3 py-3 transition-colors hover:bg-secondary/30">
+                              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-emerald-500/10 text-emerald-500">
+                                <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>
+                              </div>
+                              <div className="min-w-0 flex-1">
+                                <p className="truncate text-[13px] font-medium text-text-primary">{invite.orgName}</p>
+                                <p className="truncate text-[12px] text-text-secondary">Invited as {invite.role.toLowerCase()}</p>
+                                <div className="mt-2 flex items-center gap-2">
+                                  <button onClick={() => handleAcceptInvite(invite.token)} className="rounded-full bg-emerald-500/10 px-3 py-1 text-[11px] font-semibold text-emerald-500 transition-colors hover:bg-emerald-500/20">Accept</button>
+                                </div>
+                              </div>
+                              <button onClick={() => dismissInviteNotification(invite.token)} className="absolute right-2 top-2 flex h-6 w-6 items-center justify-center rounded-full text-text-secondary opacity-0 transition-all hover:bg-secondary/50 hover:text-text-primary group-hover:opacity-100 max-[639px]:opacity-100">
+                                <svg className="h-3 w-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
                               </button>
                             </div>
-                          </div>
-                        ))}
-                        {!pendingInvites.length && (
-                          <p className="text-xs text-text-secondary">No pending invites.</p>
-                        )}
-                      </div>
-                      <h3 className="mt-4 text-sm font-semibold text-text-secondary">Alerts</h3>
-                      <div className="mt-3 space-y-3">
-                        {alertNotifications.map((alert) => (
-                          <div key={alert.id} className="relative rounded-xl p-3 pr-11 text-xs">
-                            <button
-                              type="button"
-                              className="absolute right-3 top-3 inline-flex h-6 w-6 items-center justify-center rounded-full text-text-secondary transition hover:bg-secondary/70 hover:text-text-primary"
-                              onClick={() => dismissAlertNotification(alert.id)}
-                              aria-label="Dismiss alert notification"
-                            >
-                              <svg
-                                aria-hidden="true"
-                                className="h-3.5 w-3.5"
-                                viewBox="0 0 16 16"
-                                fill="none"
-                                stroke="currentColor"
-                                strokeWidth="1.8"
-                                strokeLinecap="round"
-                              >
-                                <path d="M4 4l8 8" />
-                                <path d="M12 4 4 12" />
-                              </svg>
-                            </button>
-                            <p className="font-semibold text-text-primary">
-                              {alert.alertRule.name}
-                            </p>
-                            <p className="mt-1 text-text-secondary">{alert.message}</p>
-                            <p className="mt-1 text-text-secondary">
-                              {alert.project.name}
-                              {alert.environment ? ` · ${alert.environment}` : ""}
-                            </p>
-                            <p className="mt-1 text-text-secondary">
-                              {formatNotificationDateTime(alert.triggeredAt)}
-                            </p>
-                            <div className="mt-2 flex gap-2">
-                              <Link
-                                className="rounded-full px-2 py-1 text-xs"
-                                href="/dashboard/issues"
-                                onClick={() => setShowRequests(false)}
-                              >
-                                Open issues
-                              </Link>
+                          ))}
+                        </div>
+                      )}
+
+                      {alertNotifications.length > 0 && (
+                        <div className="px-2 py-2">
+                          <h4 className="px-3 pb-2 pt-2 text-[11px] font-semibold uppercase tracking-[0.15em] text-text-secondary">
+                            Alerts
+                          </h4>
+                          {alertNotifications.map((alert) => (
+                            <div key={alert.id} className="group relative flex items-start gap-3 rounded-[16px] px-3 py-3 transition-colors hover:bg-secondary/30">
+                              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-warning/10 text-warning">
+                                <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg>
+                              </div>
+                              <div className="min-w-0 flex-1">
+                                <p className="truncate text-[13px] font-medium text-text-primary">{alert.alertRule.name}</p>
+                                <p className="text-[12px] text-text-secondary line-clamp-2">{alert.message}</p>
+                                <p className="mt-1 text-[11px] text-text-secondary/70">
+                                  {alert.project.name}{alert.environment ? ` · ${alert.environment}` : ""} · {formatNotificationDateTime(alert.triggeredAt)}
+                                </p>
+                                <div className="mt-2 flex items-center gap-2">
+                                  <Link href="/dashboard/issues" onClick={() => setShowRequests(false)} className="rounded-full bg-secondary/80 px-3 py-1 text-[11px] font-semibold text-text-primary transition-colors hover:bg-secondary">View Issues</Link>
+                                </div>
+                              </div>
+                              <button onClick={() => dismissAlertNotification(alert.id)} className="absolute right-2 top-2 flex h-6 w-6 items-center justify-center rounded-full text-text-secondary opacity-0 transition-all hover:bg-secondary/50 hover:text-text-primary group-hover:opacity-100 max-[639px]:opacity-100">
+                                <svg className="h-3 w-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+                              </button>
                             </div>
+                          ))}
+                        </div>
+                      )}
+
+                      {!joinRequests.length && !pendingInvites.length && !alertNotifications.length && (
+                        <div className="flex flex-col items-center justify-center px-4 py-12 text-center">
+                          <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-secondary/40 text-text-secondary">
+                            <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>
                           </div>
-                        ))}
-                        {!alertNotifications.length && (
-                          <p className="text-xs text-text-secondary">No recent alerts.</p>
-                        )}
-                      </div>
+                          <p className="text-[14px] font-medium text-text-primary">All caught up!</p>
+                          <p className="mt-1 text-[12px] text-text-secondary">No new notifications right now.</p>
+                        </div>
+                      )}
                     </div>
                   </div>
+                  </>
                 )}
               </div>
               <button

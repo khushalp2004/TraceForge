@@ -6,6 +6,7 @@ import { X } from "lucide-react";
 import { LoadingButtonContent } from "../../../components/ui/loading-button-content";
 import { DashboardPagination } from "../components/DashboardPagination";
 import { AnimatedPrice } from "../../components/AnimatedPrice";
+import { SegmentedControl } from "../../../components/ui/segmented-control";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
 const tokenKey = "traceforge_token";
@@ -595,37 +596,37 @@ export default function BillingPage() {
                   <span className="rounded-full bg-secondary/20 border border-border px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-text-secondary">Not active</span>
                 )}
               </div>
-              <h2 className="mt-2 text-2xl font-bold text-text-primary">
-                {isUserProActive ? "Pro Plan" : "Upgrade to Pro"}
-              </h2>
+              <div className="mt-2 flex items-center justify-between gap-4">
+                <h2 className="text-2xl font-bold text-text-primary">
+                  {isUserProActive ? "Pro Plan" : "Upgrade to Pro"}
+                </h2>
+                {user?.planExpiresAt && (
+                  <p className="text-xs font-medium text-text-secondary bg-secondary/20 px-2 py-1 rounded-md border border-border/50 whitespace-nowrap">
+                    Expires {new Date(user.planExpiresAt).toLocaleDateString()}
+                  </p>
+                )}
+              </div>
               <p className="mt-1 text-sm text-text-secondary">
                 Unlimited AI analyses for you, even inside Free or Team organizations.
               </p>
-              {user?.planExpiresAt && (
-                <p className="mt-2 text-xs font-medium text-text-secondary bg-secondary/20 inline-flex w-fit px-2 py-1 rounded-md border border-border/50">
-                  Expires {new Date(user.planExpiresAt).toLocaleDateString()}
-                </p>
-              )}
             </div>
 
             <div className="mt-6 flex flex-col rounded-xl border border-border bg-secondary/10 overflow-hidden">
               <div className="border-b border-border/50 bg-secondary/20 px-5 py-3 flex items-center justify-between">
                 <p className="text-xs font-medium text-text-secondary">Billing cycle</p>
-                <div className="flex items-center gap-1 rounded-lg bg-background/50 p-1 border border-border/50">
-                  <button
-                    type="button"
-                    className={`rounded-md px-3 py-1 text-xs font-semibold transition ${personalInterval === "MONTHLY" ? "bg-card shadow-sm text-text-primary border border-border" : "text-text-secondary hover:text-text-primary border border-transparent"}`}
-                    onClick={() => setPersonalInterval("MONTHLY")}
-                  >
-                    Monthly
-                  </button>
-                  <button
-                    type="button"
-                    className={`rounded-md px-3 py-1 text-xs font-semibold transition ${personalInterval === "YEARLY" ? "bg-card shadow-sm text-text-primary border border-border" : "text-text-secondary hover:text-text-primary border border-transparent"}`}
-                    onClick={() => setPersonalInterval("YEARLY")}
-                  >
-                    Yearly
-                  </button>
+                <div className="flex items-center gap-1">
+                  <SegmentedControl
+                    name="personal-billing-interval"
+                    options={[
+                      { label: "Monthly", value: "MONTHLY" },
+                      { label: "Yearly", value: "YEARLY" }
+                    ]}
+                    value={personalInterval}
+                    onChange={(val) => setPersonalInterval(val as BillingInterval)}
+                    size="sm"
+                    shape="rounded"
+                    className="bg-background/50 border-border/50"
+                  />
                 </div>
               </div>
 
@@ -639,9 +640,9 @@ export default function BillingPage() {
                     />
                     <span className="text-sm font-normal text-text-secondary">/{personalInterval === "YEARLY" ? "yr" : "mo"}</span>
                   </p>
-                  {personalInterval === "YEARLY" && proYearlySavings ? (
-                    <p className="mt-1 text-xs font-medium text-emerald-500">Save ₹{proYearlySavings.toLocaleString("en-IN")}</p>
-                  ) : null}
+                  <p className={`mt-1 text-xs font-medium text-emerald-500 ${personalInterval === "YEARLY" && proYearlySavings ? "visible" : "invisible"}`}>
+                    Save ₹{(proYearlySavings || 0).toLocaleString("en-IN")}
+                  </p>
                 </div>
                 <div className="sm:px-4">
                   <p className="text-[10px] font-bold uppercase tracking-wider text-text-secondary">AI analyses</p>
@@ -697,37 +698,37 @@ export default function BillingPage() {
                   <span className="rounded-full bg-secondary/20 border border-border px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-text-secondary">Not active</span>
                 )}
               </div>
-              <h2 className="mt-2 text-2xl font-bold text-text-primary">
-                {isTeamActive ? "Team Plan" : "Upgrade Organization"}
-              </h2>
+              <div className="mt-2 flex items-center justify-between gap-4">
+                <h2 className="text-2xl font-bold text-text-primary">
+                  {isTeamActive ? "Team Plan" : "Upgrade Organization"}
+                </h2>
+                {selectedOrg?.planExpiresAt && (
+                  <p className="text-xs font-medium text-text-secondary bg-secondary/20 px-2 py-1 rounded-md border border-border/50 whitespace-nowrap">
+                    Expires {new Date(selectedOrg.planExpiresAt).toLocaleDateString()}
+                  </p>
+                )}
+              </div>
               <p className="mt-1 text-sm text-text-secondary">
                 Shared {pricing?.team?.aiLimitMonthly ?? 200} AI analyses per month for the selected organization.
               </p>
-              {selectedOrg?.planExpiresAt && (
-                <p className="mt-2 text-xs font-medium text-text-secondary bg-secondary/20 inline-flex w-fit px-2 py-1 rounded-md border border-border/50">
-                  Expires {new Date(selectedOrg.planExpiresAt).toLocaleDateString()}
-                </p>
-              )}
             </div>
 
             <div className="mt-6 flex flex-col rounded-xl border border-border bg-secondary/10 overflow-hidden">
               <div className="border-b border-border/50 bg-secondary/20 px-5 py-3 flex items-center justify-between">
                 <p className="text-xs font-medium text-text-secondary">Billing cycle</p>
-                <div className="flex items-center gap-1 rounded-lg bg-background/50 p-1 border border-border/50">
-                  <button
-                    type="button"
-                    className={`rounded-md px-3 py-1 text-xs font-semibold transition ${teamInterval === "MONTHLY" ? "bg-card shadow-sm text-text-primary border border-border" : "text-text-secondary hover:text-text-primary border border-transparent"}`}
-                    onClick={() => setTeamInterval("MONTHLY")}
-                  >
-                    Monthly
-                  </button>
-                  <button
-                    type="button"
-                    className={`rounded-md px-3 py-1 text-xs font-semibold transition ${teamInterval === "YEARLY" ? "bg-card shadow-sm text-text-primary border border-border" : "text-text-secondary hover:text-text-primary border border-transparent"}`}
-                    onClick={() => setTeamInterval("YEARLY")}
-                  >
-                    Yearly
-                  </button>
+                <div className="flex items-center gap-1">
+                  <SegmentedControl
+                    name="team-billing-interval"
+                    options={[
+                      { label: "Monthly", value: "MONTHLY" },
+                      { label: "Yearly", value: "YEARLY" }
+                    ]}
+                    value={teamInterval}
+                    onChange={(val) => setTeamInterval(val as BillingInterval)}
+                    size="sm"
+                    shape="rounded"
+                    className="bg-background/50 border-border/50"
+                  />
                 </div>
               </div>
 
@@ -741,9 +742,9 @@ export default function BillingPage() {
                     />
                     <span className="text-sm font-normal text-text-secondary">/{teamInterval === "YEARLY" ? "yr" : "mo"}</span>
                   </p>
-                  {teamInterval === "YEARLY" && teamYearlySavings ? (
-                    <p className="mt-1 text-xs font-medium text-emerald-500">Save ₹{teamYearlySavings.toLocaleString("en-IN")}</p>
-                  ) : null}
+                  <p className={`mt-1 text-xs font-medium text-emerald-500 ${teamInterval === "YEARLY" && teamYearlySavings ? "visible" : "invisible"}`}>
+                    Save ₹{(teamYearlySavings || 0).toLocaleString("en-IN")}
+                  </p>
                 </div>
                 <div className="sm:px-4">
                   <p className="text-[10px] font-bold uppercase tracking-wider text-text-secondary">Shared AI</p>

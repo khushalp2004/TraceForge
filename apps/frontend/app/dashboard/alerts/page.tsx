@@ -7,6 +7,7 @@ import { Archive, BellRing, Pause, Play, RotateCcw, Send, Trash2, X } from "luci
 import { LoadingButtonContent } from "../../../components/ui/loading-button-content";
 import { useDebouncedValue } from "../../hooks/useDebouncedValue";
 import { DashboardPagination } from "../components/DashboardPagination";
+import { SegmentedControl } from "../../../components/ui/segmented-control";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
 const tokenKey = "traceforge_token";
@@ -872,30 +873,18 @@ function AlertsPageInner() {
                   </p>
                 </div>
                 <div className="flex flex-wrap items-center gap-2">
-                  <div className="rounded-full border border-border bg-card p-1">
-                    <button
-                      type="button"
-                      className={`rounded-full px-3 py-1 text-xs font-semibold transition ${
-                        view === "active"
-                          ? "bg-primary text-primary-foreground shadow-sm"
-                          : "text-text-secondary hover:bg-secondary/70"
-                      }`}
-                      onClick={() => setView("active")}
-                    >
-                      Active
-                    </button>
-                    <button
-                      type="button"
-                      className={`rounded-full px-3 py-1 text-xs font-semibold transition ${
-                        view === "archived"
-                          ? "bg-primary text-primary-foreground shadow-sm"
-                          : "text-text-secondary hover:bg-secondary/70"
-                      }`}
-                      onClick={() => setView("archived")}
-                    >
-                      Archived
-                    </button>
-                  </div>
+                  <SegmentedControl
+                    name="alerts-view-mode"
+                    options={[
+                      { label: "Active", value: "active" },
+                      { label: "Archived", value: "archived" }
+                    ]}
+                    value={view}
+                    onChange={(val) => setView(val as "active" | "archived")}
+                    size="sm"
+                    shape="pill"
+                    className="bg-card border-border"
+                  />
                   <span className="rounded-full border border-border bg-card px-3 py-1 text-xs font-semibold text-text-secondary">
                     {filteredRules.length} shown
                   </span>
@@ -1090,64 +1079,23 @@ function AlertsPageInner() {
               </div>
 
               {!loading && filteredRules.length > 5 && (
-                <div className="rounded-2xl border border-border bg-card/90 px-4 py-4 shadow-sm">
-                  <div className="tf-pagination-bar">
-                    <div className="tf-pagination-size">
-                      <select
-                        className="tf-select tf-pagination-select w-full"
-                        value={rulesPageSize}
-                        onChange={(event) => {
-                          setRulesPage(1);
-                          setRulesPageSize(Number(event.target.value));
-                        }}
-                      >
-                        <option value="6">6 / page</option>
-                        <option value="12">12 / page</option>
-                        <option value="18">18 / page</option>
-                      </select>
-                    </div>
-                    <div className="tf-pagination-controls">
-                      <button
-                        type="button"
-                        className="tf-pagination-button"
-                        onClick={() => setRulesPage((current) => Math.max(1, current - 1))}
-                        disabled={rulesPage === 1}
-                      >
-                        Prev
-                      </button>
-                      {visibleRulePages.map((pageNumber, index) => {
-                        const previous = visibleRulePages[index - 1];
-                        const showGap = previous && pageNumber - previous > 1;
-
-                        return (
-                          <div key={pageNumber} className="flex items-center gap-2">
-                            {showGap && <span className="tf-pagination-gap">...</span>}
-                            <button
-                              type="button"
-                              className={`tf-pagination-page ${
-                                rulesPage === pageNumber
-                                  ? "tf-pagination-page-active"
-                                  : "tf-pagination-page-idle"
-                              }`}
-                              onClick={() => setRulesPage(pageNumber)}
-                            >
-                              {pageNumber}
-                            </button>
-                          </div>
-                        );
-                      })}
-                      <button
-                        type="button"
-                        className="tf-pagination-button"
-                        onClick={() =>
-                          setRulesPage((current) => Math.min(rulesTotalPages, current + 1))
-                        }
-                        disabled={rulesPage >= rulesTotalPages}
-                      >
-                        Next
-                      </button>
-                    </div>
-                  </div>
+                <div className="rounded-2xl border border-border bg-card/90 px-4 py-3 shadow-sm">
+                  <DashboardPagination
+                    page={rulesPage}
+                    totalPages={rulesTotalPages}
+                    pageSize={rulesPageSize}
+                    pageSizeOptions={[
+                      { value: 6, label: "6" },
+                      { value: 12, label: "12" },
+                      { value: 18, label: "18" }
+                    ]}
+                    onPageChange={setRulesPage}
+                    onPageSizeChange={(pageSize) => {
+                      setRulesPage(1);
+                      setRulesPageSize(pageSize);
+                    }}
+                    className=""
+                  />
                 </div>
               )}
             </div>
@@ -1383,15 +1331,15 @@ function AlertsPageInner() {
                <button 
                  onClick={archiveRule} 
                  disabled={archivingRuleId === archiveTarget.id}
-                 className="flex-1 bg-destructive/15 text-destructive border border-destructive/30 hover:bg-destructive/25 backdrop-blur-md font-semibold py-2 px-4 rounded-lg transition-all duration-300 flex items-center justify-center shadow-[0_8px_16px_-6px_rgba(var(--destructive-rgb),0.1)]"
+                 className="flex-1 bg-destructive/15 text-destructive border border-destructive/30 hover:bg-destructive/25 backdrop-blur-md font-semibold py-2 px-3 sm:px-4 rounded-lg transition-all duration-300 flex items-center justify-center shadow-[0_8px_16px_-6px_rgba(var(--destructive-rgb),0.1)] whitespace-nowrap"
                >
-                 <Archive className="w-4 h-4 mr-2" />
-                 Archive Alert
+                 <Archive className="w-4 h-4 mr-1 sm:mr-2 shrink-0" />
+                 Archive
                </button>
                <button 
                  onClick={() => setArchiveTarget(null)} 
                  disabled={archivingRuleId === archiveTarget.id}
-                 className="flex-1 bg-secondary/50 border border-border hover:bg-secondary/80 text-text-primary font-semibold py-2 px-4 rounded-lg transition-colors flex items-center justify-center"
+                 className="flex-1 bg-secondary/50 border border-border hover:bg-secondary/80 text-text-primary font-semibold py-2 px-3 sm:px-4 rounded-lg transition-colors flex items-center justify-center whitespace-nowrap"
                >
                  Cancel
                </button>
@@ -1419,15 +1367,15 @@ function AlertsPageInner() {
                <button 
                  onClick={deleteRulePermanently} 
                  disabled={deletingRuleId === deleteTarget.id}
-                 className="flex-1 bg-destructive/15 text-destructive border border-destructive/30 hover:bg-destructive/25 backdrop-blur-md font-semibold py-2 px-4 rounded-lg transition-all duration-300 flex items-center justify-center shadow-[0_8px_16px_-6px_rgba(var(--destructive-rgb),0.1)]"
+                 className="flex-1 bg-destructive/15 text-destructive border border-destructive/30 hover:bg-destructive/25 backdrop-blur-md font-semibold py-2 px-3 sm:px-4 rounded-lg transition-all duration-300 flex items-center justify-center shadow-[0_8px_16px_-6px_rgba(var(--destructive-rgb),0.1)] whitespace-nowrap"
                >
-                 <Trash2 className="w-4 h-4 mr-2" />
-                 Delete Alert
+                 <Trash2 className="w-4 h-4 mr-1 sm:mr-2 shrink-0" />
+                 Delete
                </button>
                <button 
                  onClick={() => setDeleteTarget(null)} 
                  disabled={deletingRuleId === deleteTarget.id}
-                 className="flex-1 bg-secondary/50 border border-border hover:bg-secondary/80 text-text-primary font-semibold py-2 px-4 rounded-lg transition-colors flex items-center justify-center"
+                 className="flex-1 bg-secondary/50 border border-border hover:bg-secondary/80 text-text-primary font-semibold py-2 px-3 sm:px-4 rounded-lg transition-colors flex items-center justify-center whitespace-nowrap"
                >
                  Cancel
                </button>

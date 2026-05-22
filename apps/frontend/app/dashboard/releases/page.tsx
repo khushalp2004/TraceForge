@@ -199,6 +199,10 @@ function ReleasesPageInner() {
     });
       const data = await res.json();
       if (!res.ok) {
+        if (res.status === 403 && selectedProjectId) {
+          setSelectedProjectId("");
+          return;
+        }
         throw new Error(data.error || "Failed to load releases");
       }
     const nextReleases = (data.releases || []) as ReleaseItem[];

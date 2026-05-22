@@ -6,6 +6,8 @@ import { useSearchParams } from "next/navigation";
 import { Archive, Copy, Github, RotateCcw, Sparkles, Trash2, PlusCircle, Edit3, X } from "lucide-react";
 import { LoadingButtonContent } from "../../../components/ui/loading-button-content";
 import { useDebouncedValue } from "../../hooks/useDebouncedValue";
+import { DashboardPagination } from "../components/DashboardPagination";
+import { SegmentedControl } from "../../../components/ui/segmented-control";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
 const tokenKey = "traceforge_token";
@@ -183,6 +185,7 @@ function IssuesPageInner() {
   const searchParams = useSearchParams();
   const hydratedFromQuery = useRef(false);
   const prefsHydratedRef = useRef(false);
+  const fetchIdRef = useRef(0);
   const [projects, setProjects] = useState<Project[]>([]);
   const [issues, setIssues] = useState<Issue[]>([]);
   const [pagination, setPagination] = useState<Pagination>({
@@ -334,6 +337,7 @@ function IssuesPageInner() {
   };
 
   const loadIssues = async (token: string) => {
+    const fetchId = ++fetchIdRef.current;
     const params = new URLSearchParams();
     if (selectedProjectId) params.set("projectId", selectedProjectId);
     if (deferredSearch.trim()) params.set("q", deferredSearch.trim());
@@ -352,7 +356,15 @@ function IssuesPageInner() {
 
     const data = await res.json();
     if (!res.ok) {
+      if (res.status === 403 && selectedProjectId) {
+        setSelectedProjectId("");
+        return;
+      }
       throw new Error(data.error || "Failed to load issues");
+    }
+
+    if (fetchId !== fetchIdRef.current) {
+      return;
     }
 
     setIssues(data.errors || []);
@@ -810,28 +822,15 @@ function IssuesPageInner() {
         </section>
 
         <div className="mt-6 flex flex-wrap items-center gap-2">
-          <div className="rounded-full border border-border bg-secondary/40 p-1">
-            <button
-              type="button"
-              className={`rounded-full px-4 py-2 text-sm font-semibold transition ${viewMode === "active"
-                  ? "bg-primary text-primary-foreground shadow-sm"
-                  : "text-text-secondary hover:bg-secondary/80"
-                }`}
-              onClick={() => setViewMode("active")}
-            >
-              Active issues
-            </button>
-            <button
-              type="button"
-              className={`rounded-full px-4 py-2 text-sm font-semibold transition ${viewMode === "archived"
-                  ? "bg-primary text-primary-foreground shadow-sm"
-                  : "text-text-secondary hover:bg-secondary/80"
-                }`}
-              onClick={() => setViewMode("archived")}
-            >
-              Archived issues
-            </button>
-          </div>
+          <SegmentedControl
+            name="issues-view-mode"
+            options={[
+              { label: "Active issues", value: "active" },
+              { label: "Archived issues", value: "archived" }
+            ]}
+            value={viewMode}
+            onChange={setViewMode}
+          />
         </div>
 
         <section className="tf-filter-panel mt-6">
@@ -1187,75 +1186,22 @@ function IssuesPageInner() {
           </section>
 
           {!loading && pagination.total > 5 && (
-            <div className="mt-4 rounded-2xl border border-border bg-card/90 px-4 py-4 shadow-sm">
-              <div className="tf-pagination-bar">
-                <div className="tf-pagination-size">
-                  <select
-                    className="tf-select tf-pagination-select w-full"
-                    value={pagination.pageSize}
-                    onChange={(event) =>
-                      setPagination((prev) => ({
-                        ...prev,
-                        page: 1,
-                        pageSize: Number(event.target.value)
-                      }))
-                    }
-                  >
-                    <option value="5">5 / page</option>
-                    <option value="10">10 / page</option>
-                    <option value="20">20 / page</option>
-                  </select>
-                </div>
-                <div className="tf-pagination-controls">
-                  <button
-                    type="button"
-                    className="tf-pagination-button"
-                    onClick={() =>
-                      setPagination((prev) => ({ ...prev, page: Math.max(1, prev.page - 1) }))
-                    }
-                    disabled={pagination.page === 1}
-                  >
-                    Prev
-                  </button>
-                  {visiblePages.map((pageNumber, index) => {
-                    const previous = visiblePages[index - 1];
-                    const showGap = previous && pageNumber - previous > 1;
-
-                    return (
-                      <div key={pageNumber} className="flex items-center gap-2">
-                        {showGap && (
-                          <span className="tf-pagination-gap">...</span>
-                        )}
-                        <button
-                          type="button"
-                          className={`tf-pagination-page ${pagination.page === pageNumber
-                              ? "tf-pagination-page-active"
-                              : "tf-pagination-page-idle"
-                            }`}
-                          onClick={() =>
-                            setPagination((prev) => ({ ...prev, page: pageNumber }))
-                          }
-                        >
-                          {pageNumber}
-                        </button>
-                      </div>
-                    );
-                  })}
-                  <button
-                    type="button"
-                    className="tf-pagination-button"
-                    onClick={() =>
-                      setPagination((prev) => ({
-                        ...prev,
-                        page: Math.min(prev.totalPages, prev.page + 1)
-                      }))
-                    }
-                    disabled={pagination.page >= pagination.totalPages}
-                  >
-                    Next
-                  </button>
-                </div>
-              </div>
+            <div className="mt-4 rounded-2xl border border-border bg-card/90 px-4 py-3 shadow-sm">
+              <DashboardPagination
+                page={pagination.page}
+                totalPages={pagination.totalPages}
+                pageSize={pagination.pageSize}
+                pageSizeOptions={[
+                  { value: 5, label: "5" },
+                  { value: 10, label: "10" },
+                  { value: 20, label: "20" }
+                ]}
+                onPageChange={(page) => setPagination((prev) => ({ ...prev, page }))}
+                onPageSizeChange={(pageSize) =>
+                  setPagination((prev) => ({ ...prev, page: 1, pageSize }))
+                }
+                className=""
+              />
             </div>
           )}
         </div>
@@ -1444,123 +1390,118 @@ function IssuesPageInner() {
       )}
 
       {githubIssueTarget && (
-        <div className="fixed inset-x-0 top-[73px] bottom-[calc(env(safe-area-inset-bottom)+5.75rem)] z-50 flex items-start justify-center overflow-y-auto bg-transparent backdrop-blur-2xl px-3 py-3 sm:inset-0 sm:items-center sm:bg-black/40 sm:backdrop-blur-sm sm:px-6 sm:py-6">
-          <div className="mx-auto flex max-h-full w-full max-w-2xl flex-col overflow-hidden rounded-[28px] border border-border bg-card/95 p-4 shadow-xl backdrop-blur sm:max-h-[min(92vh,48rem)] sm:p-6">
-            <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-              <div className="min-w-0">
-                <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-text-secondary">
-                  GitHub
-                </p>
-                <h3 className="font-display text-lg font-semibold text-text-primary">
-                  Create GitHub issue
-                </h3>
-                <p className="mt-2 text-sm text-text-secondary">
-                  Send this TraceForge issue to one of your selected repositories without leaving
-                  the dashboard.
-                </p>
-              </div>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
+          <div className="w-full max-w-lg max-h-[calc(100dvh-env(safe-area-inset-top)-env(safe-area-inset-bottom)-8rem)] sm:max-h-[90vh] rounded-xl border border-border bg-card shadow-xl flex flex-col overflow-hidden">
+            <div className="flex items-center justify-between p-4 border-b border-border/50 shrink-0">
+              <h3 className="text-sm font-semibold text-text-primary">Create GitHub issue</h3>
+              <button onClick={() => setGithubIssueTarget(null)} className="text-text-secondary hover:text-text-primary transition-colors">
+                <X className="h-4 w-4" />
+              </button>
             </div>
 
-            <div className="tf-scroll-rail mt-5 flex-1 space-y-4 overflow-y-auto pr-1">
-              <div className="rounded-2xl border border-border bg-secondary/20 px-4 py-4">
-                <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-text-secondary">
-                  TraceForge issue
-                </p>
-                <p className="mt-2 text-sm font-medium text-text-primary">
-                  {githubIssueTarget.message}
-                </p>
-              </div>
+            <div className="p-6 overflow-y-auto">
+               <p className="text-sm text-text-secondary mb-6">Send this TraceForge issue to one of your selected repositories without leaving the dashboard.</p>
+               
+               <div className="space-y-5">
+                 <div className="rounded-xl border border-border bg-secondary/20 p-4">
+                   <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-text-secondary">
+                     TraceForge issue
+                   </p>
+                   <p className="mt-2 text-sm font-medium text-text-primary">
+                     {githubIssueTarget.message}
+                   </p>
+                 </div>
 
-              {githubReposLoading ? (
-                <div className="rounded-2xl border border-border bg-secondary/20 px-4 py-4 text-sm text-text-secondary">
-                  Loading GitHub repositories...
-                </div>
-              ) : !githubConfigured ? (
-                <div className="rounded-2xl border border-border bg-secondary/20 px-4 py-4 text-sm text-text-secondary">
-                  GitHub integration is not configured for this app yet.
-                </div>
-              ) : !githubConnected ? (
-                <div className="rounded-2xl border border-border bg-secondary/20 px-4 py-4 text-sm text-text-secondary">
-                  Connect GitHub in Settings first, then choose one or more repositories to use
-                  here.
-                </div>
-              ) : !githubRepos.length ? (
-                <div className="rounded-2xl border border-border bg-secondary/20 px-4 py-4 text-sm text-text-secondary">
-                  No selected repositories are available. Choose repositories in Settings first.
-                </div>
-              ) : (
-                <>
-                  <label className="tf-filter-field">
-                    <span className="tf-filter-label">Repository</span>
-                    <select
-                      className="tf-select tf-filter-control"
-                      value={githubRepoId}
-                      onChange={(event) => setGithubRepoId(event.target.value)}
-                    >
-                      {githubRepos.map((repo) => (
-                        <option key={repo.id} value={repo.id}>
-                          {repo.fullName}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
+                 {githubReposLoading ? (
+                   <div className="rounded-xl border border-border bg-secondary/20 p-4 text-sm text-text-secondary">
+                     Loading GitHub repositories...
+                   </div>
+                 ) : !githubConfigured ? (
+                   <div className="rounded-xl border border-border bg-secondary/20 p-4 text-sm text-text-secondary">
+                     GitHub integration is not configured for this app yet.
+                   </div>
+                 ) : !githubConnected ? (
+                   <div className="rounded-xl border border-border bg-secondary/20 p-4 text-sm text-text-secondary">
+                     Connect GitHub in Settings first, then choose one or more repositories to use here.
+                   </div>
+                 ) : !githubRepos.length ? (
+                   <div className="rounded-xl border border-border bg-secondary/20 p-4 text-sm text-text-secondary">
+                     No selected repositories are available. Choose repositories in Settings first.
+                   </div>
+                 ) : (
+                   <>
+                     <div>
+                       <label className="mb-2 block text-xs font-semibold uppercase tracking-[0.14em] text-text-secondary">Repository</label>
+                       <select
+                         className="w-full appearance-none rounded-xl border border-border bg-secondary/20 px-4 py-3 pr-10 text-sm text-text-primary shadow-sm outline-none transition focus:border-primary/50 focus:bg-card focus:ring-2 focus:ring-primary/20"
+                         style={{
+                           backgroundImage:
+                             "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 20 20' fill='none'%3E%3Cpath d='M5 7l5 5 5-5' stroke='%239CA3AF' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E\")",
+                           backgroundRepeat: "no-repeat",
+                           backgroundPosition: "right 16px center",
+                           backgroundSize: "12px 12px"
+                         }}
+                         value={githubRepoId}
+                         onChange={(event) => setGithubRepoId(event.target.value)}
+                       >
+                         {githubRepos.map((repo) => (
+                           <option key={repo.id} value={repo.id}>
+                             {repo.fullName}
+                           </option>
+                         ))}
+                       </select>
+                     </div>
 
-                  <label className="tf-filter-field">
-                    <span className="tf-filter-label">Title</span>
-                    <input
-                      className="tf-input tf-filter-control"
-                      value={githubIssueTitle}
-                      onChange={(event) => setGithubIssueTitle(event.target.value)}
-                      placeholder="Issue title"
-                    />
-                  </label>
+                     <div>
+                       <label className="mb-2 block text-xs font-semibold uppercase tracking-[0.14em] text-text-secondary">Title</label>
+                       <input
+                         className="w-full rounded-xl border border-border bg-secondary/20 px-4 py-3 text-sm text-text-primary shadow-sm outline-none transition focus:border-primary/50 focus:bg-card focus:ring-2 focus:ring-primary/20"
+                         value={githubIssueTitle}
+                         onChange={(event) => setGithubIssueTitle(event.target.value)}
+                         placeholder="Issue title"
+                       />
+                     </div>
 
-                  <label className="tf-filter-field">
-                    <span className="tf-filter-label">Description</span>
-                    <textarea
-                      className="tf-textarea min-h-[180px] sm:min-h-[240px]"
-                      value={githubIssueBody}
-                      onChange={(event) => setGithubIssueBody(event.target.value)}
-                    />
-                  </label>
-                </>
-              )}
+                     <div>
+                       <label className="mb-2 block text-xs font-semibold uppercase tracking-[0.14em] text-text-secondary">Description</label>
+                       <textarea
+                         className="w-full rounded-xl border border-border bg-secondary/20 px-4 py-3 text-sm text-text-primary shadow-sm outline-none transition focus:border-primary/50 focus:bg-card focus:ring-2 focus:ring-primary/20 min-h-[180px]"
+                         value={githubIssueBody}
+                         onChange={(event) => setGithubIssueBody(event.target.value)}
+                       />
+                     </div>
+                   </>
+                 )}
 
-              {githubModalError ? (
-                <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-                  {githubModalError}
-                </div>
-              ) : null}
+                 {githubModalError ? (
+                   <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+                     {githubModalError}
+                   </div>
+                 ) : null}
+               </div>
             </div>
 
-            <div className="mt-5 flex w-full flex-col-reverse gap-3 sm:flex-row sm:flex-nowrap sm:items-center sm:justify-end">
-              <button
-                type="button"
-                className="tf-button-ghost inline-flex min-w-0 flex-1 items-center justify-center px-3 py-2 text-sm sm:flex-none sm:px-4"
-                onClick={() => setGithubIssueTarget(null)}
-                disabled={creatingGithubIssueId === githubIssueTarget.id}
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                className="tf-button inline-flex min-w-0 flex-1 items-center justify-center gap-2 whitespace-nowrap px-3 py-2 text-sm sm:flex-none sm:px-4"
-                onClick={createGithubIssueForTarget}
-                disabled={
-                  githubReposLoading ||
-                  !githubConnected ||
-                  !githubRepos.length ||
-                  !githubRepoId ||
-                  creatingGithubIssueId === githubIssueTarget.id
-                }
-              >
-                <LoadingButtonContent
-                  loading={creatingGithubIssueId === githubIssueTarget.id}
-                  loadingLabel="Creating..."
-                  idleLabel="Create GitHub issue"
-                  icon={Github}
-                />
-              </button>
+            <div className="flex flex-row-reverse items-center gap-3 p-6 pt-4 border-t border-border/50 shrink-0">
+               <button 
+                 onClick={createGithubIssueForTarget} 
+                 disabled={
+                   githubReposLoading ||
+                   !githubConnected ||
+                   !githubRepos.length ||
+                   !githubRepoId ||
+                   creatingGithubIssueId === githubIssueTarget.id
+                 }
+                 className="flex-1 bg-primary hover:bg-primary-hover disabled:opacity-50 text-primary-foreground font-semibold py-2 px-4 rounded-lg transition-colors flex items-center justify-center"
+               >
+                 <LoadingButtonContent loading={creatingGithubIssueId === githubIssueTarget.id} loadingLabel="Creating..." idleLabel="Create issue" icon={Github} />
+               </button>
+               <button 
+                 onClick={() => setGithubIssueTarget(null)} 
+                 disabled={creatingGithubIssueId === githubIssueTarget.id}
+                 className="flex-1 bg-secondary/50 border border-border hover:bg-secondary/80 text-text-primary font-semibold py-2 px-4 rounded-lg transition-colors flex items-center justify-center"
+               >
+                 Cancel
+               </button>
             </div>
           </div>
         </div>

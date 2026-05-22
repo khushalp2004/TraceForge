@@ -4,9 +4,11 @@ import { useEffect, useMemo, useState } from "react";
 import { Check, X } from "lucide-react";
 import { PricingCta } from "./PricingCta";
 import { AnimatedPrice } from "../components/AnimatedPrice";
+import { SegmentedControl } from "../../components/ui/segmented-control";
+
+export type BillingInterval = "MONTHLY" | "YEARLY";
 
 type Currency = "INR" | "USD";
-type BillingInterval = "MONTHLY" | "YEARLY";
 
 type FeatureItem = {
   label: string;
@@ -288,30 +290,15 @@ export function PricingPlans() {
             </p>
           </div>
 
-          <div className="flex items-center rounded-full border border-border bg-background/70 p-1.5 text-sm font-semibold text-text-secondary shadow-sm">
-            <button
-              type="button"
-              onClick={() => setBillingInterval("YEARLY")}
-              className={`rounded-full px-4 py-2 transition ${
-                billingInterval === "YEARLY"
-                  ? "bg-card text-text-primary shadow-sm"
-                  : "hover:bg-secondary/40"
-              }`}
-            >
-              Annually
-            </button>
-            <button
-              type="button"
-              onClick={() => setBillingInterval("MONTHLY")}
-              className={`rounded-full px-4 py-2 transition ${
-                billingInterval === "MONTHLY"
-                  ? "bg-card text-text-primary shadow-sm"
-                  : "hover:bg-secondary/40"
-              }`}
-            >
-              Monthly
-            </button>
-          </div>
+          <SegmentedControl
+            name="pricing-billing-interval"
+            options={[
+              { label: "Annually", value: "YEARLY" },
+              { label: "Monthly", value: "MONTHLY" }
+            ]}
+            value={billingInterval}
+            onChange={(val) => setBillingInterval(val as BillingInterval)}
+          />
         </div>
 
         <div className="mt-5 flex flex-wrap items-center gap-3 text-sm text-text-secondary">

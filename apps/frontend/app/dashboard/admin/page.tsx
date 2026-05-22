@@ -1240,8 +1240,9 @@ export default function AdminDashboardPage() {
             </div>
             
             <div className="p-6">
-              <div className="mt-6 h-48 animate-pulse rounded-3xl bg-secondary/70" />
-            ) : detail ? (
+              {detailLoading ? (
+                <div className="mt-6 h-48 animate-pulse rounded-3xl bg-secondary/70" />
+              ) : detail ? (
               <>
                 <div className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
                   {[
@@ -1327,6 +1328,7 @@ export default function AdminDashboardPage() {
               </>
             ) : null}
           </div>
+        </div>
         </div>
       ) : null}
 
