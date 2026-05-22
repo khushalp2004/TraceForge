@@ -235,7 +235,7 @@ function BreakdownCard<T extends BreakdownItem>({
   const topCount = Math.max(1, ...items.map((item) => item.count));
 
   return (
-    <div className="rounded-2xl border border-border bg-card/90 p-6">
+    <div className="h-fit rounded-2xl border border-border bg-card/90 p-6">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div className="min-w-0">
           <h2 className="text-base font-semibold text-text-primary">{title}</h2>
@@ -1199,21 +1199,20 @@ export default function InsightsPage() {
     />
   );
 
-  const environmentTopIssuesGrid = (
-    <div className={`grid gap-4 ${isCompactLayout ? "xl:grid-cols-2" : "xl:grid-cols-[minmax(0,1.4fr)_minmax(320px,0.9fr)]"}`}>
-      <BreakdownCard
-        title="Environment health"
-        description="Compare production, staging, development, and browser traffic at a glance."
-        items={environmentHealth}
-        getItemHref={(item) => {
-          const env = normalizeEnv(item.label);
-          return env ? buildIssuesHref({ env }) : null;
-        }}
-        itemActionLabel="View"
-      />
-      <TopIssuesCard items={topIssues} />
-    </div>
+  const environmentHealthCard = (
+    <BreakdownCard
+      title="Environment health"
+      description="Compare production, staging, development, and browser traffic at a glance."
+      items={environmentHealth}
+      getItemHref={(item) => {
+        const env = normalizeEnv(item.label);
+        return env ? buildIssuesHref({ env }) : null;
+      }}
+      itemActionLabel="View"
+    />
   );
+
+  const topIssuesCard = <TopIssuesCard items={topIssues} />;
 
   const alertCorrelationCard = (
     <AlertCorrelationCard
@@ -1341,13 +1340,16 @@ export default function InsightsPage() {
             <div className="space-y-6">
               {comparisonGrid}
               {trendGrid}
-              {environmentTopIssuesGrid}
+              <div className="grid gap-4 sm:grid-cols-2">
+                {environmentHealthCard}
+                {projectPerformanceCard}
+              </div>
+              {topIssuesCard}
               {alertCorrelationCard}
             </div>
             <div className="space-y-6 xl:sticky xl:top-24 xl:self-start">
               {highlightsCard}
               {severityCard}
-              {projectPerformanceCard}
               {releaseImpactCard}
             </div>
           </section>
@@ -1359,12 +1361,19 @@ export default function InsightsPage() {
             </section>
             <section className="mt-6">{severityCard}</section>
             <section className="mt-6">{trendGrid}</section>
-            <section className="mt-6 grid gap-4 xl:grid-cols-2">
-              {projectPerformanceCard}
-              {releaseImpactCard}
+            <section className="mt-6 grid gap-4 xl:grid-cols-2 xl:items-start">
+              <div className="space-y-6">
+                <div className="grid gap-4 sm:grid-cols-2">
+                  {environmentHealthCard}
+                  {projectPerformanceCard}
+                </div>
+                {topIssuesCard}
+              </div>
+              <div className="space-y-6">
+                {releaseImpactCard}
+                {alertCorrelationCard}
+              </div>
             </section>
-            <section className="mt-6">{environmentTopIssuesGrid}</section>
-            <section className="mt-6">{alertCorrelationCard}</section>
           </>
         ) : (
           <>
@@ -1372,12 +1381,19 @@ export default function InsightsPage() {
             <section className="mt-6">{highlightsCard}</section>
             <section className="mt-6">{trendGrid}</section>
             <section className="mt-6">{severityCard}</section>
-            <section className="mt-6 grid gap-4 xl:grid-cols-[minmax(0,1.4fr)_minmax(320px,0.9fr)]">
-              {projectPerformanceCard}
-              {releaseImpactCard}
+            <section className="mt-6 grid gap-4 xl:grid-cols-[minmax(0,1.4fr)_minmax(320px,0.9fr)] xl:items-start">
+              <div className="space-y-6">
+                <div className="grid gap-4 sm:grid-cols-2">
+                  {environmentHealthCard}
+                  {projectPerformanceCard}
+                </div>
+                {topIssuesCard}
+              </div>
+              <div className="space-y-6">
+                {releaseImpactCard}
+                {alertCorrelationCard}
+              </div>
             </section>
-            <section className="mt-6">{environmentTopIssuesGrid}</section>
-            <section className="mt-6">{alertCorrelationCard}</section>
           </>
         )}
       </div>

@@ -34,7 +34,7 @@ export default function PricingPage() {
                 We can tailor TraceForge for your compliance, security, and scale needs.
               </p>
             </div>
-            <a className="tf-button-ghost px-6 py-3 text-sm" href="mailto:sales@usetraceforge.com">
+            <a className="tf-button-ghost px-6 py-3 text-sm" href="mailto:team@usetraceforge.com">
               Talk to Sales
             </a>
           </div>

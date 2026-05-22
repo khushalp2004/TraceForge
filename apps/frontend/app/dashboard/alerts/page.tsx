@@ -1250,97 +1250,97 @@ function AlertsPageInner() {
       </div>
 
       {appModalRule && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-6">
-          <div className="w-full max-w-lg rounded-2xl border border-border bg-card/95 p-6 shadow-xl backdrop-blur">
-            <h3 className="font-display text-lg font-semibold text-text-primary">Send alert</h3>
-            <p className="mt-2 text-sm text-text-secondary">
-              Add an optional message, then choose where this alert should be sent. TraceForge will attach the alert details automatically.
-            </p>
-
-            <div className="mt-4 rounded-2xl border border-border bg-secondary/25 px-4 py-4">
-              <p className="text-sm font-semibold text-text-primary">{appModalRule.name}</p>
-              <p className="mt-1 text-sm text-text-secondary">
-                {appModalRule.project?.name ?? "All projects"} · {appModalRule.environment || "All environments"} · {appModalRule.severity}
-              </p>
-            </div>
-
-            <div className="mt-4">
-              <label className="mb-2 block text-sm font-semibold text-text-primary">
-                Message
-              </label>
-              <textarea
-                className="tf-input min-h-[112px] w-full resize-y rounded-2xl py-3"
-                placeholder="Add context for Slack or Jira recipients"
-                value={appAlertMessage}
-                onChange={(event) => setAppAlertMessage(event.target.value)}
-                disabled={loadingAppTargets || sendingAppAlert}
-              />
-            </div>
-
-            <div className="mt-4 space-y-3">
-              <p className="text-sm font-semibold text-text-primary">Destinations</p>
-
-              {loadingAppTargets ? (
-                <div className="rounded-2xl border border-border bg-secondary/25 px-4 py-4 text-sm text-text-secondary">
-                  Loading connected apps...
-                </div>
-              ) : (
-                <>
-                  <label className="flex items-start gap-3 rounded-2xl border border-border bg-card px-4 py-4">
-                    <input
-                      type="checkbox"
-                      className="mt-0.5 h-4 w-4 rounded border-border"
-                      checked={sendToSlack}
-                      onChange={(event) => setSendToSlack(event.target.checked)}
-                      disabled={!appTargets?.targets.slack.ready || sendingAppAlert}
-                    />
-                    <div className="min-w-0 flex-1">
-                      <p className="text-sm font-semibold text-text-primary">
-                        {appTargets?.targets.slack.label || "Slack"}
-                      </p>
-                      <p className="mt-1 text-sm text-text-secondary">
-                        {appTargets?.targets.slack.ready
-                          ? "Send this alert to the configured Slack channel."
-                          : appTargets?.targets.slack.reason || "Slack is not ready for this alert."}
-                      </p>
-                    </div>
-                  </label>
-
-                  <label className="flex items-start gap-3 rounded-2xl border border-border bg-card px-4 py-4">
-                    <input
-                      type="checkbox"
-                      className="mt-0.5 h-4 w-4 rounded border-border"
-                      checked={sendToJira}
-                      onChange={(event) => setSendToJira(event.target.checked)}
-                      disabled={!appTargets?.targets.jira.ready || sendingAppAlert}
-                    />
-                    <div className="min-w-0 flex-1">
-                      <p className="text-sm font-semibold text-text-primary">
-                        {appTargets?.targets.jira.label || "Jira"}
-                      </p>
-                      <p className="mt-1 text-sm text-text-secondary">
-                        {appTargets?.targets.jira.ready
-                          ? "Create a Jira issue using the connected default project."
-                          : appTargets?.targets.jira.reason || "Jira is not ready for this alert."}
-                      </p>
-                    </div>
-                  </label>
-                </>
-              )}
-            </div>
-
-            <div className="mt-5 flex flex-col-reverse gap-3 sm:flex-row sm:items-center sm:justify-end">
-              <button
-                type="button"
-                className="tf-button-ghost px-4 py-2 text-sm"
-                onClick={closeAppAlertModal}
-                disabled={sendingAppAlert}
-              >
-                Close
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
+          <div className="w-full max-w-lg max-h-[70vh] sm:max-h-[90vh] rounded-xl border border-border bg-card shadow-xl flex flex-col overflow-hidden">
+            <div className="flex items-center justify-between p-4 border-b border-border/50 shrink-0">
+              <h3 className="text-sm font-semibold text-text-primary">Send alert</h3>
+              <button onClick={closeAppAlertModal} className="text-text-secondary hover:text-text-primary transition-colors">
+                <X className="h-4 w-4" />
               </button>
+            </div>
+
+            <div className="p-6 overflow-y-auto">
+              <p className="text-sm text-text-secondary">
+                Add an optional message, then choose where this alert should be sent. TraceForge will attach the alert details automatically.
+              </p>
+
+              <div className="mt-6 rounded-xl border border-border bg-secondary/20 px-4 py-4">
+                <p className="text-sm font-semibold text-text-primary">{appModalRule.name}</p>
+                <p className="mt-1 text-[11px] font-semibold text-text-secondary uppercase tracking-wider">
+                  {appModalRule.project?.name ?? "All projects"} • {appModalRule.environment || "All environments"} • {appModalRule.severity}
+                </p>
+              </div>
+
+              <div className="mt-6">
+                <label className="mb-2 block text-xs font-semibold uppercase tracking-[0.14em] text-text-secondary">
+                  Message
+                </label>
+                <textarea
+                  className="w-full min-h-[112px] resize-y rounded-xl border border-border bg-secondary/20 px-4 py-3 text-sm text-text-primary shadow-sm outline-none transition focus:border-primary/50 focus:bg-card focus:ring-2 focus:ring-primary/20"
+                  placeholder="Add context for Slack or Jira recipients"
+                  value={appAlertMessage}
+                  onChange={(event) => setAppAlertMessage(event.target.value)}
+                  disabled={loadingAppTargets || sendingAppAlert}
+                />
+              </div>
+
+              <div className="mt-6 space-y-3">
+                <p className="block text-xs font-semibold uppercase tracking-[0.14em] text-text-secondary">Destinations</p>
+
+                {loadingAppTargets ? (
+                  <div className="rounded-xl border border-border bg-secondary/20 px-4 py-4 text-sm text-text-secondary">
+                    Loading connected apps...
+                  </div>
+                ) : (
+                  <>
+                    <label className="flex items-start gap-3 rounded-xl border border-border bg-card px-4 py-4 transition hover:bg-secondary/20 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        className="mt-0.5 h-4 w-4 rounded border-border"
+                        checked={sendToSlack}
+                        onChange={(event) => setSendToSlack(event.target.checked)}
+                        disabled={!appTargets?.targets.slack.ready || sendingAppAlert}
+                      />
+                      <div className="min-w-0 flex-1">
+                        <p className="text-sm font-semibold text-text-primary">
+                          {appTargets?.targets.slack.label || "Slack"}
+                        </p>
+                        <p className="mt-1 text-[11px] text-text-secondary">
+                          {appTargets?.targets.slack.ready
+                            ? "Send this alert to the configured Slack channel."
+                            : appTargets?.targets.slack.reason || "Slack is not ready for this alert."}
+                        </p>
+                      </div>
+                    </label>
+
+                    <label className="flex items-start gap-3 rounded-xl border border-border bg-card px-4 py-4 transition hover:bg-secondary/20 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        className="mt-0.5 h-4 w-4 rounded border-border"
+                        checked={sendToJira}
+                        onChange={(event) => setSendToJira(event.target.checked)}
+                        disabled={!appTargets?.targets.jira.ready || sendingAppAlert}
+                      />
+                      <div className="min-w-0 flex-1">
+                        <p className="text-sm font-semibold text-text-primary">
+                          {appTargets?.targets.jira.label || "Jira"}
+                        </p>
+                        <p className="mt-1 text-[11px] text-text-secondary">
+                          {appTargets?.targets.jira.ready
+                            ? "Create a Jira issue using the connected default project."
+                            : appTargets?.targets.jira.reason || "Jira is not ready for this alert."}
+                        </p>
+                      </div>
+                    </label>
+                  </>
+                )}
+              </div>
+            </div>
+
+            <div className="flex flex-row-reverse items-center gap-3 p-6 pt-4 border-t border-border/50 shrink-0">
               <button
                 type="button"
-                className="tf-button px-4 py-2 text-sm"
+                className="flex-1 bg-primary hover:bg-primary-hover disabled:opacity-50 text-primary-foreground font-semibold py-2 px-4 rounded-lg transition-colors flex items-center justify-center"
                 onClick={sendAppAlert}
                 disabled={loadingAppTargets || sendingAppAlert}
               >
@@ -1350,6 +1350,14 @@ function AlertsPageInner() {
                   idleLabel="Send alert"
                   icon={Send}
                 />
+              </button>
+              <button
+                type="button"
+                className="flex-1 bg-secondary/50 border border-border hover:bg-secondary/80 text-text-primary font-semibold py-2 px-4 rounded-lg transition-colors flex items-center justify-center"
+                onClick={closeAppAlertModal}
+                disabled={sendingAppAlert}
+              >
+                Cancel
               </button>
             </div>
           </div>
@@ -1377,7 +1385,8 @@ function AlertsPageInner() {
                  disabled={archivingRuleId === archiveTarget.id}
                  className="flex-1 bg-destructive/15 text-destructive border border-destructive/30 hover:bg-destructive/25 backdrop-blur-md font-semibold py-2 px-4 rounded-lg transition-all duration-300 flex items-center justify-center shadow-[0_8px_16px_-6px_rgba(var(--destructive-rgb),0.1)]"
                >
-                 Archive
+                 <Archive className="w-4 h-4 mr-2" />
+                 Archive Alert
                </button>
                <button 
                  onClick={() => setArchiveTarget(null)} 
@@ -1403,7 +1412,7 @@ function AlertsPageInner() {
             
             <div className="p-6">
                <h4 className="text-lg sm:text-xl font-bold text-text-primary mb-2">Are you sure you want to delete this alert?</h4>
-               <p className="text-sm text-text-secondary">This will permanently remove the archived alert rule and its delivery history.</p>
+               <p className="text-sm text-text-secondary">This will permanently remove the archived alert rule and its delivery history. This action cannot be undone.</p>
             </div>
             
             <div className="flex flex-row-reverse items-center gap-3 p-6 pt-0">
@@ -1412,7 +1421,8 @@ function AlertsPageInner() {
                  disabled={deletingRuleId === deleteTarget.id}
                  className="flex-1 bg-destructive/15 text-destructive border border-destructive/30 hover:bg-destructive/25 backdrop-blur-md font-semibold py-2 px-4 rounded-lg transition-all duration-300 flex items-center justify-center shadow-[0_8px_16px_-6px_rgba(var(--destructive-rgb),0.1)]"
                >
-                 Delete
+                 <Trash2 className="w-4 h-4 mr-2" />
+                 Delete Alert
                </button>
                <button 
                  onClick={() => setDeleteTarget(null)} 
@@ -1427,144 +1437,177 @@ function AlertsPageInner() {
       )}
 
       {showCreateModal && (
-        <div className="fixed inset-x-0 top-[73px] bottom-[calc(env(safe-area-inset-bottom)+5.75rem)] z-50 flex items-start justify-center overflow-y-auto bg-black/40 px-4 py-4 sm:inset-0 sm:items-center sm:px-6 sm:py-6">
-          <div className="w-full max-w-xl rounded-2xl border border-border bg-card/95 p-4 shadow-xl backdrop-blur sm:p-6 max-h-full overflow-y-auto sm:max-h-[calc(100dvh-3rem)]">
-            <h3 className="font-display text-lg font-semibold text-text-primary">
-              Create alert rule
-            </h3>
-            <p className="mt-2 text-sm text-text-secondary">
-              Choose the severity, scope, and cooldown so TraceForge only interrupts you
-              when it matters.
-            </p>
-
-            <div className="mt-5 grid gap-4 md:grid-cols-2">
-              <div className="md:col-span-2">
-                <label className="mb-2 block text-sm font-semibold text-text-primary">
-                  Rule name
-                </label>
-                <input
-                  className="tf-input w-full"
-                  placeholder="Critical production regressions"
-                  value={name}
-                  onChange={(event) => setName(event.target.value)}
-                />
-              </div>
-
-              <div className="md:col-span-2">
-                <label className="mb-2 block text-sm font-semibold text-text-primary">
-                  Issue description
-                </label>
-                <textarea
-                  className="tf-input min-h-[108px] w-full resize-y rounded-2xl py-3"
-                  placeholder="Describe the issue this alert should create when you trigger it manually."
-                  value={issueDescription}
-                  onChange={(event) => setIssueDescription(event.target.value)}
-                />
-                <p className="mt-2 text-xs text-text-secondary">
-                  This description is used as the issue details when you manually notify from this
-                  alert rule.
-                </p>
-              </div>
-
-              <div>
-                <label className="mb-2 block text-sm font-semibold text-text-primary">
-                  Project scope
-                </label>
-                <select
-                  className="tf-select w-full"
-                  value={projectId}
-                  onChange={(event) => setProjectId(event.target.value)}
-                >
-                  {projects.map((project) => (
-                    <option key={project.id} value={project.id}>
-                      {project.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <label className="mb-2 block text-sm font-semibold text-text-primary">
-                  Environment
-                </label>
-                <select
-                  className="tf-select w-full"
-                  value={environment}
-                  onChange={(event) => setEnvironment(event.target.value)}
-                >
-                  <option value="">All environments</option>
-                  <option value="production">Production</option>
-                  <option value="staging">Staging</option>
-                  <option value="development">Development</option>
-                  <option value="browser">Browser</option>
-                </select>
-              </div>
-
-              <div>
-                <label className="mb-2 block text-sm font-semibold text-text-primary">
-                  Minimum severity
-                </label>
-                <select
-                  className="tf-select w-full"
-                  value={severity}
-                  onChange={(event) =>
-                    setSeverity(event.target.value as AlertRule["severity"])
-                  }
-                >
-                  <option value="CRITICAL">Critical</option>
-                  <option value="WARNING">Warning and above</option>
-                  <option value="INFO">Any issue</option>
-                </select>
-              </div>
-
-              <div>
-                <label className="mb-2 block text-sm font-semibold text-text-primary">
-                  Trigger after
-                </label>
-                <input
-                  className="tf-input w-full"
-                  inputMode="numeric"
-                  value={minOccurrences}
-                  onChange={(event) => setMinOccurrences(event.target.value)}
-                  placeholder="1"
-                />
-              </div>
-
-              <div>
-                <label className="mb-2 block text-sm font-semibold text-text-primary">
-                  Cooldown (minutes)
-                </label>
-                <input
-                  className="tf-input w-full"
-                  inputMode="numeric"
-                  value={cooldownMinutes}
-                  onChange={(event) => setCooldownMinutes(event.target.value)}
-                  placeholder="30"
-                />
-              </div>
-            </div>
-
-            <div className="mt-5 flex flex-col-reverse gap-3 sm:flex-row sm:items-center sm:justify-end">
-              <button
-                type="button"
-                className="tf-button-ghost px-4 py-2 text-sm"
-                onClick={() => {
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
+          <div className="w-full max-w-lg max-h-[70vh] sm:max-h-[90vh] rounded-xl border border-border bg-card shadow-xl flex flex-col overflow-hidden">
+            <div className="flex items-center justify-between p-4 border-b border-border/50 shrink-0">
+              <h3 className="text-sm font-semibold text-text-primary">Create alert rule</h3>
+              <button onClick={() => {
                   setShowCreateModal(false);
                   setError(null);
                   resetForm();
-                }}
-                disabled={saving}
-              >
-                Cancel
+                }} className="text-text-secondary hover:text-text-primary transition-colors">
+                <X className="h-4 w-4" />
               </button>
-              <button
-                type="button"
-                className="tf-button px-4 py-2 text-sm"
-                onClick={createRule}
-                disabled={saving}
-              >
-                <LoadingButtonContent loading={saving} loadingLabel="Creating..." idleLabel="Create alert" />
-              </button>
+            </div>
+
+            <div className="p-6 overflow-y-auto">
+              <p className="text-sm text-text-secondary mb-6">
+                Choose the severity, scope, and cooldown so TraceForge only interrupts you
+                when it matters.
+              </p>
+
+              <div className="space-y-5">
+                <div>
+                  <label className="mb-2 block text-xs font-semibold uppercase tracking-[0.14em] text-text-secondary">
+                    Rule name
+                  </label>
+                  <input
+                    className="w-full rounded-xl border border-border bg-secondary/20 px-4 py-3 text-sm text-text-primary shadow-sm outline-none transition focus:border-primary/50 focus:bg-card focus:ring-2 focus:ring-primary/20"
+                    placeholder="Critical production regressions"
+                    value={name}
+                    onChange={(event) => setName(event.target.value)}
+                  />
+                </div>
+
+                <div>
+                  <label className="mb-2 block text-xs font-semibold uppercase tracking-[0.14em] text-text-secondary">
+                    Issue description
+                  </label>
+                  <textarea
+                    className="min-h-[108px] w-full resize-y rounded-xl border border-border bg-secondary/20 px-4 py-3 text-sm text-text-primary shadow-sm outline-none transition focus:border-primary/50 focus:bg-card focus:ring-2 focus:ring-primary/20"
+                    placeholder="Describe the issue this alert should create when you trigger it manually."
+                    value={issueDescription}
+                    onChange={(event) => setIssueDescription(event.target.value)}
+                  />
+                  <p className="mt-2 text-[11px] text-text-secondary">
+                    This description is used as the issue details when you manually notify from this
+                    alert rule.
+                  </p>
+                </div>
+
+                <div>
+                  <label className="mb-2 block text-xs font-semibold uppercase tracking-[0.14em] text-text-secondary">
+                    Project scope
+                  </label>
+                  <select
+                    className="w-full appearance-none rounded-xl border border-border bg-secondary/20 px-4 py-3 pr-10 text-sm text-text-primary shadow-sm outline-none transition focus:border-primary/50 focus:bg-card focus:ring-2 focus:ring-primary/20"
+                    style={{
+                      backgroundImage:
+                        "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 20 20' fill='none'%3E%3Cpath d='M5 7l5 5 5-5' stroke='%239CA3AF' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E\")",
+                      backgroundRepeat: "no-repeat",
+                      backgroundPosition: "right 16px center",
+                      backgroundSize: "12px 12px"
+                    }}
+                    value={projectId}
+                    onChange={(event) => setProjectId(event.target.value)}
+                  >
+                    {projects.map((project) => (
+                      <option key={project.id} value={project.id}>
+                        {project.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="grid gap-5 sm:grid-cols-2">
+                  <div>
+                    <label className="mb-2 block text-xs font-semibold uppercase tracking-[0.14em] text-text-secondary">
+                      Environment
+                    </label>
+                    <select
+                      className="w-full appearance-none rounded-xl border border-border bg-secondary/20 px-4 py-3 pr-10 text-sm text-text-primary shadow-sm outline-none transition focus:border-primary/50 focus:bg-card focus:ring-2 focus:ring-primary/20"
+                      style={{
+                        backgroundImage:
+                          "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 20 20' fill='none'%3E%3Cpath d='M5 7l5 5 5-5' stroke='%239CA3AF' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E\")",
+                        backgroundRepeat: "no-repeat",
+                        backgroundPosition: "right 16px center",
+                        backgroundSize: "12px 12px"
+                      }}
+                      value={environment}
+                      onChange={(event) => setEnvironment(event.target.value)}
+                    >
+                      <option value="">All environments</option>
+                      <option value="production">Production</option>
+                      <option value="staging">Staging</option>
+                      <option value="development">Development</option>
+                      <option value="browser">Browser</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="mb-2 block text-xs font-semibold uppercase tracking-[0.14em] text-text-secondary">
+                      Minimum severity
+                    </label>
+                    <select
+                      className="w-full appearance-none rounded-xl border border-border bg-secondary/20 px-4 py-3 pr-10 text-sm text-text-primary shadow-sm outline-none transition focus:border-primary/50 focus:bg-card focus:ring-2 focus:ring-primary/20"
+                      style={{
+                        backgroundImage:
+                          "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 20 20' fill='none'%3E%3Cpath d='M5 7l5 5 5-5' stroke='%239CA3AF' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E\")",
+                        backgroundRepeat: "no-repeat",
+                        backgroundPosition: "right 16px center",
+                        backgroundSize: "12px 12px"
+                      }}
+                      value={severity}
+                      onChange={(event) =>
+                        setSeverity(event.target.value as AlertRule["severity"])
+                      }
+                    >
+                      <option value="CRITICAL">Critical</option>
+                      <option value="WARNING">Warning and above</option>
+                      <option value="INFO">Any issue</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div className="grid gap-5 sm:grid-cols-2">
+                  <div>
+                    <label className="mb-2 block text-xs font-semibold uppercase tracking-[0.14em] text-text-secondary">
+                      Trigger after
+                    </label>
+                    <input
+                      className="w-full rounded-xl border border-border bg-secondary/20 px-4 py-3 text-sm text-text-primary shadow-sm outline-none transition focus:border-primary/50 focus:bg-card focus:ring-2 focus:ring-primary/20"
+                      inputMode="numeric"
+                      value={minOccurrences}
+                      onChange={(event) => setMinOccurrences(event.target.value)}
+                      placeholder="1"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="mb-2 block text-xs font-semibold uppercase tracking-[0.14em] text-text-secondary">
+                      Cooldown (minutes)
+                    </label>
+                    <input
+                      className="w-full rounded-xl border border-border bg-secondary/20 px-4 py-3 text-sm text-text-primary shadow-sm outline-none transition focus:border-primary/50 focus:bg-card focus:ring-2 focus:ring-primary/20"
+                      inputMode="numeric"
+                      value={cooldownMinutes}
+                      onChange={(event) => setCooldownMinutes(event.target.value)}
+                      placeholder="30"
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex flex-row-reverse items-center gap-3 p-6 pt-4 border-t border-border/50 shrink-0">
+               <button 
+                 onClick={createRule} 
+                 disabled={saving}
+                 className="flex-1 bg-primary hover:bg-primary-hover disabled:opacity-50 text-primary-foreground font-semibold py-2 px-4 rounded-lg transition-colors flex items-center justify-center"
+               >
+                 <LoadingButtonContent loading={saving} loadingLabel="Creating..." idleLabel="Create alert" />
+               </button>
+               <button 
+                 onClick={() => {
+                   setShowCreateModal(false);
+                   setError(null);
+                   resetForm();
+                 }} 
+                 disabled={saving}
+                 className="flex-1 bg-secondary/50 border border-border hover:bg-secondary/80 text-text-primary font-semibold py-2 px-4 rounded-lg transition-colors flex items-center justify-center"
+               >
+                 Cancel
+               </button>
             </div>
           </div>
         </div>

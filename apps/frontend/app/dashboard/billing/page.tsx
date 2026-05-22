@@ -5,6 +5,7 @@ import { useSearchParams } from "next/navigation";
 import { X } from "lucide-react";
 import { LoadingButtonContent } from "../../../components/ui/loading-button-content";
 import { DashboardPagination } from "../components/DashboardPagination";
+import { AnimatedPrice } from "../../components/AnimatedPrice";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
 const tokenKey = "traceforge_token";
@@ -509,303 +510,255 @@ export default function BillingPage() {
         <section
           className={`mt-6 grid gap-6 ${
             canManageDevPlan ? "2xl:grid-cols-3" : "xl:grid-cols-2"
-          }`}
+          } items-stretch`}
         >
           {canManageDevPlan ? (
-            <div className="rounded-3xl border border-border bg-card/95 p-6 shadow-sm">
-            <div className="flex flex-wrap items-start justify-between gap-4 sm:flex-nowrap">
-              <div className="min-w-0 flex-1">
-                <p className="text-xs font-semibold uppercase tracking-[0.14em] text-text-secondary">
-                  Personal Dev
-                </p>
-                <h2 className="mt-3 text-3xl font-semibold text-text-primary">
-                  {isUserDevActive ? "Dev active" : "Enable Dev"}
+            <div className="rounded-2xl border border-border bg-card/95 p-6 shadow-sm h-full flex flex-col">
+              <div className="flex flex-col gap-1">
+                <div className="flex items-center justify-between">
+                  <p className="text-xs font-bold uppercase tracking-widest text-brand-primary">
+                    Personal Dev
+                  </p>
+                  {isUserDevActive ? (
+                    <span className="rounded-full bg-emerald-500/10 border border-emerald-500/20 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-emerald-500">Active</span>
+                  ) : (
+                    <span className="rounded-full bg-secondary/20 border border-border px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-text-secondary">Not active</span>
+                  )}
+                </div>
+                <h2 className="mt-2 text-2xl font-bold text-text-primary">
+                  {isUserDevActive ? "Dev Plan" : "Enable Dev"}
                 </h2>
-                <p className="mt-2 text-sm text-text-secondary">
+                <p className="mt-1 text-sm text-text-secondary">
                   Free-style product access with a paid testing subscription and a larger monthly AI allowance.
                 </p>
+                {user?.plan === "DEV" && user?.planExpiresAt && (
+                  <p className="mt-2 text-xs font-medium text-text-secondary bg-secondary/20 inline-flex w-fit px-2 py-1 rounded-md border border-border/50">
+                    Expires {new Date(user.planExpiresAt).toLocaleDateString()}
+                  </p>
+                )}
               </div>
-              <div className="shrink-0 rounded-2xl border border-primary/20 bg-accent-soft px-4 py-3 text-right">
-                <p className="text-xs font-semibold uppercase tracking-[0.14em] text-text-secondary">
-                  Status
-                </p>
-                <p className="mt-1 text-lg font-semibold text-text-primary">
-                  {isUserDevActive ? "Active" : "Not active"}
-                </p>
-                <p className="mt-1 text-xs text-text-secondary">
-                  {user?.plan === "DEV" && user?.planExpiresAt
-                    ? `Expires ${new Date(user.planExpiresAt).toLocaleDateString()}`
-                    : "Monthly testing plan"}
-                </p>
-              </div>
-            </div>
 
-            <div className="mt-6 grid gap-4 sm:grid-cols-3">
-              <div className="rounded-2xl border border-border bg-secondary/25 px-4 py-4">
-                <p className="text-xs font-semibold uppercase tracking-[0.14em] text-text-secondary">
-                  Price
-                </p>
-                <p className="mt-2 text-2xl font-semibold text-text-primary">₹{devMonthlyPrice}</p>
-                <p className="mt-1 text-xs text-text-secondary">Monthly only</p>
+              <div className="mt-6 flex flex-col rounded-xl border border-border bg-secondary/10 overflow-hidden">
+                <div className="grid sm:grid-cols-3 divide-y sm:divide-y-0 sm:divide-x divide-border/50 p-5 gap-4 sm:gap-0">
+                  <div className="sm:pr-4">
+                    <p className="text-[10px] font-bold uppercase tracking-wider text-text-secondary">Price</p>
+                    <p className="mt-1 text-2xl font-bold text-text-primary">₹{devMonthlyPrice}<span className="text-sm font-normal text-text-secondary">/mo</span></p>
+                  </div>
+                  <div className="sm:px-4">
+                    <p className="text-[10px] font-bold uppercase tracking-wider text-text-secondary">AI analyses</p>
+                    <p className="mt-2 text-sm font-semibold text-text-primary">{devAiLimit} / month</p>
+                  </div>
+                  <div className="sm:pl-4">
+                    <p className="text-[10px] font-bold uppercase tracking-wider text-text-secondary">Access</p>
+                    <p className="mt-2 text-sm font-semibold text-text-primary">Same as Free</p>
+                  </div>
+                </div>
               </div>
-              <div className="rounded-2xl border border-border bg-secondary/25 px-4 py-4">
-                <p className="text-xs font-semibold uppercase tracking-[0.14em] text-text-secondary">
-                  AI analyses
-                </p>
-                <p className="mt-2 text-sm font-semibold text-text-primary">{devAiLimit} / month</p>
-              </div>
-              <div className="rounded-2xl border border-border bg-secondary/25 px-4 py-4">
-                <p className="text-xs font-semibold uppercase tracking-[0.14em] text-text-secondary">
-                  Product access
-                </p>
-                <p className="mt-2 text-sm font-semibold text-text-primary">Same as Free</p>
-              </div>
-            </div>
 
-            <div className="mt-5 flex flex-wrap gap-3">
-              <button
-                type="button"
-                className="tf-button px-4 py-2 text-sm"
-                onClick={() => void startCheckout({ plan: "DEV", interval: "MONTHLY" })}
-                disabled={actionLoading}
-              >
-                <LoadingButtonContent
-                  loading={actionLoading}
-                  loadingLabel="Processing..."
-                  idleLabel={isUserDevActive ? "Renew Dev" : "Choose Dev"}
-                />
-              </button>
-              {isUserDevActive ? (
-                <button
-                  type="button"
-                  className="tf-button-ghost px-4 py-2 text-sm"
-                  onClick={() =>
-                    setCancelTarget({
-                      plan: "DEV",
-                      label: "Dev subscription"
-                    })
-                  }
-                  disabled={actionLoading}
-                >
-                  <LoadingButtonContent
-                    loading={actionLoading}
-                    loadingLabel="Cancelling..."
-                    idleLabel="Cancel Dev"
-                  />
-                </button>
-              ) : null}
-            </div>
-            <p className="mt-3 text-xs text-text-secondary">
-              Dev is meant for payment testing and controlled evaluation. It only increases the user AI allowance.
-            </p>
+              <div className="mt-auto pt-5 border-t border-border/50 flex flex-col gap-4">
+                <p className="text-xs text-text-secondary">
+                  Payment testing & evaluation.
+                </p>
+                <div className="flex items-center justify-end gap-3">
+                  {isUserDevActive ? (
+                    <button
+                      type="button"
+                      className="tf-button-ghost px-4 py-2 text-sm"
+                      onClick={() => setCancelTarget({ plan: "DEV", label: "Dev subscription" })}
+                      disabled={actionLoading}
+                    >
+                      <LoadingButtonContent loading={actionLoading} loadingLabel="Cancelling..." idleLabel="Cancel" />
+                    </button>
+                  ) : null}
+                  <button
+                    type="button"
+                    className="tf-button px-4 py-2 text-sm"
+                    onClick={() => void startCheckout({ plan: "DEV", interval: "MONTHLY" })}
+                    disabled={actionLoading}
+                  >
+                    <LoadingButtonContent loading={actionLoading} loadingLabel="Processing..." idleLabel={isUserDevActive ? "Renew Dev" : "Choose Dev"} />
+                  </button>
+                </div>
+              </div>
             </div>
           ) : null}
 
-          <div className="rounded-3xl border border-border bg-card/95 p-6 shadow-sm">
-            <div className="flex flex-wrap items-start justify-between gap-4 sm:flex-nowrap">
-              <div className="min-w-0 flex-1">
-                <p className="text-xs font-semibold uppercase tracking-[0.14em] text-text-secondary">
+          <div className="rounded-2xl border border-border bg-card/95 p-6 shadow-sm h-full flex flex-col">
+            <div className="flex flex-col gap-1">
+              <div className="flex items-center justify-between">
+                <p className="text-xs font-bold uppercase tracking-widest text-brand-primary">
                   Personal Pro
                 </p>
-                <h2 className="mt-3 text-3xl font-semibold text-text-primary">
-                  {isUserProActive ? "Pro active" : "Upgrade to Pro"}
-                </h2>
-                <p className="mt-2 text-sm text-text-secondary">
-                  Unlimited AI analyses for you, even inside Free or Team organizations.
-                </p>
+                {isUserProActive ? (
+                  <span className="rounded-full bg-emerald-500/10 border border-emerald-500/20 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-emerald-500">Active</span>
+                ) : (
+                  <span className="rounded-full bg-secondary/20 border border-border px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-text-secondary">Not active</span>
+                )}
               </div>
-              <div className="shrink-0 rounded-2xl border border-primary/20 bg-accent-soft px-4 py-3 text-right">
-                <p className="text-xs font-semibold uppercase tracking-[0.14em] text-text-secondary">
-                  Status
+              <h2 className="mt-2 text-2xl font-bold text-text-primary">
+                {isUserProActive ? "Pro Plan" : "Upgrade to Pro"}
+              </h2>
+              <p className="mt-1 text-sm text-text-secondary">
+                Unlimited AI analyses for you, even inside Free or Team organizations.
+              </p>
+              {user?.planExpiresAt && (
+                <p className="mt-2 text-xs font-medium text-text-secondary bg-secondary/20 inline-flex w-fit px-2 py-1 rounded-md border border-border/50">
+                  Expires {new Date(user.planExpiresAt).toLocaleDateString()}
                 </p>
-                <p className="mt-1 text-lg font-semibold text-text-primary">
-                  {isUserProActive ? "Active" : "Not active"}
-                </p>
-                <p className="mt-1 text-xs text-text-secondary">
-                  {user?.planExpiresAt ? `Expires ${new Date(user.planExpiresAt).toLocaleDateString()}` : "No active renewal"}
-                </p>
+              )}
+            </div>
+
+            <div className="mt-6 flex flex-col rounded-xl border border-border bg-secondary/10 overflow-hidden">
+              <div className="border-b border-border/50 bg-secondary/20 px-5 py-3 flex items-center justify-between">
+                <p className="text-xs font-medium text-text-secondary">Billing cycle</p>
+                <div className="flex items-center gap-1 rounded-lg bg-background/50 p-1 border border-border/50">
+                  <button
+                    type="button"
+                    className={`rounded-md px-3 py-1 text-xs font-semibold transition ${personalInterval === "MONTHLY" ? "bg-card shadow-sm text-text-primary border border-border" : "text-text-secondary hover:text-text-primary border border-transparent"}`}
+                    onClick={() => setPersonalInterval("MONTHLY")}
+                  >
+                    Monthly
+                  </button>
+                  <button
+                    type="button"
+                    className={`rounded-md px-3 py-1 text-xs font-semibold transition ${personalInterval === "YEARLY" ? "bg-card shadow-sm text-text-primary border border-border" : "text-text-secondary hover:text-text-primary border border-transparent"}`}
+                    onClick={() => setPersonalInterval("YEARLY")}
+                  >
+                    Yearly
+                  </button>
+                </div>
+              </div>
+
+              <div className="grid sm:grid-cols-3 divide-y sm:divide-y-0 sm:divide-x divide-border/50 p-5 gap-4 sm:gap-0">
+                <div className="sm:pr-4">
+                  <p className="text-[10px] font-bold uppercase tracking-wider text-text-secondary">Price</p>
+                  <p className="mt-1 text-2xl font-bold text-text-primary">
+                    <AnimatedPrice
+                      value={personalInterval === "YEARLY" ? proYearlyPrice : proMonthlyPrice}
+                      format={formatPrice}
+                    />
+                    <span className="text-sm font-normal text-text-secondary">/{personalInterval === "YEARLY" ? "yr" : "mo"}</span>
+                  </p>
+                  {personalInterval === "YEARLY" && proYearlySavings ? (
+                    <p className="mt-1 text-xs font-medium text-emerald-500">Save ₹{proYearlySavings.toLocaleString("en-IN")}</p>
+                  ) : null}
+                </div>
+                <div className="sm:px-4">
+                  <p className="text-[10px] font-bold uppercase tracking-wider text-text-secondary">AI analyses</p>
+                  <p className="mt-2 text-sm font-semibold text-text-primary">Unlimited</p>
+                </div>
+                <div className="sm:pl-4">
+                  <p className="text-[10px] font-bold uppercase tracking-wider text-text-secondary">Member cap</p>
+                  <p className="mt-2 text-sm font-semibold text-text-primary">None</p>
+                </div>
               </div>
             </div>
 
-            <div className="mt-5 flex items-center gap-2 rounded-full border border-border bg-secondary/15 p-1 text-xs font-semibold text-text-secondary">
-              <button
-                type="button"
-                className={`rounded-full px-3 py-1.5 ${personalInterval === "MONTHLY" ? "bg-card text-text-primary" : ""}`}
-                onClick={() => setPersonalInterval("MONTHLY")}
-              >
-                Monthly
-              </button>
-              <button
-                type="button"
-                className={`rounded-full px-3 py-1.5 ${personalInterval === "YEARLY" ? "bg-card text-text-primary" : ""}`}
-                onClick={() => setPersonalInterval("YEARLY")}
-              >
-                Yearly
-              </button>
-            </div>
-
-            <div className="mt-6 grid gap-4 sm:grid-cols-3">
-              <div className="rounded-2xl border border-border bg-secondary/25 px-4 py-4">
-                <p className="text-xs font-semibold uppercase tracking-[0.14em] text-text-secondary">
-                  Price
-                </p>
-                <p className="mt-2 text-2xl font-semibold text-text-primary">
-                  {formatPrice(
-                    personalInterval === "YEARLY" ? proYearlyPrice : proMonthlyPrice
-                  )}
-                </p>
-                <p className="mt-1 text-xs text-text-secondary">
-                  {personalInterval === "YEARLY" && proYearlySavings
-                    ? `Save ₹${proYearlySavings.toLocaleString("en-IN")} with yearly billing`
-                    : "Billed per user"}
-                </p>
-              </div>
-              <div className="rounded-2xl border border-border bg-secondary/25 px-4 py-4">
-                <p className="text-xs font-semibold uppercase tracking-[0.14em] text-text-secondary">
-                  AI analyses
-                </p>
-                <p className="mt-2 text-sm font-semibold text-text-primary">Unlimited</p>
-              </div>
-              <div className="rounded-2xl border border-border bg-secondary/25 px-4 py-4">
-                <p className="text-xs font-semibold uppercase tracking-[0.14em] text-text-secondary">
-                  Member cap
-                </p>
-                <p className="mt-2 text-sm font-semibold text-text-primary">None for Pro owners</p>
-              </div>
-            </div>
-
-            <div className="mt-5 flex flex-wrap gap-3">
-              <button
-                type="button"
-                className="tf-button px-4 py-2 text-sm"
-                onClick={() =>
-                  void startCheckout({ plan: "PRO", interval: personalInterval })
-                }
-                disabled={actionLoading}
-              >
-                <LoadingButtonContent
-                  loading={actionLoading}
-                  loadingLabel="Processing..."
-                  idleLabel={isUserProActive ? "Renew Pro" : "Upgrade to Pro"}
-                />
-              </button>
-              {isUserProActive ? (
+            <div className="mt-auto pt-5 border-t border-border/50 flex flex-col gap-4">
+              {proUsesLaunchPricing ? (
+                <div className="text-xs text-text-secondary">
+                  {userKeepsLaunchPricing
+                    ? "Keeps launch pricing on renewals."
+                    : `Launch pricing. ${pricing?.pro?.launch?.slotsRemaining ?? 0} slots left.`}
+                </div>
+              ) : null}
+              <div className="flex items-center justify-end gap-3">
+                {isUserProActive ? (
+                  <button
+                    type="button"
+                    className="tf-button-ghost px-4 py-2 text-sm"
+                    onClick={() => setCancelTarget({ plan: "PRO", label: "Pro subscription" })}
+                    disabled={actionLoading}
+                  >
+                    <LoadingButtonContent loading={actionLoading} loadingLabel="Cancelling..." idleLabel="Cancel" />
+                  </button>
+                ) : null}
                 <button
                   type="button"
-                  className="tf-button-ghost px-4 py-2 text-sm"
-                  onClick={() =>
-                    setCancelTarget({
-                      plan: "PRO",
-                      label: "Pro subscription"
-                    })
-                  }
+                  className="tf-button px-4 py-2 text-sm"
+                  onClick={() => void startCheckout({ plan: "PRO", interval: personalInterval })}
                   disabled={actionLoading}
                 >
-                  <LoadingButtonContent
-                    loading={actionLoading}
-                    loadingLabel="Cancelling..."
-                    idleLabel="Cancel Pro"
-                  />
+                  <LoadingButtonContent loading={actionLoading} loadingLabel="Processing..." idleLabel={isUserProActive ? "Renew Pro" : "Upgrade"} />
                 </button>
-              ) : null}
+              </div>
             </div>
-            {proUsesLaunchPricing ? (
-              <p className="mt-3 text-xs text-text-secondary">
-                {userKeepsLaunchPricing
-                  ? "Your Pro subscription keeps launch pricing on renewals."
-                  : `First ${pricing?.pro?.launch?.slotsTotal ?? 20} Pro customers get launch pricing. ${pricing?.pro?.launch?.slotsRemaining ?? 0} slots left.`}
-              </p>
-            ) : null}
           </div>
 
-          <div className="rounded-3xl border border-border bg-card/95 p-6 shadow-sm">
-            <div className="flex flex-wrap items-start justify-between gap-4 sm:flex-nowrap">
-              <div className="min-w-0 flex-1">
-                <p className="text-xs font-semibold uppercase tracking-[0.14em] text-text-secondary">
-                  Team organization
+          <div className="rounded-2xl border border-border bg-card/95 p-6 shadow-sm h-full flex flex-col">
+            <div className="flex flex-col gap-1">
+              <div className="flex items-center justify-between">
+                <p className="text-xs font-bold uppercase tracking-widest text-brand-primary">
+                  Team Organization
                 </p>
-                <h2 className="mt-3 text-3xl font-semibold text-text-primary">
-                  {isTeamActive ? "Team active" : "Upgrade an organization"}
-                </h2>
-                <p className="mt-2 text-sm text-text-secondary">
-                  Shared {pricing?.team?.aiLimitMonthly ?? 200} AI analyses per month for the selected
-                  organization. Personal Pro still stays unlimited for Pro users.
-                </p>
+                {isTeamActive ? (
+                  <span className="rounded-full bg-emerald-500/10 border border-emerald-500/20 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-emerald-500">Active</span>
+                ) : (
+                  <span className="rounded-full bg-secondary/20 border border-border px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wider text-text-secondary">Not active</span>
+                )}
               </div>
-              <div className="shrink-0 rounded-2xl border border-primary/20 bg-accent-soft px-4 py-3 text-right">
-                <p className="text-xs font-semibold uppercase tracking-[0.14em] text-text-secondary">
-                  Status
+              <h2 className="mt-2 text-2xl font-bold text-text-primary">
+                {isTeamActive ? "Team Plan" : "Upgrade Organization"}
+              </h2>
+              <p className="mt-1 text-sm text-text-secondary">
+                Shared {pricing?.team?.aiLimitMonthly ?? 200} AI analyses per month for the selected organization.
+              </p>
+              {selectedOrg?.planExpiresAt && (
+                <p className="mt-2 text-xs font-medium text-text-secondary bg-secondary/20 inline-flex w-fit px-2 py-1 rounded-md border border-border/50">
+                  Expires {new Date(selectedOrg.planExpiresAt).toLocaleDateString()}
                 </p>
-                <p className="mt-1 text-lg font-semibold text-text-primary">
-                  {isTeamActive ? "Active" : "Not active"}
-                </p>
-                <p className="mt-1 whitespace-nowrap text-xs text-text-secondary">
-                  {selectedOrg?.planExpiresAt
-                    ? `Expires ${new Date(selectedOrg.planExpiresAt).toLocaleDateString()}`
-                    : "No active renewal"}
-                </p>
+              )}
+            </div>
+
+            <div className="mt-6 flex flex-col rounded-xl border border-border bg-secondary/10 overflow-hidden">
+              <div className="border-b border-border/50 bg-secondary/20 px-5 py-3 flex items-center justify-between">
+                <p className="text-xs font-medium text-text-secondary">Billing cycle</p>
+                <div className="flex items-center gap-1 rounded-lg bg-background/50 p-1 border border-border/50">
+                  <button
+                    type="button"
+                    className={`rounded-md px-3 py-1 text-xs font-semibold transition ${teamInterval === "MONTHLY" ? "bg-card shadow-sm text-text-primary border border-border" : "text-text-secondary hover:text-text-primary border border-transparent"}`}
+                    onClick={() => setTeamInterval("MONTHLY")}
+                  >
+                    Monthly
+                  </button>
+                  <button
+                    type="button"
+                    className={`rounded-md px-3 py-1 text-xs font-semibold transition ${teamInterval === "YEARLY" ? "bg-card shadow-sm text-text-primary border border-border" : "text-text-secondary hover:text-text-primary border border-transparent"}`}
+                    onClick={() => setTeamInterval("YEARLY")}
+                  >
+                    Yearly
+                  </button>
+                </div>
+              </div>
+
+              <div className="grid sm:grid-cols-3 divide-y sm:divide-y-0 sm:divide-x divide-border/50 p-5 gap-4 sm:gap-0">
+                <div className="sm:pr-4">
+                  <p className="text-[10px] font-bold uppercase tracking-wider text-text-secondary">Price</p>
+                  <p className="mt-1 text-2xl font-bold text-text-primary">
+                    <AnimatedPrice
+                      value={teamInterval === "YEARLY" ? pricing?.team?.yearlyPriceInr : pricing?.team?.monthlyPriceInr}
+                      format={formatPrice}
+                    />
+                    <span className="text-sm font-normal text-text-secondary">/{teamInterval === "YEARLY" ? "yr" : "mo"}</span>
+                  </p>
+                  {teamInterval === "YEARLY" && teamYearlySavings ? (
+                    <p className="mt-1 text-xs font-medium text-emerald-500">Save ₹{teamYearlySavings.toLocaleString("en-IN")}</p>
+                  ) : null}
+                </div>
+                <div className="sm:px-4">
+                  <p className="text-[10px] font-bold uppercase tracking-wider text-text-secondary">Shared AI</p>
+                  <p className="mt-2 text-sm font-semibold text-text-primary">{pricing?.team?.aiLimitMonthly ?? 200} / month</p>
+                </div>
+                <div className="sm:pl-4">
+                  <p className="text-[10px] font-bold uppercase tracking-wider text-text-secondary">Members</p>
+                  <p className="mt-2 text-sm font-semibold text-text-primary">{selectedOrg ? `${selectedOrg.memberCount} active` : "—"}</p>
+                </div>
               </div>
             </div>
 
-            <div className="mt-5 flex items-center gap-2 rounded-full border border-border bg-secondary/15 p-1 text-xs font-semibold text-text-secondary">
-                <button
-                  type="button"
-                  className={`rounded-full px-3 py-1.5 ${teamInterval === "MONTHLY" ? "bg-card text-text-primary" : ""}`}
-                  onClick={() => setTeamInterval("MONTHLY")}
-                >
-                  Monthly
-                </button>
-                <button
-                  type="button"
-                  className={`rounded-full px-3 py-1.5 ${teamInterval === "YEARLY" ? "bg-card text-text-primary" : ""}`}
-                  onClick={() => setTeamInterval("YEARLY")}
-                >
-                  Yearly
-                </button>
-            </div>
-
-            <div className="mt-6 grid gap-4 sm:grid-cols-3">
-              <div className="rounded-2xl border border-border bg-secondary/25 px-4 py-4">
-                <p className="text-xs font-semibold uppercase tracking-[0.14em] text-text-secondary">
-                  Price
-                </p>
-                <p className="mt-2 text-2xl font-semibold text-text-primary">
-                  {formatPrice(
-                    teamInterval === "YEARLY"
-                      ? pricing?.team?.yearlyPriceInr
-                      : pricing?.team?.monthlyPriceInr
-                  )}
-                </p>
-                <p className="mt-1 text-xs text-text-secondary">
-                  {teamInterval === "YEARLY" && teamYearlySavings
-                    ? `Save ₹${teamYearlySavings.toLocaleString("en-IN")} with yearly billing`
-                    : "Billed to the organization"}
-                </p>
-              </div>
-              <div className="rounded-2xl border border-border bg-secondary/25 px-4 py-4">
-                <p className="text-xs font-semibold uppercase tracking-[0.14em] text-text-secondary">
-                  Shared AI
-                </p>
-                <p className="mt-2 text-sm font-semibold text-text-primary">
-                  {pricing?.team?.aiLimitMonthly ?? 200} / month
-                </p>
-              </div>
-              <div className="rounded-2xl border border-border bg-secondary/25 px-4 py-4">
-                <p className="text-xs font-semibold uppercase tracking-[0.14em] text-text-secondary">
-                  Organization
-                </p>
-                <p className="mt-2 text-sm font-semibold text-text-primary">
-                  {selectedOrg?.name || "Select one"}
-                </p>
-                <p className="mt-1 text-xs text-text-secondary">
-                  {selectedOrg ? `${selectedOrg.memberCount} active members` : "Choose the billing organization"}
-                </p>
-              </div>
-            </div>
-
-            <div className="mt-5">
-              <label className="tf-filter-field">
-                <span className="tf-filter-label">Team organization</span>
+            <div className="mt-auto flex flex-col gap-4 pt-6">
+              <label className="tf-filter-field w-full">
+                <span className="tf-filter-label">Apply to organization</span>
                 <select
                   className="tf-select tf-filter-control w-full"
                   value={selectedOrgId}
@@ -819,54 +772,34 @@ export default function BillingPage() {
                   ))}
                 </select>
               </label>
-            </div>
 
-            <div className="mt-5 flex flex-wrap gap-3">
-              <button
-                type="button"
-                className="tf-button px-4 py-2 text-sm"
-                onClick={() =>
-                  selectedOrgId
-                    ? void startCheckout({
-                        plan: "TEAM",
-                        interval: teamInterval,
-                        organizationId: selectedOrgId
-                      })
-                    : showToast("Select an organization first.", "error")
-                }
-                disabled={actionLoading}
-              >
-                <LoadingButtonContent
-                  loading={actionLoading}
-                  loadingLabel="Processing..."
-                  idleLabel={isTeamActive ? "Renew Team" : "Upgrade to Team"}
-                />
-              </button>
-              {isTeamActive && selectedOrgId ? (
-                <button
-                  type="button"
-                  className="tf-button-ghost px-4 py-2 text-sm"
-                  onClick={() =>
-                    setCancelTarget({
-                      plan: "TEAM",
-                      organizationId: selectedOrgId,
-                      label: selectedOrg?.name ? `${selectedOrg.name} Team subscription` : "Team subscription"
-                    })
-                  }
-                  disabled={actionLoading}
-                >
-                  <LoadingButtonContent
-                    loading={actionLoading}
-                    loadingLabel="Cancelling..."
-                    idleLabel="Cancel Team"
-                  />
-                </button>
-              ) : null}
+              <div className="flex items-center justify-end pt-5 border-t border-border/50">
+                <div className="flex gap-3">
+                  {isTeamActive && selectedOrgId ? (
+                    <button
+                      type="button"
+                      className="tf-button-ghost px-4 py-2 text-sm"
+                      onClick={() => setCancelTarget({ plan: "TEAM", organizationId: selectedOrgId, label: selectedOrg?.name ? `${selectedOrg.name} Team subscription` : "Team subscription" })}
+                      disabled={actionLoading}
+                    >
+                      <LoadingButtonContent loading={actionLoading} loadingLabel="Cancelling..." idleLabel="Cancel" />
+                    </button>
+                  ) : null}
+                  <button
+                    type="button"
+                    className="tf-button px-4 py-2 text-sm"
+                    onClick={() => selectedOrgId ? void startCheckout({ plan: "TEAM", interval: teamInterval, organizationId: selectedOrgId }) : showToast("Select an organization first.", "error")}
+                    disabled={actionLoading}
+                  >
+                    <LoadingButtonContent loading={actionLoading} loadingLabel="Processing..." idleLabel={isTeamActive ? "Renew Team" : "Upgrade"} />
+                  </button>
+                </div>
+              </div>
             </div>
           </div>
         </section>
 
-        <section className="mt-6 rounded-3xl border border-border bg-card/95 p-6 shadow-sm">
+        <section className="mt-6 rounded-2xl border border-border bg-card/95 p-5 shadow-sm">
           <div className="flex flex-wrap items-center justify-between gap-4">
             <div>
               <h2 className="text-lg font-semibold text-text-primary">Invoices and payments</h2>
@@ -907,7 +840,7 @@ export default function BillingPage() {
                   return (
                     <div
                       key={row?.id || idx}
-                      className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-border bg-secondary/15 px-4 py-3"
+                      className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border bg-secondary/20 px-4 py-4"
                     >
                       <div className="min-w-[220px]">
                         <p className="text-sm font-semibold text-text-primary">
@@ -936,7 +869,7 @@ export default function BillingPage() {
                   );
                 })}
                 {!billingLoading && visibleInvoices.length === 0 ? (
-                  <div className="rounded-2xl border border-dashed border-border bg-secondary/10 px-4 py-5 text-sm text-text-secondary">
+                  <div className="rounded-xl border border-dashed border-border bg-secondary/10 px-4 py-5 text-sm text-text-secondary">
                     No invoices
                   </div>
                 ) : null}
@@ -967,7 +900,7 @@ export default function BillingPage() {
                   return (
                     <div
                       key={row?.id || idx}
-                      className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-border bg-secondary/15 px-4 py-3"
+                      className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border bg-secondary/20 px-4 py-4"
                     >
                       <div className="min-w-[220px]">
                         <p className="text-sm font-semibold text-text-primary">
@@ -1010,7 +943,7 @@ export default function BillingPage() {
           </div>
         </section>
 
-        <section className="mt-6 rounded-2xl border border-border bg-card/95 p-6 shadow-sm">
+        <section className="mt-6 rounded-2xl border border-border bg-card/95 p-5 shadow-sm">
           <h2 className="text-lg font-semibold text-text-primary">How plan logic works</h2>
           <div className="mt-3 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
             {[
@@ -1031,7 +964,7 @@ export default function BillingPage() {
                 detail: "A Pro user inside a Team organization still keeps unlimited AI personally."
               }
             ].map((item) => (
-              <div key={item.title} className="rounded-2xl border border-border bg-secondary/20 px-4 py-4">
+              <div key={item.title} className="rounded-xl border border-border bg-secondary/20 px-4 py-4">
                 <p className="text-sm font-semibold text-text-primary">{item.title}</p>
                 <p className="mt-1 text-sm text-text-secondary">{item.detail}</p>
               </div>
@@ -1042,7 +975,7 @@ export default function BillingPage() {
 
       {cancelTarget ? (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
-          <div className="w-full max-w-lg rounded-xl border border-border bg-card shadow-xl flex flex-col overflow-hidden">
+          <div className="w-full max-w-lg rounded-2xl border border-border bg-card/90 backdrop-blur-xl shadow-xl flex flex-col overflow-hidden">
             <div className="flex items-center justify-between p-4 border-b border-border/50">
               <h3 className="text-sm font-semibold text-text-primary">Cancel subscription</h3>
               <button onClick={closeCancelModal} className="text-text-secondary hover:text-text-primary transition-colors">

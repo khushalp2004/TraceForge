@@ -519,28 +519,28 @@ function ReleasesPageInner() {
                       </p>
                     )}
 
-                    <div className="mt-4 grid gap-3 sm:grid-cols-3">
-                      <div className="rounded-2xl border border-border bg-secondary/25 px-3 py-3">
-                        <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-text-secondary">
+                    <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3">
+                      <div className="rounded-xl border border-border bg-secondary/10 px-4 py-3 flex flex-col justify-center shadow-sm">
+                        <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-text-secondary">
                           Issue count
                         </p>
-                        <p className="mt-1 text-sm font-medium text-text-primary">
+                        <p className="mt-1 text-base font-semibold text-text-primary">
                           {release.issueCount}
                         </p>
                       </div>
-                      <div className="rounded-2xl border border-border bg-secondary/25 px-3 py-3">
-                        <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-text-secondary">
+                      <div className="rounded-xl border border-border bg-secondary/10 px-4 py-3 flex flex-col justify-center shadow-sm">
+                        <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-text-secondary">
                           Error events
                         </p>
-                        <p className="mt-1 text-sm font-medium text-text-primary">
+                        <p className="mt-1 text-base font-semibold text-text-primary">
                           {release.eventCount}
                         </p>
                       </div>
-                      <div className="rounded-2xl border border-border bg-secondary/25 px-3 py-3">
-                        <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-text-secondary">
+                      <div className="col-span-2 sm:col-span-1 rounded-xl border border-border bg-secondary/10 px-4 py-3 flex flex-col justify-center shadow-sm">
+                        <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-text-secondary">
                           Last activity
                         </p>
-                        <p className="mt-1 text-sm font-medium text-text-primary">
+                        <p className="mt-1 text-sm font-semibold text-text-primary truncate">
                           {release.lastEventAt
                             ? new Date(release.lastEventAt).toLocaleString()
                             : "No linked errors"}
@@ -579,12 +579,13 @@ function ReleasesPageInner() {
                       </div>
                     )}
                   </div>
-                  <div className="flex shrink-0 items-start">
+                  <div className="flex shrink-0 items-start mt-1 sm:mt-0">
                     <button
                       type="button"
-                      className="tf-button-destructive-ghost"
+                      className="flex items-center gap-1.5 rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2 text-xs font-semibold text-destructive transition-colors hover:bg-destructive hover:text-destructive-foreground shadow-sm"
                       onClick={() => setDeleteTarget(release)}
                     >
+                      <Trash2 className="h-3.5 w-3.5" />
                       Delete
                     </button>
                   </div>
@@ -610,8 +611,8 @@ function ReleasesPageInner() {
 
       {showCreateModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
-          <div className="w-full max-w-lg rounded-xl border border-border bg-card shadow-xl flex flex-col overflow-hidden">
-            <div className="flex items-center justify-between p-4 border-b border-border/50">
+          <div className="w-full max-w-lg max-h-[70vh] sm:max-h-[90vh] rounded-xl border border-border bg-card shadow-xl flex flex-col overflow-hidden">
+            <div className="flex items-center justify-between p-4 border-b border-border/50 shrink-0">
               <h3 className="text-sm font-semibold text-text-primary">Add release marker</h3>
               <button onClick={() => {
                   setShowCreateModal(false);
@@ -623,76 +624,98 @@ function ReleasesPageInner() {
               </button>
             </div>
             
-            <div className="p-6">
-               <p className="text-sm text-text-secondary mb-4">Create a release checkpoint to compare deployment timing with issue spikes.</p>
+            <div className="p-6 overflow-y-auto">
+               <p className="text-sm text-text-secondary mb-6">Create a release checkpoint to compare deployment timing with issue spikes.</p>
 
-               <label className="mb-2 block text-[11px] font-semibold uppercase tracking-[0.14em] text-text-secondary">
-                 Project
-               </label>
-               <select
-                 className="mb-4 w-full rounded-lg border border-border bg-background px-4 py-2 text-sm text-text-primary outline-none transition focus:border-primary/30 focus:ring-2 focus:ring-primary/10"
-                 value={selectedProjectId}
-                 onChange={(event) => setSelectedProjectId(event.target.value)}
-               >
-                 <option value="">Select a project</option>
-                 {projects.map((project) => (
-                   <option key={project.id} value={project.id}>
-                     {project.name}
-                   </option>
-                 ))}
-               </select>
-
-               <label className="mb-2 block text-[11px] font-semibold uppercase tracking-[0.14em] text-text-secondary">
-                 Version
-               </label>
-               <input
-                 className="mb-4 w-full rounded-lg border border-border bg-background px-4 py-2 text-sm text-text-primary outline-none transition focus:border-primary/30 focus:ring-2 focus:ring-primary/10"
-                 placeholder="e.g. v1.8.2"
-                 value={version}
-                 onChange={(event) => setVersion(event.target.value)}
-               />
-
-               <div className="mb-4 grid gap-4 sm:grid-cols-2">
+               <div className="space-y-5">
                  <div>
-                   <label className="mb-2 block text-[11px] font-semibold uppercase tracking-[0.14em] text-text-secondary">
-                     Environment
+                   <label className="mb-2 block text-xs font-semibold uppercase tracking-[0.14em] text-text-secondary">
+                     Project
                    </label>
                    <select
-                     className="w-full rounded-lg border border-border bg-background px-4 py-2 text-sm text-text-primary outline-none transition focus:border-primary/30 focus:ring-2 focus:ring-primary/10"
-                     value={releaseEnvironment}
-                     onChange={(event) => setReleaseEnvironment(event.target.value)}
+                     className="w-full appearance-none rounded-xl border border-border bg-secondary/20 px-4 py-3 pr-10 text-sm text-text-primary shadow-sm outline-none transition focus:border-primary/50 focus:bg-card focus:ring-2 focus:ring-primary/20"
+                     style={{
+                       backgroundImage:
+                         "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 20 20' fill='none'%3E%3Cpath d='M5 7l5 5 5-5' stroke='%239CA3AF' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E\")",
+                       backgroundRepeat: "no-repeat",
+                       backgroundPosition: "right 16px center",
+                       backgroundSize: "12px 12px"
+                     }}
+                     value={selectedProjectId}
+                     onChange={(event) => setSelectedProjectId(event.target.value)}
                    >
-                     <option value="production">Production</option>
-                     <option value="staging">Staging</option>
-                     <option value="development">Development</option>
-                     <option value="browser">Browser</option>
+                     <option value="">Select a project</option>
+                     {projects.map((project) => (
+                       <option key={project.id} value={project.id}>
+                         {project.name}
+                       </option>
+                     ))}
                    </select>
                  </div>
+
                  <div>
-                   <label className="mb-2 block text-[11px] font-semibold uppercase tracking-[0.14em] text-text-secondary">
-                     Release Date
+                   <label className="mb-2 block text-xs font-semibold uppercase tracking-[0.14em] text-text-secondary">
+                     Version
                    </label>
                    <input
-                     className="w-full rounded-lg border border-border bg-background px-4 py-2 text-sm text-text-primary outline-none transition focus:border-primary/30 focus:ring-2 focus:ring-primary/10"
-                     type="datetime-local"
-                     value={releasedAt}
-                     onChange={(event) => setReleasedAt(event.target.value)}
+                     className="w-full rounded-xl border border-border bg-secondary/20 px-4 py-3 text-sm text-text-primary shadow-sm outline-none transition focus:border-primary/50 focus:bg-card focus:ring-2 focus:ring-primary/20"
+                     placeholder="e.g. v1.8.2"
+                     value={version}
+                     onChange={(event) => setVersion(event.target.value)}
+                   />
+                 </div>
+
+                 <div className="grid gap-5 sm:grid-cols-2">
+                   <div>
+                     <label className="mb-2 block text-xs font-semibold uppercase tracking-[0.14em] text-text-secondary">
+                       Environment
+                     </label>
+                     <select
+                       className="w-full appearance-none rounded-xl border border-border bg-secondary/20 px-4 py-3 pr-10 text-sm text-text-primary shadow-sm outline-none transition focus:border-primary/50 focus:bg-card focus:ring-2 focus:ring-primary/20"
+                       style={{
+                         backgroundImage:
+                           "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 20 20' fill='none'%3E%3Cpath d='M5 7l5 5 5-5' stroke='%239CA3AF' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E\")",
+                         backgroundRepeat: "no-repeat",
+                         backgroundPosition: "right 16px center",
+                         backgroundSize: "12px 12px"
+                       }}
+                       value={releaseEnvironment}
+                       onChange={(event) => setReleaseEnvironment(event.target.value)}
+                     >
+                       <option value="production">Production</option>
+                       <option value="staging">Staging</option>
+                       <option value="development">Development</option>
+                       <option value="browser">Browser</option>
+                     </select>
+                   </div>
+                   <div>
+                     <label className="mb-2 block text-xs font-semibold uppercase tracking-[0.14em] text-text-secondary">
+                       Release Date
+                     </label>
+                     <input
+                       className="w-full rounded-xl border border-border bg-secondary/20 px-4 py-3 text-sm text-text-primary shadow-sm outline-none transition focus:border-primary/50 focus:bg-card focus:ring-2 focus:ring-primary/20 [color-scheme:dark]"
+                       type="datetime-local"
+                       value={releasedAt}
+                       onChange={(event) => setReleasedAt(event.target.value)}
+                     />
+                   </div>
+                 </div>
+
+                 <div>
+                   <label className="mb-2 block text-xs font-semibold uppercase tracking-[0.14em] text-text-secondary">
+                     Release Notes
+                   </label>
+                   <textarea
+                     className="min-h-[100px] w-full resize-none rounded-xl border border-border bg-secondary/20 px-4 py-3 text-sm text-text-primary shadow-sm outline-none transition focus:border-primary/50 focus:bg-card focus:ring-2 focus:ring-primary/20"
+                     placeholder="Optional notes about what shipped in this version..."
+                     value={notes}
+                     onChange={(event) => setNotes(event.target.value)}
                    />
                  </div>
                </div>
-
-               <label className="mb-2 block text-[11px] font-semibold uppercase tracking-[0.14em] text-text-secondary">
-                 Release Notes
-               </label>
-               <textarea
-                 className="min-h-[100px] w-full resize-none rounded-lg border border-border bg-background px-4 py-3 text-sm text-text-primary outline-none transition focus:border-primary/30 focus:ring-2 focus:ring-primary/10"
-                 placeholder="Optional notes about what shipped in this version..."
-                 value={notes}
-                 onChange={(event) => setNotes(event.target.value)}
-               />
             </div>
             
-            <div className="flex flex-row-reverse items-center gap-3 p-6 pt-0">
+            <div className="flex flex-row-reverse items-center gap-3 p-6 pt-4 border-t border-border/50 shrink-0">
                <button 
                  onClick={createRelease} 
                  disabled={creatingRelease}

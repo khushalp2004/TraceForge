@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
+import { Check } from "lucide-react";
 import { LoadingButtonContent } from "../../../components/ui/loading-button-content";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
@@ -87,11 +88,11 @@ type JiraIntegrationState = {
   selectedProjectName?: string;
 };
 
-const settingsCardClass = "min-w-0 overflow-hidden rounded-2xl border border-border bg-card/90 p-4 shadow-sm sm:p-6";
-const subtlePanelClass = "min-w-0 overflow-hidden rounded-xl border border-border/60 bg-secondary/18 p-4";
-const compactPanelClass = "min-w-0 overflow-hidden rounded-xl border border-border/60 bg-secondary/12 px-4 py-4";
+const settingsCardClass = "min-w-0 overflow-hidden rounded-2xl border border-border bg-card/95 p-5 shadow-sm";
+const subtlePanelClass = "min-w-0 overflow-hidden rounded-xl border border-border bg-secondary/20 p-4";
+const compactPanelClass = "min-w-0 overflow-hidden rounded-xl border border-border bg-secondary/20 p-4";
 const setupStateClass =
-  "mt-5 min-w-0 overflow-hidden rounded-xl border border-border/60 bg-secondary/14 px-4 py-4 text-sm text-text-secondary";
+  "mt-5 min-w-0 overflow-hidden rounded-xl border border-border bg-secondary/20 px-4 py-4 text-sm text-text-secondary";
 const settingsSelectClass = "tf-select tf-filter-control w-full";
 
 const integrationStatusMeta = (connected: boolean) =>
@@ -526,80 +527,26 @@ export default function SettingsPage() {
   return (
     <main className="tf-page tf-dashboard-page overflow-x-hidden">
       <div className="tf-dashboard">
-        <header>
-          <p className="tf-kicker">Settings</p>
-          <h1 className="tf-title mt-3 text-3xl">Workspace settings</h1>
-          <p className="mt-2 max-w-2xl text-sm text-text-secondary">
-            Connect the tools your team already uses, then choose the repos, channels, and projects TraceForge should use.
-          </p>
-        </header>
-
-        <div className="mt-6 grid gap-6">
-          <section className="min-w-0 grid gap-4 lg:grid-cols-[minmax(0,1fr)_320px]">
-            <div className={settingsCardClass}>
-              <div className="flex flex-col gap-4 sm:flex-row sm:flex-wrap sm:items-start sm:justify-between">
-                <div>
-                  <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-text-secondary">
-                    Step 1
-                  </p>
-                  <h2 className="mt-2 text-lg font-semibold text-text-primary">Choose what you want to configure</h2>
-                  <p className="mt-1 break-words text-sm text-text-secondary">
-                    GitHub stays personal. Slack and Jira follow the organization you choose on the right.
-                  </p>
-                </div>
-                <span className="tf-muted-tag w-fit">{connectedCount}/3 connected</span>
-              </div>
-
-              <div className="mt-5 divide-y divide-border/70 rounded-xl bg-secondary/10">
-                <div className="flex flex-col gap-3 px-4 py-4 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
-                  <div className="min-w-0">
-                    <p className={`text-sm font-semibold ${integrationTone(Boolean(github?.connected))}`}>GitHub</p>
-                    <p className="mt-1 break-words text-sm text-text-secondary">Personal repos, release context, and ownership.</p>
-                  </div>
-                  <span className={integrationStatusMeta(Boolean(github?.connected)).className}>
-                    {integrationStatusMeta(Boolean(github?.connected)).label}
-                  </span>
-                </div>
-                <div className="flex flex-col gap-3 px-4 py-4 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
-                  <div className="min-w-0">
-                    <p className={`text-sm font-semibold ${integrationTone(Boolean(slack?.connected))}`}>Slack</p>
-                    <p className="mt-1 break-words text-sm text-text-secondary">Send alerts into one team channel.</p>
-                  </div>
-                  <span className={integrationStatusMeta(Boolean(slack?.connected)).className}>
-                    {integrationStatusMeta(Boolean(slack?.connected)).label}
-                  </span>
-                </div>
-                <div className="flex flex-col gap-3 px-4 py-4 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
-                  <div className="min-w-0">
-                    <p className={`text-sm font-semibold ${integrationTone(Boolean(jira?.connected))}`}>Jira</p>
-                    <p className="mt-1 break-words text-sm text-text-secondary">Create issues in one default project.</p>
-                  </div>
-                  <span className={integrationStatusMeta(Boolean(jira?.connected)).className}>
-                    {integrationStatusMeta(Boolean(jira?.connected)).label}
-                  </span>
-                </div>
-              </div>
-            </div>
-
-            <aside className={settingsCardClass}>
-              <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
-                <div>
-                  <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-text-secondary">
-                    Step 2
-                  </p>
-                  <p className="mt-2 text-sm font-semibold text-text-primary">Choose a workspace</p>
-                </div>
-                <Link
-                  href="/dashboard/account/details"
-                  className="text-sm font-medium text-text-secondary transition hover:text-text-primary"
-                >
-                  Account details
-                </Link>
-              </div>
+        <header className="mt-2 flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
+          <div className="min-w-0">
+            <p className="tf-kicker">Settings</p>
+            <h1 className="font-display mt-2 text-2xl font-semibold text-text-primary">
+              Workspace Integrations
+            </h1>
+            <p className="mt-2 max-w-xl text-sm text-text-secondary">
+              Connect the tools your team already uses, then choose the repos, channels, and projects TraceForge should use.
+            </p>
+          </div>
+          
+          <div className="flex shrink-0 flex-col sm:items-end">
+            <label className="mb-2 block text-[11px] font-semibold uppercase tracking-[0.16em] text-text-secondary">
+              Settings Scope
+            </label>
+            <div className="flex items-center gap-2 rounded-xl border border-border bg-card/90 px-3 py-2 shadow-sm min-w-[200px]">
               <select
+                className="bg-transparent text-sm font-semibold text-text-primary outline-none w-full"
                 value={selectedOrgId}
                 onChange={(event) => setSelectedOrgId(event.target.value)}
-                className={`mt-3 ${settingsSelectClass}`}
                 disabled={orgsLoading}
               >
                 <option value="">Personal workspace</option>
@@ -609,41 +556,25 @@ export default function SettingsPage() {
                   </option>
                 ))}
               </select>
+            </div>
+            <div className="mt-2 flex items-center justify-end h-4">
+              {selectedOrg && (
+                <span className="tf-muted-tag text-[10px] py-0.5 px-2">
+                  Role: {selectedOrg.role === "OWNER" ? "Owner" : "Member"}
+                </span>
+              )}
+            </div>
+          </div>
+        </header>
 
-              <div className="mt-4 rounded-xl border border-border/60 bg-secondary/12 px-4 py-4">
-                {selectedOrg ? (
-                  <>
-                    <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
-                      <p className="text-sm font-semibold text-text-primary">{selectedOrg.name}</p>
-                      <span className="tf-muted-tag">{selectedOrg.role === "OWNER" ? "Owner" : "Member"}</span>
-                    </div>
-                    <p className="mt-1 break-words text-sm text-text-secondary">
-                      {selectedOrg.role === "OWNER"
-                        ? "You can connect and manage workspace integrations here."
-                        : "You can review status here, but only organization owners can change workspace integrations."}
-                    </p>
-                  </>
-                ) : (
-                  <>
-                    <p className="text-sm font-semibold text-text-primary">Personal scope</p>
-                    <p className="mt-1 break-words text-sm text-text-secondary">
-                      Choose an organization to configure Slack and Jira. GitHub stays personal.
-                    </p>
-                  </>
-                )}
-              </div>
-            </aside>
-          </section>
+        <div className="tf-divider my-6" />
 
+        <div className="grid gap-6">
           <section className={settingsCardClass}>
             <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
               <div className="min-w-0">
-                <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-text-secondary">
-                  Personal integration
-                </p>
                 <div className="flex flex-wrap items-center gap-2">
-                  <h2 className="mt-2 text-lg font-semibold text-text-primary">GitHub</h2>
-                  <span className="tf-muted-tag">Personal</span>
+                  <h2 className="text-lg font-semibold text-text-primary">GitHub</h2>
                 </div>
                 <p className="mt-1 text-sm text-text-secondary">
                   Connect one personal GitHub account, then keep the repos you care about selected.
@@ -659,7 +590,7 @@ export default function SettingsPage() {
                 Add GitHub OAuth env values first, then connect your account here.
               </div>
             ) : !github?.connected ? (
-              <div className="mt-5 rounded-xl border border-border/60 bg-secondary/12 p-5">
+              <div className="mt-5 rounded-xl border border-border bg-secondary/20 p-5">
                 <div className="flex flex-col gap-4 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
                   <div className="max-w-2xl">
                     <p className="text-sm font-semibold text-text-primary">Connect your GitHub account</p>
@@ -687,7 +618,7 @@ export default function SettingsPage() {
               </div>
             ) : (
               <div className="mt-5 space-y-4">
-                <div className="rounded-xl border border-border/60 bg-secondary/12 p-5">
+                <div className="rounded-xl border border-border bg-secondary/20 p-5">
                   <div className="flex flex-col gap-4 sm:flex-row sm:flex-wrap sm:items-start sm:justify-between">
                     <div className="min-w-0">
                       <p className="text-sm font-semibold text-text-primary">
@@ -698,7 +629,7 @@ export default function SettingsPage() {
                       </p>
                     </div>
                     <div className="flex flex-wrap items-center gap-2">
-                      <span className="tf-muted-tag">{selectedRepoIds.length} selected</span>
+                      <span className="text-sm font-medium text-text-secondary">{selectedRepoIds.length} selected</span>
                       {github.error ? <span className="tf-warning-tag">Needs attention</span> : null}
                     </div>
                   </div>
@@ -760,7 +691,7 @@ export default function SettingsPage() {
                   </div>
                 </div>
 
-                <div className="rounded-xl border border-border/60 bg-secondary/12 p-4">
+                <div className="rounded-xl border border-border bg-secondary/20 p-4">
                   <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
                     <div>
                       <p className="text-sm font-semibold text-text-primary">Choose repositories</p>
@@ -768,7 +699,7 @@ export default function SettingsPage() {
                         Keep only the repos you want TraceForge to use for release context and ownership.
                       </p>
                     </div>
-                    <span className="tf-muted-tag">{selectedRepoIds.length} selected</span>
+                    <span className="text-sm font-medium text-text-secondary">{selectedRepoIds.length} selected</span>
                   </div>
 
                   <div className="mt-4 max-h-80 space-y-2 overflow-y-auto pr-1">
@@ -777,20 +708,25 @@ export default function SettingsPage() {
                       return (
                         <label
                           key={repo.id}
-                          className="flex cursor-pointer items-center gap-3 rounded-xl border border-border/50 bg-card/70 px-3 py-3 text-sm text-text-primary transition hover:bg-card"
+                          className="flex cursor-pointer items-center gap-3 rounded-xl border border-border bg-secondary/20 px-3 py-3 text-sm text-text-primary transition hover:bg-card group/repo"
                         >
-                          <input
-                            type="checkbox"
-                            className="h-4 w-4 rounded border-border"
-                            checked={checked}
-                            onChange={(event) => {
-                              setSelectedRepoIds((current) =>
-                                event.target.checked
-                                  ? [...current, repo.id]
-                                  : current.filter((value) => value !== repo.id)
-                              );
-                            }}
-                          />
+                          <div className="relative flex items-center p-1 -ml-1">
+                            <input
+                              type="checkbox"
+                              className="peer sr-only"
+                              checked={checked}
+                              onChange={(event) => {
+                                setSelectedRepoIds((current) =>
+                                  event.target.checked
+                                    ? [...current, repo.id]
+                                    : current.filter((value) => value !== repo.id)
+                                );
+                              }}
+                            />
+                            <div className={`h-4 w-4 rounded-[4px] border transition-all flex items-center justify-center ${checked ? "border-brand-primary bg-brand-primary text-white" : "border-text-secondary/50 bg-transparent group-hover/repo:border-text-secondary/80"}`}>
+                              {checked && <Check className="h-3 w-3 stroke-[3]" />}
+                            </div>
+                          </div>
                           <div className="min-w-0 flex-1">
                             <p className="break-all font-medium sm:truncate">{repo.fullName}</p>
                             <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-text-secondary">
@@ -806,24 +742,13 @@ export default function SettingsPage() {
             )}
           </section>
 
-          <section className="min-w-0">
-            <div className="mb-4">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-text-secondary">
-                Workspace integrations
-              </p>
-              <h2 className="mt-2 text-lg font-semibold text-text-primary">Slack and Jira</h2>
-              <p className="mt-1 text-sm text-text-secondary">
-                These follow the selected organization and are available only to workspace owners.
-              </p>
-            </div>
-
-          <section className="min-w-0 grid gap-6 xl:grid-cols-2">
-            <div className={settingsCardClass}>
+          <section className="min-w-0 grid gap-6 xl:grid-cols-2 items-stretch">
+            <div className={`${settingsCardClass} h-full flex flex-col`}>
               <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
                 <div className="min-w-0">
                   <div className="flex flex-wrap items-center gap-2">
                     <h2 className="text-lg font-semibold text-text-primary">Slack</h2>
-                    <span className="tf-muted-tag">Workspace</span>
+                    <span className="rounded-full border border-border bg-card/50 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-text-secondary">Workspace</span>
                   </div>
                   <p className="mt-1 break-words text-sm text-text-secondary">
                     Route workspace alerts into one default Slack channel.
@@ -843,7 +768,7 @@ export default function SettingsPage() {
                   Add Slack OAuth env values first, then connect this workspace.
                 </div>
               ) : !slack?.connected ? (
-                <div className="mt-5 flex flex-col gap-4 rounded-xl bg-secondary/14 px-4 py-4 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
+                <div className="mt-5 flex flex-col gap-4 rounded-xl border border-border bg-secondary/20 px-4 py-4 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
                   <p className="max-w-xl break-words text-sm text-text-secondary">
                     Connect Slack once for this organization, then choose the default channel used for alert delivery.
                   </p>
@@ -869,7 +794,7 @@ export default function SettingsPage() {
                   </button>
                 </div>
               ) : (
-                <div className="mt-5 space-y-4">
+                <div className="mt-5 flex flex-col gap-4 flex-1">
                   <div className={subtlePanelClass}>
                     <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
                       <div>
@@ -880,7 +805,7 @@ export default function SettingsPage() {
                             : "Choose a default channel for alert delivery."}
                         </p>
                       </div>
-                      <span className="tf-muted-tag max-w-full break-words">
+                      <span className="text-sm font-medium text-text-secondary max-w-full break-words text-right">
                         {slack.workspace?.name || "Workspace"}
                       </span>
                     </div>
@@ -920,7 +845,7 @@ export default function SettingsPage() {
                     </div>
                   </div>
 
-                  <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-end">
+                  <div className="mt-auto pt-2 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-end">
                     <button
                       type="button"
                       className="tf-button-ghost w-full px-4 py-2 text-sm sm:w-auto"
@@ -978,12 +903,12 @@ export default function SettingsPage() {
               )}
             </div>
 
-            <div className={settingsCardClass}>
+            <div className={`${settingsCardClass} h-full flex flex-col`}>
               <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
                 <div className="min-w-0">
                   <div className="flex flex-wrap items-center gap-2">
                     <h2 className="text-lg font-semibold text-text-primary">Jira</h2>
-                    <span className="tf-muted-tag">Workspace</span>
+                    <span className="rounded-full border border-border bg-card/50 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-text-secondary">Workspace</span>
                   </div>
                   <p className="mt-1 break-words text-sm text-text-secondary">
                     Connect Jira once, then pick the site and default project used by this workspace.
@@ -1003,7 +928,7 @@ export default function SettingsPage() {
                   Add Jira OAuth env values first, then connect this workspace.
                 </div>
               ) : !jira?.connected ? (
-                <div className="mt-5 flex flex-col gap-4 rounded-xl bg-secondary/14 px-4 py-4 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
+                <div className="mt-5 flex flex-col gap-4 rounded-xl border border-border bg-secondary/20 px-4 py-4 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
                   <p className="max-w-xl break-words text-sm text-text-secondary">
                     Connect Jira for this organization, then choose the site and default project TraceForge should use.
                   </p>
@@ -1029,7 +954,7 @@ export default function SettingsPage() {
                   </button>
                 </div>
               ) : (
-                <div className="mt-5 space-y-4">
+                <div className="mt-5 flex flex-col gap-4 flex-1">
                   <div className={subtlePanelClass}>
                     <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
                       <div>
@@ -1040,7 +965,7 @@ export default function SettingsPage() {
                             : "Choose a site and default project for Jira issue creation."}
                         </p>
                       </div>
-                      <span className="tf-muted-tag max-w-full break-words">
+                      <span className="text-sm font-medium text-text-secondary max-w-full break-words text-right">
                         {selectedJiraSite?.name || "No site selected"}
                       </span>
                     </div>
@@ -1098,7 +1023,7 @@ export default function SettingsPage() {
                     </div>
                   </div>
 
-                  <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-end">
+                  <div className="mt-auto pt-2 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-end">
                     <button
                       type="button"
                       className="tf-button-ghost w-full px-4 py-2 text-sm sm:w-auto"
@@ -1156,7 +1081,6 @@ export default function SettingsPage() {
                 </div>
               )}
             </div>
-          </section>
           </section>
 
           <section className={settingsCardClass}>

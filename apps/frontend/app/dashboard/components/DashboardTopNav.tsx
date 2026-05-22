@@ -277,13 +277,13 @@ export default function DashboardTopNav() {
                   key={item.href}
                   href={item.href}
                   title={item.label}
-                  className={`inline-flex h-10 shrink items-center justify-center rounded-full px-3 xl:px-4 text-sm font-semibold transition min-w-0 ${
+                  className={`inline-flex h-10 shrink items-center justify-center rounded-full px-3 xl:px-4 text-sm font-semibold transition min-w-0 max-w-[90px] md:max-w-[110px] lg:max-w-[120px] xl:max-w-none ${
                     active
                       ? "bg-accent-soft text-text-primary"
                       : "text-text-secondary hover:bg-secondary/70 hover:text-text-primary"
                   }`}
                 >
-                  <span className="truncate">{item.label}</span>
+                  <span className="truncate block w-full text-center">{item.label}</span>
                 </Link>
               );
             })}

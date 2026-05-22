@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Check, X } from "lucide-react";
 import { PricingCta } from "./PricingCta";
+import { AnimatedPrice } from "../components/AnimatedPrice";
 
 type Currency = "INR" | "USD";
 type BillingInterval = "MONTHLY" | "YEARLY";
@@ -15,7 +16,7 @@ type FeatureItem = {
 type PlanCardProps = {
   name: string;
   description: string;
-  price: string;
+  price: React.ReactNode;
   periodLabel: string;
   comparePrice?: string | null;
   note: string;
@@ -359,7 +360,12 @@ export function PricingPlans() {
         <PlanCard
           name="Pro"
           description="Unlimited personal AI for solo power users."
-          price={proPrice}
+          price={
+            <AnimatedPrice 
+              value={proPriceInr} 
+              format={(val) => formatMoney(currency, val, inrPerUsd)} 
+            />
+          }
           periodLabel={billingInterval === "YEARLY" ? "per year" : "per month"}
           comparePrice={proComparePrice}
           note={
@@ -390,7 +396,12 @@ export function PricingPlans() {
         <PlanCard
           name="Team"
           description="Shared AI and centralized billing for one organization."
-          price={teamPrice}
+          price={
+            <AnimatedPrice 
+              value={billingInterval === "YEARLY" ? teamYearly : teamMonthly} 
+              format={(val) => formatMoney(currency, val, inrPerUsd)} 
+            />
+          }
           periodLabel={billingInterval === "YEARLY" ? "per year" : "per month"}
           note={
             billingInterval === "YEARLY"

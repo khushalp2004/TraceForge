@@ -47,51 +47,48 @@ export function DashboardPagination({
   const visiblePages = getVisiblePages(page, totalPages);
 
   return (
-    <div className={`${className} rounded-2xl border border-border bg-card/90 px-4 py-4 shadow-sm`}>
-      <div className="tf-pagination-bar">
-        <div className="tf-pagination-size">
-          <select
-            className="tf-select tf-pagination-select w-full"
-            value={pageSize}
-            onChange={(event) => onPageSizeChange(Number(event.target.value))}
-          >
-            {pageSizeOptions.map((option) => (
-              <option key={option.value} value={option.value}>
-                {option.label}
-              </option>
-            ))}
-          </select>
-        </div>
-        <div className="tf-pagination-controls">
-          <button
-            type="button"
-            className="tf-pagination-button"
-            onClick={() => onPageChange(Math.max(1, page - 1))}
-            disabled={page === 1}
-          >
-            {variant === "compact" ? (
-              <>
-                <ChevronLeft className="h-3.5 w-3.5" />
-                <span className="sr-only">Previous page</span>
-              </>
-            ) : (
-              "Prev"
-            )}
-          </button>
-          {variant === "full" &&
-            visiblePages.map((pageNumber, index) => {
+    <div className={`${className} flex flex-col sm:flex-row items-center justify-between gap-4 pt-2`}>
+      <div className="flex items-center gap-2.5 text-sm text-text-secondary">
+        <span>Rows per page</span>
+        <select
+          className="bg-transparent font-medium text-text-primary outline-none focus:ring-0 cursor-pointer"
+          value={pageSize}
+          onChange={(event) => onPageSizeChange(Number(event.target.value))}
+        >
+          {pageSizeOptions.map((option) => (
+            <option key={option.value} value={option.value}>
+              {option.label}
+            </option>
+          ))}
+        </select>
+      </div>
+
+      <div className="flex items-center gap-1">
+        <button
+          type="button"
+          className="p-1.5 rounded-lg text-text-secondary hover:bg-secondary/40 hover:text-text-primary disabled:opacity-50 disabled:pointer-events-none transition-colors"
+          onClick={() => onPageChange(Math.max(1, page - 1))}
+          disabled={page === 1}
+        >
+          <ChevronLeft className="h-4 w-4" />
+          <span className="sr-only">Previous page</span>
+        </button>
+
+        {variant === "full" && (
+          <div className="flex items-center gap-0.5 px-2">
+            {visiblePages.map((pageNumber, index) => {
               const previousPage = visiblePages[index - 1];
               const showGap = previousPage && pageNumber - previousPage > 1;
 
               return (
-                <div key={pageNumber} className="flex items-center gap-2">
-                  {showGap && <span className="tf-pagination-gap">...</span>}
+                <div key={pageNumber} className="flex items-center">
+                  {showGap && <span className="px-2 text-text-secondary/50">...</span>}
                   <button
                     type="button"
-                    className={`tf-pagination-page ${
+                    className={`min-w-[28px] h-7 px-2 rounded-md text-sm font-medium transition-colors flex items-center justify-center ${
                       page === pageNumber
-                        ? "tf-pagination-page-active"
-                        : "tf-pagination-page-idle"
+                        ? "bg-text-primary text-background"
+                        : "text-text-secondary hover:bg-secondary/40 hover:text-text-primary"
                     }`}
                     onClick={() => onPageChange(pageNumber)}
                   >
@@ -100,22 +97,18 @@ export function DashboardPagination({
                 </div>
               );
             })}
-          <button
-            type="button"
-            className="tf-pagination-button"
-            onClick={() => onPageChange(Math.min(totalPages, page + 1))}
-            disabled={page >= totalPages}
-          >
-            {variant === "compact" ? (
-              <>
-                <ChevronRight className="h-3.5 w-3.5" />
-                <span className="sr-only">Next page</span>
-              </>
-            ) : (
-              "Next"
-            )}
-          </button>
-        </div>
+          </div>
+        )}
+
+        <button
+          type="button"
+          className="p-1.5 rounded-lg text-text-secondary hover:bg-secondary/40 hover:text-text-primary disabled:opacity-50 disabled:pointer-events-none transition-colors"
+          onClick={() => onPageChange(Math.max(totalPages, page + 1))}
+          disabled={page >= totalPages}
+        >
+          <ChevronRight className="h-4 w-4" />
+          <span className="sr-only">Next page</span>
+        </button>
       </div>
     </div>
   );

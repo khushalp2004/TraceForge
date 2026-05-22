@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { LoadingButtonContent } from "../../../components/ui/loading-button-content";
+import { X } from "lucide-react";
 import { DashboardPagination } from "../components/DashboardPagination";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
@@ -335,11 +336,11 @@ export default function RepoAnalysisPage() {
         <div className="tf-divider my-6" />
 
         {loading ? (
-          <div className="rounded-3xl border border-border bg-card/95 p-6 shadow-sm">
+          <div className="rounded-2xl border border-border bg-card/95 p-6 shadow-sm">
             <p className="text-sm text-text-secondary">Loading mapped repositories...</p>
           </div>
         ) : !mappedProjects.length ? (
-          <div className="rounded-3xl border border-border bg-card/95 p-6 shadow-sm">
+          <div className="rounded-2xl border border-border bg-card/95 p-6 shadow-sm">
             <p className="text-sm font-semibold text-text-primary">No linked repositories found</p>
             <p className="mt-2 text-sm text-text-secondary">
               Link a GitHub repository to a project first, then come back here to generate a full
@@ -356,7 +357,7 @@ export default function RepoAnalysisPage() {
                 const status = project.githubRepoAnalysis?.status || "PENDING";
                 const statusStyles = statusMeta[status];
                 return (
-                  <div key={project.id} className="rounded-3xl border border-border bg-card/95 p-5 shadow-sm">
+                  <div key={project.id} className="rounded-2xl border border-border bg-card/95 p-5 shadow-sm">
                     <div className="flex flex-wrap items-start justify-between gap-3">
                       <div className="min-w-0">
                         <div className="flex flex-wrap items-center gap-2">
@@ -456,33 +457,19 @@ export default function RepoAnalysisPage() {
       </div>
 
       {reportTarget ? (
-        <div className="fixed inset-x-0 top-[73px] bottom-[calc(env(safe-area-inset-bottom)+5.75rem)] z-50 flex items-start justify-center overflow-y-auto bg-transparent backdrop-blur-2xl px-3 py-3 sm:inset-0 sm:items-center sm:bg-black/40 sm:backdrop-blur-sm sm:px-6 sm:py-6">
-          <div className="mx-auto flex max-h-full w-full max-w-3xl flex-col overflow-hidden rounded-[28px] border border-border bg-card/95 p-4 shadow-xl backdrop-blur sm:max-h-[min(92vh,48rem)] sm:p-6">
-            <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-              <div className="min-w-0">
-                <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-text-secondary">
-                  Repo Analysis
-                </p>
-                <h3 className="mt-2 font-display text-lg font-semibold text-text-primary">
-                  {reportTarget.name}
-                </h3>
-                <p className="mt-1 break-all text-sm text-text-secondary">
-                  {reportTarget.githubRepoName}
-                </p>
-              </div>
-              <button
-                type="button"
-                className="tf-button-ghost w-full px-4 py-2 text-sm sm:w-auto"
-                onClick={() => {
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
+          <div className="w-full max-w-3xl max-h-[70vh] sm:max-h-[90vh] rounded-2xl border border-border bg-card shadow-xl flex flex-col overflow-hidden">
+            <div className="flex items-center justify-between p-4 border-b border-border/50 shrink-0">
+              <h3 className="text-sm font-semibold text-text-primary">Repo Analysis: {reportTarget.name}</h3>
+              <button onClick={() => {
                   setReportTarget(null);
                   setReport(null);
-                }}
-              >
-                Close
+                }} className="text-text-secondary hover:text-text-primary transition-colors">
+                <X className="h-4 w-4" />
               </button>
             </div>
 
-            <div className="tf-scroll-rail mt-5 flex-1 space-y-4 overflow-y-auto pr-1">
+            <div className="p-6 overflow-y-auto space-y-4">
               {reportLoading ? (
                 <div className="rounded-2xl border border-border bg-secondary/20 px-4 py-4 text-sm text-text-secondary">
                   Loading report...
@@ -502,17 +489,17 @@ export default function RepoAnalysisPage() {
                       : "Repository analysis is queued"}
                   </p>
                   <p className="mt-2 text-sm leading-6 text-text-secondary">
-                    We&apos;re working on the repository report in the background. This modal refreshes
-                    automatically and will show the report as soon as it&apos;s ready.
+                    We're working on the repository report in the background. This modal refreshes
+                    automatically and will show the report as soon as it's ready.
                   </p>
                 </div>
               ) : (
                 <>
-                  <div className="rounded-2xl border border-border bg-secondary/20 px-4 py-4">
+                  <div className="rounded-xl border border-border bg-secondary/20 px-4 py-4">
                     <p className="text-xs font-semibold uppercase tracking-[0.14em] text-text-secondary">
                       Summary
                     </p>
-                    <p className="mt-2 text-sm leading-7 text-text-secondary">
+                    <p className="mt-2 text-sm leading-7 text-text-secondary break-words whitespace-pre-wrap">
                       {report.analysis.summary}
                     </p>
                   </div>
@@ -527,7 +514,7 @@ export default function RepoAnalysisPage() {
                         <p className="text-xs font-semibold uppercase tracking-[0.14em] text-text-secondary">
                           {label}
                         </p>
-                        <p className="mt-2 text-sm leading-7 text-text-secondary">{value}</p>
+                        <p className="mt-2 text-sm leading-7 text-text-secondary break-words whitespace-pre-wrap">{value}</p>
                       </div>
                     ) : null
                   )}
@@ -546,7 +533,7 @@ export default function RepoAnalysisPage() {
                         </p>
                         <div className="mt-3 space-y-2">
                           {list.map((item) => (
-                            <p key={`${label}-${item}`} className="text-sm leading-7 text-text-secondary">
+                            <p key={`${label}-${item}`} className="text-sm leading-7 text-text-secondary break-words whitespace-pre-wrap">
                               • {item}
                             </p>
                           ))}
