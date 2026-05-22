@@ -55,7 +55,7 @@ function NavIcon({
   isActive: boolean;
   collapsed: boolean;
 }) {
-  const common = `transition ${
+  const common = `transition-all duration-200 ${
     collapsed ? "h-6 w-6 group-hover/nav:h-4 group-hover/nav:w-4" : "h-4 w-4"
   } ${isActive ? "text-text-primary" : "text-text-secondary group-hover:text-text-primary"}`;
   switch (name) {
@@ -201,28 +201,36 @@ function UsageRing({
   limit: number | null;
   percentUsed: number;
 }) {
-  const radius = 18;
+  const radius = 17.5;
   const circumference = 2 * Math.PI * radius;
   const progress = limit ? circumference - (Math.min(100, percentUsed) / 100) * circumference : circumference * 0.72;
+  const isDanger = limit && percentUsed >= 90;
+  const isWarning = limit && percentUsed >= 75 && percentUsed < 90;
 
   return (
-    <div className="relative h-11 w-11 shrink-0">
-      <svg className="h-11 w-11 -rotate-90" viewBox="0 0 44 44" fill="none">
-        <circle cx="22" cy="22" r={radius} stroke="currentColor" strokeWidth="4" className="text-border/80" />
+    <div className="relative h-10 w-10 shrink-0">
+      <svg className="h-10 w-10 -rotate-90 drop-shadow-sm" viewBox="0 0 44 44" fill="none">
+        <defs>
+          <linearGradient id="usageGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stopColor={limit ? (isDanger ? "hsl(var(--destructive))" : isWarning ? "hsl(var(--warning))" : "hsl(var(--primary))") : "#34d399"} />
+            <stop offset="100%" stopColor={limit ? (isDanger ? "hsl(var(--destructive-border))" : isWarning ? "hsl(var(--warning-border))" : "hsl(var(--primary-hover))") : "#10b981"} />
+          </linearGradient>
+        </defs>
+        <circle cx="22" cy="22" r={radius} stroke="currentColor" strokeWidth="3" className="text-border/40" />
         <circle
           cx="22"
           cy="22"
           r={radius}
-          stroke="currentColor"
-          strokeWidth="4"
+          stroke="url(#usageGradient)"
+          strokeWidth="3.5"
           strokeLinecap="round"
           strokeDasharray={circumference}
           strokeDashoffset={progress}
-          className={limit ? "text-primary" : "text-emerald-400"}
+          className="transition-all duration-1000 ease-out"
         />
       </svg>
-      <span className="absolute inset-0 flex items-center justify-center text-[10px] font-semibold text-text-primary">
-        {limit ? `${Math.min(99, Math.max(0, percentUsed))}%` : "∞"}
+      <span className="absolute inset-0 flex items-center justify-center text-[9px] font-bold tracking-tighter text-text-primary">
+        {limit ? `${Math.min(99, Math.max(0, Math.round(percentUsed)))}%` : "∞"}
       </span>
     </div>
   );
@@ -375,23 +383,23 @@ export default function DashboardSidebar({
 
   return (
     <aside
-      className={`tf-sidebar relative hidden min-h-0 flex-col border-r border-border bg-sidebar/80 px-5 py-6 transition-[width] duration-200 ease-out lg:fixed lg:inset-y-0 lg:left-0 lg:z-40 lg:flex ${
+      className={`tf-sidebar group/sidebar relative hidden min-h-0 flex-col border-r border-border bg-sidebar/80 px-5 py-6 transition-[width] duration-200 ease-out lg:fixed lg:inset-y-0 lg:left-0 lg:z-40 lg:flex ${
         collapsed ? "tf-sidebar-collapsed w-[85px]" : "w-64"
       }`}
     >
       <button
         type="button"
         onClick={onToggle}
-        className="absolute right-[-16px] top-1/2 z-50 inline-flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-2xl border border-border/80 bg-transparent text-text-secondary shadow-sm transition hover:border-primary/30 hover:bg-secondary/30 hover:text-text-primary"
+        className="absolute right-[-14px] top-1/2 z-50 inline-flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded-full border border-border bg-card text-text-secondary shadow-md transition hover:border-primary/40 hover:bg-secondary/80 hover:text-text-primary"
         aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
       >
         <svg
           aria-hidden="true"
-          className="h-4 w-4"
+          className="h-3.5 w-3.5"
           viewBox="0 0 16 16"
           fill="none"
           stroke="currentColor"
-          strokeWidth="1.8"
+          strokeWidth="2"
           strokeLinecap="round"
           strokeLinejoin="round"
         >
@@ -400,8 +408,8 @@ export default function DashboardSidebar({
       </button>
       <div className="flex min-h-0 flex-1 flex-col gap-5">
         <div
-          className={`rounded-2xl border border-border bg-card shadow-sm ${
-            collapsed ? "px-2 py-2" : "px-3 py-3"
+          className={`rounded-2xl border border-border bg-card shadow-sm transition-all duration-200 ${
+            collapsed ? "px-2 py-2 group-has-[.tf-sidebar-nav:hover]/sidebar:px-3 group-has-[.tf-sidebar-nav:hover]/sidebar:py-3" : "px-3 py-3"
           }`}
         >
           <Link href="/" className="flex items-center gap-3">
@@ -424,8 +432,8 @@ export default function DashboardSidebar({
         </div>
 
         <button
-          className={`flex items-center gap-2 rounded-2xl border border-border bg-card px-3 py-2 text-xs font-semibold text-text-secondary shadow-sm transition hover:border-primary/40 hover:text-text-primary ${
-            collapsed ? "justify-center group-hover/nav:justify-start" : ""
+          className={`flex items-center gap-2 rounded-2xl border border-border bg-card px-3 py-2 text-xs font-semibold text-text-secondary shadow-sm transition-all duration-200 hover:border-primary/40 hover:text-text-primary ${
+            collapsed ? "justify-center px-2 group-has-[.tf-sidebar-nav:hover]/sidebar:justify-start group-has-[.tf-sidebar-nav:hover]/sidebar:px-3" : ""
           }`}
           type="button"
           onClick={() => openSearch()}
@@ -460,8 +468,8 @@ export default function DashboardSidebar({
               return (
                 <Link
                   key={item.href}
-                  className={`${baseLink} group ${isActive ? activeLink : inactiveLink} ${
-                    collapsed ? "justify-center group-hover/nav:justify-start px-2 py-3" : ""
+                  className={`${baseLink} group ${isActive ? activeLink : inactiveLink} transition-all duration-200 ${
+                    collapsed ? "justify-center px-2 py-3 group-hover/nav:justify-start group-hover/nav:px-3 group-hover/nav:py-2" : ""
                   }`}
                   href={item.href}
                 >
@@ -477,55 +485,83 @@ export default function DashboardSidebar({
       </div>
 
       {usage ? (
-        collapsed ? (
-          <div className="group/usage relative mt-5 flex justify-center">
-            <button
-              type="button"
-              className="inline-flex h-14 w-14 items-center justify-center rounded-2xl border border-border bg-card shadow-sm transition hover:border-primary/30 hover:bg-secondary/50"
-              aria-label="View monthly usage"
-            >
+        <div className={`group/usage relative mt-5 rounded-2xl transition-all duration-200 ${
+          collapsed 
+            ? "border border-transparent bg-transparent shadow-none p-2 group-has-[.tf-sidebar-nav:hover]/sidebar:border-border group-has-[.tf-sidebar-nav:hover]/sidebar:bg-card group-has-[.tf-sidebar-nav:hover]/sidebar:px-3 group-has-[.tf-sidebar-nav:hover]/sidebar:py-3 group-has-[.tf-sidebar-nav:hover]/sidebar:shadow-sm" 
+            : "border border-border bg-card px-3 py-3 shadow-sm"
+        }`}>
+          <div className={`flex items-center gap-3 ${collapsed ? "justify-center group-has-[.tf-sidebar-nav:hover]/sidebar:justify-start" : ""}`}>
+            <div className="cursor-help">
               <UsageRing used={usage.used} limit={usage.limit} percentUsed={usage.percentUsed} />
-            </button>
-            <div className="pointer-events-none absolute left-full top-1/2 z-50 ml-3 hidden w-56 -translate-y-1/2 rounded-2xl border border-border bg-card/95 p-3 text-xs text-text-secondary shadow-xl backdrop-blur group-hover/usage:block group-focus-within/usage:block">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-text-secondary">
-                Usage this month
+            </div>
+            <div className={`min-w-0 flex-1 ${collapsed ? "hidden tf-reveal-block" : "block"}`}>
+              <div className="flex items-center justify-between">
+                <p className="text-xs font-bold text-text-primary">Usage</p>
+                <span className={`text-[8.5px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded-full ${usage.plan === "PRO" ? "bg-primary/15 text-primary" : "bg-secondary text-text-secondary"}`}>
+                  {usage.plan}
+                </span>
+              </div>
+              <p className="mt-1 truncate text-[11px] font-medium text-text-secondary">
+                {usage.plan === "PRO"
+                  ? "Unlimited AI analysis"
+                  : `${usage.used} / ${usage.limit} used`}
               </p>
-              <p className="mt-2 font-semibold text-text-primary">
-                {usage.plan === "PRO" ? "Unlimited AI" : `${usage.used} used / ${usage.limit} total`}
-              </p>
-              <p className="mt-1">
+            </div>
+          </div>
+          
+          {collapsed && (
+            <div className="pointer-events-none absolute left-[calc(100%+0.5rem)] top-1/2 z-50 hidden w-64 -translate-y-1/2 rounded-[24px] border border-border/50 bg-card/90 p-4 shadow-[0_20px_40px_-15px_rgba(0,0,0,0.1)] backdrop-blur-xl group-hover/usage:block group-focus-within/usage:block group-has-[.tf-sidebar-nav:hover]/sidebar:hidden">
+              <div className="absolute top-1/2 -left-[5px] h-2.5 w-2.5 -translate-y-1/2 rotate-45 border-b border-l border-border/50 bg-card"></div>
+              
+              <div className="relative z-10 flex items-center justify-between mb-2">
+                <p className="text-[9px] font-bold uppercase tracking-[0.2em] text-text-secondary">
+                  Workspace Usage
+                </p>
+                <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider ${
+                  usage.plan === "PRO" ? "bg-primary/20 text-primary" : "bg-secondary text-text-secondary"
+                }`}>
+                  {usage.plan}
+                </span>
+              </div>
+              
+              <div className="relative z-10">
+                <div className="flex items-end gap-1.5 font-display text-2xl font-bold text-text-primary">
+                  {usage.plan === "PRO" ? "∞" : usage.used}
+                  {usage.plan !== "PRO" && (
+                    <span className="mb-[3px] text-xs font-semibold text-text-secondary">
+                      / {usage.limit}
+                    </span>
+                  )}
+                </div>
+                
+                <div className="mt-2.5 h-1.5 w-full overflow-hidden rounded-full bg-secondary/80">
+                  <div 
+                    className={`h-full rounded-full transition-all duration-1000 ${
+                      (usage.limit && usage.percentUsed >= 90) ? "bg-destructive" : (usage.limit && usage.percentUsed >= 75) ? "bg-warning" : usage.plan === "PRO" ? "bg-emerald-500" : "bg-primary"
+                    }`}
+                    style={{ width: `${Math.min(100, usage.percentUsed)}%` }}
+                  />
+                </div>
+              </div>
+              
+              <p className="relative z-10 mt-3.5 text-[11px] leading-relaxed text-text-secondary">
                 {usage.plan === "PRO"
                   ? "Your Pro plan includes unlimited AI analyses everywhere in TraceForge."
-                  : `${usage.remaining} left this month.`}
+                  : `${usage.remaining} analyses left this month. Upgrade to Pro for unlimited usage.`}
               </p>
-              <p className="mt-2">{usage.detail}</p>
             </div>
-          </div>
-        ) : (
-          <div className="relative mt-5 rounded-2xl border border-border bg-card px-3 py-3 shadow-sm">
-            <div className="flex items-center gap-3">
-              <UsageRing used={usage.used} limit={usage.limit} percentUsed={usage.percentUsed} />
-              <div className="min-w-0 flex-1">
-                <p className="text-xs font-semibold text-text-primary">Usage this month</p>
-                <p className="mt-1 truncate text-xs text-text-secondary">
-                  {usage.plan === "PRO"
-                    ? "Unlimited AI analysis"
-                    : `${usage.label} · ${
-                        usage.plan === "TEAM" ? "Team plan" : usage.plan === "DEV" ? "Dev plan" : "Free plan"
-                      }`}
-                </p>
-              </div>
-            </div>
-          </div>
-        )
+          )}
+        </div>
       ) : null}
 
       <div className="relative mt-5" ref={profileRef}>
         <button
           type="button"
           onClick={() => setProfileOpen((open) => !open)}
-          className={`flex w-full items-center gap-3 rounded-2xl border border-border bg-card px-3 py-3 text-left shadow-sm transition hover:border-primary/30 hover:bg-secondary/50 ${
-            collapsed ? "justify-center px-2 group-hover/nav:justify-start" : ""
+          className={`flex w-full items-center gap-3 rounded-2xl text-left transition-all duration-200 hover:border-primary/30 hover:bg-secondary/50 ${
+            collapsed 
+              ? "border border-transparent bg-transparent p-2 shadow-none justify-center group-has-[.tf-sidebar-nav:hover]/sidebar:border-border group-has-[.tf-sidebar-nav:hover]/sidebar:bg-card group-has-[.tf-sidebar-nav:hover]/sidebar:px-3 group-has-[.tf-sidebar-nav:hover]/sidebar:py-3 group-has-[.tf-sidebar-nav:hover]/sidebar:shadow-sm group-has-[.tf-sidebar-nav:hover]/sidebar:justify-start" 
+              : "border border-border bg-card px-3 py-3 shadow-sm"
           }`}
           aria-label="Open profile menu"
         >
@@ -554,8 +590,8 @@ export default function DashboardSidebar({
 
         {profileOpen && (
           <div
-            className={`absolute bottom-[calc(100%+0.75rem)] z-50 w-64 rounded-3xl border border-border bg-card/95 p-3 shadow-2xl backdrop-blur ${
-              collapsed ? "left-full ml-3" : "left-0 right-0"
+            className={`absolute bottom-[calc(100%+0.75rem)] z-50 w-64 rounded-3xl border border-border bg-card/95 p-3 shadow-2xl backdrop-blur transition-all duration-200 ${
+              collapsed ? "left-full ml-3 group-has-[.tf-sidebar-nav:hover]/sidebar:left-0 group-has-[.tf-sidebar-nav:hover]/sidebar:right-0 group-has-[.tf-sidebar-nav:hover]/sidebar:ml-0" : "left-0 right-0"
             }`}
           >
             <div className="flex items-center gap-3 rounded-2xl bg-secondary/35 px-3 py-3">

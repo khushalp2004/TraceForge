@@ -663,60 +663,65 @@ export default function AccountDetailsPage() {
       </div>
 
       {showLeaveConfirm && (
-        <div className="tf-modal-backdrop">
-          <div className="tf-modal-panel">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-primary">
-              Confirm organization leave
-            </p>
-            <h3 className="mt-2 font-display text-lg font-semibold text-text-primary">
-              Leave all organizations
-            </h3>
-            <p className="mt-2 text-sm text-text-secondary">
-              This removes your membership from every organization you belong to, unless you are the only owner in one of them.
-            </p>
-
-            {!!leaveBlockers.length && (
-              <div className="mt-5 rounded-2xl border border-[hsl(var(--destructive)/0.25)] bg-[hsl(var(--destructive)/0.08)] px-4 py-4">
-                <p className="text-sm font-medium text-[hsl(var(--destructive))]">
-                  These organizations still need another owner before you can leave:
-                </p>
-                <div className="mt-3 flex flex-wrap gap-2">
-                  {leaveBlockers.map((name) => (
-                    <span
-                      key={name}
-                      className="rounded-full border border-[hsl(var(--destructive)/0.24)] bg-card px-3 py-1 text-xs font-semibold text-[hsl(var(--destructive))]"
-                    >
-                      {name}
-                    </span>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            <div className="mt-5 flex flex-col-reverse gap-3 sm:flex-row sm:items-center sm:justify-end">
-              <button
-                type="button"
-                className="w-full rounded-full border border-border bg-card px-4 py-2 text-sm font-semibold text-text-secondary transition hover:bg-secondary/50 hover:text-text-primary sm:w-auto sm:min-w-[144px]"
-                onClick={() => {
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
+          <div className="w-full max-w-lg rounded-xl border border-border bg-card shadow-xl flex flex-col overflow-hidden">
+            <div className="flex items-center justify-between p-4 border-b border-border/50">
+              <h3 className="text-sm font-semibold text-text-primary">Leave Organizations</h3>
+              <button onClick={() => {
                   setShowLeaveConfirm(false);
                   setLeaveBlockers([]);
-                }}
-                disabled={busyAction === "leave-organizations"}
-              >
-                Cancel
+                }} className="text-text-secondary hover:text-text-primary transition-colors">
+                <X className="h-4 w-4" />
               </button>
-              <button
-                type="button"
-                className="w-full rounded-full border border-primary/25 bg-primary/12 px-4 py-2 text-sm font-semibold text-text-primary transition hover:bg-primary/18 sm:w-auto sm:min-w-[144px]"
-                onClick={leaveAllOrganizations}
-                disabled={busyAction === "leave-organizations"}
-              >
-                <LoadingButtonContent
-                  loading={busyAction === "leave-organizations"}
-                  loadingLabel="Leaving..."
-                  idleLabel="Leave all"
-                />
-              </button>
+            </div>
+            
+            <div className="p-6">
+               <h4 className="text-lg sm:text-xl font-bold text-text-primary mb-2">Leave all organizations</h4>
+               <p className="text-sm text-text-secondary mb-4">
+                 This removes your membership from every organization you belong to, unless you are the only owner in one of them.
+               </p>
+
+               {!!leaveBlockers.length && (
+                 <div className="rounded-2xl border border-[hsl(var(--destructive)/0.25)] bg-[hsl(var(--destructive)/0.08)] px-4 py-4">
+                   <p className="text-sm font-medium text-[hsl(var(--destructive))]">
+                     These organizations still need another owner before you can leave:
+                   </p>
+                   <div className="mt-3 flex flex-wrap gap-2">
+                     {leaveBlockers.map((name) => (
+                       <span
+                         key={name}
+                         className="rounded-full border border-[hsl(var(--destructive)/0.24)] bg-card px-3 py-1 text-xs font-semibold text-[hsl(var(--destructive))]"
+                       >
+                         {name}
+                       </span>
+                     ))}
+                   </div>
+                 </div>
+               )}
+            </div>
+            
+            <div className="flex flex-row-reverse items-center gap-3 p-6 pt-0">
+               <button 
+                 onClick={leaveAllOrganizations} 
+                 disabled={busyAction === "leave-organizations"}
+                 className="flex-1 bg-primary hover:bg-primary-hover disabled:opacity-50 text-primary-foreground font-semibold py-2 px-4 rounded-lg transition-colors flex items-center justify-center"
+               >
+                 <LoadingButtonContent
+                   loading={busyAction === "leave-organizations"}
+                   loadingLabel="Leaving..."
+                   idleLabel="Leave all"
+                 />
+               </button>
+               <button 
+                 onClick={() => {
+                   setShowLeaveConfirm(false);
+                   setLeaveBlockers([]);
+                 }} 
+                 disabled={busyAction === "leave-organizations"}
+                 className="flex-1 bg-secondary/50 border border-border hover:bg-secondary/80 text-text-primary font-semibold py-2 px-4 rounded-lg transition-colors flex items-center justify-center"
+               >
+                 Cancel
+               </button>
             </div>
           </div>
         </div>
@@ -741,7 +746,7 @@ export default function AccountDetailsPage() {
                <button 
                  onClick={continueDeleteAccount} 
                  disabled={busyAction === "delete-account"}
-                 className="flex-1 tf-danger-solid font-semibold py-2 px-4 rounded-lg transition-colors flex items-center justify-center"
+                 className="flex-1 bg-destructive/15 text-destructive border border-destructive/30 hover:bg-destructive/25 backdrop-blur-md font-semibold py-2 px-4 rounded-lg transition-all duration-300 flex items-center justify-center shadow-[0_8px_16px_-6px_rgba(var(--destructive-rgb),0.1)]"
                >
                  {user?.plan === "PRO" ? "Continue" : "Delete"}
                </button>
@@ -776,7 +781,7 @@ export default function AccountDetailsPage() {
                <button 
                  onClick={deleteAccount} 
                  disabled={busyAction === "delete-account"}
-                 className="flex-1 tf-danger-solid font-semibold py-2 px-4 rounded-lg transition-colors flex items-center justify-center"
+                 className="flex-1 bg-destructive/15 text-destructive border border-destructive/30 hover:bg-destructive/25 backdrop-blur-md font-semibold py-2 px-4 rounded-lg transition-all duration-300 flex items-center justify-center shadow-[0_8px_16px_-6px_rgba(var(--destructive-rgb),0.1)]"
                >
                  Delete
                </button>

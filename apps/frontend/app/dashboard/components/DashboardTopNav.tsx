@@ -49,28 +49,36 @@ function UsageRing({
   limit: number | null;
   percentUsed: number;
 }) {
-  const radius = 18;
+  const radius = 17.5;
   const circumference = 2 * Math.PI * radius;
   const progress = limit ? circumference - (Math.min(100, percentUsed) / 100) * circumference : circumference * 0.72;
+  const isDanger = limit && percentUsed >= 90;
+  const isWarning = limit && percentUsed >= 75 && percentUsed < 90;
 
   return (
-    <div className="relative h-11 w-11 shrink-0">
-      <svg className="h-11 w-11 -rotate-90" viewBox="0 0 44 44" fill="none">
-        <circle cx="22" cy="22" r={radius} stroke="currentColor" strokeWidth="4" className="text-border/80" />
+    <div className="relative h-10 w-10 shrink-0">
+      <svg className="h-10 w-10 -rotate-90 drop-shadow-sm" viewBox="0 0 44 44" fill="none">
+        <defs>
+          <linearGradient id="usageGradientTop" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stopColor={limit ? (isDanger ? "hsl(var(--destructive))" : isWarning ? "hsl(var(--warning))" : "hsl(var(--primary))") : "#34d399"} />
+            <stop offset="100%" stopColor={limit ? (isDanger ? "hsl(var(--destructive-border))" : isWarning ? "hsl(var(--warning-border))" : "hsl(var(--primary-hover))") : "#10b981"} />
+          </linearGradient>
+        </defs>
+        <circle cx="22" cy="22" r={radius} stroke="currentColor" strokeWidth="3" className="text-border/40" />
         <circle
           cx="22"
           cy="22"
           r={radius}
-          stroke="currentColor"
-          strokeWidth="4"
+          stroke="url(#usageGradientTop)"
+          strokeWidth="3.5"
           strokeLinecap="round"
           strokeDasharray={circumference}
           strokeDashoffset={progress}
-          className={limit ? "text-primary" : "text-emerald-400"}
+          className="transition-all duration-1000 ease-out"
         />
       </svg>
-      <span className="absolute inset-0 flex items-center justify-center text-[10px] font-semibold text-text-primary">
-        {limit ? `${Math.min(99, Math.max(0, percentUsed))}%` : "∞"}
+      <span className="absolute inset-0 flex items-center justify-center text-[9px] font-bold tracking-tighter text-text-primary">
+        {limit ? `${Math.min(99, Math.max(0, Math.round(percentUsed)))}%` : "∞"}
       </span>
     </div>
   );
@@ -247,41 +255,44 @@ export default function DashboardTopNav() {
     <div className="fixed inset-x-0 top-0 z-40 hidden border-b border-border bg-background/95 backdrop-blur lg:block">
       <div className="tf-dashboard">
         <div className="flex items-center justify-between gap-4 py-3">
-          <Link href="/" className="flex min-w-0 items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10">
-              <Image src="/traceforge-logo.svg" alt="TraceForge" width={22} height={22} />
-            </div>
-            <div className="min-w-0">
-              <p className="text-[10px] uppercase tracking-[0.18em] text-text-secondary">
-                Workspace
-              </p>
-              <p className="truncate text-sm font-semibold text-text-primary">TraceForge</p>
-            </div>
-          </Link>
+          <div className="flex shrink-0 items-center justify-start">
+            <Link href="/" className="flex items-center gap-3">
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary/10">
+                <Image src="/traceforge-logo.svg" alt="TraceForge" width={22} height={22} />
+              </div>
+              <div>
+                <p className="text-[10px] uppercase tracking-[0.18em] text-text-secondary">
+                  Workspace
+                </p>
+                <p className="text-sm font-semibold text-text-primary">TraceForge</p>
+              </div>
+            </Link>
+          </div>
 
-          <nav className="flex flex-1 items-center justify-center gap-1">
+          <nav className="flex flex-1 min-w-0 items-center justify-center gap-1 px-4 lg:px-8">
             {primaryItems.map((item) => {
               const active = isActiveRoute(pathname, item.href);
               return (
                 <Link
                   key={item.href}
                   href={item.href}
-                  className={`rounded-full px-4 py-2 text-sm font-semibold transition ${
+                  title={item.label}
+                  className={`inline-flex h-10 shrink items-center justify-center rounded-full px-3 xl:px-4 text-sm font-semibold transition min-w-0 ${
                     active
                       ? "bg-accent-soft text-text-primary"
                       : "text-text-secondary hover:bg-secondary/70 hover:text-text-primary"
                   }`}
                 >
-                  {item.label}
+                  <span className="truncate">{item.label}</span>
                 </Link>
               );
             })}
 
-            <div className="relative" ref={moreRef}>
+            <div className="relative shrink-0" ref={moreRef}>
               <button
                 type="button"
                 onClick={() => setMoreOpen((prev) => !prev)}
-                className={`inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-semibold transition ${
+                className={`inline-flex h-10 items-center justify-center gap-2 rounded-full px-4 text-sm font-semibold transition ${
                   moreOpen || activeOverflowItem
                     ? "bg-accent-soft text-text-primary"
                     : "text-text-secondary hover:bg-secondary/70 hover:text-text-primary"
@@ -346,29 +357,57 @@ export default function DashboardTopNav() {
             </div>
           </nav>
 
-          <div className="flex items-center gap-2">
+          <div className="flex shrink-0 items-center gap-2">
             {usage ? (
               <div className="group relative">
                 <button
                   type="button"
-                  className="inline-flex h-12 w-12 items-center justify-center rounded-full border border-border bg-card text-text-secondary shadow-sm transition hover:border-primary/25 hover:text-text-primary"
+                  className="inline-flex items-center justify-center rounded-full border border-transparent bg-transparent transition hover:bg-secondary/50"
                   aria-label="View monthly usage"
                 >
-                  <UsageRing used={usage.used} limit={usage.limit} percentUsed={usage.percentUsed} />
+                  <div className="cursor-help">
+                    <UsageRing used={usage.used} limit={usage.limit} percentUsed={usage.percentUsed} />
+                  </div>
                 </button>
-                <div className="pointer-events-none absolute right-0 top-[calc(100%+10px)] z-50 hidden w-60 rounded-2xl border border-border bg-card/95 p-3 text-xs text-text-secondary shadow-xl backdrop-blur group-hover:block group-focus-within:block">
-                  <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-text-secondary">
-                    Usage this month
-                  </p>
-                  <p className="mt-2 font-semibold text-text-primary">
-                    {usage.plan === "PRO" ? "Unlimited AI" : `${usage.used} used / ${usage.limit} total`}
-                  </p>
-                  <p className="mt-1">
+                <div className="pointer-events-none absolute right-0 top-[calc(100%+12px)] z-50 hidden w-64 rounded-[24px] border border-border/50 bg-card/90 p-4 shadow-[0_20px_40px_-15px_rgba(0,0,0,0.1)] backdrop-blur-xl group-hover:block group-focus-within:block">
+                  <div className="absolute -top-[5px] right-[16px] h-2.5 w-2.5 rotate-45 border-t border-l border-border/50 bg-card"></div>
+                  
+                  <div className="relative z-10 flex items-center justify-between mb-2">
+                    <p className="text-[9px] font-bold uppercase tracking-[0.2em] text-text-secondary">
+                      Workspace Usage
+                    </p>
+                    <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[9px] font-bold uppercase tracking-wider ${
+                      usage.plan === "PRO" ? "bg-primary/20 text-primary" : "bg-secondary text-text-secondary"
+                    }`}>
+                      {usage.plan}
+                    </span>
+                  </div>
+                  
+                  <div className="relative z-10">
+                    <div className="flex items-end gap-1.5 font-display text-2xl font-bold text-text-primary">
+                      {usage.plan === "PRO" ? "∞" : usage.used}
+                      {usage.plan !== "PRO" && (
+                        <span className="mb-[3px] text-xs font-semibold text-text-secondary">
+                          / {usage.limit}
+                        </span>
+                      )}
+                    </div>
+                    
+                    <div className="mt-2.5 h-1.5 w-full overflow-hidden rounded-full bg-secondary/80">
+                      <div 
+                        className={`h-full rounded-full transition-all duration-1000 ${
+                          (usage.limit && usage.percentUsed >= 90) ? "bg-destructive" : (usage.limit && usage.percentUsed >= 75) ? "bg-warning" : usage.plan === "PRO" ? "bg-emerald-500" : "bg-primary"
+                        }`}
+                        style={{ width: `${Math.min(100, usage.percentUsed)}%` }}
+                      />
+                    </div>
+                  </div>
+                  
+                  <p className="relative z-10 mt-3.5 text-[11px] leading-relaxed text-text-secondary">
                     {usage.plan === "PRO"
                       ? "Your Pro plan includes unlimited AI analyses everywhere in TraceForge."
-                      : `${usage.remaining} left this month.`}
+                      : `${usage.remaining} analyses left this month. Upgrade to Pro for unlimited usage.`}
                   </p>
-                  <p className="mt-2">{usage.detail}</p>
                 </div>
               </div>
             ) : null}

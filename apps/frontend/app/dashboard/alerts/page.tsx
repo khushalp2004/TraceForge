@@ -1375,7 +1375,7 @@ function AlertsPageInner() {
                <button 
                  onClick={archiveRule} 
                  disabled={archivingRuleId === archiveTarget.id}
-                 className="flex-1 tf-danger-solid font-semibold py-2 px-4 rounded-lg transition-colors flex items-center justify-center"
+                 className="flex-1 bg-destructive/15 text-destructive border border-destructive/30 hover:bg-destructive/25 backdrop-blur-md font-semibold py-2 px-4 rounded-lg transition-all duration-300 flex items-center justify-center shadow-[0_8px_16px_-6px_rgba(var(--destructive-rgb),0.1)]"
                >
                  Archive
                </button>
@@ -1410,7 +1410,7 @@ function AlertsPageInner() {
                <button 
                  onClick={deleteRulePermanently} 
                  disabled={deletingRuleId === deleteTarget.id}
-                 className="flex-1 tf-danger-solid font-semibold py-2 px-4 rounded-lg transition-colors flex items-center justify-center"
+                 className="flex-1 bg-destructive/15 text-destructive border border-destructive/30 hover:bg-destructive/25 backdrop-blur-md font-semibold py-2 px-4 rounded-lg transition-all duration-300 flex items-center justify-center shadow-[0_8px_16px_-6px_rgba(var(--destructive-rgb),0.1)]"
                >
                  Delete
                </button>

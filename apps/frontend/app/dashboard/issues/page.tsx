@@ -1280,7 +1280,7 @@ function IssuesPageInner() {
                <button 
                  onClick={archiveIssue} 
                  disabled={archivingIssueId === archiveTarget.id}
-                 className="flex-1 tf-danger-solid font-semibold py-2 px-4 rounded-lg transition-colors flex items-center justify-center"
+                 className="flex-1 bg-destructive/15 text-destructive border border-destructive/30 hover:bg-destructive/25 backdrop-blur-md font-semibold py-2 px-4 rounded-lg transition-all duration-300 flex items-center justify-center shadow-[0_8px_16px_-6px_rgba(var(--destructive-rgb),0.1)]"
                >
                  Archive
                </button>
@@ -1315,7 +1315,7 @@ function IssuesPageInner() {
                <button 
                  onClick={deleteIssuePermanently} 
                  disabled={deletingIssueId === deleteTarget.id}
-                 className="flex-1 tf-danger-solid font-semibold py-2 px-4 rounded-lg transition-colors flex items-center justify-center"
+                 className="flex-1 bg-destructive/15 text-destructive border border-destructive/30 hover:bg-destructive/25 backdrop-blur-md font-semibold py-2 px-4 rounded-lg transition-all duration-300 flex items-center justify-center shadow-[0_8px_16px_-6px_rgba(var(--destructive-rgb),0.1)]"
                >
                  Delete
                </button>
@@ -1332,97 +1332,112 @@ function IssuesPageInner() {
       )}
 
       {showCreateModal && (
-        <div className="tf-modal-backdrop">
-          <div className="tf-modal-panel">
-            <div className="tf-modal-header">
-              <div className="flex items-center gap-4">
-                <div className="relative">
-                  <div className="absolute inset-0 rounded-2xl bg-primary/20 blur-xl transition-all" />
-                  <div className="relative flex h-14 w-14 items-center justify-center rounded-2xl border border-primary/20 bg-primary/10 p-2 text-primary shadow-[inset_0_0_12px_rgba(var(--primary-rgb),0.1)]">
-                    <PlusCircle className="h-6 w-6" />
-                  </div>
-                </div>
-                <div>
-                  <h3 className="tf-modal-title">Create Project</h3>
-                  <p className="tf-modal-description">Add a new workspace to track issues and deployments.</p>
-                </div>
-              </div>
-            </div>
-
-            <div className="tf-modal-body">
-              <div className="grid gap-4">
-                <div>
-                  <label className="mb-2 block text-[11px] font-bold uppercase tracking-[0.2em] text-text-secondary/80">
-                    Project name
-                  </label>
-                  <input
-                    className="tf-input w-full bg-card/50 backdrop-blur-sm"
-                    placeholder="e.g. Website Frontend"
-                    value={newProjectName}
-                    onChange={(event) => setNewProjectName(event.target.value)}
-                    autoFocus
-                  />
-                </div>
-                
-                <div>
-                  <label className="mb-2 block text-[11px] font-bold uppercase tracking-[0.2em] text-text-secondary/80">
-                    AI Analysis Model
-                  </label>
-                  <select
-                    className="tf-select w-full bg-card/50 backdrop-blur-sm"
-                    value={newProjectAiModel}
-                    onChange={(event) => setNewProjectAiModel(event.target.value)}
-                  >
-                    <option value="allam-2-7b">Allam 2 7B</option>
-                    <option value="groq/compound">Compound</option>
-                    <option value="groq/compound-mini">Compound Mini</option>
-                    <option value="llama-3.1-8b-instant">Llama 3.1 8B Instant</option>
-                    <option value="openai/gpt-oss-120b">GPT-OSS 120B</option>
-                    <option value="openai/gpt-oss-20b">GPT-OSS 20B</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label className="mb-2 block text-[11px] font-bold uppercase tracking-[0.2em] text-text-secondary/80">
-                    GitHub Repository (Optional)
-                  </label>
-                  <input
-                    className="tf-input w-full bg-card/50 backdrop-blur-sm"
-                    placeholder="owner/repo"
-                    value={newProjectGithubRepoId}
-                    onChange={(event) => setNewProjectGithubRepoId(event.target.value)}
-                  />
-                </div>
-              </div>
-            </div>
-
-            <div className="tf-modal-footer">
-              <button
-                type="button"
-                className="tf-button-ghost min-w-[100px]"
-                onClick={() => {
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
+          <div className="w-full max-w-lg max-h-[calc(100dvh-env(safe-area-inset-top)-env(safe-area-inset-bottom)-8rem)] sm:max-h-[90vh] rounded-xl border border-border bg-card shadow-xl flex flex-col overflow-hidden">
+            <div className="flex items-center justify-between p-4 border-b border-border/50 shrink-0">
+              <h3 className="text-sm font-semibold text-text-primary">Create Project</h3>
+              <button onClick={() => {
                   setShowCreateModal(false);
                   setNewProjectName("");
                   setNewProjectAiModel("groq/compound");
                   setNewProjectGithubRepoId("");
-                }}
-                disabled={creatingProject}
-              >
-                Cancel
+                }} className="text-text-secondary hover:text-text-primary transition-colors">
+                <X className="h-4 w-4" />
               </button>
-              <button
-                type="button"
-                className="tf-button min-w-[140px]"
-                onClick={createProject}
-                disabled={creatingProject || !newProjectName.trim()}
-              >
-                <LoadingButtonContent
-                  loading={creatingProject}
-                  loadingLabel="Creating..."
-                  idleLabel="Create project"
-                  icon={PlusCircle}
-                />
-              </button>
+            </div>
+            
+            <div className="p-6 overflow-y-auto">
+               <p className="text-sm text-text-secondary mb-6">Add a new workspace to track issues and deployments.</p>
+               
+               <div className="space-y-5">
+                 <div>
+                   <label className="mb-2 block text-xs font-semibold uppercase tracking-[0.14em] text-text-secondary">
+                     Project name
+                   </label>
+                   <input
+                     className="w-full rounded-xl border border-border bg-secondary/20 px-4 py-3 text-sm text-text-primary shadow-sm outline-none transition focus:border-primary/50 focus:bg-card focus:ring-2 focus:ring-primary/20"
+                     placeholder="e.g. Website Frontend"
+                     value={newProjectName}
+                     onChange={(event) => setNewProjectName(event.target.value)}
+                     autoFocus
+                   />
+                 </div>
+                 
+                 <div>
+                   <label className="mb-2 block text-xs font-semibold uppercase tracking-[0.14em] text-text-secondary">
+                     AI Analysis Model
+                   </label>
+                   <select
+                     className="w-full appearance-none rounded-xl border border-border bg-secondary/20 px-4 py-3 pr-10 text-sm text-text-primary shadow-sm outline-none transition focus:border-primary/50 focus:bg-card focus:ring-2 focus:ring-primary/20"
+                     style={{
+                       backgroundImage:
+                         "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 20 20' fill='none'%3E%3Cpath d='M5 7l5 5 5-5' stroke='%239CA3AF' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E\")",
+                       backgroundRepeat: "no-repeat",
+                       backgroundPosition: "right 16px center",
+                       backgroundSize: "12px 12px"
+                     }}
+                     value={newProjectAiModel}
+                     onChange={(event) => setNewProjectAiModel(event.target.value)}
+                   >
+                     <option value="allam-2-7b">Allam 2 7B</option>
+                     <option value="groq/compound">Compound</option>
+                     <option value="groq/compound-mini">Compound Mini</option>
+                     <option value="llama-3.1-8b-instant">Llama 3.1 8B Instant</option>
+                     <option value="openai/gpt-oss-120b">GPT-OSS 120B</option>
+                     <option value="openai/gpt-oss-20b">GPT-OSS 20B</option>
+                   </select>
+                 </div>
+  
+                 <div>
+                   <label className="mb-2 block text-xs font-semibold uppercase tracking-[0.14em] text-text-secondary">
+                     GitHub Repository (Optional)
+                   </label>
+                   <select
+                     className="w-full appearance-none rounded-xl border border-border bg-secondary/20 px-4 py-3 pr-10 text-sm text-text-primary shadow-sm outline-none transition focus:border-primary/50 focus:bg-card focus:ring-2 focus:ring-primary/20 disabled:opacity-50 disabled:cursor-not-allowed"
+                     style={{
+                       backgroundImage:
+                         "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 20 20' fill='none'%3E%3Cpath d='M5 7l5 5 5-5' stroke='%239CA3AF' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E\")",
+                       backgroundRepeat: "no-repeat",
+                       backgroundPosition: "right 16px center",
+                       backgroundSize: "12px 12px"
+                     }}
+                     value={newProjectGithubRepoId}
+                     onChange={(event) => setNewProjectGithubRepoId(event.target.value)}
+                     disabled={!githubConfigured || !githubConnected}
+                   >
+                     <option value="">
+                       {githubConnected ? "No linked repository" : "Connect GitHub in Settings"}
+                     </option>
+                     {githubRepos.map((repo) => (
+                       <option key={repo.id} value={repo.id}>
+                         {repo.fullName}
+                       </option>
+                     ))}
+                   </select>
+                 </div>
+               </div>
+            </div>
+            
+            <div className="flex flex-row-reverse items-center gap-3 p-6 pt-4 border-t border-border/50 shrink-0">
+               <button 
+                 onClick={createProject} 
+                 disabled={creatingProject || !newProjectName.trim()}
+                 className="flex-1 bg-primary hover:bg-primary-hover disabled:opacity-50 text-primary-foreground font-semibold py-2 px-4 rounded-lg transition-colors flex items-center justify-center"
+               >
+                 <LoadingButtonContent loading={creatingProject} loadingLabel="Creating..." idleLabel="Create project" icon={PlusCircle} />
+               </button>
+               <button 
+                 onClick={() => {
+                   setShowCreateModal(false);
+                   setNewProjectName("");
+                   setNewProjectAiModel("groq/compound");
+                   setNewProjectGithubRepoId("");
+                 }} 
+                 disabled={creatingProject}
+                 className="flex-1 bg-secondary/50 border border-border hover:bg-secondary/80 text-text-primary font-semibold py-2 px-4 rounded-lg transition-colors flex items-center justify-center"
+               >
+                 Cancel
+               </button>
             </div>
           </div>
         </div>

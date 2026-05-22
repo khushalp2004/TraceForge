@@ -609,117 +609,109 @@ function ReleasesPageInner() {
       </div>
 
       {showCreateModal && (
-        <div className="tf-modal-backdrop-content-mobile">
-          <div className="tf-modal-panel tf-modal-panel-content-mobile">
-            <div className="tf-modal-header">
-              <div className="flex items-center gap-3">
-                <div className="rounded-xl border border-primary/20 bg-accent-soft p-2 text-primary shadow-sm">
-                  <Rocket className="h-4 w-4" />
-                </div>
-                <div>
-                  <h3 className="tf-modal-title">Add release marker</h3>
-                  <p className="tf-modal-description">Create a release checkpoint to compare deployment timing with issue spikes.</p>
-                </div>
-              </div>
-            </div>
-
-            <div className="tf-modal-body tf-scroll-rail overflow-y-auto">
-              <div className="grid gap-4">
-                <div>
-                  <label className="mb-2 block text-[11px] font-semibold uppercase tracking-[0.14em] text-text-secondary">
-                    Project
-                  </label>
-                  <select
-                    className="tf-select w-full"
-                    value={selectedProjectId}
-                    onChange={(event) => setSelectedProjectId(event.target.value)}
-                  >
-                    <option value="">Select a project</option>
-                    {projects.map((project) => (
-                      <option key={project.id} value={project.id}>
-                        {project.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                <div>
-                  <label className="mb-2 block text-[11px] font-semibold uppercase tracking-[0.14em] text-text-secondary">
-                    Version
-                  </label>
-                  <input
-                    className="tf-input w-full"
-                    placeholder="e.g. v1.8.2"
-                    value={version}
-                    onChange={(event) => setVersion(event.target.value)}
-                  />
-                </div>
-
-                <div className="grid gap-4 sm:grid-cols-2">
-                  <div>
-                    <label className="mb-2 block text-[11px] font-semibold uppercase tracking-[0.14em] text-text-secondary">
-                      Environment
-                    </label>
-                    <select
-                      className="tf-select w-full"
-                      value={releaseEnvironment}
-                      onChange={(event) => setReleaseEnvironment(event.target.value)}
-                    >
-                      <option value="production">Production</option>
-                      <option value="staging">Staging</option>
-                      <option value="development">Development</option>
-                      <option value="browser">Browser</option>
-                    </select>
-                  </div>
-                  <div>
-                    <label className="mb-2 block text-[11px] font-semibold uppercase tracking-[0.14em] text-text-secondary">
-                      Release Date
-                    </label>
-                    <input
-                      className="tf-input w-full"
-                      type="datetime-local"
-                      value={releasedAt}
-                      onChange={(event) => setReleasedAt(event.target.value)}
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <label className="mb-2 block text-[11px] font-semibold uppercase tracking-[0.14em] text-text-secondary">
-                    Release Notes
-                  </label>
-                  <textarea
-                    className="tf-input min-h-[100px] w-full resize-none py-3"
-                    placeholder="Optional notes about what shipped in this version..."
-                    value={notes}
-                    onChange={(event) => setNotes(event.target.value)}
-                  />
-                </div>
-              </div>
-            </div>
-
-            <div className="tf-modal-footer">
-              <button
-                type="button"
-                className="tf-button-ghost min-w-[100px]"
-                onClick={() => {
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
+          <div className="w-full max-w-lg rounded-xl border border-border bg-card shadow-xl flex flex-col overflow-hidden">
+            <div className="flex items-center justify-between p-4 border-b border-border/50">
+              <h3 className="text-sm font-semibold text-text-primary">Add release marker</h3>
+              <button onClick={() => {
                   setShowCreateModal(false);
                   setVersion("");
                   setNotes("");
                   setReleasedAt("");
-                }}
-                disabled={creatingRelease}
-              >
-                Cancel
+                }} className="text-text-secondary hover:text-text-primary transition-colors">
+                <X className="h-4 w-4" />
               </button>
-              <button
-                type="button"
-                className="tf-button min-w-[140px]"
-                onClick={createRelease}
-                disabled={creatingRelease}
-              >
-                <LoadingButtonContent loading={creatingRelease} loadingLabel="Saving..." idleLabel="Save release" />
-              </button>
+            </div>
+            
+            <div className="p-6">
+               <p className="text-sm text-text-secondary mb-4">Create a release checkpoint to compare deployment timing with issue spikes.</p>
+
+               <label className="mb-2 block text-[11px] font-semibold uppercase tracking-[0.14em] text-text-secondary">
+                 Project
+               </label>
+               <select
+                 className="mb-4 w-full rounded-lg border border-border bg-background px-4 py-2 text-sm text-text-primary outline-none transition focus:border-primary/30 focus:ring-2 focus:ring-primary/10"
+                 value={selectedProjectId}
+                 onChange={(event) => setSelectedProjectId(event.target.value)}
+               >
+                 <option value="">Select a project</option>
+                 {projects.map((project) => (
+                   <option key={project.id} value={project.id}>
+                     {project.name}
+                   </option>
+                 ))}
+               </select>
+
+               <label className="mb-2 block text-[11px] font-semibold uppercase tracking-[0.14em] text-text-secondary">
+                 Version
+               </label>
+               <input
+                 className="mb-4 w-full rounded-lg border border-border bg-background px-4 py-2 text-sm text-text-primary outline-none transition focus:border-primary/30 focus:ring-2 focus:ring-primary/10"
+                 placeholder="e.g. v1.8.2"
+                 value={version}
+                 onChange={(event) => setVersion(event.target.value)}
+               />
+
+               <div className="mb-4 grid gap-4 sm:grid-cols-2">
+                 <div>
+                   <label className="mb-2 block text-[11px] font-semibold uppercase tracking-[0.14em] text-text-secondary">
+                     Environment
+                   </label>
+                   <select
+                     className="w-full rounded-lg border border-border bg-background px-4 py-2 text-sm text-text-primary outline-none transition focus:border-primary/30 focus:ring-2 focus:ring-primary/10"
+                     value={releaseEnvironment}
+                     onChange={(event) => setReleaseEnvironment(event.target.value)}
+                   >
+                     <option value="production">Production</option>
+                     <option value="staging">Staging</option>
+                     <option value="development">Development</option>
+                     <option value="browser">Browser</option>
+                   </select>
+                 </div>
+                 <div>
+                   <label className="mb-2 block text-[11px] font-semibold uppercase tracking-[0.14em] text-text-secondary">
+                     Release Date
+                   </label>
+                   <input
+                     className="w-full rounded-lg border border-border bg-background px-4 py-2 text-sm text-text-primary outline-none transition focus:border-primary/30 focus:ring-2 focus:ring-primary/10"
+                     type="datetime-local"
+                     value={releasedAt}
+                     onChange={(event) => setReleasedAt(event.target.value)}
+                   />
+                 </div>
+               </div>
+
+               <label className="mb-2 block text-[11px] font-semibold uppercase tracking-[0.14em] text-text-secondary">
+                 Release Notes
+               </label>
+               <textarea
+                 className="min-h-[100px] w-full resize-none rounded-lg border border-border bg-background px-4 py-3 text-sm text-text-primary outline-none transition focus:border-primary/30 focus:ring-2 focus:ring-primary/10"
+                 placeholder="Optional notes about what shipped in this version..."
+                 value={notes}
+                 onChange={(event) => setNotes(event.target.value)}
+               />
+            </div>
+            
+            <div className="flex flex-row-reverse items-center gap-3 p-6 pt-0">
+               <button 
+                 onClick={createRelease} 
+                 disabled={creatingRelease}
+                 className="flex-1 bg-primary hover:bg-primary-hover disabled:opacity-50 text-primary-foreground font-semibold py-2 px-4 rounded-lg transition-colors flex items-center justify-center"
+               >
+                 <LoadingButtonContent loading={creatingRelease} loadingLabel="Saving..." idleLabel="Save release" />
+               </button>
+               <button 
+                 onClick={() => {
+                   setShowCreateModal(false);
+                   setVersion("");
+                   setNotes("");
+                   setReleasedAt("");
+                 }} 
+                 disabled={creatingRelease}
+                 className="flex-1 bg-secondary/50 border border-border hover:bg-secondary/80 text-text-primary font-semibold py-2 px-4 rounded-lg transition-colors flex items-center justify-center"
+               >
+                 Cancel
+               </button>
             </div>
           </div>
         </div>
@@ -744,7 +736,7 @@ function ReleasesPageInner() {
                <button 
                  onClick={deleteRelease} 
                  disabled={deletingReleaseId === deleteTarget.id}
-                 className="flex-1 tf-danger-solid font-semibold py-2 px-4 rounded-lg transition-colors flex items-center justify-center"
+                 className="flex-1 bg-destructive/15 text-destructive border border-destructive/30 hover:bg-destructive/25 backdrop-blur-md font-semibold py-2 px-4 rounded-lg transition-all duration-300 flex items-center justify-center shadow-[0_8px_16px_-6px_rgba(var(--destructive-rgb),0.1)]"
                >
                  Delete
                </button>

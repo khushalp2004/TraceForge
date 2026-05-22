@@ -613,106 +613,103 @@ function OrganizationDetailPageInner({ params }: { params: { id: string } }) {
       </div>
 
       {showInviteModal && (
-        <div className="tf-modal-backdrop">
-          <div className="mx-auto flex max-h-[calc(100dvh-env(safe-area-inset-top)-env(safe-area-inset-bottom)-8.5rem)] w-full max-w-lg flex-col overflow-hidden rounded-[28px] border border-border bg-card shadow-2xl sm:max-h-[min(92vh,48rem)]">
-            <div className="border-b border-border bg-secondary/40 px-5 py-4 sm:px-6 sm:py-5">
-              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-primary">
-                Organization Invite
-              </p>
-              <h3 className="font-display mt-2 text-xl font-semibold text-text-primary">
-                Generate Invite Link
-              </h3>
-              <p className="mt-2 max-w-md text-sm text-text-secondary">
-                Create a shareable link for this organization. Anyone opening it will request access
-                based on the role you choose.
-              </p>
-            </div>
-
-            <div className="tf-scroll-rail flex-1 space-y-5 overflow-y-auto px-5 py-5 sm:px-6 sm:py-6">
-              <div className="rounded-2xl border border-border bg-secondary/45 p-4">
-                <p className="text-xs font-semibold uppercase tracking-[0.14em] text-text-secondary">
-                  Access Level
-                </p>
-                <div className="mt-3 grid gap-3 sm:grid-cols-2">
-                  <button
-                    className={`rounded-2xl border px-4 py-4 text-left transition ${
-                      inviteRole === "MEMBER"
-                        ? "border-primary bg-primary/10"
-                        : "border-border bg-card hover:border-primary/30"
-                    }`}
-                    onClick={() => setInviteRole("MEMBER")}
-                    type="button"
-                  >
-                    <p className="text-sm font-semibold text-text-primary">Member</p>
-                    <p className="mt-1 text-xs text-text-secondary">
-                      Can join the team and collaborate.
-                    </p>
-                  </button>
-                  <button
-                    className={`rounded-2xl border px-4 py-4 text-left transition ${
-                      inviteRole === "OWNER"
-                        ? "border-primary bg-primary/10"
-                        : "border-border bg-card hover:border-primary/30"
-                    }`}
-                    onClick={() => setInviteRole("OWNER")}
-                    type="button"
-                  >
-                    <p className="text-sm font-semibold text-text-primary">Owner</p>
-                    <p className="mt-1 text-xs text-text-secondary">
-                      Can manage members, invites, and roles.
-                    </p>
-                  </button>
-                </div>
-              </div>
-
-              <button
-                className="tf-button w-full px-4 py-3 text-sm"
-                onClick={handleGenerateInviteLink}
-                disabled={loading}
-              >
-                <LoadingButtonContent
-                  loading={loading}
-                  loadingLabel="Generating link..."
-                  idleLabel="Generate link"
-                />
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
+          <div className="w-full max-w-lg max-h-[calc(100dvh-env(safe-area-inset-top)-env(safe-area-inset-bottom)-8rem)] sm:max-h-[90vh] rounded-xl border border-border bg-card shadow-xl flex flex-col overflow-hidden">
+            <div className="flex items-center justify-between p-4 border-b border-border/50 shrink-0">
+              <h3 className="text-sm font-semibold text-text-primary">Generate Invite Link</h3>
+              <button onClick={() => setShowInviteModal(false)} className="text-text-secondary hover:text-text-primary transition-colors">
+                <X className="h-4 w-4" />
               </button>
-
-              {inviteLink ? (
-                <div className="rounded-2xl border border-primary/20 bg-primary/5 p-4">
-                  <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-                    <div className="min-w-0">
-                      <p className="text-sm font-semibold text-text-primary">Invite link ready</p>
-                      <p className="mt-1 text-xs text-text-secondary">
-                        Share this link with the teammate you want to invite.
-                      </p>
-                    </div>
-                    <button
-                      className="inline-flex w-full items-center justify-center rounded-full border border-primary/20 bg-card px-3.5 py-2 text-xs font-semibold text-primary transition hover:border-primary/35 hover:bg-card/90 sm:w-auto"
-                      onClick={copyLink}
-                    >
-                      Copy Link
-                    </button>
-                  </div>
-                  <div className="mt-3 rounded-xl border border-border bg-card px-3 py-3 text-xs text-text-secondary">
-                    <span className="break-all">{inviteLink}</span>
-                  </div>
-                </div>
-              ) : (
-                <div className="rounded-2xl border border-dashed border-border px-4 py-5 text-sm text-text-secondary">
-                  Your generated invite link will appear here.
-                </div>
-              )}
-
             </div>
+            
+            <div className="p-6 overflow-y-auto">
+               <p className="text-sm text-text-secondary mb-6">
+                 Create a shareable link for this organization. Anyone opening it will request access based on the role you choose.
+               </p>
 
-            <div className="flex border-t border-border px-5 py-4 sm:px-6">
-              <button
-                className="w-full rounded-full border border-border px-4 py-2 text-sm font-semibold text-text-secondary transition hover:bg-secondary/70 sm:ml-auto sm:w-auto"
-                onClick={() => setShowInviteModal(false)}
-                disabled={loading}
-              >
-                Close
-              </button>
+               <div className="rounded-2xl border border-border bg-secondary/45 p-4 mb-6">
+                 <p className="text-xs font-semibold uppercase tracking-[0.14em] text-text-secondary">
+                   Access Level
+                 </p>
+                 <div className="mt-3 grid gap-3 sm:grid-cols-2">
+                   <button
+                     className={`rounded-xl border px-4 py-3 text-left transition ${
+                       inviteRole === "MEMBER"
+                         ? "border-primary bg-primary/10"
+                         : "border-border bg-card hover:border-primary/30"
+                     }`}
+                     onClick={() => setInviteRole("MEMBER")}
+                     type="button"
+                   >
+                     <p className="text-sm font-semibold text-text-primary">Member</p>
+                     <p className="mt-1 text-xs text-text-secondary">
+                       Can join the team and collaborate.
+                     </p>
+                   </button>
+                   <button
+                     className={`rounded-xl border px-4 py-3 text-left transition ${
+                       inviteRole === "OWNER"
+                         ? "border-primary bg-primary/10"
+                         : "border-border bg-card hover:border-primary/30"
+                     }`}
+                     onClick={() => setInviteRole("OWNER")}
+                     type="button"
+                   >
+                     <p className="text-sm font-semibold text-text-primary">Owner</p>
+                     <p className="mt-1 text-xs text-text-secondary">
+                       Can manage members, invites, and roles.
+                     </p>
+                   </button>
+                 </div>
+               </div>
+
+               <button
+                 className="w-full rounded-lg bg-card border border-border px-4 py-3 text-sm font-semibold text-text-primary transition-colors hover:bg-secondary/50 mb-6"
+                 onClick={handleGenerateInviteLink}
+                 disabled={loading}
+               >
+                 <LoadingButtonContent
+                   loading={loading}
+                   loadingLabel="Generating link..."
+                   idleLabel="Generate link"
+                 />
+               </button>
+
+               {inviteLink ? (
+                 <div className="rounded-xl border border-primary/20 bg-primary/5 p-4">
+                   <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                     <div className="min-w-0">
+                       <p className="text-sm font-semibold text-text-primary">Invite link ready</p>
+                       <p className="mt-1 text-xs text-text-secondary">
+                         Share this link with the teammate you want to invite.
+                       </p>
+                     </div>
+                     <button
+                       className="inline-flex w-full items-center justify-center rounded-lg border border-primary/20 bg-card px-3.5 py-2 text-xs font-semibold text-primary transition hover:border-primary/35 hover:bg-card/90 sm:w-auto"
+                       onClick={copyLink}
+                     >
+                       Copy Link
+                     </button>
+                   </div>
+                   <div className="mt-3 rounded-lg border border-border bg-card px-3 py-3 text-xs text-text-secondary">
+                     <span className="break-all">{inviteLink}</span>
+                   </div>
+                 </div>
+               ) : (
+                 <div className="rounded-xl border border-dashed border-border px-4 py-5 text-sm text-text-secondary text-center">
+                   Your generated invite link will appear here.
+                 </div>
+               )}
+            </div>
+            
+            <div className="flex flex-row-reverse items-center gap-3 p-6 pt-4 border-t border-border/50 shrink-0">
+               <button 
+                 onClick={() => setShowInviteModal(false)} 
+                 disabled={loading}
+                 className="flex-1 bg-secondary/50 border border-border hover:bg-secondary/80 text-text-primary font-semibold py-2 px-4 rounded-lg transition-colors flex items-center justify-center"
+               >
+                 Close
+               </button>
             </div>
           </div>
         </div>

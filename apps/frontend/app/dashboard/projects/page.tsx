@@ -112,6 +112,11 @@ export default function ProjectSettingsPage() {
   const [activeProjectsPageSize, setActiveProjectsPageSize] = useState(6);
   const [archivedProjectsPage, setArchivedProjectsPage] = useState(1);
   const [archivedProjectsPageSize, setArchivedProjectsPageSize] = useState(6);
+  const [dragOverOrgId, setDragOverOrgId] = useState<string | null>(null);
+  const [isMovingProject, setIsMovingProject] = useState(false);
+  const [selectedProjectIds, setSelectedProjectIds] = useState<Set<string>>(new Set());
+  const [showBulkArchiveModal, setShowBulkArchiveModal] = useState(false);
+  const [bulkActionInput, setBulkActionInput] = useState("");
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -425,6 +430,84 @@ export default function ProjectSettingsPage() {
     }
   };
 
+  const moveProject = async (projectId: string, targetOrgId: string | null) => {
+    const token = localStorage.getItem(tokenKey);
+    if (!token) return;
+
+    setIsMovingProject(true);
+    setError(null);
+
+    try {
+      const res = await fetch(`${API_URL}/projects/${projectId}/move`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({ orgId: targetOrgId })
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || "Failed to move project");
+      }
+
+      setProjects((prev) =>
+        prev.map((project) => (project.id === projectId ? data.project : project))
+      );
+      showToast("Project moved successfully", "success");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Unexpected error");
+    } finally {
+      setIsMovingProject(false);
+    }
+  };
+
+  const toggleProjectSelection = (projectId: string) => {
+    setSelectedProjectIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(projectId)) {
+        next.delete(projectId);
+      } else {
+        next.add(projectId);
+      }
+      return next;
+    });
+  };
+
+  const handleBulkArchiveProjects = async () => {
+    const token = localStorage.getItem(tokenKey);
+    if (!token || selectedProjectIds.size === 0) return;
+
+    setLoading(true);
+    try {
+      const ids = Array.from(selectedProjectIds);
+      const results = await Promise.all(
+        ids.map((id) =>
+          fetch(`${API_URL}/projects/${id}`, {
+            method: "DELETE",
+            headers: { Authorization: `Bearer ${token}` }
+          })
+        )
+      );
+
+      const failedCount = results.filter((r) => !r.ok).length;
+      if (failedCount > 0) {
+        showToast(`Failed to archive ${failedCount} projects`, "error");
+      } else {
+        showToast(`Archived ${ids.length} projects`, "success");
+        setSelectedProjectIds(new Set());
+      }
+      await loadProjects();
+    } catch (err) {
+      showToast("Bulk archiving failed", "error");
+    } finally {
+      setLoading(false);
+      setShowBulkArchiveModal(false);
+      setBulkActionInput("");
+    }
+  };
+
   const deleteProjectPermanently = async () => {
     const token = localStorage.getItem(tokenKey);
     if (!token || !permanentDeleteTarget) return;
@@ -646,26 +729,63 @@ export default function ProjectSettingsPage() {
               Projects stay configured while recent setup or telemetry signals are still being received.
             </p>
           </div>
-          <div className="flex w-full items-center gap-2 sm:w-auto sm:justify-end sm:gap-3">
-            <label className="flex items-center gap-2 rounded-full border border-border bg-card/90 px-3 py-2 text-xs font-semibold text-text-secondary">
-              <span>Org</span>
-              <select
-                className="bg-transparent text-xs font-semibold text-text-primary outline-none"
-                value={selectedOrgId}
-                onChange={(event) => setSelectedOrgId(event.target.value)}
-                aria-label="Select organization scope"
-              >
-                <option value="">Personal</option>
-                {orgs.map((org) => (
-                  <option key={org.id} value={org.id}>
+          <div className="flex w-full min-w-0 items-center gap-2 sm:w-auto sm:justify-end sm:gap-3 flex-1 justify-end">
+            <div 
+              className="flex flex-nowrap items-center gap-2 mr-2 overflow-x-auto scroll-smooth [&::-webkit-scrollbar]:hidden relative max-w-[250px] sm:max-w-[400px] lg:max-w-[600px] xl:max-w-[800px] mask-image-fade"
+              style={{ scrollbarWidth: 'none', WebkitMaskImage: 'linear-gradient(to right, black 95%, transparent)' }}
+              onDragOver={(e) => {
+                const container = e.currentTarget;
+                const scrollSensitivity = 60;
+                const scrollSpeed = 20;
+                const rect = container.getBoundingClientRect();
+                
+                if (e.clientX - rect.left < scrollSensitivity) {
+                  container.scrollLeft -= scrollSpeed;
+                } else if (rect.right - e.clientX < scrollSensitivity) {
+                  container.scrollLeft += scrollSpeed;
+                }
+              }}
+            >
+              {[{ id: "", name: "Personal" }, ...orgs].map((org) => {
+                const isSelected = selectedOrgId === org.id;
+                const isDragOver = dragOverOrgId === org.id;
+                
+                return (
+                  <button
+                    key={org.id}
+                    className={`rounded-full px-4 py-1.5 text-[13px] font-semibold transition-all border ${
+                      isSelected
+                        ? "bg-primary text-primary-foreground border-primary shadow-sm"
+                        : "bg-card text-text-secondary border-border hover:bg-secondary/70 hover:text-text-primary"
+                    } ${
+                      isDragOver
+                        ? "border-primary border-dashed bg-primary/10 shadow-[0_0_15px_rgba(var(--primary-rgb),0.3)] scale-105"
+                        : ""
+                    }`}
+                    onClick={() => setSelectedOrgId(org.id)}
+                    onDragOver={(e) => {
+                      e.preventDefault();
+                      setDragOverOrgId(org.id);
+                    }}
+                    onDragLeave={() => setDragOverOrgId(null)}
+                    onDrop={(e) => {
+                      e.preventDefault();
+                      setDragOverOrgId(null);
+                      const projectId = e.dataTransfer.getData("projectId");
+                      const sourceOrgId = e.dataTransfer.getData("sourceOrgId");
+                      if (projectId && sourceOrgId !== org.id) {
+                        void moveProject(projectId, org.id || null);
+                      }
+                    }}
+                  >
                     {org.name}
-                  </option>
-                ))}
-              </select>
-            </label>
+                  </button>
+                );
+              })}
+            </div>
             <button
               type="button"
-              className={`inline-flex min-w-0 flex-1 items-center justify-center whitespace-nowrap rounded-full border px-3.5 py-2 text-sm font-semibold transition max-[639px]:text-[12px] max-[639px]:leading-none ${
+              className={`inline-flex shrink-0 items-center justify-center whitespace-nowrap rounded-full border px-3.5 py-2 text-sm font-semibold transition max-[639px]:text-[12px] max-[639px]:leading-none ${
                 showArchived
                   ? "border-primary/40 bg-accent-soft text-text-primary"
                   : "border-border text-text-secondary hover:bg-secondary/70"
@@ -676,7 +796,7 @@ export default function ProjectSettingsPage() {
               <span className="sm:hidden">{showArchived ? "Hide archi..." : "Show archi..."}</span>
             </button>
             <button
-              className="tf-button inline-flex min-w-0 flex-1 items-center justify-center whitespace-nowrap px-3.5 py-2 text-sm max-[639px]:text-[12px] max-[639px]:leading-none"
+              className="tf-button inline-flex shrink-0 items-center justify-center whitespace-nowrap px-3.5 py-2 text-sm max-[639px]:text-[12px] max-[639px]:leading-none"
               onClick={() => setShowCreateModal(true)}
             >
               Create project
@@ -689,150 +809,175 @@ export default function ProjectSettingsPage() {
         {loading && <p className="text-sm text-text-secondary">Working...</p>}
 
         <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-          {paginatedActiveProjects.map((project) => (
-            <div key={project.id} className="tf-card p-5">
-              {(() => {
-                const status = getProjectStatusMeta(project);
-                return (
-                  <div className="mb-4 flex items-center justify-between gap-3">
+          {paginatedActiveProjects.map((project) => {
+            const isSelected = selectedProjectIds.has(project.id);
+            return (
+            <div
+              key={project.id}
+              className={`tf-card group flex flex-col p-5 transition-all hover:border-primary/20 bg-card border rounded-xl shadow-sm ${
+                isSelected ? "border-primary bg-primary/5" : "border-border"
+              }`}
+              draggable={true}
+              onDragStart={(e) => {
+                e.dataTransfer.setData("projectId", project.id);
+                e.dataTransfer.setData("sourceOrgId", project.orgId || "");
+                e.dataTransfer.effectAllowed = "move";
+                
+                // Create custom ghost drag image
+                const dragGhost = document.createElement("div");
+                dragGhost.className = "fixed top-[-1000px] left-[-1000px] z-[9999] bg-card border border-border text-text-primary px-3 py-1.5 rounded-lg shadow-xl text-xs font-semibold whitespace-nowrap flex items-center gap-2";
+                dragGhost.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="opacity-50"><circle cx="9" cy="12" r="1"/><circle cx="9" cy="5" r="1"/><circle cx="9" cy="19" r="1"/><circle cx="15" cy="12" r="1"/><circle cx="15" cy="5" r="1"/><circle cx="15" cy="19" r="1"/></svg> ${project.name}`;
+                document.body.appendChild(dragGhost);
+                e.dataTransfer.setDragImage(dragGhost, 0, 0);
+                setTimeout(() => {
+                  if (document.body.contains(dragGhost)) document.body.removeChild(dragGhost);
+                }, 0);
+              }}
+            >
+              {/* Header */}
+              <div className="flex items-start justify-between mb-4">
+                <div className="flex items-start gap-3">
+                  <label className="relative flex cursor-pointer items-center p-1 -ml-1 hover:bg-secondary/50 group/checkbox mt-0.5 rounded-md">
+                    <input
+                      type="checkbox"
+                      className="peer sr-only"
+                      checked={isSelected}
+                      onChange={() => toggleProjectSelection(project.id)}
+                    />
+                    <div className={`h-[18px] w-[18px] rounded-[4px] border-2 transition-all flex items-center justify-center ${
+                      isSelected 
+                        ? "border-primary bg-primary" 
+                        : "border-text-secondary/50 bg-transparent group-hover/checkbox:border-text-secondary/80"
+                    }`}>
+                      {isSelected && (
+                        <svg className="h-3 w-3 text-primary-foreground" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round">
+                          <polyline points="20 6 9 17 4 12" />
+                        </svg>
+                      )}
+                    </div>
+                  </label>
+                  <div className="cursor-grab text-text-secondary/40 hover:text-text-primary active:cursor-grabbing mt-0.5">
+                    <GripVertical className="h-4 w-4" />
+                  </div>
+                  <div>
+                    <h2 className="text-sm font-semibold text-text-primary leading-tight">{project.name}</h2>
+                    <p className="text-[11px] text-text-secondary mt-0.5">
+                      Created {new Date(project.createdAt).toLocaleDateString()}
+                    </p>
+                  </div>
+                </div>
+                {(() => {
+                  const status = getProjectStatusMeta(project);
+                  return (
                     <span
-                      className={`inline-flex rounded-full border px-2.5 py-1 text-[11px] font-semibold ${status.className}`}
+                      className={`inline-flex rounded border px-2 py-0.5 text-[10px] font-medium tracking-wide ${status.className}`}
                     >
                       {status.label}
                     </span>
-                    <span className="text-[11px] text-text-secondary">
-                      {project.lastConfiguredAt
-                        ? project.telemetryStatus === "configured"
-                          ? project.configurationSource === "legacy_telemetry"
-                            ? `Legacy activity ${new Date(project.lastConfiguredAt).toLocaleDateString()}`
-                            : `Detected ${new Date(project.lastConfiguredAt).toLocaleDateString()}`
-                          : `Last detected ${new Date(project.lastConfiguredAt).toLocaleDateString()}`
-                        : "Waiting for setup handshake"}
-                    </span>
+                  );
+                })()}
+              </div>
+
+              {/* Body */}
+              <div className="flex flex-col gap-4 flex-1">
+                {/* Stats & API Key row */}
+                <div className="flex items-center justify-between text-xs border border-border bg-secondary/10 rounded-lg p-3">
+                  <div className="flex flex-col min-w-0 flex-1 mr-3">
+                     <span className="text-text-secondary text-[10px] uppercase font-semibold">API Key</span>
+                     <span className="font-mono text-text-primary mt-1 truncate">
+                      {revealedProjectId === project.id
+                        ? (project.apiKey ?? "Loading…")
+                        : project.apiKey
+                          ? project.apiKey.replace(/.(?=.{6})/g, "•")
+                          : "Reveal to load"}
+                     </span>
                   </div>
-                );
-              })()}
-              <div className="flex items-start justify-between gap-3">
-                <div>
-                  <h2 className="text-base font-semibold text-text-primary">{project.name}</h2>
-                  <p className="text-xs text-text-secondary">
-                    Created {new Date(project.createdAt).toLocaleDateString()}
-                  </p>
-                </div>
-                <button
-                  className="rounded-full border border-border px-3 py-1 text-[11px] font-semibold text-text-secondary"
-                  onClick={() => void toggleRevealProjectKey(project)}
-                >
-                  {revealedProjectId === project.id ? "Hide key" : "Reveal key"}
-                </button>
-              </div>
-              <div className="mt-4 rounded-xl border border-border bg-card/70 px-3 py-3 text-xs text-text-secondary">
-                <p className="font-semibold text-text-secondary">API Key</p>
-                <p className="mt-1 break-all">
-                  {revealedProjectId === project.id
-                    ? (project.apiKey ?? "Loading…")
-                    : project.apiKey
-                      ? project.apiKey.replace(/.(?=.{6})/g, "•")
-                      : "Reveal to load"}
-                </p>
-              </div>
-              <div className="mt-3 flex flex-wrap items-center gap-2 text-[11px] text-text-secondary">
-                <span className="rounded-full border border-border bg-secondary/60 px-2.5 py-1">
-                  {project.eventCount} {project.eventCount === 1 ? "issue group" : "issue groups"}
-                </span>
-                {project.githubRepoName ? (
-                  <span className="rounded-full border border-border bg-secondary/60 px-2.5 py-1">
-                    {project.githubRepoName}
-                  </span>
-                ) : null}
-              </div>
-              <div className="mt-4 rounded-xl border border-border bg-card/70 px-3 py-3">
-                <label className="block">
-                  <span className="text-[11px] font-semibold uppercase tracking-[0.14em] text-text-secondary">
-                    AI model
-                  </span>
-                  <select
-                    className="tf-select mt-2 w-full"
-                    value={project.aiModel}
-                    onChange={(event) => updateProjectAiModel(project.id, event.target.value)}
-                    disabled={loading || updatingAiModelProjectId === project.id}
-                  >
-                    {availableAiModels.map((model) => (
-                      <option key={model.id} value={model.id}>
-                        {model.label}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-                <p className="mt-2 text-xs text-text-secondary">
-                  {availableAiModels.find((model) => model.id === project.aiModel)?.description ||
-                    "Choose the AI model used for solutions in this project."}
-                </p>
-              </div>
-              <div className="mt-3 rounded-xl border border-border bg-card/70 px-3 py-3">
-                <label className="block">
-                  <span className="text-[11px] font-semibold uppercase tracking-[0.14em] text-text-secondary">
-                    GitHub repo
-                  </span>
-                  <select
-                    className="tf-select mt-2 w-full"
-                    value={project.githubRepoId || ""}
-                    onChange={(event) => updateProjectGithubRepo(project.id, event.target.value)}
-                    disabled={
-                      loading ||
-                      updatingGithubRepoProjectId === project.id ||
-                      !githubConfigured ||
-                      !githubConnected
-                    }
-                  >
-                    <option value="">
-                      {githubConnected ? "No linked repository" : "Connect GitHub in Settings"}
-                    </option>
-                    {availableGithubRepos.map((repo) => (
-                      <option key={repo.id} value={repo.id}>
-                        {repo.fullName}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-                <p className="mt-2 text-xs text-text-secondary">
-                  {githubConnected
-                    ? "Link one selected repository so GitHub issue creation can default to it."
-                    : "Connect GitHub and choose repositories in Settings first."}
-                </p>
-              </div>
-              <div className="mt-3 border-t border-dashed border-border/60 pt-3">
-                <div className="inline-flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-text-secondary/75">
-                  <div className="flex h-5 w-5 items-center justify-center rounded-md bg-secondary/50 text-text-secondary/40">
-                    <GripVertical className="h-3 w-3" />
+                  <div className="flex items-center gap-3 shrink-0 border-l border-border/50 pl-3">
+                    <button
+                      className="text-[11px] font-medium text-text-secondary hover:text-text-primary transition-colors"
+                      onClick={() => void toggleRevealProjectKey(project)}
+                    >
+                      {revealedProjectId === project.id ? "Hide" : "Reveal"}
+                    </button>
+                    <button
+                      className="text-[11px] font-medium text-text-secondary hover:text-text-primary transition-colors"
+                      onClick={() => void copyApiKey(project)}
+                    >
+                      Copy
+                    </button>
                   </div>
-                  <span>Drag header to move</span>
                 </div>
 
+                {/* Settings Grid */}
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-1">
+                    <label className="block text-[10px] font-semibold text-text-secondary uppercase">
+                      AI Model
+                    </label>
+                    <select
+                      className="w-full bg-transparent border-b border-border/50 pb-1 text-xs text-text-primary outline-none focus:border-primary transition-colors cursor-pointer"
+                      value={project.aiModel}
+                      onChange={(event) => updateProjectAiModel(project.id, event.target.value)}
+                      disabled={loading || updatingAiModelProjectId === project.id}
+                    >
+                      {availableAiModels.map((model) => (
+                        <option key={model.id} value={model.id}>
+                          {model.label}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="space-y-1">
+                    <label className="block text-[10px] font-semibold text-text-secondary uppercase">
+                      GitHub Repo
+                    </label>
+                    <select
+                      className="w-full bg-transparent border-b border-border/50 pb-1 text-xs text-text-primary outline-none focus:border-primary transition-colors cursor-pointer"
+                      value={project.githubRepoId || ""}
+                      onChange={(event) => updateProjectGithubRepo(project.id, event.target.value)}
+                      disabled={
+                        loading ||
+                        updatingGithubRepoProjectId === project.id ||
+                        !githubConfigured ||
+                        !githubConnected
+                      }
+                    >
+                      <option value="">
+                        {githubConnected ? "No repo" : "Connect GitHub"}
+                      </option>
+                      {availableGithubRepos.map((repo) => (
+                        <option key={repo.id} value={repo.id}>
+                          {repo.fullName.split('/')[1] || repo.fullName}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
               </div>
-              <div className="mt-3 flex flex-wrap items-center gap-2">
-                <button className="tf-pill" onClick={() => void copyApiKey(project)}>
-                  Copy Key
-                </button>
+
+              {/* Footer Actions */}
+              <div className="flex items-center justify-between mt-5 pt-4 border-t border-border/50">
+                <div className="flex items-center gap-4">
+                  <button
+                    className="text-[11px] font-medium text-text-secondary hover:text-text-primary transition-colors"
+                    onClick={() => {
+                      setError(null);
+                      setRenameTarget(project);
+                      setRenameInput(project.name);
+                    }}
+                  >
+                    Rename
+                  </button>
+                  <button
+                    className="text-[11px] font-medium text-text-secondary hover:text-text-primary transition-colors"
+                    onClick={() => rotateKey(project.id)}
+                    disabled={loading}
+                  >
+                    Rotate Key
+                  </button>
+                </div>
                 <button
-                  className="tf-pill"
-                  onClick={() => {
-                    setError(null);
-                    setRenameTarget(project);
-                    setRenameInput(project.name);
-                  }}
-                >
-                  Rename
-                </button>
-                <button
-                  className="tf-pill"
-                  onClick={() => rotateKey(project.id)}
-                  disabled={loading}
-                >
-                  Rotate
-                </button>
-                <button
-                  className="tf-danger-button rounded-full border px-3 py-1 text-xs font-semibold transition"
+                  className="text-[11px] font-medium text-destructive hover:text-destructive/80 transition-colors"
                   onClick={() => {
                     setError(null);
                     setDeleteTarget(project);
@@ -844,7 +989,8 @@ export default function ProjectSettingsPage() {
                 </button>
               </div>
             </div>
-          ))}
+            );
+          })}
           {!activeProjects.length && !loading && (
             <p className="text-sm text-text-secondary">No active projects yet.</p>
           )}
@@ -946,116 +1092,150 @@ export default function ProjectSettingsPage() {
       </div>
 
       {showCreateModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-6">
-          <div className="w-full max-w-md rounded-2xl border border-border bg-card/95 p-6 shadow-xl backdrop-blur">
-            <h3 className="font-display text-lg font-semibold text-text-primary">
-              Create Project
-            </h3>
-            <p className="mt-2 text-sm text-text-secondary">
-              Add a new project to start tracking errors immediately.
-            </p>
-            <input
-              className="tf-input mt-4 w-full"
-              placeholder="Project name"
-              value={newProjectName}
-              onChange={(event) => setNewProjectName(event.target.value)}
-            />
-            <label className="mt-4 block">
-              <span className="text-xs font-semibold uppercase tracking-[0.14em] text-text-secondary">
-                AI model
-              </span>
-              <select
-                className="tf-select mt-2 w-full"
-                value={newProjectAiModel}
-                onChange={(event) => setNewProjectAiModel(event.target.value)}
-              >
-                {availableAiModels.map((model) => (
-                  <option key={model.id} value={model.id}>
-                    {model.label}
-                  </option>
-                ))}
-              </select>
-              <p className="mt-2 text-xs text-text-secondary">
-                {availableAiModels.find((model) => model.id === newProjectAiModel)?.description ||
-                  "Choose the default AI model for this project."}
-              </p>
-            </label>
-            <label className="mt-4 block">
-              <span className="text-xs font-semibold uppercase tracking-[0.14em] text-text-secondary">
-                GitHub repo
-              </span>
-              <select
-                className="tf-select mt-2 w-full"
-                value={newProjectGithubRepoId}
-                onChange={(event) => setNewProjectGithubRepoId(event.target.value)}
-                disabled={!githubConfigured || !githubConnected}
-              >
-                <option value="">
-                  {githubConnected ? "No linked repository" : "Connect GitHub in Settings"}
-                </option>
-                {availableGithubRepos.map((repo) => (
-                  <option key={repo.id} value={repo.id}>
-                    {repo.fullName}
-                  </option>
-                ))}
-              </select>
-              <p className="mt-2 text-xs text-text-secondary">
-                {githubConnected
-                  ? "Optional. New GitHub issues for this project can use this repository by default."
-                  : "Optional. Connect GitHub and select repositories in Settings first."}
-              </p>
-            </label>
-            <div className="mt-5 flex items-center justify-end gap-3">
-              <button
-                className="tf-button-ghost"
-                onClick={() => setShowCreateModal(false)}
-                disabled={loading}
-              >
-                Cancel
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
+          <div className="w-full max-w-lg max-h-[calc(100dvh-env(safe-area-inset-top)-env(safe-area-inset-bottom)-8rem)] sm:max-h-[90vh] rounded-xl border border-border bg-card shadow-xl flex flex-col overflow-hidden">
+            <div className="flex items-center justify-between p-4 border-b border-border/50 shrink-0">
+              <h3 className="text-sm font-semibold text-text-primary">Create Project</h3>
+              <button onClick={() => setShowCreateModal(false)} className="text-text-secondary hover:text-text-primary transition-colors">
+                <X className="h-4 w-4" />
               </button>
-              <button
-                className="tf-button px-4 py-2 text-sm font-semibold"
-                onClick={createProject}
-                disabled={loading}
-              >
-                <LoadingButtonContent loading={loading} loadingLabel="Creating..." idleLabel="Create Project" />
-              </button>
+            </div>
+            <div className="p-6 overflow-y-auto">
+               <p className="text-sm text-text-secondary mb-6">Add a new project to start tracking errors immediately.</p>
+               
+               <div className="space-y-5">
+                 <div>
+                   <label className="mb-2 block text-xs font-semibold uppercase tracking-[0.14em] text-text-secondary">
+                     Project name
+                   </label>
+                   <input
+                     className="w-full rounded-xl border border-border bg-secondary/20 px-4 py-3 text-sm text-text-primary shadow-sm outline-none transition focus:border-primary/50 focus:bg-card focus:ring-2 focus:ring-primary/20"
+                     placeholder="e.g. Frontend App"
+                     value={newProjectName}
+                     onChange={(event) => setNewProjectName(event.target.value)}
+                     autoFocus
+                   />
+                 </div>
+                 
+                 <div>
+                   <label className="mb-2 block text-xs font-semibold uppercase tracking-[0.14em] text-text-secondary">
+                     AI model
+                   </label>
+                   <select
+                     className="w-full appearance-none rounded-xl border border-border bg-secondary/20 px-4 py-3 pr-10 text-sm text-text-primary shadow-sm outline-none transition focus:border-primary/50 focus:bg-card focus:ring-2 focus:ring-primary/20"
+                     style={{
+                       backgroundImage:
+                         "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 20 20' fill='none'%3E%3Cpath d='M5 7l5 5 5-5' stroke='%239CA3AF' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E\")",
+                       backgroundRepeat: "no-repeat",
+                       backgroundPosition: "right 16px center",
+                       backgroundSize: "12px 12px"
+                     }}
+                     value={newProjectAiModel}
+                     onChange={(event) => setNewProjectAiModel(event.target.value)}
+                   >
+                     {availableAiModels.map((model) => (
+                       <option key={model.id} value={model.id}>
+                         {model.label}
+                       </option>
+                     ))}
+                   </select>
+                 </div>
+  
+                 <div>
+                   <label className="mb-2 block text-xs font-semibold uppercase tracking-[0.14em] text-text-secondary">
+                     GitHub repo
+                   </label>
+                   <select
+                     className="w-full appearance-none rounded-xl border border-border bg-secondary/20 px-4 py-3 pr-10 text-sm text-text-primary shadow-sm outline-none transition focus:border-primary/50 focus:bg-card focus:ring-2 focus:ring-primary/20 disabled:opacity-50 disabled:cursor-not-allowed"
+                     style={{
+                       backgroundImage:
+                         "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 20 20' fill='none'%3E%3Cpath d='M5 7l5 5 5-5' stroke='%239CA3AF' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E\")",
+                       backgroundRepeat: "no-repeat",
+                       backgroundPosition: "right 16px center",
+                       backgroundSize: "12px 12px"
+                     }}
+                     value={newProjectGithubRepoId}
+                     onChange={(event) => setNewProjectGithubRepoId(event.target.value)}
+                     disabled={!githubConfigured || !githubConnected}
+                   >
+                     <option value="">
+                       {githubConnected ? "No linked repository" : "Connect GitHub in Settings"}
+                     </option>
+                     {availableGithubRepos.map((repo) => (
+                       <option key={repo.id} value={repo.id}>
+                         {repo.fullName}
+                       </option>
+                     ))}
+                   </select>
+                 </div>
+               </div>
+            </div>
+            
+            <div className="flex flex-row-reverse items-center gap-3 p-6 pt-4 border-t border-border/50 shrink-0">
+               <button 
+                 onClick={createProject} 
+                 disabled={loading || !newProjectName.trim()}
+                 className="flex-1 bg-primary hover:bg-primary-hover disabled:opacity-50 text-primary-foreground font-semibold py-2 px-4 rounded-lg transition-colors flex items-center justify-center"
+               >
+                 <LoadingButtonContent loading={loading} loadingLabel="Creating..." idleLabel="Create Project" />
+               </button>
+               <button 
+                 onClick={() => setShowCreateModal(false)} 
+                 disabled={loading}
+                 className="flex-1 bg-secondary/50 border border-border hover:bg-secondary/80 text-text-primary font-semibold py-2 px-4 rounded-lg transition-colors flex items-center justify-center"
+               >
+                 Cancel
+               </button>
             </div>
           </div>
         </div>
       )}
 
       {renameTarget && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-6">
-          <div className="w-full max-w-md rounded-2xl border border-border bg-card/95 p-6 shadow-xl backdrop-blur">
-            <h3 className="font-display text-lg font-semibold text-text-primary">Rename Project</h3>
-            <p className="mt-2 text-sm text-text-secondary">
-              Update the project name everywhere it appears in the dashboard.
-            </p>
-            <input
-              className="tf-input mt-4 w-full"
-              placeholder="Project name"
-              value={renameInput}
-              onChange={(event) => setRenameInput(event.target.value)}
-            />
-            <div className="mt-5 flex items-center justify-end gap-3">
-              <button
-                className="tf-button-ghost"
-                onClick={() => {
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
+          <div className="w-full max-w-lg rounded-xl border border-border bg-card shadow-xl flex flex-col overflow-hidden">
+            <div className="flex items-center justify-between p-4 border-b border-border/50">
+              <h3 className="text-sm font-semibold text-text-primary">Rename Project</h3>
+              <button onClick={() => {
                   setRenameTarget(null);
                   setRenameInput("");
-                }}
-                disabled={loading}
-              >
-                Cancel
+                }} className="text-text-secondary hover:text-text-primary transition-colors">
+                <X className="h-4 w-4" />
               </button>
-              <button
-                className="tf-button px-4 py-2 text-sm font-semibold"
-                onClick={renameProject}
-                disabled={loading || !renameInput.trim()}
-              >
-                <LoadingButtonContent loading={loading} loadingLabel="Saving..." idleLabel="Save name" />
-              </button>
+            </div>
+            
+            <div className="p-6">
+               <p className="text-sm text-text-secondary mb-4">Update the project name everywhere it appears in the dashboard.</p>
+               <label className="mb-2 block text-[11px] font-semibold uppercase tracking-[0.14em] text-text-secondary">
+                 Project name
+               </label>
+               <input
+                 className="w-full rounded-lg border border-border bg-background px-4 py-2 text-sm text-text-primary outline-none transition focus:border-primary/30 focus:ring-2 focus:ring-primary/10"
+                 placeholder="Project name"
+                 value={renameInput}
+                 onChange={(event) => setRenameInput(event.target.value)}
+                 autoFocus
+               />
+            </div>
+            
+            <div className="flex flex-row-reverse items-center gap-3 p-6 pt-0">
+               <button 
+                 onClick={renameProject} 
+                 disabled={loading || !renameInput.trim()}
+                 className="flex-1 bg-primary hover:bg-primary-hover disabled:opacity-50 text-primary-foreground font-semibold py-2 px-4 rounded-lg transition-colors flex items-center justify-center"
+               >
+                 <LoadingButtonContent loading={loading} loadingLabel="Saving..." idleLabel="Save name" />
+               </button>
+               <button 
+                 onClick={() => {
+                   setRenameTarget(null);
+                   setRenameInput("");
+                 }} 
+                 disabled={loading}
+                 className="flex-1 bg-secondary/50 border border-border hover:bg-secondary/80 text-text-primary font-semibold py-2 px-4 rounded-lg transition-colors flex items-center justify-center"
+               >
+                 Cancel
+               </button>
             </div>
           </div>
         </div>
@@ -1089,7 +1269,7 @@ export default function ProjectSettingsPage() {
                  <button 
                    onClick={() => archiveProject(deleteTarget.id)} 
                    disabled={loading || deleteInput !== deleteTarget.name}
-                   className="flex-1 tf-danger-solid disabled:opacity-50 font-semibold py-2 px-4 rounded-lg transition-colors flex items-center justify-center"
+                   className="flex-1 bg-destructive/15 text-destructive border border-destructive/30 hover:bg-destructive/25 backdrop-blur-md disabled:opacity-50 font-semibold py-2 px-4 rounded-lg transition-all duration-300 flex items-center justify-center shadow-[0_8px_16px_-6px_rgba(var(--destructive-rgb),0.1)]"
                  >
                    Archive
                  </button>
@@ -1136,7 +1316,7 @@ export default function ProjectSettingsPage() {
                  <button 
                    onClick={deleteProjectPermanently} 
                    disabled={loading || permanentDeleteInput !== permanentDeleteTarget.name}
-                   className="flex-1 tf-danger-solid disabled:opacity-50 font-semibold py-2 px-4 rounded-lg transition-colors flex items-center justify-center"
+                   className="flex-1 bg-destructive/15 text-destructive border border-destructive/30 hover:bg-destructive/25 backdrop-blur-md disabled:opacity-50 font-semibold py-2 px-4 rounded-lg transition-all duration-300 flex items-center justify-center shadow-[0_8px_16px_-6px_rgba(var(--destructive-rgb),0.1)]"
                  >
                    Delete
                  </button>
@@ -1154,6 +1334,77 @@ export default function ProjectSettingsPage() {
             </div>
           </div>
         )}
+
+      {selectedProjectIds.size > 0 && (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[60] flex items-center gap-4 rounded-full border border-border/80 bg-card/95 px-4 py-3 shadow-lg backdrop-blur-md">
+          <div className="flex items-center gap-2">
+            <span className="flex h-6 w-6 items-center justify-center rounded-full bg-primary/20 text-xs font-bold text-primary">
+              {selectedProjectIds.size}
+            </span>
+            <span className="text-sm font-semibold text-text-primary">selected</span>
+          </div>
+          <div className="h-4 w-px bg-border" />
+          <div className="flex items-center gap-2">
+            <button
+              className="rounded-full px-3 py-1.5 text-xs font-semibold text-text-secondary hover:bg-secondary/80 hover:text-text-primary transition-colors"
+              onClick={() => setSelectedProjectIds(new Set())}
+            >
+              Deselect all
+            </button>
+            <button
+              className="flex items-center gap-1.5 rounded-full bg-destructive-soft border border-destructive-border px-3 py-1.5 text-xs font-semibold text-destructive hover:bg-destructive hover:text-destructive-foreground transition-all duration-300"
+              onClick={() => setShowBulkArchiveModal(true)}
+            >
+              <Trash2 className="h-3.5 w-3.5" />
+              Archive all
+            </button>
+          </div>
+        </div>
+      )}
+
+      {showBulkArchiveModal && (
+        <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/40 px-4">
+          <div className="w-full max-w-lg rounded-xl border border-border bg-card shadow-xl flex flex-col overflow-hidden">
+            <div className="flex items-center justify-between p-4 border-b border-border/50">
+              <h3 className="text-sm font-semibold text-text-primary">Archive Projects</h3>
+              <button onClick={() => setShowBulkArchiveModal(false)} className="text-text-secondary hover:text-text-primary transition-colors">
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+            
+            <div className="p-6">
+               <h4 className="text-lg sm:text-xl font-bold text-text-primary mb-2">Are you sure you want to archive these projects?</h4>
+               <p className="text-sm text-text-secondary">
+                 You can still view archived projects. Type <span className="font-semibold">Archive projects</span> to confirm.
+               </p>
+               <input
+                 className="mt-4 w-full rounded-lg border border-border bg-background px-4 py-2 text-sm text-text-primary outline-none transition focus:border-primary/30 focus:ring-2 focus:ring-primary/10"
+                 placeholder="Archive projects"
+                 value={bulkActionInput}
+                 onChange={(e) => setBulkActionInput(e.target.value)}
+                 disabled={loading}
+               />
+            </div>
+            
+            <div className="flex flex-row-reverse items-center gap-3 p-6 pt-0">
+               <button 
+                 onClick={handleBulkArchiveProjects} 
+                 disabled={loading || bulkActionInput !== "Archive projects"}
+                 className="flex-1 bg-destructive/15 text-destructive border border-destructive/30 hover:bg-destructive/25 backdrop-blur-md disabled:opacity-50 font-semibold py-2 px-4 rounded-lg transition-all duration-300 flex items-center justify-center shadow-[0_8px_16px_-6px_rgba(var(--destructive-rgb),0.1)]"
+               >
+                 Archive
+               </button>
+               <button 
+                 onClick={() => setShowBulkArchiveModal(false)} 
+                 disabled={loading}
+                 className="flex-1 bg-secondary/50 border border-border hover:bg-secondary/80 text-text-primary font-semibold py-2 px-4 rounded-lg transition-colors flex items-center justify-center"
+               >
+                 Cancel
+               </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {toast && (
         <div

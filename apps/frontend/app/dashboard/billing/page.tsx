@@ -1072,7 +1072,7 @@ export default function BillingPage() {
                <button 
                  onClick={() => void confirmCancelSubscription()} 
                  disabled={actionLoading || cancelConfirmationInput.trim() !== "Cancel your subscription"}
-                 className="flex-1 tf-danger-solid disabled:opacity-50 font-semibold py-2 px-4 rounded-lg transition-colors flex items-center justify-center"
+                 className="flex-1 bg-destructive/15 text-destructive border border-destructive/30 hover:bg-destructive/25 backdrop-blur-md disabled:opacity-50 font-semibold py-2 px-4 rounded-lg transition-all duration-300 flex items-center justify-center shadow-[0_8px_16px_-6px_rgba(var(--destructive-rgb),0.1)]"
                >
                  Cancel subscription
                </button>

@@ -809,31 +809,29 @@ export default function ErrorDetailPage({ params }: { params: { id: string } }) 
       </div>
 
       {showAiDetail && getAiDetail(errorDetail) && (
-        <div className="tf-modal-backdrop">
-          <div className="max-h-[85vh] w-full max-w-2xl overflow-hidden rounded-[28px] border border-border bg-card/95 p-6 shadow-xl backdrop-blur">
-            <div className="flex flex-col gap-4 sm:flex-row sm:flex-wrap sm:items-start sm:justify-between">
-              <div className="min-w-0">
-                <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-primary">
-                  AI Solution
-                </p>
-                <h3 className="mt-2 font-display text-lg font-semibold text-text-primary">
-                  Detailed debugging guidance
-                </h3>
-                <p className="mt-2 text-sm text-text-secondary">
-                  Review the full AI reasoning without expanding the main issue page layout.
-                </p>
-              </div>
-              <button
-                type="button"
-                className="tf-button-ghost w-full px-4 py-2 text-sm sm:w-auto"
-                onClick={() => setShowAiDetail(false)}
-              >
-                Close
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
+          <div className="w-full max-w-2xl rounded-xl border border-border bg-card shadow-xl flex flex-col overflow-hidden">
+            <div className="flex items-center justify-between p-4 border-b border-border/50">
+              <h3 className="text-sm font-semibold text-text-primary">Detailed debugging guidance</h3>
+              <button onClick={() => setShowAiDetail(false)} className="text-text-secondary hover:text-text-primary transition-colors">
+                <X className="h-4 w-4" />
               </button>
             </div>
-
-            <div className="tf-scroll-rail mt-5 max-h-[60vh] overflow-y-auto whitespace-pre-wrap rounded-2xl border border-primary/15 bg-secondary/20 px-4 py-4 text-sm leading-7 text-text-primary">
-              {getAiDetail(errorDetail)}
+            
+            <div className="p-6">
+               <p className="text-sm text-text-secondary mb-4">Review the full AI reasoning without expanding the main issue page layout.</p>
+               <div className="tf-scroll-rail max-h-[60vh] overflow-y-auto whitespace-pre-wrap rounded-2xl border border-primary/15 bg-secondary/20 px-4 py-4 text-sm leading-7 text-text-primary">
+                 {getAiDetail(errorDetail)}
+               </div>
+            </div>
+            
+            <div className="flex flex-row-reverse items-center gap-3 p-6 pt-0">
+               <button 
+                 onClick={() => setShowAiDetail(false)} 
+                 className="flex-1 bg-secondary/50 border border-border hover:bg-secondary/80 text-text-primary font-semibold py-2 px-4 rounded-lg transition-colors flex items-center justify-center"
+               >
+                 Close
+               </button>
             </div>
           </div>
         </div>

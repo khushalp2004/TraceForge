@@ -1225,28 +1225,21 @@ export default function AdminDashboardPage() {
       ) : null}
 
       {detailTarget ? (
-        <div className="tf-modal-backdrop">
-          <div className="max-h-[85vh] w-full max-w-4xl overflow-y-auto rounded-[32px] border border-border bg-card p-6 shadow-2xl sm:p-8">
-            <div className="flex items-start justify-between gap-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
+          <div className="w-full max-w-4xl max-h-[85vh] overflow-y-auto rounded-xl border border-border bg-card shadow-xl flex flex-col">
+            <div className="flex items-center justify-between p-4 border-b border-border/50 shrink-0">
               <div>
-                <p className="text-sm font-semibold uppercase tracking-[0.14em] text-text-secondary">
-                  User detail
-                </p>
-                <h3 className="mt-3 text-2xl font-semibold text-text-primary">
+                <h3 className="text-sm font-semibold text-text-primary">
                   {detailTarget.fullName?.trim() || detailTarget.email.split("@")[0]}
                 </h3>
-                <p className="mt-2 text-sm text-text-secondary">{detailTarget.email}</p>
+                <p className="text-xs text-text-secondary">{detailTarget.email}</p>
               </div>
-              <button
-                type="button"
-                className="rounded-full border border-border px-3 py-2 text-sm font-semibold text-text-secondary transition hover:text-text-primary"
-                onClick={closeUserDetail}
-              >
-                Close
+              <button onClick={closeUserDetail} className="text-text-secondary hover:text-text-primary transition-colors">
+                <X className="h-4 w-4" />
               </button>
             </div>
-
-            {detailLoading ? (
+            
+            <div className="p-6">
               <div className="mt-6 h-48 animate-pulse rounded-3xl bg-secondary/70" />
             ) : detail ? (
               <>
@@ -1338,60 +1331,59 @@ export default function AdminDashboardPage() {
       ) : null}
 
       {suspensionTarget ? (
-        <div className="tf-modal-backdrop">
-          <div className="tf-modal-panel">
-            <p className="text-sm font-semibold uppercase tracking-[0.14em] text-text-secondary">
-              {suspensionTarget.disabledAt ? "Reactivate user" : "Suspend user"}
-            </p>
-            <h3 className="mt-4 text-2xl font-semibold text-text-primary">
-              {suspensionTarget.disabledAt ? "Restore account access" : "Block account access"}
-            </h3>
-            <p className="mt-3 text-sm leading-7 text-text-secondary">
-              {suspensionTarget.disabledAt
-                ? `This will let ${suspensionTarget.email} sign in again immediately.`
-                : `This will stop ${suspensionTarget.email} from signing in or using active sessions until reactivated.`}
-            </p>
-
-            <label className="mt-5 block text-sm font-semibold text-text-primary" htmlFor="suspension-reason">
-              Reason
-            </label>
-            <textarea
-              id="suspension-reason"
-              value={suspensionReason}
-              onChange={(event) => setSuspensionReason(event.target.value)}
-              rows={4}
-              className="mt-3 w-full rounded-2xl border border-border bg-background px-4 py-3 text-sm text-text-primary outline-none transition focus:border-primary/30 focus:ring-2 focus:ring-primary/10"
-              placeholder="Optional note for future admins."
-            />
-
-            <div className="mt-6 flex flex-wrap justify-end gap-3">
-              <button
-                type="button"
-                className="rounded-2xl border border-border px-4 py-2 text-sm font-semibold text-text-secondary transition hover:text-text-primary"
-                onClick={() => {
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
+          <div className="w-full max-w-lg rounded-xl border border-border bg-card shadow-xl flex flex-col overflow-hidden">
+            <div className="flex items-center justify-between p-4 border-b border-border/50">
+              <h3 className="text-sm font-semibold text-text-primary">
+                {suspensionTarget.disabledAt ? "Reactivate user" : "Suspend user"}
+              </h3>
+              <button onClick={() => {
                   setSuspensionTarget(null);
                   setSuspensionReason("");
-                }}
-              >
-                Cancel
+                }} className="text-text-secondary hover:text-text-primary transition-colors">
+                <X className="h-4 w-4" />
               </button>
-              <button
-                type="button"
-                className="tf-button inline-flex px-4 py-2 text-sm"
-                onClick={() =>
-                  void submitSuspensionChange(
-                    suspensionTarget,
-                    suspensionTarget.disabledAt ? "reactivate" : "suspend"
-                  )
-                }
-                disabled={statusUpdatingUserId === suspensionTarget.id}
-              >
-                <LoadingButtonContent
-                  loading={statusUpdatingUserId === suspensionTarget.id}
-                  loadingLabel={suspensionTarget.disabledAt ? "Reactivating..." : "Suspending..."}
-                  idleLabel={suspensionTarget.disabledAt ? "Reactivate user" : "Suspend user"}
-                />
-              </button>
+            </div>
+            
+            <div className="p-6">
+               <h4 className="text-lg sm:text-xl font-bold text-text-primary mb-2">
+                 {suspensionTarget.disabledAt ? "Restore account access" : "Block account access"}
+               </h4>
+               <p className="text-sm text-text-secondary mb-4">
+                 {suspensionTarget.disabledAt
+                   ? `This will let ${suspensionTarget.email} sign in again immediately.`
+                   : `This will stop ${suspensionTarget.email} from signing in or using active sessions until reactivated.`}
+               </p>
+
+               <label className="mb-2 block text-[11px] font-semibold uppercase tracking-[0.14em] text-text-secondary">
+                 Reason
+               </label>
+               <textarea
+                 value={suspensionReason}
+                 onChange={(event) => setSuspensionReason(event.target.value)}
+                 rows={4}
+                 className="w-full rounded-lg border border-border bg-background px-4 py-2 text-sm text-text-primary outline-none transition focus:border-primary/30 focus:ring-2 focus:ring-primary/10"
+                 placeholder="Optional note for future admins."
+               />
+            </div>
+            
+            <div className="flex flex-row-reverse items-center gap-3 p-6 pt-0">
+               <button 
+                 onClick={() => void submitSuspensionChange(suspensionTarget, suspensionTarget.disabledAt ? "reactivate" : "suspend")} 
+                 disabled={statusUpdatingUserId === suspensionTarget.id}
+                 className="flex-1 bg-primary hover:bg-primary-hover disabled:opacity-50 text-primary-foreground font-semibold py-2 px-4 rounded-lg transition-colors flex items-center justify-center"
+               >
+                 <LoadingButtonContent loading={statusUpdatingUserId === suspensionTarget.id} loadingLabel={suspensionTarget.disabledAt ? "Reactivating..." : "Suspending..."} idleLabel={suspensionTarget.disabledAt ? "Reactivate user" : "Suspend user"} />
+               </button>
+               <button 
+                 onClick={() => {
+                   setSuspensionTarget(null);
+                   setSuspensionReason("");
+                 }} 
+                 className="flex-1 bg-secondary/50 border border-border hover:bg-secondary/80 text-text-primary font-semibold py-2 px-4 rounded-lg transition-colors flex items-center justify-center"
+               >
+                 Cancel
+               </button>
             </div>
           </div>
         </div>
@@ -1416,7 +1408,7 @@ export default function AdminDashboardPage() {
                <button 
                  onClick={() => void deleteUser(deleteTarget)} 
                  disabled={deletingUserId === deleteTarget.id}
-                 className="flex-1 tf-danger-solid font-semibold py-2 px-4 rounded-lg transition-colors flex items-center justify-center"
+                 className="flex-1 bg-destructive/15 text-destructive border border-destructive/30 hover:bg-destructive/25 backdrop-blur-md font-semibold py-2 px-4 rounded-lg transition-all duration-300 flex items-center justify-center shadow-[0_8px_16px_-6px_rgba(var(--destructive-rgb),0.1)]"
                >
                  Delete
                </button>

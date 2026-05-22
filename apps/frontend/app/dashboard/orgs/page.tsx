@@ -301,44 +301,73 @@ export default function OrgsPage() {
             return (
               <div
                 key={org.id}
-                className={`tf-card group flex flex-col gap-3 p-5 transition-all duration-300 ${isSelected ? "is-selected" : "hover:border-primary/30"
-                  }`}
+                className={`tf-card group flex flex-col p-5 transition-all hover:border-primary/20 bg-card border rounded-xl shadow-sm ${
+                  isSelected ? "border-primary bg-primary/5" : "border-border"
+                }`}
               >
-                <div className="flex items-start justify-between gap-3">
-                  <div className="flex items-start gap-3">
+              {/* Header */}
+              <div className="flex items-start justify-between mb-4">
+                <div className="flex items-start gap-3">
+                  <label className="relative flex cursor-pointer items-center p-1 -ml-1 hover:bg-secondary/50 group/checkbox mt-0.5 rounded-md">
                     <input
                       type="checkbox"
-                      className="tf-selection-checkbox mt-1"
+                      className="peer sr-only"
                       checked={isSelected}
                       onChange={() => toggleOrgSelection(org.id)}
                     />
-                    <div>
+                    <div className={`h-[18px] w-[18px] rounded-[4px] border-2 transition-all flex items-center justify-center ${
+                      isSelected 
+                        ? "border-primary bg-primary" 
+                        : "border-text-secondary/50 bg-transparent group-hover/checkbox:border-text-secondary/80"
+                    }`}>
+                      {isSelected && (
+                        <svg className="h-3 w-3 text-primary-foreground" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round">
+                          <polyline points="20 6 9 17 4 12" />
+                        </svg>
+                      )}
+                    </div>
+                  </label>
+                  <div>
+                    <Link
+                      href={`/dashboard/orgs/${org.id}`}
+                      className="text-sm font-semibold text-text-primary leading-tight hover:text-primary transition-colors"
+                    >
+                      {org.name}
+                    </Link>
+                    <p className="text-[11px] text-text-secondary mt-0.5">
+                      Created {new Date(org.createdAt).toLocaleDateString()}
+                    </p>
+                  </div>
+                </div>
+                <span
+                    className={`inline-flex rounded border px-2 py-0.5 text-[10px] font-medium tracking-wide ${
+                      org.role === "OWNER" ? "border-amber-500/30 text-amber-600 bg-amber-500/10" : "border-border text-text-secondary bg-secondary/30"
+                    }`}
+                  >
+                    {org.role}
+                  </span>
+                </div>
+
+                <div className="flex flex-col gap-4 flex-1">
+                   <div className="flex items-center justify-between text-xs border border-border bg-secondary/10 rounded-lg p-3">
+                      <div className="flex flex-col">
+                         <span className="text-text-secondary text-[10px] uppercase font-semibold">Type</span>
+                         <span className="text-text-primary mt-1 font-medium">Organization</span>
+                      </div>
                       <Link
                         href={`/dashboard/orgs/${org.id}`}
-                        className="text-base font-semibold text-text-primary hover:text-primary transition-colors"
+                        className="text-[11px] font-medium text-text-secondary hover:text-text-primary transition-colors"
                       >
-                        {org.name}
+                        Manage Members
                       </Link>
-                      <p className="text-xs text-text-secondary">
-                        {org.role.toLowerCase()} · Created {new Date(org.createdAt).toLocaleDateString()}
-                      </p>
-                    </div>
-                  </div>
-                  <Link
-                    href={`/dashboard/orgs/${org.id}`}
-                    className="rounded-full border border-border px-2 py-1 text-[11px] font-semibold text-text-secondary hover:bg-secondary/70 transition-colors"
-                  >
-                    Manage
-                  </Link>
+                   </div>
                 </div>
-                <div className="flex flex-wrap items-center gap-2">
-                  <span className="tf-pill">{org.role}</span>
-                  <span className="tf-pill">Organization</span>
-                  {org.role === "OWNER" && (
-                    <>
+
+                <div className="flex items-center justify-between mt-5 pt-4 border-t border-border/50">
+                  <div className="flex items-center gap-4">
+                    {org.role === "OWNER" && (
                       <button
-                        type="button"
-                        className="text-xs font-semibold text-text-secondary hover:text-primary transition-colors"
+                        className="text-[11px] font-medium text-text-secondary hover:text-text-primary transition-colors"
                         onClick={(event) => {
                           event.preventDefault();
                           setError(null);
@@ -348,19 +377,21 @@ export default function OrgsPage() {
                       >
                         Rename
                       </button>
-                      <button
-                        type="button"
-                        className="text-xs font-semibold text-text-secondary hover:text-destructive transition-colors"
-                        onClick={(event) => {
-                          event.preventDefault();
-                          setError(null);
-                          setDeleteTarget(org);
-                          setDeleteInput("");
-                        }}
-                      >
-                        Delete
-                      </button>
-                    </>
+                    )}
+                  </div>
+                  {org.role === "OWNER" && (
+                    <button
+                      className="text-[11px] font-medium text-destructive hover:text-destructive/80 transition-colors"
+                      onClick={(event) => {
+                        event.preventDefault();
+                        setError(null);
+                        setDeleteTarget(org);
+                        setDeleteInput("");
+                      }}
+                      disabled={loading}
+                    >
+                      Delete
+                    </button>
                   )}
                 </div>
               </div>
@@ -389,51 +420,50 @@ export default function OrgsPage() {
       </div>
 
       {renameTarget && (
-        <div className="tf-modal-backdrop">
-          <div className="tf-modal-panel">
-            <div className="tf-modal-header">
-              <div className="flex items-center gap-3">
-                <div className="rounded-xl border border-primary/20 bg-accent-soft p-2 text-primary shadow-sm">
-                  <Edit3 className="h-4 w-4" />
-                </div>
-                <div>
-                  <h3 className="tf-modal-title">Rename Organization</h3>
-                  <p className="tf-modal-description">Update the organization name for every member.</p>
-                </div>
-              </div>
-            </div>
-
-            <div className="tf-modal-body">
-              <label className="mb-2 block text-[11px] font-semibold uppercase tracking-[0.14em] text-text-secondary">
-                Organization name
-              </label>
-              <input
-                className="tf-input w-full"
-                placeholder="e.g. Acme Corp"
-                value={renameInput}
-                onChange={(event) => setRenameInput(event.target.value)}
-                autoFocus
-              />
-            </div>
-
-            <div className="tf-modal-footer">
-              <button
-                className="tf-button-ghost min-w-[100px]"
-                onClick={() => {
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
+          <div className="w-full max-w-lg rounded-xl border border-border bg-card shadow-xl flex flex-col overflow-hidden">
+            <div className="flex items-center justify-between p-4 border-b border-border/50">
+              <h3 className="text-sm font-semibold text-text-primary">Rename Organization</h3>
+              <button onClick={() => {
                   setRenameTarget(null);
                   setRenameInput("");
-                }}
-                disabled={loading}
-              >
-                Cancel
+                }} className="text-text-secondary hover:text-text-primary transition-colors">
+                <X className="h-4 w-4" />
               </button>
-              <button
-                className="tf-button min-w-[120px]"
-                onClick={handleRenameOrg}
-                disabled={loading || !renameInput.trim()}
-              >
-                <LoadingButtonContent loading={loading} loadingLabel="Saving..." idleLabel="Save name" />
-              </button>
+            </div>
+            
+            <div className="p-6">
+               <p className="text-sm text-text-secondary mb-4">Update the organization name for every member.</p>
+               <label className="mb-2 block text-[11px] font-semibold uppercase tracking-[0.14em] text-text-secondary">
+                 Organization name
+               </label>
+               <input
+                 className="w-full rounded-lg border border-border bg-background px-4 py-2 text-sm text-text-primary outline-none transition focus:border-primary/30 focus:ring-2 focus:ring-primary/10"
+                 placeholder="e.g. Acme Corp"
+                 value={renameInput}
+                 onChange={(event) => setRenameInput(event.target.value)}
+                 autoFocus
+               />
+            </div>
+            
+            <div className="flex flex-row-reverse items-center gap-3 p-6 pt-0">
+               <button 
+                 onClick={handleRenameOrg} 
+                 disabled={loading || !renameInput.trim()}
+                 className="flex-1 bg-primary hover:bg-primary-hover disabled:opacity-50 text-primary-foreground font-semibold py-2 px-4 rounded-lg transition-colors flex items-center justify-center"
+               >
+                 <LoadingButtonContent loading={loading} loadingLabel="Saving..." idleLabel="Save name" />
+               </button>
+               <button 
+                 onClick={() => {
+                   setRenameTarget(null);
+                   setRenameInput("");
+                 }} 
+                 disabled={loading}
+                 className="flex-1 bg-secondary/50 border border-border hover:bg-secondary/80 text-text-primary font-semibold py-2 px-4 rounded-lg transition-colors flex items-center justify-center"
+               >
+                 Cancel
+               </button>
             </div>
           </div>
         </div>
@@ -467,7 +497,7 @@ export default function OrgsPage() {
                <button 
                  onClick={handleDeleteOrg} 
                  disabled={loading || deleteInput !== deleteTarget.name}
-                 className="flex-1 tf-danger-solid disabled:opacity-50 font-semibold py-2 px-4 rounded-lg transition-colors flex items-center justify-center"
+                 className="flex-1 bg-destructive/15 text-destructive border border-destructive/30 hover:bg-destructive/25 backdrop-blur-md disabled:opacity-50 font-semibold py-2 px-4 rounded-lg transition-all duration-300 flex items-center justify-center shadow-[0_8px_16px_-6px_rgba(var(--destructive-rgb),0.1)]"
                >
                  Delete
                </button>
@@ -484,52 +514,44 @@ export default function OrgsPage() {
       )}
 
       {showCreateModal && (
-        <div className="tf-modal-backdrop">
-          <div className="tf-modal-panel">
-            <div className="tf-modal-header">
-              <div className="flex items-center gap-3">
-                <div className="rounded-xl border border-primary/20 bg-accent-soft p-2 text-primary shadow-sm">
-                  <PlusCircle className="h-4 w-4" />
-                </div>
-                <div>
-                  <h3 className="tf-modal-title">Create Organization</h3>
-                  <p className="tf-modal-description">Create a new organization to manage members and projects.</p>
-                </div>
-              </div>
-            </div>
-
-            <div className="tf-modal-body">
-              <label className="mb-2 block text-[11px] font-semibold uppercase tracking-[0.14em] text-text-secondary">
-                Organization name
-              </label>
-              <input
-                className="tf-input w-full"
-                placeholder="e.g. Acme Corp"
-                value={newOrgName}
-                onChange={(event) => setNewOrgName(event.target.value)}
-                autoFocus
-              />
-            </div>
-
-            <div className="tf-modal-footer">
-              <button
-                className="tf-button-ghost min-w-[100px]"
-                onClick={() => setShowCreateModal(false)}
-                disabled={loading}
-              >
-                Cancel
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
+          <div className="w-full max-w-lg max-h-[calc(100dvh-env(safe-area-inset-top)-env(safe-area-inset-bottom)-8rem)] sm:max-h-[90vh] rounded-xl border border-border bg-card shadow-xl flex flex-col overflow-hidden">
+            <div className="flex items-center justify-between p-4 border-b border-border/50 shrink-0">
+              <h3 className="text-sm font-semibold text-text-primary">Create Organization</h3>
+              <button onClick={() => setShowCreateModal(false)} className="text-text-secondary hover:text-text-primary transition-colors">
+                <X className="h-4 w-4" />
               </button>
-              <button
-                className="tf-button min-w-[160px]"
-                onClick={handleCreateOrg}
-                disabled={loading || !newOrgName.trim()}
-              >
-                <LoadingButtonContent
-                  loading={loading}
-                  loadingLabel="Creating..."
-                  idleLabel="Create Organization"
-                />
-              </button>
+            </div>
+            
+            <div className="p-6 overflow-y-auto">
+               <p className="text-sm text-text-secondary mb-4">Create a new organization to manage members and projects.</p>
+               <label className="mb-2 block text-[11px] font-semibold uppercase tracking-[0.14em] text-text-secondary">
+                 Organization name
+               </label>
+               <input
+                 className="w-full rounded-lg border border-border bg-background px-4 py-2 text-sm text-text-primary outline-none transition focus:border-primary/30 focus:ring-2 focus:ring-primary/10"
+                 placeholder="e.g. Acme Corp"
+                 value={newOrgName}
+                 onChange={(event) => setNewOrgName(event.target.value)}
+                 autoFocus
+               />
+            </div>
+            
+            <div className="flex flex-row-reverse items-center gap-3 p-6 pt-4 border-t border-border/50 shrink-0">
+               <button 
+                 onClick={handleCreateOrg} 
+                 disabled={loading || !newOrgName.trim()}
+                 className="flex-1 bg-primary hover:bg-primary-hover disabled:opacity-50 text-primary-foreground font-semibold py-2 px-4 rounded-lg transition-colors flex items-center justify-center"
+               >
+                 <LoadingButtonContent loading={loading} loadingLabel="Creating..." idleLabel="Create Organization" />
+               </button>
+               <button 
+                 onClick={() => setShowCreateModal(false)} 
+                 disabled={loading}
+                 className="flex-1 bg-secondary/50 border border-border hover:bg-secondary/80 text-text-primary font-semibold py-2 px-4 rounded-lg transition-colors flex items-center justify-center"
+               >
+                 Cancel
+               </button>
             </div>
           </div>
         </div>
@@ -601,7 +623,7 @@ export default function OrgsPage() {
                <button 
                  onClick={handleBulkDeleteOrgs} 
                  disabled={loading || bulkActionInput !== "Delete organizations"}
-                 className="flex-1 tf-danger-solid disabled:opacity-50 font-semibold py-2 px-4 rounded-lg transition-colors flex items-center justify-center"
+                 className="flex-1 bg-destructive/15 text-destructive border border-destructive/30 hover:bg-destructive/25 backdrop-blur-md disabled:opacity-50 font-semibold py-2 px-4 rounded-lg transition-all duration-300 flex items-center justify-center shadow-[0_8px_16px_-6px_rgba(var(--destructive-rgb),0.1)]"
                >
                  Delete
                </button>
