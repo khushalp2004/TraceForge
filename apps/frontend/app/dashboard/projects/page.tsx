@@ -486,7 +486,11 @@ export default function ProjectSettingsPage() {
         ids.map((id) =>
           fetch(`${API_URL}/projects/${id}`, {
             method: "DELETE",
-            headers: { Authorization: `Bearer ${token}` }
+            headers: { 
+              Authorization: `Bearer ${token}`,
+              "Content-Type": "application/json"
+            },
+            body: JSON.stringify({ name: "delete all" })
           })
         )
       );
