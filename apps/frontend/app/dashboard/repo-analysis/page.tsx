@@ -5,6 +5,7 @@ import Link from "next/link";
 import { LoadingButtonContent } from "../../../components/ui/loading-button-content";
 import { X } from "lucide-react";
 import { DashboardPagination } from "../components/DashboardPagination";
+import { PageDescriptionPopover } from "@/components/ui/page-description-popover";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
 const tokenKey = "traceforge_token";
@@ -303,17 +304,18 @@ export default function RepoAnalysisPage() {
         <header className="mt-2 flex flex-wrap items-center justify-between gap-4">
           <div>
             <p className="tf-kicker">GitHub</p>
-            <h1 className="font-display mt-2 text-2xl font-semibold text-text-primary">
-              Repo Analysis
-            </h1>
-            <p className="mt-2 max-w-3xl text-sm text-text-secondary">
-              Generate a structured AI report for each linked GitHub repository, including
-              summary, architecture, tech stack, runtime flow, key modules, and onboarding notes.
-            </p>
-            <p className="mt-2 text-xs text-text-secondary">
-              Each analysis uses {analysisCost} AI credits on Free and Team plans. Pro remains
-              unlimited.
-            </p>
+            <div className="mt-2 flex items-center">
+              <h1 className="font-display text-2xl font-semibold text-text-primary">
+                Repo Analysis
+              </h1>
+              <PageDescriptionPopover>
+                Generate a structured AI report for each linked GitHub repository, including
+                summary, architecture, tech stack, runtime flow, key modules, and onboarding notes.
+                <br /><br />
+                Each analysis uses {analysisCost} AI credits on Free and Team plans. Pro remains
+                unlimited.
+              </PageDescriptionPopover>
+            </div>
           </div>
           <label className="flex items-center gap-2 rounded-full border border-border bg-card/90 px-3 py-2 text-xs font-semibold text-text-secondary">
             <span>Org</span>

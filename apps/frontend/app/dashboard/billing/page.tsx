@@ -7,6 +7,7 @@ import { LoadingButtonContent } from "../../../components/ui/loading-button-cont
 import { DashboardPagination } from "../components/DashboardPagination";
 import { AnimatedPrice } from "../../components/AnimatedPrice";
 import { SegmentedControl } from "../../../components/ui/segmented-control";
+import { PageDescriptionPopover } from "@/components/ui/page-description-popover";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
 const tokenKey = "traceforge_token";
@@ -491,12 +492,13 @@ export default function BillingPage() {
         <header className="flex flex-wrap items-center justify-between gap-4">
           <div>
             <p className="tf-kicker">Billing</p>
-            <h1 className="tf-title mt-3 text-3xl">Personal and team plans</h1>
-            <p className="mt-2 max-w-3xl text-sm text-text-secondary">
-              Dev and Pro stay user-level. Dev keeps Free-style access with a bigger AI allowance,
-              Pro removes the AI cap for that person everywhere, and Team stays organization-level
-              with shared AI capacity for the selected organization.
-            </p>
+            <div className="mt-3 flex items-center">
+              <h1 className="tf-title text-3xl">Personal and team plans</h1>
+              <PageDescriptionPopover>
+                Pro stays user-level and removes the AI cap for that person everywhere, and Team stays organization-level
+                with shared AI capacity for the selected organization.
+              </PageDescriptionPopover>
+            </div>
           </div>
           <button
             type="button"
@@ -560,11 +562,11 @@ export default function BillingPage() {
                 <p className="text-xs text-text-secondary">
                   Payment testing & evaluation.
                 </p>
-                <div className="flex items-center justify-end gap-3">
+                <div className="flex flex-col-reverse sm:flex-row sm:items-center justify-end gap-3">
                   {isUserDevActive ? (
                     <button
                       type="button"
-                      className="tf-button-ghost px-4 py-2 text-sm"
+                      className="tf-button-ghost w-full sm:w-auto px-4 py-2 text-sm"
                       onClick={() => setCancelTarget({ plan: "DEV", label: "Dev subscription" })}
                       disabled={actionLoading}
                     >
@@ -573,7 +575,7 @@ export default function BillingPage() {
                   ) : null}
                   <button
                     type="button"
-                    className="tf-button px-4 py-2 text-sm"
+                    className="tf-button w-full sm:w-auto px-4 py-2 text-sm"
                     onClick={() => void startCheckout({ plan: "DEV", interval: "MONTHLY" })}
                     disabled={actionLoading}
                   >
@@ -663,11 +665,11 @@ export default function BillingPage() {
                     : `Launch pricing. ${pricing?.pro?.launch?.slotsRemaining ?? 0} slots left.`}
                 </div>
               ) : null}
-              <div className="flex items-center justify-end gap-3">
+              <div className="flex flex-col-reverse sm:flex-row sm:items-center justify-end gap-3">
                 {isUserProActive ? (
                   <button
                     type="button"
-                    className="tf-button-ghost px-4 py-2 text-sm"
+                    className="tf-button-ghost w-full sm:w-auto px-4 py-2 text-sm"
                     onClick={() => setCancelTarget({ plan: "PRO", label: "Pro subscription" })}
                     disabled={actionLoading}
                   >
@@ -676,7 +678,7 @@ export default function BillingPage() {
                 ) : null}
                 <button
                   type="button"
-                  className="tf-button px-4 py-2 text-sm"
+                  className="tf-button w-full sm:w-auto px-4 py-2 text-sm"
                   onClick={() => void startCheckout({ plan: "PRO", interval: personalInterval })}
                   disabled={actionLoading}
                 >
@@ -774,12 +776,12 @@ export default function BillingPage() {
                 </select>
               </label>
 
-              <div className="flex items-center justify-end pt-5 border-t border-border/50">
-                <div className="flex gap-3">
+              <div className="flex sm:items-center sm:justify-end pt-5 border-t border-border/50">
+                <div className="flex flex-col-reverse sm:flex-row gap-3 w-full sm:w-auto">
                   {isTeamActive && selectedOrgId ? (
                     <button
                       type="button"
-                      className="tf-button-ghost px-4 py-2 text-sm"
+                      className="tf-button-ghost w-full sm:w-auto px-4 py-2 text-sm"
                       onClick={() => setCancelTarget({ plan: "TEAM", organizationId: selectedOrgId, label: selectedOrg?.name ? `${selectedOrg.name} Team subscription` : "Team subscription" })}
                       disabled={actionLoading}
                     >
@@ -788,7 +790,7 @@ export default function BillingPage() {
                   ) : null}
                   <button
                     type="button"
-                    className="tf-button px-4 py-2 text-sm"
+                    className="tf-button w-full sm:w-auto px-4 py-2 text-sm"
                     onClick={() => selectedOrgId ? void startCheckout({ plan: "TEAM", interval: teamInterval, organizationId: selectedOrgId }) : showToast("Select an organization first.", "error")}
                     disabled={actionLoading}
                   >
@@ -1002,18 +1004,18 @@ export default function BillingPage() {
                />
             </div>
             
-            <div className="flex flex-row-reverse items-center gap-3 p-6 pt-0">
+            <div className="flex flex-col-reverse sm:flex-row-reverse gap-3 p-6 pt-0">
                <button 
                  onClick={() => void confirmCancelSubscription()} 
                  disabled={actionLoading || cancelConfirmationInput.trim() !== "Cancel your subscription"}
-                 className="flex-1 bg-destructive/15 text-destructive border border-destructive/30 hover:bg-destructive/25 backdrop-blur-md disabled:opacity-50 font-semibold py-2 px-4 rounded-lg transition-all duration-300 flex items-center justify-center shadow-[0_8px_16px_-6px_rgba(var(--destructive-rgb),0.1)]"
+                 className="flex-1 w-full whitespace-nowrap bg-destructive/15 text-destructive border border-destructive/30 hover:bg-destructive/25 backdrop-blur-md disabled:opacity-50 font-semibold py-2 px-4 rounded-lg transition-all duration-300 flex items-center justify-center shadow-[0_8px_16px_-6px_rgba(var(--destructive-rgb),0.1)]"
                >
                  Cancel subscription
                </button>
                <button 
                  onClick={closeCancelModal} 
                  disabled={actionLoading}
-                 className="flex-1 bg-secondary/50 border border-border hover:bg-secondary/80 text-text-primary font-semibold py-2 px-4 rounded-lg transition-colors flex items-center justify-center"
+                 className="flex-1 w-full whitespace-nowrap bg-secondary/50 border border-border hover:bg-secondary/80 text-text-primary font-semibold py-2 px-4 rounded-lg transition-colors flex items-center justify-center"
                >
                  Keep plan
                </button>

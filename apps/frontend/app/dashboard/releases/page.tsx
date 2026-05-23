@@ -6,6 +6,7 @@ import { useSearchParams } from "next/navigation";
 import { LoadingButtonContent } from "../../../components/ui/loading-button-content";
 import { DashboardPagination } from "../components/DashboardPagination";
 import { Trash2, Rocket, X } from "lucide-react";
+import { PageDescriptionPopover } from "@/components/ui/page-description-popover";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
 const tokenKey = "traceforge_token";
@@ -351,11 +352,13 @@ function ReleasesPageInner() {
         <header className="flex flex-wrap items-center justify-between gap-4">
           <div>
             <p className="tf-kicker">Releases</p>
-            <h1 className="tf-title mt-3 text-3xl">Release health</h1>
-            <p className="mt-2 max-w-2xl text-sm text-text-secondary">
-              Track what shipped, which project it belongs to, and whether new issues
-              started appearing after that release.
-            </p>
+            <div className="mt-3 flex items-center">
+              <h1 className="tf-title text-3xl">Release health</h1>
+              <PageDescriptionPopover>
+                Track what shipped, which project it belongs to, and whether new issues
+                started appearing after that release.
+              </PageDescriptionPopover>
+            </div>
           </div>
           <div className="flex flex-wrap items-center gap-3">
             <button

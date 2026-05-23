@@ -6,6 +6,7 @@ import { SparkAreaChart } from "../components/SparkAreaChart";
 import { DashboardPagination } from "../components/DashboardPagination";
 import { useLayout } from "../../../context/LayoutContext";
 import { useMediaQuery } from "../../hooks/useMediaQuery";
+import { PageDescriptionPopover } from "@/components/ui/page-description-popover";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
 const tokenKey = "traceforge_token";
@@ -1237,11 +1238,13 @@ export default function InsightsPage() {
         <header className="flex flex-wrap items-start justify-between gap-4">
           <div>
             <p className="tf-kicker">Insights</p>
-            <h1 className="tf-title mt-3 text-3xl">Operational insights</h1>
-            <p className="mt-2 text-sm text-text-secondary">
-              Start with overall trends across the account, then narrow to a single
-              project when you want a focused view.
-            </p>
+            <div className="mt-3 flex items-center">
+              <h1 className="tf-title text-3xl">Operational insights</h1>
+              <PageDescriptionPopover>
+                Start with overall trends across the account, then narrow to a single
+                project when you want a focused view.
+              </PageDescriptionPopover>
+            </div>
           </div>
         </header>
 

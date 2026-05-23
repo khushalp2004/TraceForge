@@ -9,6 +9,7 @@ import { LAYOUTS } from "../../../../app/layoutPreference";
 import { useAuth } from "../../../../context/AuthContext";
 import { useLayout } from "../../../../context/LayoutContext";
 import { useTheme } from "../../../../context/ThemeContext";
+import { PageDescriptionPopover } from "@/components/ui/page-description-popover";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
 
@@ -297,10 +298,12 @@ export default function AccountDetailsPage() {
       <div className="tf-dashboard flex flex-col xl:h-full">
         <header>
           <p className="tf-kicker">Account Details</p>
-          <h1 className="tf-title mt-3 text-3xl">Personal account and security</h1>
-          <p className="mt-2 max-w-2xl text-sm text-text-secondary">
-            Manage your personal profile, authentication controls, organization membership, and permanent account actions.
-          </p>
+          <div className="mt-3 flex items-center">
+            <h1 className="tf-title text-3xl">Personal account and security</h1>
+            <PageDescriptionPopover>
+              Manage your personal profile, authentication controls, organization membership, and permanent account actions.
+            </PageDescriptionPopover>
+          </div>
         </header>
 
         <div className="mt-6 grid gap-6 xl:min-h-0 xl:flex-1 xl:grid-cols-[minmax(0,1.2fr)_minmax(320px,0.8fr)]">

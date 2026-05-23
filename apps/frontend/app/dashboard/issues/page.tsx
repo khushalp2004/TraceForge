@@ -8,6 +8,7 @@ import { LoadingButtonContent } from "../../../components/ui/loading-button-cont
 import { useDebouncedValue } from "../../hooks/useDebouncedValue";
 import { DashboardPagination } from "../components/DashboardPagination";
 import { SegmentedControl } from "../../../components/ui/segmented-control";
+import { PageDescriptionPopover } from "@/components/ui/page-description-popover";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
 const tokenKey = "traceforge_token";
@@ -782,7 +783,12 @@ function IssuesPageInner() {
         <header className="flex flex-wrap items-center justify-between gap-4">
           <div>
             <p className="tf-kicker">Issues</p>
-            <h1 className="tf-title mt-3 text-3xl">Issue inbox</h1>
+            <div className="mt-3 flex items-center">
+              <h1 className="tf-title text-3xl">Issue inbox</h1>
+              <PageDescriptionPopover>
+                Manage and resolve issues reported across your projects.
+              </PageDescriptionPopover>
+            </div>
           </div>
           <div className="flex flex-wrap items-center gap-3">
             <button
@@ -1208,7 +1214,7 @@ function IssuesPageInner() {
       </div>
 
       {archiveTarget && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4 py-[100px] sm:p-8">
           <div className="w-full max-w-lg rounded-xl border border-border bg-card shadow-xl flex flex-col overflow-hidden">
             <div className="flex items-center justify-between p-4 border-b border-border/50">
               <h3 className="text-sm font-semibold text-text-primary">Archive Issue</h3>
@@ -1243,7 +1249,7 @@ function IssuesPageInner() {
       )}
 
       {deleteTarget && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4 py-[100px] sm:p-8">
           <div className="w-full max-w-lg rounded-xl border border-border bg-card shadow-xl flex flex-col overflow-hidden">
             <div className="flex items-center justify-between p-4 border-b border-border/50">
               <h3 className="text-sm font-semibold text-text-primary">Delete Issue</h3>
@@ -1278,8 +1284,8 @@ function IssuesPageInner() {
       )}
 
       {showCreateModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
-          <div className="w-full max-w-lg max-h-[calc(100dvh-env(safe-area-inset-top)-env(safe-area-inset-bottom)-8rem)] sm:max-h-[90vh] rounded-xl border border-border bg-card shadow-xl flex flex-col overflow-hidden">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4 py-[100px] sm:p-8">
+          <div className="w-full max-w-lg max-h-full rounded-xl border border-border bg-card shadow-xl flex flex-col overflow-hidden">
             <div className="flex items-center justify-between p-4 border-b border-border/50 shrink-0">
               <h3 className="text-sm font-semibold text-text-primary">Create Project</h3>
               <button onClick={() => {
@@ -1390,8 +1396,8 @@ function IssuesPageInner() {
       )}
 
       {githubIssueTarget && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
-          <div className="w-full max-w-lg max-h-[calc(100dvh-env(safe-area-inset-top)-env(safe-area-inset-bottom)-8rem)] sm:max-h-[90vh] rounded-xl border border-border bg-card shadow-xl flex flex-col overflow-hidden">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4 py-[100px] sm:p-8">
+          <div className="w-full max-w-lg max-h-full rounded-xl border border-border bg-card shadow-xl flex flex-col overflow-hidden">
             <div className="flex items-center justify-between p-4 border-b border-border/50 shrink-0">
               <h3 className="text-sm font-semibold text-text-primary">Create GitHub issue</h3>
               <button onClick={() => setGithubIssueTarget(null)} className="text-text-secondary hover:text-text-primary transition-colors">

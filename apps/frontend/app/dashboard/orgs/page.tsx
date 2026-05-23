@@ -5,6 +5,7 @@ import Link from "next/link";
 import { LoadingButtonContent } from "../../../components/ui/loading-button-content";
 import { DashboardPagination } from "../components/DashboardPagination";
 import { Trash2, Edit3, PlusCircle, X } from "lucide-react";
+import { PageDescriptionPopover } from "@/components/ui/page-description-popover";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
 const tokenKey = "traceforge_token";
@@ -276,12 +277,14 @@ export default function OrgsPage() {
         <header className="mt-2 flex flex-wrap items-center justify-between gap-4">
           <div>
             <p className="tf-kicker">Organizations</p>
-            <h1 className="font-display mt-2 text-2xl font-semibold text-text-primary">
-              Organization Management
-            </h1>
-            <p className="mt-2 text-sm text-text-secondary">
-              Select an organization to manage members and permissions.
-            </p>
+            <div className="mt-2 flex items-center">
+              <h1 className="font-display text-2xl font-semibold text-text-primary">
+                Organization Management
+              </h1>
+              <PageDescriptionPopover>
+                Select an organization to manage members and permissions.
+              </PageDescriptionPopover>
+            </div>
           </div>
           <button
             className="inline-flex items-center rounded-full bg-primary px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-primary/90"

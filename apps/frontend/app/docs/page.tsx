@@ -606,8 +606,11 @@ export default function DocsPage() {
                                   className="flex items-center gap-3 px-4 py-3 hover:bg-secondary/40 transition-colors text-left border-b border-border/20 last:border-0"
                                 >
                                   <span className="text-primary">{tab.icon}</span>
-                                  <span className="font-medium text-text-primary flex-1">{tab.label}</span>
-                                  <span className="text-xs text-text-secondary">{tab.hint || "Supported"}</span>
+                                  <div className="flex flex-col flex-1">
+                                    <span className="font-medium text-text-primary">{tab.label}</span>
+                                    {tab.hint && <span className="text-xs text-text-secondary">{tab.hint}</span>}
+                                  </div>
+                                  <span className="shrink-0 rounded-md bg-emerald-500/10 px-2 py-1 text-[10px] font-medium uppercase tracking-wider text-emerald-500 border border-emerald-500/20">Supported</span>
                                 </button>
                               ))}
                             </div>

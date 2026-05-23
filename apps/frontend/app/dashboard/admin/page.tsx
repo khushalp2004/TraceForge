@@ -3,8 +3,10 @@
 import { useEffect, useMemo, useState } from "react";
 import { Trash2, X } from "lucide-react";
 import { useAuth } from "../../../context/AuthContext";
+import { useDebouncedValue } from "../../hooks/useDebouncedValue";
 import { LoadingButtonContent } from "../../../components/ui/loading-button-content";
 import { DashboardPagination } from "../components/DashboardPagination";
+import { PageDescriptionPopover } from "@/components/ui/page-description-popover";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
 
@@ -607,14 +609,16 @@ export default function AdminDashboardPage() {
           <p className="text-sm font-semibold uppercase tracking-[0.14em] text-text-secondary">
             Super Admin
           </p>
-          <h1 className="mt-4 text-3xl font-semibold tracking-tight text-text-primary sm:text-4xl">
-            Request super admin access
-          </h1>
-          <p className="mt-4 max-w-3xl text-sm leading-7 text-text-secondary sm:text-base">
-            This page is reserved for platform operators. If you need access, we can send your
-            request to <span className="font-semibold text-text-primary">team@usetraceforge.com</span>{" "}
-            with a short reason.
-          </p>
+          <div className="mt-4 flex items-center">
+            <h1 className="text-3xl font-semibold tracking-tight text-text-primary sm:text-4xl">
+              Request super admin access
+            </h1>
+            <PageDescriptionPopover>
+              This page is reserved for platform operators. If you need access, we can send your
+              request to <span className="font-semibold text-text-primary">team@usetraceforge.com</span>{" "}
+              with a short reason.
+            </PageDescriptionPopover>
+          </div>
 
           <div className="mt-6 rounded-3xl border border-border bg-background/70 p-5">
             <label className="text-sm font-semibold text-text-primary" htmlFor="admin-access-reason">
@@ -669,13 +673,15 @@ export default function AdminDashboardPage() {
             <p className="text-sm font-semibold uppercase tracking-[0.14em] text-text-secondary">
               Super Admin
             </p>
-            <h1 className="mt-4 text-3xl font-semibold tracking-tight text-text-primary sm:text-4xl">
-              Platform overview and user controls
-            </h1>
-            <p className="mt-4 max-w-3xl text-sm leading-7 text-text-secondary sm:text-base">
-              Keep an eye on core platform stats, billing activity, connected integrations, and
-              user plans from one place.
-            </p>
+            <div className="mt-4 flex items-center">
+              <h1 className="text-3xl font-semibold tracking-tight text-text-primary sm:text-4xl">
+                Platform overview and user controls
+              </h1>
+              <PageDescriptionPopover>
+                Keep an eye on core platform stats, billing activity, connected integrations, and
+                user plans from one place.
+              </PageDescriptionPopover>
+            </div>
           </div>
 
           <div className="grid gap-3 sm:grid-cols-2 xl:w-[24rem]">

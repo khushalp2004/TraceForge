@@ -4,6 +4,8 @@ import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { Copy, Github, Sparkles, X } from "lucide-react";
 import { LoadingButtonContent } from "../../../../components/ui/loading-button-content";
+import { UserSelectionIndicator } from "./UserSelectionIndicator";
+import { PageDescriptionPopover } from "@/components/ui/page-description-popover";
 import { useDebouncedValue } from "../../../hooks/useDebouncedValue";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
@@ -476,12 +478,14 @@ export default function ErrorDetailPage({ params }: { params: { id: string } }) 
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div className="min-w-0">
               <p className="tf-kicker">{errorDetail.project.name}</p>
-              <h1 className="tf-title mt-3 text-2xl sm:text-3xl">{errorDetail.message}</h1>
-              <p className="mt-3 max-w-3xl text-sm text-text-secondary">
-                {errorDetail.isManualAlertIssue
-                  ? "Review the grouped stack and recent event payloads for this manually triggered alert issue without losing the higher-level inbox context."
-                  : "Review the grouped stack, recent event payloads, and AI guidance for this issue without losing the higher-level inbox context."}
-              </p>
+              <div className="mt-3 flex items-center">
+                <h1 className="tf-title text-2xl sm:text-3xl">{errorDetail.message}</h1>
+                <PageDescriptionPopover>
+                  {errorDetail.isManualAlertIssue
+                    ? "Review the grouped stack and recent event payloads for this manually triggered alert issue without losing the higher-level inbox context."
+                    : "Review the grouped stack, recent event payloads, and AI guidance for this issue without losing the higher-level inbox context."}
+                </PageDescriptionPopover>
+              </div>
             </div>
             <div className="flex w-full flex-wrap items-center gap-3 sm:w-auto sm:justify-end">
               {aiStatus && (

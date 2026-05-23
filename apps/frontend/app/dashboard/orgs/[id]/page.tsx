@@ -4,6 +4,7 @@ import { Suspense, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { LoadingButtonContent } from "../../../../components/ui/loading-button-content";
+import { PageDescriptionPopover } from "@/components/ui/page-description-popover";
 import { useAuth } from "../../../../context/AuthContext";
 import { DashboardPagination } from "../../components/DashboardPagination";
 
@@ -371,13 +372,13 @@ function OrganizationDetailPageInner({ params }: { params: { id: string } }) {
       </Link>
       
       <header className="mb-10 flex flex-wrap items-center justify-between gap-6">
-        <div>
+        <div className="flex items-center">
           <h1 className="text-3xl font-bold tracking-tight text-text-primary">
             {org?.name || "Organization"}
           </h1>
-          <p className="mt-1.5 text-[15px] text-text-secondary">
+          <PageDescriptionPopover>
             Manage members, invites, and audit history.
-          </p>
+          </PageDescriptionPopover>
         </div>
         {hasAccess && (
           <button

@@ -3,11 +3,12 @@
 import { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { Archive, BellRing, Pause, Play, RotateCcw, Send, Trash2, X } from "lucide-react";
+import { Archive, BellRing, Pause, Play, RotateCcw, Send, Trash2, X, PlusCircle, PenTool, Info } from "lucide-react";
 import { LoadingButtonContent } from "../../../components/ui/loading-button-content";
 import { useDebouncedValue } from "../../hooks/useDebouncedValue";
 import { DashboardPagination } from "../components/DashboardPagination";
 import { SegmentedControl } from "../../../components/ui/segmented-control";
+import { PageDescriptionPopover } from "@/components/ui/page-description-popover";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
 const tokenKey = "traceforge_token";
@@ -730,11 +731,13 @@ function AlertsPageInner() {
         <header className="flex flex-wrap items-center justify-between gap-4">
           <div>
             <p className="tf-kicker">Alerts</p>
-            <h1 className="tf-title mt-3 text-3xl">Alert rules</h1>
-            <p className="mt-2 max-w-2xl text-sm text-text-secondary">
-              Create issue thresholds that watch your projects and notify you in real time
-              when operational risk starts climbing.
-            </p>
+            <div className="mt-3 flex items-center">
+              <h1 className="tf-title text-3xl">Alert rules</h1>
+              <PageDescriptionPopover>
+                Create issue thresholds that watch your projects and notify you in real time
+                when operational risk starts climbing.
+              </PageDescriptionPopover>
+            </div>
           </div>
           <button
             type="button"

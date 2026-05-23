@@ -5,6 +5,7 @@ import Link from "next/link";
 import { GripVertical, Archive, Trash2, X } from "lucide-react";
 import { LoadingButtonContent } from "../../../components/ui/loading-button-content";
 import { DashboardPagination } from "../components/DashboardPagination";
+import { PageDescriptionPopover } from "@/components/ui/page-description-popover";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
 const tokenKey = "traceforge_token";
@@ -723,15 +724,16 @@ export default function ProjectSettingsPage() {
         <header className="mt-2 flex flex-wrap items-center justify-between gap-4">
           <div>
             <p className="tf-kicker">Projects</p>
-            <h1 className="font-display mt-2 text-2xl font-semibold text-text-primary">
-              Manage Projects
-            </h1>
-            <p className="mt-2 text-sm text-text-secondary">
-              Rotate keys and archive projects you no longer need.
-            </p>
-            <p className="mt-2 text-xs text-text-secondary">
-              Projects stay configured while recent setup or telemetry signals are still being received.
-            </p>
+            <div className="mt-2 flex items-center">
+              <h1 className="font-display text-2xl font-semibold text-text-primary">
+                Manage Projects
+              </h1>
+              <PageDescriptionPopover>
+                Rotate keys and archive projects you no longer need.
+                <br /><br />
+                Projects stay configured while recent setup or telemetry signals are still being received.
+              </PageDescriptionPopover>
+            </div>
           </div>
           <div className="flex w-full min-w-0 items-center gap-2 sm:w-auto sm:justify-end sm:gap-3 flex-1 justify-end">
             <div 

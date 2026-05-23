@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Check } from "lucide-react";
 import { LoadingButtonContent } from "../../../components/ui/loading-button-content";
+import { PageDescriptionPopover } from "@/components/ui/page-description-popover";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
 const tokenKey = "traceforge_token";
@@ -530,12 +531,14 @@ export default function SettingsPage() {
         <header className="mt-2 flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
           <div className="min-w-0">
             <p className="tf-kicker">Settings</p>
-            <h1 className="font-display mt-2 text-2xl font-semibold text-text-primary">
-              Workspace Integrations
-            </h1>
-            <p className="mt-2 max-w-xl text-sm text-text-secondary">
-              Connect the tools your team already uses, then choose the repos, channels, and projects TraceForge should use.
-            </p>
+            <div className="mt-2 flex items-center">
+              <h1 className="font-display text-2xl font-semibold text-text-primary">
+                Workspace Integrations
+              </h1>
+              <PageDescriptionPopover>
+                Connect the tools your team already uses, then choose the repos, channels, and projects TraceForge should use.
+              </PageDescriptionPopover>
+            </div>
           </div>
           
           <div className="flex shrink-0 flex-col sm:items-end">
@@ -749,14 +752,14 @@ export default function SettingsPage() {
                   <div className="flex flex-wrap items-center gap-2">
                     <h2 className="text-lg font-semibold text-text-primary">Slack</h2>
                     <span className="rounded-full border border-border bg-card/50 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-text-secondary">Workspace</span>
+                    <span className={integrationStatusMeta(Boolean(slack?.connected)).className}>
+                      {integrationStatusMeta(Boolean(slack?.connected)).label}
+                    </span>
                   </div>
                   <p className="mt-1 break-words text-sm text-text-secondary">
                     Route workspace alerts into one default Slack channel.
                   </p>
                 </div>
-                <span className={integrationStatusMeta(Boolean(slack?.connected)).className}>
-                  {integrationStatusMeta(Boolean(slack?.connected)).label}
-                </span>
               </div>
 
               {!selectedOrg ? (
@@ -909,14 +912,14 @@ export default function SettingsPage() {
                   <div className="flex flex-wrap items-center gap-2">
                     <h2 className="text-lg font-semibold text-text-primary">Jira</h2>
                     <span className="rounded-full border border-border bg-card/50 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-text-secondary">Workspace</span>
+                    <span className={integrationStatusMeta(Boolean(jira?.connected)).className}>
+                      {integrationStatusMeta(Boolean(jira?.connected)).label}
+                    </span>
                   </div>
                   <p className="mt-1 break-words text-sm text-text-secondary">
                     Connect Jira once, then pick the site and default project used by this workspace.
                   </p>
                 </div>
-                <span className={integrationStatusMeta(Boolean(jira?.connected)).className}>
-                  {integrationStatusMeta(Boolean(jira?.connected)).label}
-                </span>
               </div>
 
               {!selectedOrg ? (
