@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { motion } from "framer-motion";
-import HomeHeroPreview from "./components/HomeHeroPreview";
+
 import {
   Zap,
   Workflow,
@@ -87,7 +87,7 @@ export default function HomePageClientV2() {
       <div className="tf-container relative z-10">
 
         {/* --- Hero Section (Split Layout) --- */}
-        <section className="max-w-[1400px] mx-auto pt-10 pb-20 grid lg:grid-cols-[1.1fr_1fr] gap-12 lg:gap-20 items-center min-h-[70vh]">
+        <section className="max-w-[1400px] mx-auto pt-10 pb-20 grid lg:grid-cols-2 gap-8 lg:gap-10 items-center min-h-[70vh]">
 
           {/* Left Side: App Quote & CTA */}
           <motion.div
@@ -131,7 +131,7 @@ export default function HomePageClientV2() {
             initial={{ opacity: 0, x: 50, scale: 0.95 }}
             animate={{ opacity: 1, x: 0, scale: 1 }}
             transition={{ type: "spring", stiffness: 40, damping: 20, delay: 0.2 }}
-            className="relative w-full z-10"
+            className="relative w-full z-10 animate-float-slow"
           >
             {/* Massive Glow Behind Video */}
             <div className="absolute inset-0 bg-gradient-to-tr from-primary/30 via-transparent to-accent/30 rounded-[2.5rem] blur-[80px] -z-10" />
@@ -154,26 +154,18 @@ export default function HomePageClientV2() {
                 </div>
 
                 {/* Dashboard / Demo Content */}
-                <div className="relative aspect-[4/3] bg-[radial-gradient(ellipse_at_center,rgba(var(--background),1)_0%,rgba(var(--secondary),0.4)_100%)] flex flex-col items-center justify-center p-6 overflow-hidden">
+                <div className="relative bg-[radial-gradient(ellipse_at_center,rgba(var(--background),1)_0%,rgba(var(--secondary),0.4)_100%)] flex flex-col items-center justify-center p-0 overflow-hidden">
                   <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.02)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.02)_1px,transparent_1px)] bg-[size:30px_30px]" />
 
-                  {/* Embedded Hero Preview (Actionable Issue Mockup) */}
-                  <div className="relative z-10 w-full transform scale-95 lg:scale-100">
-                    <HomeHeroPreview />
-                  </div>
-
-                  {/* Floating Mock Log Notification */}
-                  <div className="absolute bottom-6 left-6 right-6 rounded-xl border border-border/40 bg-card/80 backdrop-blur-md p-3 shadow-lg flex items-center justify-between z-20">
-                    <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 rounded-full bg-destructive/10 flex items-center justify-center">
-                        <Zap className="w-4 h-4 text-destructive" />
-                      </div>
-                      <div>
-                        <p className="text-xs font-bold text-text-primary">Production Exception</p>
-                        <p className="text-[10px] text-text-secondary font-mono mt-0.5">Caught by TraceForge worker</p>
-                      </div>
-                    </div>
-                    <span className="text-[10px] font-bold text-primary animate-pulse uppercase tracking-wider">AI Analyzing...</span>
+                  {/* Image Placeholder */}
+                  <div className="relative z-10 w-full flex items-center justify-center">
+                    {/* 👇 REPLACE 'src' WITH YOUR IMAGE PATH (e.g., src="/dashboard.png") */}
+                    {/* Make sure your image is placed inside the 'apps/frontend/public' folder */}
+                    <img
+                      src="traceforge-dashboard.png"
+                      alt="App Screenshot Placeholder"
+                      className="w-full h-auto object-contain rounded-b-[1.5rem] shadow-2xl"
+                    />
                   </div>
                 </div>
               </div>

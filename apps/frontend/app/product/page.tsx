@@ -146,27 +146,52 @@ export default function ProductPage() {
               </div>
             </div>
 
-            {/* Floating Stats over the mockup (Optional aesthetic) */}
+            {/* Floating Stats over the mockup (Explanatory Features) */}
             <motion.div 
-              initial={{ opacity: 0, x: -50 }}
-              whileInView={{ opacity: 1, x: 0 }}
-              viewport={{ once: true }}
-              transition={{ delay: 0.6 }}
-              className="hidden lg:flex absolute -left-12 bottom-12 rounded-2xl border border-border/80 bg-card/90 backdrop-blur px-6 py-4 shadow-xl flex-col gap-1"
+              initial={{ opacity: 0, x: -40, scale: 0.8 }}
+              whileInView={{ opacity: 1, x: 0, scale: 1 }}
+              viewport={{ once: true, margin: "-50px" }}
+              transition={{ type: "spring", stiffness: 100, delay: 0.6 }}
+              className="hidden lg:flex absolute top-8 -left-16 rounded-2xl border border-border/80 bg-card/90 backdrop-blur px-6 py-4 shadow-2xl flex-col gap-1 z-20"
             >
-              <span className="text-sm font-semibold text-text-secondary">Noise Reduced</span>
-              <span className="text-2xl font-bold text-primary">-40%</span>
+              <span className="text-xs font-semibold text-text-secondary uppercase tracking-wider">AI Root Cause</span>
+              <span className="text-base font-bold text-primary">`user.id` is undefined</span>
             </motion.div>
             
             <motion.div 
-              initial={{ opacity: 0, x: 50 }}
-              whileInView={{ opacity: 1, x: 0 }}
-              viewport={{ once: true }}
-              transition={{ delay: 0.8 }}
-              className="hidden lg:flex absolute -right-12 top-24 rounded-2xl border border-border/80 bg-card/90 backdrop-blur px-6 py-4 shadow-xl flex-col gap-1"
+              initial={{ opacity: 0, x: 40, scale: 0.8 }}
+              whileInView={{ opacity: 1, x: 0, scale: 1 }}
+              viewport={{ once: true, margin: "-50px" }}
+              transition={{ type: "spring", stiffness: 100, delay: 0.8 }}
+              className="hidden lg:flex absolute top-1/2 -translate-y-1/2 -right-20 rounded-2xl border border-border/80 bg-card/90 backdrop-blur px-6 py-4 shadow-2xl flex-col gap-1 z-20"
             >
-              <span className="text-sm font-semibold text-text-secondary">Time to Insight</span>
-              <span className="text-2xl font-bold text-success">Seconds</span>
+              <span className="text-xs font-semibold text-text-secondary uppercase tracking-wider">Smart Routing</span>
+              <span className="text-base font-bold text-success flex items-center gap-2">
+                <span className="w-2 h-2 rounded-full bg-success animate-pulse" />
+                Assigned to @backend
+              </span>
+            </motion.div>
+
+            <motion.div 
+              initial={{ opacity: 0, y: 40, scale: 0.8 }}
+              whileInView={{ opacity: 1, y: 0, scale: 1 }}
+              viewport={{ once: true, margin: "-50px" }}
+              transition={{ type: "spring", stiffness: 100, delay: 1.0 }}
+              className="hidden lg:flex absolute bottom-12 -left-16 rounded-2xl border border-border/80 bg-card/90 backdrop-blur px-6 py-4 shadow-2xl flex-col gap-1 z-20"
+            >
+              <span className="text-xs font-semibold text-text-secondary uppercase tracking-wider">Full Context</span>
+              <span className="text-base font-bold text-accent">Network logs attached</span>
+            </motion.div>
+
+            <motion.div 
+              initial={{ opacity: 0, y: -40, scale: 0.8 }}
+              whileInView={{ opacity: 1, y: 0, scale: 1 }}
+              viewport={{ once: true, margin: "-50px" }}
+              transition={{ type: "spring", stiffness: 100, delay: 1.2 }}
+              className="hidden lg:flex absolute -top-6 right-8 rounded-2xl border border-border/80 bg-card/90 backdrop-blur px-6 py-4 shadow-2xl flex-col gap-1 z-20"
+            >
+              <span className="text-xs font-semibold text-text-secondary uppercase tracking-wider">Release Health</span>
+              <span className="text-base font-bold text-text-primary">Failed in PR #1042</span>
             </motion.div>
           </motion.div>
         </section>
