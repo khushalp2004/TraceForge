@@ -300,11 +300,13 @@ export default function DashboardMobileNav() {
             <Link href="/" className="flex min-w-0 items-center gap-3">
               <div className="relative flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-full bg-primary/10 transition-all duration-200">
                 <Image 
-                  src="/traceforge-logo.svg" 
+                  src="https://res.cloudinary.com/drri6ut0i/image/upload/v1779566028/traceforge/traceforge-logo.png" 
                   alt="TraceForge" 
                   width={22} 
                   height={22} 
-                  className="h-[22px] w-[22px] object-contain"
+                  className="h-[22px] w-[22px] object-contain shrink-0 pointer-events-none select-none"
+                  onContextMenu={(e) => e.preventDefault()}
+                  draggable={false}
                 />
               </div>
               <div className="min-w-0">

@@ -3,12 +3,12 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { motion } from "framer-motion";
-import { 
-  Play, 
-  Workflow, 
-  Target, 
-  ShieldAlert, 
-  Activity, 
+import {
+  Play,
+  Workflow,
+  Target,
+  ShieldAlert,
+  Activity,
   Zap,
   Layers,
   ArrowRight
@@ -16,8 +16,8 @@ import {
 
 const fadeUpVariant = {
   hidden: { opacity: 0, y: 30 },
-  visible: { 
-    opacity: 1, 
+  visible: {
+    opacity: 1,
     y: 0,
     transition: { type: "spring", stiffness: 100, damping: 20 }
   }
@@ -33,9 +33,9 @@ const staggerContainer = {
 
 const bentoVariant = {
   hidden: { opacity: 0, scale: 0.95, y: 20 },
-  visible: { 
-    opacity: 1, 
-    scale: 1, 
+  visible: {
+    opacity: 1,
+    scale: 1,
     y: 0,
     transition: { type: "spring", stiffness: 80, damping: 20 }
   }
@@ -46,22 +46,22 @@ export default function ProductPage() {
     <main className="tf-page pb-24 pt-20 overflow-hidden relative">
       <div className="absolute inset-0 bg-[linear-gradient(to_right,#8080800a_1px,transparent_1px),linear-gradient(to_bottom,#8080800a_1px,transparent_1px)] bg-[size:40px_40px] [mask-image:radial-gradient(ellipse_80%_50%_at_50%_0%,#000_80%,transparent_100%)] pointer-events-none -z-10" />
       {/* Dynamic Background Elements */}
-      <motion.div 
+      <motion.div
         animate={{ scale: [1, 1.1, 1], opacity: [0.3, 0.5, 0.3] }}
         transition={{ duration: 8, repeat: Infinity, ease: "easeInOut" }}
-        className="absolute top-1/4 -right-64 w-[600px] h-[600px] bg-primary/10 rounded-full blur-[120px] pointer-events-none mix-blend-screen" 
+        className="absolute top-1/4 -right-64 w-[600px] h-[600px] bg-primary/10 rounded-full blur-[120px] pointer-events-none mix-blend-screen"
       />
-      <motion.div 
+      <motion.div
         animate={{ scale: [1, 1.2, 1], y: [0, -50, 0], opacity: [0.2, 0.4, 0.2] }}
         transition={{ duration: 12, repeat: Infinity, ease: "easeInOut" }}
-        className="absolute bottom-1/3 -left-64 w-[500px] h-[500px] bg-accent/15 rounded-full blur-[100px] pointer-events-none mix-blend-screen" 
+        className="absolute bottom-1/3 -left-64 w-[500px] h-[500px] bg-accent/15 rounded-full blur-[100px] pointer-events-none mix-blend-screen"
       />
 
       <div className="tf-container relative z-10">
-        
+
         {/* --- Hero Section --- */}
         <section className="text-center max-w-4xl mx-auto min-h-[40vh] flex flex-col justify-center mb-16">
-          <motion.div 
+          <motion.div
             initial="hidden"
             animate="visible"
             variants={staggerContainer}
@@ -70,17 +70,17 @@ export default function ProductPage() {
               <Zap className="w-3.5 h-3.5 text-primary" />
               <span className="text-xs font-bold uppercase tracking-widest text-primary">AI Error Intelligence</span>
             </motion.div>
-            
+
             <motion.h1 variants={fadeUpVariant} className="tf-title text-5xl sm:text-6xl lg:text-7xl font-bold leading-tight tracking-tighter">
-              Keep production quiet.<br/>
+              Keep production quiet.<br />
               <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary to-accent">Move with confidence.</span>
             </motion.h1>
-            
+
             <motion.p variants={fadeUpVariant} className="mt-6 text-lg sm:text-xl text-text-secondary leading-relaxed font-medium max-w-2xl mx-auto">
               Capture exceptions across services, group noisy stacks into clean issues, and
               route them to the right teams with enterprise-grade workflows.
             </motion.p>
-            
+
             <motion.div variants={fadeUpVariant} className="mt-10 flex flex-wrap gap-4 items-center justify-center">
               <Link href="/signup" className="group relative inline-flex items-center justify-center gap-2 rounded-full bg-primary px-8 py-4 text-sm font-semibold text-primary-foreground shadow-[0_0_40px_-10px_rgba(var(--primary),0.6)] transition-all hover:scale-105 hover:bg-primary-hover hover:shadow-[0_0_60px_-15px_rgba(var(--primary),0.8)]">
                 Start trial
@@ -94,7 +94,7 @@ export default function ProductPage() {
 
         {/* --- Video Demo Component --- */}
         <section className="mb-32">
-          <motion.div 
+          <motion.div
             initial={{ opacity: 0, y: 100, scale: 0.9 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             transition={{ type: "spring", stiffness: 40, damping: 20, delay: 0.2 }}
@@ -102,11 +102,11 @@ export default function ProductPage() {
           >
             {/* Massive Glow Behind Video */}
             <div className="absolute inset-0 bg-gradient-to-tr from-primary/30 via-transparent to-accent/30 rounded-[2.5rem] blur-[80px] -z-10" />
-            
+
             {/* Premium Glassmorphic Browser Mockup */}
             <div className="relative rounded-[2rem] border border-border/80 bg-card/60 p-2 sm:p-3 shadow-2xl backdrop-blur-2xl">
               <div className="rounded-[1.5rem] border border-border/50 bg-background overflow-hidden shadow-inner">
-                
+
                 {/* Browser Header */}
                 <div className="flex items-center gap-4 px-5 py-4 border-b border-border/50 bg-secondary/30 relative">
                   <div className="flex gap-1.5 absolute left-5">
@@ -123,17 +123,14 @@ export default function ProductPage() {
                 {/* Video Container */}
                 <div className="relative aspect-video bg-black flex items-center justify-center overflow-hidden">
                   {/* NOTE: You can replace this src with your actual demo MP4 URL, or replace the entire video tag with an iframe for YouTube/Vimeo */}
-                  <video 
-                    className="w-full h-full object-cover opacity-90 hover:opacity-100 transition-opacity"
-                    autoPlay 
-                    loop 
-                    muted 
-                    playsInline
-                    poster="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='100%' height='100%'><rect width='100%' height='100%' fill='%231a1a1a'/></svg>"
-                  >
-                    <source src="https://www.w3schools.com/html/mov_bbb.mp4" type="video/mp4" />
-                    Your browser does not support the video tag.
-                  </video>
+                  <iframe
+                    src="https://player.cloudinary.com/embed/?cloud_name=drri6ut0i&public_id=traceforge%2Fproduct-demo&player[autoplay]=true&player[loop]=true&player[muted]=true&player[controls]=false&player[show_logo]=false"
+                    allow="autoplay; fullscreen; encrypted-media; picture-in-picture"
+                    allowFullScreen
+                    frameBorder="0"
+                    onContextMenu={(e) => e.preventDefault()}
+                    className="w-full h-full opacity-90 hover:opacity-100 transition-opacity pointer-events-none select-none"
+                  ></iframe>
 
                   {/* Optional Overlay Play Button (if you want click-to-play instead of autoplay)
                   <div className="absolute inset-0 bg-black/40 flex items-center justify-center hover:bg-black/20 transition-all cursor-pointer group">
@@ -147,7 +144,7 @@ export default function ProductPage() {
             </div>
 
             {/* Floating Stats over the mockup (Explanatory Features) */}
-            <motion.div 
+            <motion.div
               initial={{ opacity: 0, x: -40, scale: 0.8 }}
               whileInView={{ opacity: 1, x: 0, scale: 1 }}
               viewport={{ once: true, margin: "-50px" }}
@@ -157,8 +154,8 @@ export default function ProductPage() {
               <span className="text-xs font-semibold text-text-secondary uppercase tracking-wider">AI Root Cause</span>
               <span className="text-base font-bold text-primary">`user.id` is undefined</span>
             </motion.div>
-            
-            <motion.div 
+
+            <motion.div
               initial={{ opacity: 0, x: 40, scale: 0.8 }}
               whileInView={{ opacity: 1, x: 0, scale: 1 }}
               viewport={{ once: true, margin: "-50px" }}
@@ -172,7 +169,7 @@ export default function ProductPage() {
               </span>
             </motion.div>
 
-            <motion.div 
+            <motion.div
               initial={{ opacity: 0, y: 40, scale: 0.8 }}
               whileInView={{ opacity: 1, y: 0, scale: 1 }}
               viewport={{ once: true, margin: "-50px" }}
@@ -183,7 +180,7 @@ export default function ProductPage() {
               <span className="text-base font-bold text-accent">Network logs attached</span>
             </motion.div>
 
-            <motion.div 
+            <motion.div
               initial={{ opacity: 0, y: -40, scale: 0.8 }}
               whileInView={{ opacity: 1, y: 0, scale: 1 }}
               viewport={{ once: true, margin: "-50px" }}
@@ -198,7 +195,7 @@ export default function ProductPage() {
 
         {/* --- Features Bento Grid --- */}
         <section className="mt-20 lg:mt-32">
-          <motion.div 
+          <motion.div
             initial="hidden"
             whileInView="visible"
             viewport={{ once: true, margin: "-100px" }}
@@ -235,7 +232,7 @@ export default function ProductPage() {
 
         {/* --- Interactive SVG Architecture Trace --- */}
         <section className="mt-20 lg:mt-32 relative">
-          <motion.div 
+          <motion.div
             initial={{ opacity: 0, y: 50 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true, margin: "-100px" }}
@@ -254,7 +251,7 @@ export default function ProductPage() {
 
             {/* High-End Animated Beam Diagram */}
             <div className="relative h-[400px] w-full flex items-center justify-center max-w-4xl mx-auto z-10">
-              
+
               {/* Background Glows */}
               <div className="absolute left-[15%] top-1/2 -translate-y-1/2 w-32 h-32 bg-destructive/20 blur-[60px] rounded-full" />
               <div className="absolute left-1/2 -translate-x-1/2 top-1/2 -translate-y-1/2 w-48 h-48 bg-primary/20 blur-[80px] rounded-full" />
@@ -263,10 +260,10 @@ export default function ProductPage() {
               <svg className="absolute inset-0 w-full h-full overflow-visible pointer-events-none" viewBox="0 0 1000 400">
                 {/* Left Track (Background) */}
                 <path d="M 250 200 L 450 200" stroke="var(--border)" strokeWidth="2" strokeDasharray="4 4" fill="none" className="opacity-50" />
-                
+
                 {/* Animated Trace Pulses (Hover to trigger via CSS or framer-motion) */}
-                <motion.circle 
-                  r="6" 
+                <motion.circle
+                  r="6"
                   fill="rgb(var(--destructive))"
                   className="filter drop-shadow-[0_0_8px_rgba(var(--destructive),1)] opacity-0 group-hover:opacity-100"
                   animate={{
@@ -282,9 +279,9 @@ export default function ProductPage() {
 
                 {/* Right Track (Background) */}
                 <path d="M 550 200 L 750 200" stroke="var(--border)" strokeWidth="2" strokeDasharray="4 4" fill="none" className="opacity-50" />
-                
-                <motion.circle 
-                  r="6" 
+
+                <motion.circle
+                  r="6"
                   fill="rgb(var(--success))"
                   className="filter drop-shadow-[0_0_8px_rgba(var(--success),1)] opacity-0 group-hover:opacity-100"
                   animate={{
@@ -302,13 +299,13 @@ export default function ProductPage() {
 
               {/* Node Layout */}
               <div className="absolute inset-0 flex items-center justify-between px-[10%]">
-                
+
                 {/* Source Node (Next.js) */}
                 <div className="relative flex flex-col items-center">
                   <div className="w-24 h-24 rounded-[1.25rem] bg-card border border-border/80 shadow-xl flex items-center justify-center relative overflow-hidden group-hover:-translate-y-2 transition-transform duration-500">
                     <div className="absolute inset-0 bg-gradient-to-br from-destructive/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
                     <Layers className="w-10 h-10 text-text-secondary group-hover:text-destructive transition-colors relative z-10" />
-                    
+
                     {/* Animated Border Spin */}
                     <div className="absolute inset-[-100%] animate-[spin_4s_linear_infinite] bg-[conic-gradient(from_90deg_at_50%_50%,transparent_0%,transparent_70%,rgba(var(--destructive),0.3)_100%)] opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
                     <div className="absolute inset-[1px] bg-card rounded-[1.2rem] z-0" />
@@ -323,10 +320,10 @@ export default function ProductPage() {
                   <div className="w-32 h-32 rounded-3xl bg-gradient-to-b from-card to-background border border-primary/30 shadow-[0_0_40px_rgba(var(--primary),0.15)] flex items-center justify-center relative overflow-hidden group-hover:scale-105 group-hover:shadow-[0_0_60px_rgba(var(--primary),0.3)] transition-all duration-700">
                     <div className="absolute inset-0 bg-primary/5 group-hover:bg-primary/10 transition-colors" />
                     <Zap className="w-12 h-12 text-primary relative z-10 group-hover:scale-110 transition-transform duration-500" />
-                    
+
                     {/* Magical Ambient Inner Glow */}
                     <div className="absolute w-20 h-20 bg-primary/30 blur-2xl rounded-full animate-pulse" />
-                    
+
                     {/* Glowing rotating border */}
                     <div className="absolute inset-[-100%] animate-[spin_3s_linear_infinite] bg-[conic-gradient(from_90deg_at_50%_50%,transparent_0%,transparent_60%,rgba(var(--primary),0.8)_100%)] opacity-50" />
                     <div className="absolute inset-[1px] bg-card rounded-[1.4rem] z-0" />
@@ -341,7 +338,7 @@ export default function ProductPage() {
                   <div className="w-24 h-24 rounded-[1.25rem] bg-card border border-border/80 shadow-xl flex items-center justify-center relative overflow-hidden group-hover:-translate-y-2 transition-transform duration-500 delay-100">
                     <div className="absolute inset-0 bg-gradient-to-br from-success/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
                     <Target className="w-10 h-10 text-text-secondary group-hover:text-success transition-colors relative z-10" />
-                    
+
                     {/* Animated Border Spin */}
                     <div className="absolute inset-[-100%] animate-[spin_4s_linear_infinite] bg-[conic-gradient(from_90deg_at_50%_50%,transparent_0%,transparent_70%,rgba(var(--success),0.3)_100%)] opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
                     <div className="absolute inset-[1px] bg-card rounded-[1.2rem] z-0" />
@@ -357,7 +354,7 @@ export default function ProductPage() {
         </section>
 
         <section className="mt-4 lg:mt-5">
-          <motion.div 
+          <motion.div
             initial="hidden"
             whileInView="visible"
             viewport={{ once: true, margin: "-100px" }}
@@ -412,7 +409,7 @@ export default function ProductPage() {
               </p>
             </motion.div>
 
-            <motion.div 
+            <motion.div
               initial="hidden"
               whileInView="visible"
               viewport={{ once: true, margin: "-100px" }}
@@ -439,7 +436,7 @@ export default function ProductPage() {
 
         {/* --- Launch CTA --- */}
         <section className="mt-20 lg:mt-24">
-          <motion.div 
+          <motion.div
             initial={{ opacity: 0, scale: 0.95 }}
             whileInView={{ opacity: 1, scale: 1 }}
             transition={{ duration: 0.8, ease: "easeOut" }}

@@ -69,11 +69,13 @@ export default function SiteHeader() {
       <div className="tf-container flex items-center justify-between gap-4 px-[30px] py-3">
         <Link href="/" className="flex items-center gap-1">
           <Image
-            src="/traceforge-logo.svg"
+            src="https://res.cloudinary.com/drri6ut0i/image/upload/v1779566028/traceforge/traceforge-logo.png"
             alt="TraceForge logo"
             width={44}
             height={44}
-            className="h-14 w-14 object-contain"
+            className="w-11 h-11 shrink-0 transition-transform hover:scale-105 pointer-events-none select-none"
+            onContextMenu={(e) => e.preventDefault()}
+            draggable={false}
           />
           <div>
             <p className="text-lg font-semibold leading-none text-text-primary">TraceForge</p>

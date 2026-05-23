@@ -258,7 +258,7 @@ export default function DashboardTopNav() {
           <div className="flex shrink-0 items-center justify-start">
             <Link href="/" className="flex items-center gap-3">
               <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary/10">
-                <Image src="/traceforge-logo.svg" alt="TraceForge" width={22} height={22} />
+                <Image src="https://res.cloudinary.com/drri6ut0i/image/upload/v1779566028/traceforge/traceforge-logo.png" alt="TraceForge" width={22} height={22} onContextMenu={(e) => e.preventDefault()} draggable={false} className="pointer-events-none select-none" />
               </div>
               <div>
                 <p className="text-[10px] uppercase tracking-[0.18em] text-text-secondary">

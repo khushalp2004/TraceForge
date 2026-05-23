@@ -162,9 +162,11 @@ export default function HomePageClientV2() {
                     {/* 👇 REPLACE 'src' WITH YOUR IMAGE PATH (e.g., src="/dashboard.png") */}
                     {/* Make sure your image is placed inside the 'apps/frontend/public' folder */}
                     <img
-                      src="traceforge-dashboard.png"
+                      src="https://res.cloudinary.com/drri6ut0i/image/upload/v1779566019/traceforge/traceforge-dashboard.png"
                       alt="App Screenshot Placeholder"
-                      className="w-full h-auto object-contain rounded-b-[1.5rem] shadow-2xl"
+                      className="w-full h-auto object-contain rounded-b-[1.5rem] shadow-2xl pointer-events-none select-none"
+                      onContextMenu={(e) => e.preventDefault()}
+                      draggable={false}
                     />
                   </div>
                 </div>
