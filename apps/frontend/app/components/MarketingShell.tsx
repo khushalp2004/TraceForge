@@ -97,6 +97,9 @@ export default function MarketingShell({
     }
   };
 
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
+
   return (
     <>
       {showMarketing ? <SiteHeader /> : null}

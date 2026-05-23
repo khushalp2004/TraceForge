@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, MouseEvent } from "react";
 import { Check, X } from "lucide-react";
+import { motion, useMotionTemplate, useMotionValue } from "framer-motion";
 import { PricingCta } from "./PricingCta";
 import { AnimatedPrice } from "../components/AnimatedPrice";
 import { SegmentedControl } from "../../components/ui/segmented-control";
@@ -80,54 +81,82 @@ function PlanCard({
   ctaIntent,
   features
 }: PlanCardProps) {
+  const mouseX = useMotionValue(0);
+  const mouseY = useMotionValue(0);
+
+  function handleMouseMove({ currentTarget, clientX, clientY }: MouseEvent) {
+    const { left, top } = currentTarget.getBoundingClientRect();
+    mouseX.set(clientX - left);
+    mouseY.set(clientY - top);
+  }
+
   return (
-    <article
-      className={`relative flex h-full flex-col rounded-[34px] border p-6 sm:p-8 ${
-        featured
-          ? "border-primary/25 bg-card shadow-[0_20px_50px_hsl(var(--primary)/0.08)]"
-          : "border-border bg-card/95 shadow-sm"
-      }`}
+    <div 
+      className="group relative flex h-full rounded-[34px]"
+      onMouseMove={handleMouseMove}
     >
-      {badge ? (
-        <div className="absolute left-1/2 top-0 -translate-x-1/2 -translate-y-1/2 rounded-full bg-primary px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.12em] text-primary-foreground shadow-sm">
-          {badge}
-        </div>
-      ) : null}
+      {/* Spotlight Effect Background */}
+      <motion.div
+        className="pointer-events-none absolute -inset-px rounded-[34px] opacity-0 transition duration-300 group-hover:opacity-100"
+        style={{
+          background: useMotionTemplate`
+            radial-gradient(
+              650px circle at ${mouseX}px ${mouseY}px,
+              rgba(var(--primary), 0.15),
+              transparent 80%
+            )
+          `,
+        }}
+      />
+      
+      <article
+        className={`relative flex w-full flex-col rounded-[34px] border p-6 sm:p-8 backdrop-blur-sm z-10 transition-colors duration-500 ${
+          featured
+            ? "border-primary/40 bg-card/80 shadow-[0_20px_50px_hsl(var(--primary)/0.08)] group-hover:bg-card/90"
+            : "border-border/60 bg-card/60 shadow-sm group-hover:border-border/80 group-hover:bg-card/80"
+        }`}
+      >
+        {badge ? (
+          <div className="absolute left-1/2 top-0 -translate-x-1/2 -translate-y-1/2 rounded-full bg-primary px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.12em] text-primary-foreground shadow-[0_0_15px_rgba(var(--primary),0.5)]">
+            {badge}
+          </div>
+        ) : null}
 
-      <div className="min-h-[148px]">
-        <h3 className="text-[2rem] font-semibold tracking-tight text-text-primary">{name}</h3>
-        <div className="mt-4 flex flex-wrap items-end gap-x-3 gap-y-2">
-          <span className="text-6xl font-semibold leading-none tracking-tight text-text-primary">
-            {price}
-          </span>
-          <span className="pb-2 text-sm font-medium uppercase tracking-[0.08em] text-text-secondary">
-            {periodLabel}
-          </span>
-          {comparePrice ? (
-            <span className="pb-2 text-base font-medium text-text-secondary line-through">
-              {comparePrice}
+        <div className="min-h-[148px]">
+          <h3 className="text-[2rem] font-semibold tracking-tight text-text-primary">{name}</h3>
+          <div className="mt-4 flex flex-wrap items-end gap-x-3 gap-y-2">
+            <span className="text-6xl font-semibold leading-none tracking-tight text-text-primary">
+              {price}
             </span>
-          ) : null}
+            <span className="pb-2 text-sm font-medium uppercase tracking-[0.08em] text-text-secondary">
+              {periodLabel}
+            </span>
+            {comparePrice ? (
+              <span className="pb-2 text-base font-medium text-text-secondary line-through">
+                {comparePrice}
+              </span>
+            ) : null}
+          </div>
+          <p className="mt-5 max-w-md text-base leading-8 text-text-secondary">{description}</p>
         </div>
-        <p className="mt-5 max-w-md text-base leading-8 text-text-secondary">{description}</p>
-      </div>
 
-      <div className="mt-6 rounded-2xl bg-background/55 px-4 py-3 text-sm font-medium text-text-secondary">
-        {note}
-      </div>
+        <div className="mt-6 rounded-2xl bg-background/55 px-4 py-3 text-sm font-medium text-text-secondary">
+          {note}
+        </div>
 
-      <FeatureList features={features} />
+        <FeatureList features={features} />
 
-      {footnote ? (
-        <p className="mt-6 border-t border-border/70 pt-5 text-xs leading-6 text-text-secondary">
-          {footnote}
-        </p>
-      ) : null}
+        {footnote ? (
+          <p className="mt-6 border-t border-border/70 pt-5 text-xs leading-6 text-text-secondary">
+            {footnote}
+          </p>
+        ) : null}
 
-      <div className="mt-auto pt-6">
-        <PricingCta intent={ctaIntent} />
-      </div>
-    </article>
+        <div className="mt-auto pt-6 relative z-20">
+          <PricingCta intent={ctaIntent} />
+        </div>
+      </article>
+    </div>
   );
 }
 

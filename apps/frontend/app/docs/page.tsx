@@ -462,6 +462,7 @@ export default function DocsPage() {
 
   return (
     <main className="tf-page pb-20 pt-16 relative overflow-hidden min-h-screen flex flex-col">
+      <div className="absolute inset-0 bg-[linear-gradient(to_right,#8080800a_1px,transparent_1px),linear-gradient(to_bottom,#8080800a_1px,transparent_1px)] bg-[size:40px_40px] [mask-image:radial-gradient(ellipse_80%_50%_at_50%_0%,#000_80%,transparent_100%)] pointer-events-none -z-10" />
       {/* Background Decorative Gradients */}
       <div className="pointer-events-none absolute -top-[20%] left-1/2 -translate-x-1/2 w-[120%] h-[600px] bg-[radial-gradient(ellipse_at_top,rgba(var(--primary-rgb),0.08)_0%,transparent_70%)]" />
       <div className="pointer-events-none absolute -left-40 top-40 h-96 w-96 rounded-full bg-primary/10 blur-[120px]" />
