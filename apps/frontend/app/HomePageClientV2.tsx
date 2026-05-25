@@ -1,7 +1,9 @@
 "use client";
 
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
+import { useTheme } from "../context/ThemeContext";
 
 import {
   Zap,
@@ -26,7 +28,7 @@ const fadeUpVariant = {
     y: 0,
     transition: { type: "spring", stiffness: 100, damping: 20 }
   }
-};
+} as const;
 
 const staggerContainer = {
   hidden: { opacity: 0 },
@@ -34,7 +36,7 @@ const staggerContainer = {
     opacity: 1,
     transition: { staggerChildren: 0.15 }
   }
-};
+} as const;
 
 const bentoVariant = {
   hidden: { opacity: 0, scale: 0.95, y: 20 },
@@ -44,9 +46,29 @@ const bentoVariant = {
     y: 0,
     transition: { type: "spring", stiffness: 80, damping: 20 }
   }
-};
+} as const;
 
 export default function HomePageClientV2() {
+  const { theme } = useTheme();
+  const [mounted, setMounted] = useState(false);
+  
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  const getThemeImage = () => {
+    if (!mounted) return "https://res.cloudinary.com/drri6ut0i/image/upload/v1779566019/traceforge/traceforge-dashboard.png";
+    switch (theme) {
+      case "trace-light": return "https://res.cloudinary.com/dyv5wyxuz/image/upload/v1779706855/p541kgp9jx9d2m0aipnv.png"; // 👇 REPLACE WITH TRACE LIGHT IMAGE
+      case "linen-light": return "https://res.cloudinary.com/dyv5wyxuz/image/upload/v1779706853/wzji1vtbfylbrwxqu9ei.png";  // 👇 REPLACE WITH MIST LIGHT IMAGE
+      case "sage-light": return "https://res.cloudinary.com/dyv5wyxuz/image/upload/v1779706854/t953fcvhghksousdwx9j.png";   // 👇 REPLACE WITH SAGE LIGHT IMAGE
+      case "graphite-dark": return "https://res.cloudinary.com/drri6ut0i/image/upload/v1779566019/traceforge/traceforge-dashboard.png"; // 👇 REPLACE WITH GRAPHITE DARK IMAGE
+      case "midnight-dark": return "https://res.cloudinary.com/dyv5wyxuz/image/upload/v1779706853/nr0if9e15ziqqopfqjiz.png"; // 👇 REPLACE WITH MIDNIGHT DARK IMAGE
+      case "plum-dark": return "https://res.cloudinary.com/dyv5wyxuz/image/upload/v1779706853/zdxvwysjdqzmcdcnegnb.png";     // 👇 REPLACE WITH PLUM DARK IMAGE
+      default: return "https://res.cloudinary.com/drri6ut0i/image/upload/v1779566019/traceforge/traceforge-dashboard.png";
+    }
+  };
+
   const latestCapabilities = [
     {
       title: "Repo analysis",
@@ -159,11 +181,10 @@ export default function HomePageClientV2() {
 
                   {/* Image Placeholder */}
                   <div className="relative z-10 w-full flex items-center justify-center">
-                    {/* 👇 REPLACE 'src' WITH YOUR IMAGE PATH (e.g., src="/dashboard.png") */}
-                    {/* Make sure your image is placed inside the 'apps/frontend/public' folder */}
+                    {/* Make sure your images are placed inside the 'apps/frontend/public' folder */}
                     <img
-                      src="https://res.cloudinary.com/drri6ut0i/image/upload/v1779566019/traceforge/traceforge-dashboard.png"
-                      alt="App Screenshot Placeholder"
+                      src={getThemeImage()}
+                      alt={`App Screenshot Placeholder (${mounted ? theme : 'default'})`}
                       className="w-full h-auto object-contain rounded-b-[1.5rem] shadow-2xl pointer-events-none select-none"
                       onContextMenu={(e) => e.preventDefault()}
                       draggable={false}

@@ -4,7 +4,6 @@ import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { Copy, Github, Sparkles, X } from "lucide-react";
 import { LoadingButtonContent } from "../../../../components/ui/loading-button-content";
-import { UserSelectionIndicator } from "./UserSelectionIndicator";
 import { PageDescriptionPopover } from "@/components/ui/page-description-popover";
 import { useDebouncedValue } from "../../../hooks/useDebouncedValue";
 

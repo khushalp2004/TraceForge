@@ -1,7 +1,8 @@
 "use client";
 
-import { Mail, Sparkles } from "lucide-react";
+import { Mail, Sparkles, ArrowRight, Twitter, Github, Linkedin } from "lucide-react";
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import AuthToast from "./AuthToast";
@@ -106,218 +107,141 @@ export default function MarketingShell({
       {children}
       <AuthToast toast={toast} />
       {showMarketing ? (
-        <footer className="border-t border-border bg-card/95">
-          <div className="tf-container px-[24px] py-12 sm:px-[30px] sm:py-14">
-            <div className="rounded-[2rem] border border-primary/10 bg-[linear-gradient(135deg,rgba(59,130,246,0.08),rgba(168,85,247,0.08),rgba(15,23,42,0.02))] p-6 shadow-sm sm:p-8">
-              <div className="grid gap-6 lg:grid-cols-[minmax(0,1.15fr)_minmax(320px,0.85fr)] lg:items-center">
+        <footer className="border-t border-border bg-card relative overflow-hidden">
+          <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_bottom,hsl(var(--primary)/0.15),transparent_50%)] pointer-events-none"></div>
+          <div className="tf-container px-[24px] py-16 sm:px-[30px] sm:py-20 relative z-10">
+            {/* CTA Banner */}
+            <div className="relative mb-20 overflow-hidden rounded-[2.5rem] bg-[linear-gradient(145deg,hsl(var(--foreground)/0.03),hsl(var(--foreground)/0.01))] border border-border p-8 sm:p-12 shadow-[0_0_80px_hsl(var(--primary)/0.1)] backdrop-blur-xl">
+              <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-primary/20 rounded-full blur-[120px] -translate-y-1/2 translate-x-1/3 animate-pulse-slow"></div>
+              
+              <div className="relative grid gap-10 lg:grid-cols-[1.1fr_0.9fr] lg:items-center">
                 <div className="max-w-2xl">
-                  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-primary/80">
-                    Stay in the loop
-                  </p>
-                  <h2 className="mt-3 text-2xl font-semibold tracking-tight text-text-primary sm:text-3xl">
-                    Get TraceForge updates, launch offers, and practical release workflow tips.
+                  <div className="inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/10 px-3 py-1 text-xs font-semibold text-primary mb-6">
+                    <Sparkles className="h-3.5 w-3.5" />
+                    <span>Stay in the loop</span>
+                  </div>
+                  <h2 className="text-3xl font-bold tracking-tight text-text-primary sm:text-4xl lg:text-5xl leading-tight">
+                    Ship faster with <br/><span className="text-transparent bg-clip-text bg-gradient-to-r from-primary to-accent">confidence.</span>
                   </h2>
-                  <p className="mt-3 text-sm leading-6 text-text-secondary sm:text-base">
-                    We’ll send short product notes when new monitoring, AI, and incident workflow
-                    improvements land — plus the occasional early-access offer.
+                  <p className="mt-4 text-base leading-relaxed text-text-secondary max-w-lg">
+                    Join thousands of developers getting TraceForge updates, early access to new features, and practical workflow tips.
                   </p>
-                  <div className="mt-4 flex flex-wrap gap-2 text-xs font-semibold text-text-secondary">
-                    <span className="rounded-full border border-border bg-background/70 px-3 py-1">
-                      Product updates
-                    </span>
-                    <span className="rounded-full border border-border bg-background/70 px-3 py-1">
-                      Launch offers
-                    </span>
-                    <span className="rounded-full border border-border bg-background/70 px-3 py-1">
-                      No spam
-                    </span>
-                  </div>
-                  <div className="mt-5 flex flex-wrap gap-3">
-                    <Link className="tf-button-ghost justify-center px-5 py-3 text-sm" href="/docs">
-                      Read quickstart
-                    </Link>
-                    <Link className="tf-button-ghost justify-center px-5 py-3 text-sm" href="/pricing">
-                      Compare plans
-                    </Link>
-                  </div>
                 </div>
 
-                <div className="rounded-[1.75rem] border border-primary/10 bg-background/95 p-5 shadow-[0_18px_40px_rgba(15,23,42,0.08)] sm:p-6">
-                  <div className="flex items-start gap-3">
-                    <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-primary/10 text-primary">
-                      <Mail className="h-5 w-5" />
-                    </div>
-                    <div className="min-w-0">
-                      <p className="text-sm font-semibold text-text-primary">Subscribe for email updates</p>
-                      <p className="mt-1 text-sm leading-6 text-text-secondary">
-                        Use your work email and we’ll keep you posted on app updates, product notes, and launch offers.
-                      </p>
-                    </div>
-                  </div>
-                  <div className="mt-4 grid gap-3 rounded-[1.25rem] border border-border bg-card/80 p-3 text-xs text-text-secondary sm:grid-cols-2">
-                    <div className="flex items-center gap-2">
-                      <Sparkles className="h-4 w-4 text-primary" />
-                      <span>Fresh product updates</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Sparkles className="h-4 w-4 text-primary" />
-                      <span>Special offers when we launch them</span>
-                    </div>
-                  </div>
-                  <form className="mt-4 space-y-3" onSubmit={handleSubscribe}>
-                    <div className="flex flex-col gap-3 sm:flex-row">
-                      <label className="sr-only" htmlFor="footer-subscribe-email">
-                        Email address
-                      </label>
-                      <input
-                        id="footer-subscribe-email"
-                        type="email"
-                        value={subscriberEmail}
-                        onChange={(event) => {
-                          setSubscriberEmail(event.target.value);
-                          if (toast) {
-                            setToast(null);
-                          }
-                        }}
-                        placeholder="Enter your work email"
-                        autoComplete="email"
-                        className="min-w-0 flex-1 rounded-2xl border border-border bg-card px-4 py-3 text-sm text-text-primary outline-none transition placeholder:text-text-secondary/70 focus:border-primary/40 focus:ring-2 focus:ring-primary/15"
-                        aria-label="Email address"
-                      />
+                <div className="relative z-10 w-full max-w-md lg:ml-auto">
+                  <div className="rounded-3xl border border-border bg-background/50 p-2 backdrop-blur-md shadow-xl">
+                    <form className="flex flex-col gap-2 sm:flex-row" onSubmit={handleSubscribe}>
+                      <div className="relative flex-1">
+                        <Mail className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-text-secondary" />
+                        <input
+                          type="email"
+                          value={subscriberEmail}
+                          onChange={(e) => {
+                            setSubscriberEmail(e.target.value);
+                            if (toast) setToast(null);
+                          }}
+                          placeholder="Enter your work email"
+                          className="w-full h-12 bg-transparent pl-12 pr-4 text-sm text-text-primary placeholder:text-text-secondary outline-none rounded-2xl transition-all focus:bg-foreground/5"
+                          required
+                        />
+                      </div>
                       <button
                         type="submit"
-                        className="tf-button justify-center rounded-2xl px-5 py-3 text-sm disabled:cursor-not-allowed disabled:opacity-70 sm:min-w-[150px]"
                         disabled={subscribeState === "loading"}
+                        className="h-12 inline-flex items-center justify-center gap-2 rounded-2xl bg-primary px-6 text-sm font-semibold text-primary-foreground transition-all hover:bg-primary-hover hover:scale-[1.02] disabled:opacity-70 sm:w-auto"
                       >
-                        {subscribeState === "loading" ? "Subscribing..." : "Subscribe"}
+                        {subscribeState === "loading" ? "Joining..." : "Subscribe"}
+                        {!subscribeState || subscribeState === "idle" ? <ArrowRight className="h-4 w-4" /> : null}
                       </button>
-                    </div>
-                    <p className="text-xs leading-5 text-text-secondary">
-                      Monthly notes only. No spam. You can unsubscribe anytime.
-                    </p>
-                  </form>
+                    </form>
+                  </div>
+                  <p className="mt-4 text-center text-xs text-text-secondary font-medium">
+                    No spam. Unsubscribe anytime.
+                  </p>
                 </div>
               </div>
             </div>
 
-            <div className="mt-10 grid gap-10 lg:grid-cols-[1.2fr_0.8fr_0.8fr_0.9fr_0.8fr]">
+            {/* Navigation Grid */}
+            <div className="grid gap-12 lg:grid-cols-[1.5fr_0.8fr_0.8fr_0.9fr_0.8fr]">
               <div className="max-w-sm">
-                <Link href="/" className="text-lg font-semibold tracking-tight text-text-primary transition hover:text-primary">
-                  TraceForge
+                <Link href="/" className="inline-flex items-center gap-2 group">
+                  <Image 
+                    src="https://res.cloudinary.com/drri6ut0i/image/upload/v1779566028/traceforge/traceforge-logo.png" 
+                    alt="TraceForge logo" 
+                    width={32} 
+                    height={32} 
+                    className="w-8 h-8 transition-transform group-hover:scale-110 pointer-events-none select-none"
+                    onContextMenu={(e) => e.preventDefault()}
+                    draggable={false}
+                  />
+                  <span className="text-xl font-bold tracking-tight text-text-primary">TraceForge</span>
                 </Link>
-                <p className="mt-3 text-sm leading-6 text-text-secondary">
-                  Error monitoring that groups noise, explains likely causes, routes alerts, and
-                  carries incident context into GitHub, Slack, and Jira.
+                <p className="mt-5 text-sm leading-relaxed text-text-secondary">
+                  Intelligent error monitoring that groups noise, routes alerts smartly, and carries full incident context into your workflow.
                 </p>
-                <div className="mt-4 flex flex-wrap gap-2 text-xs font-semibold text-text-secondary">
-                  <span className="rounded-full border border-border bg-card px-3 py-1">Grouped issues</span>
-                  <span className="rounded-full border border-border bg-card px-3 py-1">Repo analysis</span>
-                  <span className="rounded-full border border-border bg-card px-3 py-1">Slack + Jira</span>
+              </div>
+
+              <div>
+                <p className="text-xs font-bold uppercase tracking-wider text-text-primary">Product</p>
+                <div className="mt-6 space-y-4 text-sm text-text-secondary">
+                  <Link className="block transition-all hover:text-primary hover:translate-x-1" href="/product">Product</Link>
+                  <Link className="block transition-all hover:text-primary hover:translate-x-1" href="/solutions">Solutions</Link>
+                  <Link className="block transition-all hover:text-primary hover:translate-x-1" href="/pricing">Pricing</Link>
+                  <Link className="block transition-all hover:text-primary hover:translate-x-1" href="/docs">Docs</Link>
                 </div>
               </div>
 
               <div>
-                <p className="text-sm font-semibold text-text-primary">Product</p>
-                <div className="mt-4 space-y-3 text-sm text-text-secondary">
-                  <Link className="block transition hover:text-text-primary" href="/product">
-                    Product
-                  </Link>
-                  <Link className="block transition hover:text-text-primary" href="/solutions">
-                    Solutions
-                  </Link>
-                  <Link className="block transition hover:text-text-primary" href="/pricing">
-                    Pricing
-                  </Link>
-                  <Link className="block transition hover:text-text-primary" href="/docs">
-                    Docs
-                  </Link>
+                <p className="text-xs font-bold uppercase tracking-wider text-text-primary">Company</p>
+                <div className="mt-6 space-y-4 text-sm text-text-secondary">
+                  <Link className="block transition-all hover:text-primary hover:translate-x-1" href="/about">About</Link>
+                  <Link className="block transition-all hover:text-primary hover:translate-x-1" href="/blog">Blog</Link>
+                  <Link className="block transition-all hover:text-primary hover:translate-x-1" href="/signin">Sign in</Link>
+                  <Link className="block transition-all hover:text-primary hover:translate-x-1" href="/signup">Create account</Link>
                 </div>
               </div>
 
               <div>
-                <p className="text-sm font-semibold text-text-primary">Company</p>
-                <div className="mt-4 space-y-3 text-sm text-text-secondary">
-                  <Link className="block transition hover:text-text-primary" href="/about">
-                    About
-                  </Link>
-                  <Link className="block transition hover:text-text-primary" href="/blog">
-                    Blog
-                  </Link>
-                  <Link className="block transition hover:text-text-primary" href="/signin">
-                    Sign in
-                  </Link>
-                  <Link className="block transition hover:text-text-primary" href="/signup">
-                    Create account
-                  </Link>
+                <p className="text-xs font-bold uppercase tracking-wider text-text-primary">Support</p>
+                <div className="mt-6 space-y-4 text-sm text-text-secondary">
+                  <Link className="block transition-all hover:text-primary hover:translate-x-1" href="/terms">Terms</Link>
+                  <Link className="block transition-all hover:text-primary hover:translate-x-1" href="/privacy">Privacy</Link>
+                  <Link className="block transition-all hover:text-primary hover:translate-x-1" href="/security">Security</Link>
+                  <Link className="block transition-all hover:text-primary hover:translate-x-1" href="/contact">Contact us</Link>
                 </div>
               </div>
 
               <div>
-                <p className="text-sm font-semibold text-text-primary">Trust & support</p>
-                <div className="mt-4 space-y-3 text-sm text-text-secondary">
-                  <Link className="block transition hover:text-text-primary" href="/terms">
-                    Terms
-                  </Link>
-                  <Link className="block transition hover:text-text-primary" href="/privacy">
-                    Privacy
-                  </Link>
-                  <Link className="block transition hover:text-text-primary" href="/security">
-                    Security & compliance
-                  </Link>
-                  <Link className="block transition hover:text-text-primary" href="/help">
-                    Help
-                  </Link>
-                  <Link className="block transition hover:text-text-primary" href="/contact">
-                    Contact us
-                  </Link>
-                  <a
-                    className="block transition hover:text-text-primary"
-                    href={linkedinUrl}
-                    target="_blank"
-                    rel="noreferrer"
-                  >
-                    LinkedIn
-                  </a>
-                </div>
-              </div>
-
-              <div>
-                <p className="text-sm font-semibold text-text-primary">Start here</p>
-                <div className="mt-4 space-y-3 text-sm text-text-secondary">
-                  <Link className="block transition hover:text-text-primary" href="/docs">
-                    Quickstart
-                  </Link>
-                  <Link className="block transition hover:text-text-primary" href="/pricing">
-                    Compare plans
-                  </Link>
-                  <Link className="block transition hover:text-text-primary" href="/solutions">
-                    See workflows
-                  </Link>
-                  <Link className="block transition hover:text-text-primary" href="/blog/repo-analysis-for-faster-onboarding">
-                    Repo analysis
-                  </Link>
+                <p className="text-xs font-bold uppercase tracking-wider text-text-primary">Start here</p>
+                <div className="mt-6 space-y-4 text-sm text-text-secondary">
+                  <Link className="block transition-all hover:text-primary hover:translate-x-1" href="/docs">Quickstart</Link>
+                  <Link className="block transition-all hover:text-primary hover:translate-x-1" href="/pricing">Compare plans</Link>
+                  <Link className="block transition-all hover:text-primary hover:translate-x-1" href="/solutions">See workflows</Link>
+                  <Link className="block transition-all hover:text-primary hover:translate-x-1" href="/blog/repo-analysis-for-faster-onboarding">Repo analysis</Link>
                 </div>
               </div>
             </div>
 
-            <div className="mt-10 flex flex-col gap-3 border-t border-border pt-6 text-xs text-text-secondary sm:flex-row sm:items-center sm:justify-between">
-              <p>© {year} TraceForge. Built for teams that want calmer production workflows.</p>
-              <div className="flex flex-wrap items-center gap-4">
-                <Link className="transition hover:text-text-primary" href="/docs">
-                  Documentation
-                </Link>
-                <Link className="transition hover:text-text-primary" href="/privacy">
-                  Privacy
-                </Link>
-                <Link className="transition hover:text-text-primary" href="/terms">
-                  Terms
-                </Link>
-                <Link className="transition hover:text-text-primary" href="/pricing">
-                  Plans
-                </Link>
-                <Link className="transition hover:text-text-primary" href="/signup">
-                  Start free
-                </Link>
+            {/* Bottom Bar */}
+            <div className="mt-16 flex flex-col gap-6 border-t border-border pt-8 sm:flex-row sm:items-center sm:justify-between">
+              <p className="text-xs font-medium text-text-secondary">
+                © {year} TraceForge. Built for calmer production.
+              </p>
+              
+              <div className="flex items-center gap-4 text-text-secondary">
+                <a href="https://twitter.com/traceforge" target="_blank" rel="noreferrer" className="transition-colors hover:text-text-primary">
+                  <span className="sr-only">Twitter</span>
+                  <Twitter className="h-4 w-4" />
+                </a>
+                <a href="https://github.com/traceforge" target="_blank" rel="noreferrer" className="transition-colors hover:text-text-primary">
+                  <span className="sr-only">GitHub</span>
+                  <Github className="h-4 w-4" />
+                </a>
+                <a href={linkedinUrl} target="_blank" rel="noreferrer" className="transition-colors hover:text-text-primary">
+                  <span className="sr-only">LinkedIn</span>
+                  <Linkedin className="h-4 w-4" />
+                </a>
               </div>
             </div>
           </div>

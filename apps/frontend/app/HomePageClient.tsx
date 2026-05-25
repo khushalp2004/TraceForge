@@ -26,7 +26,7 @@ const fadeUpVariant = {
     y: 0,
     transition: { type: "spring", stiffness: 100, damping: 20 }
   }
-};
+} as const;
 
 const staggerContainer = {
   hidden: { opacity: 0 },
@@ -34,7 +34,7 @@ const staggerContainer = {
     opacity: 1,
     transition: { staggerChildren: 0.15 }
   }
-};
+} as const;
 
 const bentoVariant = {
   hidden: { opacity: 0, scale: 0.95, y: 20 },
@@ -44,7 +44,7 @@ const bentoVariant = {
     y: 0,
     transition: { type: "spring", stiffness: 80, damping: 20 }
   }
-};
+} as const;
 
 export default function HomePageClient() {
   const latestCapabilities = [

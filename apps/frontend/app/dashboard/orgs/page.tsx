@@ -274,8 +274,8 @@ export default function OrgsPage() {
   return (
     <main className="tf-page tf-dashboard-page">
       <div className="tf-dashboard">
-        <header className="mt-2 flex flex-wrap items-center justify-between gap-4">
-          <div>
+        <header className="mt-2 flex flex-wrap items-center justify-between gap-4 animate-stagger-fade-up">
+          <div className="tf-section-header">
             <p className="tf-kicker">Organizations</p>
             <div className="mt-2 flex items-center">
               <h1 className="font-display text-2xl font-semibold text-text-primary">
@@ -285,28 +285,31 @@ export default function OrgsPage() {
                 Select an organization to manage members and permissions.
               </PageDescriptionPopover>
             </div>
+            <p className="tf-section-desc">Create and manage your teams, members, and permissions.</p>
           </div>
           <button
-            className="inline-flex items-center rounded-full bg-primary px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-primary/90"
+            className="tf-button inline-flex items-center gap-2 px-5 py-2.5 text-sm"
             onClick={() => setShowCreateModal(true)}
           >
+            <PlusCircle className="h-4 w-4" />
             Create organization
           </button>
         </header>
 
-        <div className="tf-divider my-6" />
+        <div className="my-8" />
 
-        {loading && <p className="text-sm text-text-secondary">Working...</p>}
+        {loading && <div className="flex items-center gap-2 text-sm text-text-secondary animate-pulse"><span className="tf-status-dot bg-primary" />Working...</div>}
 
-        <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-          {paginatedOrgs.map((org) => {
+        <section className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
+          {paginatedOrgs.map((org, index) => {
             const isSelected = selectedOrgIds.has(org.id);
             return (
               <div
                 key={org.id}
-                className={`tf-card group flex flex-col p-5 transition-all hover:border-primary/20 bg-card border rounded-xl shadow-sm ${
-                  isSelected ? "border-primary bg-primary/5" : "border-border"
+                className={`tf-premium-card group flex flex-col p-5 transition-all animate-stagger-fade-up ${
+                  isSelected ? "border-primary/30 ring-1 ring-primary/10" : ""
                 }`}
+                style={{ animationDelay: `${index * 70}ms` }}
               >
               {/* Header */}
               <div className="flex items-start justify-between mb-4">
@@ -401,36 +404,42 @@ export default function OrgsPage() {
             );
           })}
           {!orgs.length && !loading && (
-            <div className="tf-card p-5 text-sm text-text-secondary">
-              No organizations yet. Create one from the dashboard to get started.
+            <div className="tf-empty-state sm:col-span-2 xl:col-span-3">
+              <div className="tf-empty-state-icon">
+                <svg aria-hidden="true" className="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><circle cx="9" cy="8" r="3" /><circle cx="17" cy="10" r="2.5" /><path d="M4 19a5 5 0 0 1 10 0" strokeLinecap="round" /><path d="M14.5 19a4 4 0 0 1 7 0" strokeLinecap="round" /></svg>
+              </div>
+              <p className="tf-empty-state-title">No organizations yet</p>
+              <p className="tf-empty-state-desc">Create one from the dashboard to get started with team collaboration.</p>
             </div>
           )}
         </section>
 
         {orgs.length > 5 && (
-          <DashboardPagination
-            page={orgsPage}
-            totalPages={orgsTotalPages}
-            pageSize={orgsPageSize}
-            pageSizeOptions={ORG_PAGE_SIZE_OPTIONS}
-            onPageChange={setOrgsPage}
-            onPageSizeChange={(nextSize) => {
-              setOrgsPage(1);
-              setOrgsPageSize(nextSize);
-            }}
-          />
+          <div className="mt-6">
+            <DashboardPagination
+              page={orgsPage}
+              totalPages={orgsTotalPages}
+              pageSize={orgsPageSize}
+              pageSizeOptions={ORG_PAGE_SIZE_OPTIONS}
+              onPageChange={setOrgsPage}
+              onPageSizeChange={(nextSize) => {
+                setOrgsPage(1);
+                setOrgsPageSize(nextSize);
+              }}
+            />
+          </div>
         )}
       </div>
 
       {renameTarget && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
-          <div className="w-full max-w-lg rounded-xl border border-border bg-card shadow-xl flex flex-col overflow-hidden">
-            <div className="flex items-center justify-between p-4 border-b border-border/50">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4 backdrop-blur-sm animate-fade-up" style={{ animationDuration: "300ms" }}>
+          <div className="tf-glass-modal w-full max-w-lg flex flex-col overflow-hidden">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-border/40">
               <h3 className="text-sm font-semibold text-text-primary">Rename Organization</h3>
               <button onClick={() => {
                   setRenameTarget(null);
                   setRenameInput("");
-                }} className="text-text-secondary hover:text-text-primary transition-colors">
+                }} className="inline-flex h-8 w-8 items-center justify-center rounded-xl text-text-secondary transition hover:bg-secondary/70 hover:text-text-primary">
                 <X className="h-4 w-4" />
               </button>
             </div>
@@ -473,11 +482,11 @@ export default function OrgsPage() {
       )}
 
       {deleteTarget && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
-          <div className="w-full max-w-lg rounded-xl border border-border bg-card shadow-xl flex flex-col overflow-hidden">
-            <div className="flex items-center justify-between p-4 border-b border-border/50">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4 backdrop-blur-sm animate-fade-up" style={{ animationDuration: "300ms" }}>
+          <div className="tf-glass-modal w-full max-w-lg flex flex-col overflow-hidden">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-border/40">
               <h3 className="text-sm font-semibold text-text-primary">Delete Organization</h3>
-              <button onClick={() => setDeleteTarget(null)} className="text-text-secondary hover:text-text-primary transition-colors">
+              <button onClick={() => setDeleteTarget(null)} className="inline-flex h-8 w-8 items-center justify-center rounded-xl text-text-secondary transition hover:bg-secondary/70 hover:text-text-primary">
                 <X className="h-4 w-4" />
               </button>
             </div>
@@ -517,11 +526,11 @@ export default function OrgsPage() {
       )}
 
       {showCreateModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
-          <div className="w-full max-w-lg max-h-[calc(100dvh-env(safe-area-inset-top)-env(safe-area-inset-bottom)-8rem)] sm:max-h-[90vh] rounded-xl border border-border bg-card shadow-xl flex flex-col overflow-hidden">
-            <div className="flex items-center justify-between p-4 border-b border-border/50 shrink-0">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4 backdrop-blur-sm animate-fade-up" style={{ animationDuration: "300ms" }}>
+          <div className="tf-glass-modal w-full max-w-lg max-h-[calc(100dvh-env(safe-area-inset-top)-env(safe-area-inset-bottom)-8rem)] sm:max-h-[90vh] flex flex-col overflow-hidden">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-border/40 shrink-0">
               <h3 className="text-sm font-semibold text-text-primary">Create Organization</h3>
-              <button onClick={() => setShowCreateModal(false)} className="text-text-secondary hover:text-text-primary transition-colors">
+              <button onClick={() => setShowCreateModal(false)} className="inline-flex h-8 w-8 items-center justify-center rounded-xl text-text-secondary transition hover:bg-secondary/70 hover:text-text-primary">
                 <X className="h-4 w-4" />
               </button>
             </div>
@@ -562,24 +571,24 @@ export default function OrgsPage() {
 
       {toast && (
         <div
-          className="tf-dashboard-toast"
-          style={{
-            background: toast.tone === "success" ? "#16a34a" : "#dc2626",
-            color: "white"
-          }}
+          className={`tf-dashboard-toast animate-fade-up ${
+            toast.tone === "success"
+              ? "bg-[hsl(var(--success))] text-white"
+              : "bg-[hsl(var(--destructive))] text-white"
+          }`}
         >
           {toast.message}
         </div>
       )}
       {selectedOrgIds.size > 0 && (
-        <div className="fixed bottom-24 md:bottom-6 left-1/2 -translate-x-1/2 z-[60] flex w-max max-w-[95vw] items-center gap-2 sm:gap-4 rounded-full border border-border/80 bg-card/95 px-3 py-2 sm:px-4 sm:py-3 shadow-lg backdrop-blur-md">
+        <div className="fixed bottom-24 md:bottom-6 left-1/2 -translate-x-1/2 z-[60] flex w-max max-w-[95vw] items-center gap-2 sm:gap-4 rounded-full border border-border/60 bg-card/92 px-3 py-2 sm:px-5 sm:py-3 shadow-lifted backdrop-blur-xl animate-fade-up">
           <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
             <span className="flex h-5 w-5 sm:h-6 sm:w-6 items-center justify-center rounded-full bg-primary/20 text-[10px] sm:text-xs font-bold text-primary">
               {selectedOrgIds.size}
             </span>
             <span className="text-xs sm:text-sm font-semibold text-text-primary hidden sm:inline">selected</span>
           </div>
-          <div className="h-4 w-px bg-border hidden sm:block" />
+          <div className="h-4 w-px bg-border/60 hidden sm:block" />
           <div className="flex items-center gap-1 sm:gap-2 shrink-0">
             <button
               className="rounded-full px-2 py-1.5 sm:px-3 sm:py-1.5 text-[11px] sm:text-xs font-semibold text-text-secondary hover:bg-secondary/80 hover:text-text-primary transition-colors whitespace-nowrap"
@@ -599,11 +608,11 @@ export default function OrgsPage() {
       )}
 
       {showBulkDeleteModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
-          <div className="w-full max-w-lg rounded-xl border border-border bg-card shadow-xl flex flex-col overflow-hidden">
-            <div className="flex items-center justify-between p-4 border-b border-border/50">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4 backdrop-blur-sm animate-fade-up" style={{ animationDuration: "300ms" }}>
+          <div className="tf-glass-modal w-full max-w-lg flex flex-col overflow-hidden">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-border/40">
               <h3 className="text-sm font-semibold text-text-primary">Delete Organizations</h3>
-              <button onClick={() => setShowBulkDeleteModal(false)} className="text-text-secondary hover:text-text-primary transition-colors">
+              <button onClick={() => setShowBulkDeleteModal(false)} className="inline-flex h-8 w-8 items-center justify-center rounded-xl text-text-secondary transition hover:bg-secondary/70 hover:text-text-primary">
                 <X className="h-4 w-4" />
               </button>
             </div>

@@ -554,37 +554,6 @@ function ReleasesPageInner() {
                         </p>
                       </div>
                     </div>
-
-                    {release.sampleIssues.length > 0 && (
-                      <div className="mt-4 rounded-2xl border border-border bg-secondary/30 px-4 py-3">
-                        <p className="text-xs font-semibold uppercase tracking-[0.14em] text-text-secondary">
-                          Linked issues
-                        </p>
-                        <div className="mt-3 space-y-2">
-                          {release.sampleIssues.map((issue) => (
-                            <div
-                              key={issue.id}
-                              className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-border bg-card px-3 py-3"
-                            >
-                              <div className="min-w-0 flex-1">
-                                <p className="truncate text-sm font-medium text-text-primary">
-                                  {issue.message}
-                                </p>
-                                <p className="mt-1 text-xs text-text-secondary">
-                                  {new Date(issue.timestamp).toLocaleString()}
-                                </p>
-                              </div>
-                              <Link
-                                href={`/dashboard/errors/${issue.id}`}
-                                className="tf-interactive-pill"
-                              >
-                                Open issue
-                              </Link>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
                   </div>
                   <div className="flex shrink-0 items-start mt-1 sm:mt-0">
                     <button
@@ -597,6 +566,37 @@ function ReleasesPageInner() {
                     </button>
                   </div>
                 </div>
+
+                {release.sampleIssues.length > 0 && (
+                  <div className="mt-5 rounded-2xl border border-border bg-secondary/30 px-4 py-3">
+                    <p className="text-xs font-semibold uppercase tracking-[0.14em] text-text-secondary">
+                      Linked issues
+                    </p>
+                    <div className="mt-3 space-y-2">
+                      {release.sampleIssues.map((issue) => (
+                        <div
+                          key={issue.id}
+                          className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 rounded-2xl border border-border bg-card px-3 py-3"
+                        >
+                          <div className="min-w-0 flex-1">
+                            <p className="truncate text-sm font-medium text-text-primary">
+                              {issue.message}
+                            </p>
+                            <p className="mt-1 text-xs text-text-secondary">
+                              {new Date(issue.timestamp).toLocaleString()}
+                            </p>
+                          </div>
+                          <Link
+                            href={`/dashboard/errors/${issue.id}`}
+                            className="tf-button-ghost shrink-0 px-3 py-1.5 text-xs sm:w-auto w-full text-center"
+                          >
+                            Open issue
+                          </Link>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </article>
             ))}
         </section>

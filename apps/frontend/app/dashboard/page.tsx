@@ -1583,9 +1583,9 @@ function DashboardPageInner() {
           <div className="grid gap-3 sm:grid-cols-3">
             {isInitialLoading ? (
               <>
-                <Skeleton className="h-[76px]" />
-                <Skeleton className="h-[76px]" />
-                <Skeleton className="h-[76px]" />
+                <Skeleton className="h-[88px]" />
+                <Skeleton className="h-[88px]" />
+                <Skeleton className="h-[88px]" />
               </>
             ) : (
               [
@@ -1593,9 +1593,10 @@ function DashboardPageInner() {
                 { label: "Total errors", value: totalErrors },
                 { label: "Organizations", value: orgs.length }
               ].map((stat) => (
-                <div key={stat.label} className="rounded-xl border border-border bg-card/90 px-4 py-3">
-                  <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-text-secondary">{stat.label}</p>
-                  <p className="mt-1.5 text-xl font-semibold text-text-primary sm:text-[22px]">{stat.value}</p>
+                <div key={stat.label} className="group relative overflow-hidden rounded-2xl border border-border bg-card/90 p-5 shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md hover:border-primary/20">
+                  <div className="absolute -right-4 -top-4 h-24 w-24 rounded-full bg-primary/5 blur-2xl transition-opacity group-hover:bg-primary/10" />
+                  <p className="relative z-10 text-[11px] font-semibold uppercase tracking-[0.14em] text-text-secondary">{stat.label}</p>
+                  <p className="relative z-10 mt-2 text-2xl font-bold text-text-primary sm:text-3xl">{stat.value}</p>
                 </div>
               ))
             )}
@@ -1846,18 +1847,18 @@ function DashboardPageInner() {
                             Last seen {new Date(item.lastSeen).toLocaleString()}
                           </p>
                         </div>
-                        <div className="flex max-w-full flex-wrap items-center gap-2">
-                          <span className="rounded-full bg-accent-soft px-3 py-1 text-xs font-semibold text-text-primary">
+                        <div className="flex max-w-full flex-wrap items-center gap-2 sm:mt-0 mt-2">
+                          <span className="rounded-full bg-accent-soft border border-border px-3 py-1.5 text-xs font-semibold text-text-primary">
                             {item.count} hits
                           </span>
                           <Link
                             href={`/dashboard/errors/${item.id}`}
-                            className="rounded-full px-3 py-1 text-xs font-semibold text-text-secondary"
+                            className="tf-button-ghost rounded-full px-3 py-1.5 text-xs font-semibold"
                           >
                             View
                           </Link>
                           <button
-                            className="rounded-full px-3 py-1 text-xs font-semibold text-text-secondary"
+                            className="tf-button-ghost rounded-full px-3 py-1.5 text-xs font-semibold"
                             onClick={() =>
                               setExpandedErrorId(isExpanded ? null : item.id)
                             }

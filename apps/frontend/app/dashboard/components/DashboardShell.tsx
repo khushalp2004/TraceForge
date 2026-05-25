@@ -60,6 +60,11 @@ function DashboardShellInner({ children }: { children: React.ReactNode }) {
   const searchParams = useSearchParams();
   const [collapsed, setCollapsed] = useState(false);
   const [notificationToasts, setNotificationToasts] = useState<ShellToast[]>([]);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   useEffect(() => {
     if (!isReady) {
@@ -182,39 +187,8 @@ function DashboardShellInner({ children }: { children: React.ReactNode }) {
     router.push(href);
   };
 
-  if (!isReady || !token) {
-    return (
-      <div className="flex min-h-screen overflow-x-hidden bg-background">
-        {effectiveLayout === "topbar" ? null : (
-          <div className="hidden w-64 border-r border-border bg-card/80 p-4 lg:block shadow-sm">
-            <div className="h-20 animate-pulse rounded-3xl bg-secondary/70" />
-            <div className="mt-6 space-y-3">
-              <div className="h-10 animate-pulse rounded-2xl bg-secondary/70" />
-              <div className="h-10 animate-pulse rounded-2xl bg-secondary/70" />
-              <div className="h-10 animate-pulse rounded-2xl bg-secondary/70" />
-            </div>
-          </div>
-        )}
-        <div className="flex min-h-screen min-w-0 flex-1 flex-col">
-          {effectiveLayout === "topbar" ? (
-            <div className="hidden border-b border-border bg-background px-4 py-4 lg:block shadow-sm">
-              <div className="h-8 animate-pulse rounded-2xl bg-secondary/70" />
-            </div>
-          ) : (
-            <div className="border-b border-border bg-background px-4 py-4 lg:hidden shadow-sm">
-              <div className="h-8 animate-pulse rounded-2xl bg-secondary/70" />
-            </div>
-          )}
-          <main className="flex-1 p-6">
-            <div className="mx-auto max-w-5xl space-y-4">
-              <div className="h-10 animate-pulse rounded-3xl bg-secondary/70" />
-              <div className="h-40 animate-pulse rounded-3xl bg-secondary/70" />
-              <div className="h-40 animate-pulse rounded-3xl bg-secondary/70" />
-            </div>
-          </main>
-        </div>
-      </div>
-    );
+  if (!mounted || !isReady || !token) {
+    return <DashboardSkeleton />;
   }
 
   return (
@@ -238,26 +212,38 @@ function DashboardShellInner({ children }: { children: React.ReactNode }) {
           {notificationToasts.map((toast) => (
             <div
               key={toast.id}
-              className={`pointer-events-auto rounded-3xl bg-card/95 p-4 shadow-xl backdrop-blur ${
-                toast.tone === "error"
-                  ? "tf-danger-surface"
-                  : toast.tone === "warning"
-                  ? "border-amber-200"
-                  : "border-emerald-200"
-              }`}
+              className="pointer-events-auto animate-fade-up tf-glass-modal p-4"
+              style={{ borderRadius: "1.25rem" }}
             >
-              <div className="flex items-start justify-between gap-3">
+              <div className="flex items-start gap-3">
+                <div className={`mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-xl ${
+                  toast.tone === "error"
+                    ? "bg-[hsl(var(--destructive-soft))] text-[hsl(var(--destructive))]"
+                    : toast.tone === "warning"
+                    ? "bg-[hsl(var(--warning-soft))] text-[hsl(var(--warning))]"
+                    : "bg-[hsl(var(--success-soft))] text-[hsl(var(--success))]"
+                }`}>
+                  <svg aria-hidden="true" className="h-4 w-4" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                    {toast.tone === "error" ? (
+                      <><circle cx="8" cy="8" r="6" /><path d="M8 5v3" /><circle cx="8" cy="11" r="0.5" fill="currentColor" /></>
+                    ) : toast.tone === "warning" ? (
+                      <><path d="M8 2L1.5 13h13L8 2z" /><path d="M8 7v2.5" /><circle cx="8" cy="11" r="0.5" fill="currentColor" /></>
+                    ) : (
+                      <><circle cx="8" cy="8" r="6" /><path d="M5.5 8l1.75 1.75L10.5 6" /></>
+                    )}
+                  </svg>
+                </div>
                 <button
                   type="button"
                   className="min-w-0 flex-1 text-left"
                   onClick={() => openDashboardNotifications(toast.href, toast.id)}
                 >
                   <p className="text-sm font-semibold text-text-primary">{toast.title}</p>
-                  <p className="mt-1 text-sm text-text-secondary">{toast.message}</p>
+                  <p className="mt-0.5 text-[13px] leading-relaxed text-text-secondary">{toast.message}</p>
                 </button>
                 <button
                   type="button"
-                  className="inline-flex h-7 w-7 items-center justify-center rounded-full text-text-secondary transition hover:bg-secondary/70 hover:text-text-primary"
+                  className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-text-secondary transition hover:bg-secondary/70 hover:text-text-primary"
                   onClick={() => removeShellToast(toast.id)}
                   aria-label="Dismiss notification"
                 >
@@ -275,13 +261,13 @@ function DashboardShellInner({ children }: { children: React.ReactNode }) {
                   </svg>
                 </button>
               </div>
-              <div className="mt-3 flex justify-end">
+              <div className="mt-3 flex justify-end border-t border-border/40 pt-3">
                 <button
                   type="button"
-                  className={`rounded-full border px-3 py-1.5 text-xs font-semibold transition ${
+                  className={`rounded-full border px-3.5 py-1.5 text-xs font-semibold transition ${
                     toast.tone === "error"
                       ? "tf-danger-button"
-                      : "text-text-secondary hover:bg-secondary/70 hover:text-text-primary"
+                      : "border-border bg-secondary/50 text-text-secondary hover:bg-secondary hover:text-text-primary"
                   }`}
                   onClick={() => openDashboardNotifications(toast.href, toast.id)}
                 >
@@ -296,9 +282,50 @@ function DashboardShellInner({ children }: { children: React.ReactNode }) {
   );
 }
 
+export function DashboardSkeleton() {
+  return (
+    <div className="flex min-h-screen overflow-x-hidden bg-background">
+      <div className="hidden w-64 border-r border-border bg-card/80 p-5 lg:block shadow-sm">
+        <div className="tf-shimmer h-[4.5rem] rounded-2xl bg-secondary/50" />
+        <div className="mt-5 space-y-2.5">
+          <div className="tf-shimmer h-10 rounded-xl bg-secondary/40" />
+          <div className="tf-shimmer h-10 rounded-xl bg-secondary/35" style={{ animationDelay: "200ms" }} />
+          <div className="tf-shimmer h-10 rounded-xl bg-secondary/30" style={{ animationDelay: "400ms" }} />
+          <div className="tf-shimmer h-10 rounded-xl bg-secondary/25" style={{ animationDelay: "600ms" }} />
+          <div className="tf-shimmer h-10 rounded-xl bg-secondary/20" style={{ animationDelay: "800ms" }} />
+        </div>
+        <div className="mt-auto pt-6 space-y-3">
+          <div className="tf-shimmer h-12 rounded-2xl bg-secondary/35" style={{ animationDelay: "1000ms" }} />
+          <div className="tf-shimmer h-14 rounded-2xl bg-secondary/30" style={{ animationDelay: "1200ms" }} />
+        </div>
+      </div>
+      <div className="flex min-h-screen min-w-0 flex-1 flex-col">
+        <div className="border-b border-border bg-background px-4 py-4 lg:hidden">
+          <div className="tf-shimmer h-9 rounded-xl bg-secondary/40" />
+        </div>
+        <main className="flex-1 px-4 py-8 sm:px-6 lg:px-8">
+          <div className="mx-auto max-w-5xl space-y-6">
+            <div className="flex items-center gap-4">
+              <div className="tf-shimmer h-8 w-32 rounded-xl bg-secondary/40" />
+              <div className="tf-shimmer h-6 w-20 rounded-full bg-secondary/25" />
+            </div>
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              <div className="tf-shimmer h-28 rounded-2xl bg-secondary/30" />
+              <div className="tf-shimmer h-28 rounded-2xl bg-secondary/25" style={{ animationDelay: "150ms" }} />
+              <div className="tf-shimmer h-28 rounded-2xl bg-secondary/20" style={{ animationDelay: "300ms" }} />
+            </div>
+            <div className="tf-shimmer h-64 rounded-2xl bg-secondary/25" style={{ animationDelay: "400ms" }} />
+            <div className="tf-shimmer h-48 rounded-2xl bg-secondary/20" style={{ animationDelay: "500ms" }} />
+          </div>
+        </main>
+      </div>
+    </div>
+  );
+}
+
 export default function DashboardShell(props: { children: React.ReactNode }) {
   return (
-    <Suspense fallback={<div className="tf-page tf-dashboard-page" />}>
+    <Suspense fallback={<DashboardSkeleton />}>
       <DashboardShellInner {...props} />
     </Suspense>
   );

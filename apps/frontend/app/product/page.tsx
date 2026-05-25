@@ -1,6 +1,5 @@
 "use client";
 
-import type { Metadata } from "next";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import {
@@ -21,7 +20,7 @@ const fadeUpVariant = {
     y: 0,
     transition: { type: "spring", stiffness: 100, damping: 20 }
   }
-};
+} as const;
 
 const staggerContainer = {
   hidden: { opacity: 0 },
@@ -29,7 +28,7 @@ const staggerContainer = {
     opacity: 1,
     transition: { staggerChildren: 0.15 }
   }
-};
+} as const;
 
 const bentoVariant = {
   hidden: { opacity: 0, scale: 0.95, y: 20 },
@@ -39,7 +38,7 @@ const bentoVariant = {
     y: 0,
     transition: { type: "spring", stiffness: 80, damping: 20 }
   }
-};
+} as const;
 
 export default function ProductPage() {
   return (
@@ -124,7 +123,7 @@ export default function ProductPage() {
                 <div className="relative aspect-video bg-black flex items-center justify-center overflow-hidden">
                   {/* NOTE: You can replace this src with your actual demo MP4 URL, or replace the entire video tag with an iframe for YouTube/Vimeo */}
                   <iframe
-                    src="https://player.cloudinary.com/embed/?cloud_name=drri6ut0i&public_id=traceforge%2Fproduct-demo&player[autoplay]=true&player[loop]=true&player[muted]=true&player[controls]=false&player[show_logo]=false"
+                    src="https://player.cloudinary.com/embed/?cloud_name=dyv5wyxuz&public_id=xazri9ab0zo7z2ae6znd&player[autoplay]=true&player[loop]=true&player[muted]=true&player[controls]=false&player[show_logo]=false"
                     allow="autoplay; fullscreen; encrypted-media; picture-in-picture"
                     allowFullScreen
                     frameBorder="0"
