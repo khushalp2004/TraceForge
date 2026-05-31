@@ -419,7 +419,7 @@ export default function RepoAnalysisPage() {
 
                     {project.githubRepoAnalysis?.lastError ? (
                       <div className="mt-3 rounded-xl tf-danger-surface px-4 py-3 text-sm">
-                        {project.githubRepoAnalysis.lastError}
+                        An error occurred, try again or switch to different model.
                       </div>
                     ) : null}
 
@@ -585,7 +585,7 @@ export default function RepoAnalysisPage() {
 
                   {report.analysis.lastError ? (
                     <div className="rounded-xl tf-danger-surface px-5 py-4 text-sm">
-                      {report.analysis.lastError}
+                      An error occurred, try again or switch to different model.
                     </div>
                   ) : null}
                 </>

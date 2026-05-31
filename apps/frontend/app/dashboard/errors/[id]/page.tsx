@@ -431,11 +431,9 @@ export default function ErrorDetailPage({ params }: { params: { id: string } }) 
 
   if (loading) {
     return (
-      <main className="tf-page tf-dashboard-page">
-        <div className="tf-dashboard">
-          <div className="rounded-3xl border border-border bg-card/95 p-6 shadow-sm">
-            <p className="text-sm text-text-secondary">Loading issue details…</p>
-          </div>
+      <main className="mx-auto max-w-5xl px-4 py-8 md:py-12">
+        <div className="rounded-[24px] border border-border/40 bg-card p-6 shadow-sm">
+          <p className="text-[14px] text-text-secondary animate-pulse">Loading issue details…</p>
         </div>
       </main>
     );
@@ -443,20 +441,22 @@ export default function ErrorDetailPage({ params }: { params: { id: string } }) 
 
   if (error || !errorDetail) {
     return (
-      <main className="tf-page tf-dashboard-page">
-        <div className="tf-dashboard">
-          <div className="rounded-3xl border border-border bg-card/95 p-6 shadow-sm">
-            <p className="text-sm font-semibold text-text-primary">{error ?? "Not found"}</p>
-            <Link className="mt-4 inline-flex tf-link" href="/dashboard/issues">
-              Back to issues
-            </Link>
-          </div>
-          {toast && (
-            <div className={`tf-dashboard-toast ${toast.tone === "success" ? "bg-emerald-600" : "bg-red-600"}`}>
-              {toast.message}
-            </div>
-          )}
+      <main className="mx-auto max-w-5xl px-4 py-8 md:py-12">
+        <div className="rounded-[24px] border border-border/40 bg-card p-6 shadow-sm">
+          <p className="text-[15px] font-semibold text-text-primary">{error ?? "Not found"}</p>
+          <Link
+            href="/dashboard/issues"
+            className="mt-4 group inline-flex items-center gap-2 text-[13px] font-medium text-text-secondary transition-colors hover:text-text-primary"
+          >
+            <svg className="h-4 w-4 transition-transform group-hover:-translate-x-0.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m15 18-6-6 6-6"/></svg>
+            Issues
+          </Link>
         </div>
+        {toast && (
+          <div className={`tf-dashboard-toast text-[13px] ${toast.tone === "success" ? "bg-emerald-600" : "bg-red-600"}`}>
+            {toast.message}
+          </div>
+        )}
       </main>
     );
   }
@@ -467,220 +467,212 @@ export default function ErrorDetailPage({ params }: { params: { id: string } }) 
   const aiAnalysis = errorDetail.analysis;
 
   return (
-    <main className="tf-page tf-dashboard-page">
-      <div className="tf-dashboard">
-        <Link className="tf-link" href="/dashboard/issues">
-          ← Back to issues
+    <main className="mx-auto max-w-5xl px-4 py-8 md:py-12">
+        <Link
+          href="/dashboard/issues"
+          className="group mb-8 inline-flex items-center gap-2 text-[15px] font-medium text-text-secondary transition-colors hover:text-text-primary"
+        >
+          <svg className="h-5 w-5 transition-transform group-hover:-translate-x-0.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m15 18-6-6 6-6"/></svg>
+          Issues
         </Link>
 
-        <header className="mt-4 overflow-hidden rounded-3xl border border-border bg-card/95 p-6 shadow-sm">
-          <div className="flex flex-wrap items-start justify-between gap-4">
-            <div className="min-w-0">
-              <p className="tf-kicker">{errorDetail.project.name}</p>
-              <div className="mt-3 flex items-center">
-                <h1 className="tf-title text-2xl sm:text-3xl">{errorDetail.message}</h1>
-                <PageDescriptionPopover>
-                  {errorDetail.isManualAlertIssue
-                    ? "Review the grouped stack and recent event payloads for this manually triggered alert issue without losing the higher-level inbox context."
-                    : "Review the grouped stack, recent event payloads, and AI guidance for this issue without losing the higher-level inbox context."}
-                </PageDescriptionPopover>
-              </div>
-            </div>
-            <div className="flex w-full flex-wrap items-center gap-3 sm:w-auto sm:justify-end">
-              {aiStatus && (
-                <span className="w-full text-xs font-semibold text-text-secondary sm:w-auto">{aiStatus}</span>
-              )}
-              <button
-                className="tf-button-ghost inline-flex w-full items-center justify-center gap-2 px-4 py-2 text-sm sm:w-auto"
-                onClick={handleCopyStack}
-              >
-                <Copy className="h-4 w-4" />
-                {copyStatus ?? "Copy stack"}
-              </button>
-              <button
-                className="tf-button-ghost inline-flex w-full items-center justify-center gap-2 px-4 py-2 text-sm sm:w-auto"
-                onClick={openGithubModal}
-              >
-                <Github className="h-4 w-4" />
-                GitHub issue
-              </button>
-              {!errorDetail.isManualAlertIssue && (
-                <button
-                  className="tf-button inline-flex w-full items-center justify-center gap-2 px-4 py-2 text-sm sm:w-auto"
-                  onClick={handleRegenerate}
-                  disabled={regenerating || isAiWorkInFlight(errorDetail)}
-                >
-                  <LoadingButtonContent
-                    loading={regenerating}
-                    loadingLabel="Generating..."
-                    idleLabel="Generate AI solution"
-                    icon={Sparkles}
-                  />
-                </button>
-              )}
+        <header className="mb-10 flex flex-col gap-6">
+          <div className="min-w-0">
+            <p className="mb-2 text-[11px] font-semibold uppercase tracking-[0.15em] text-primary">
+              {errorDetail.project.name}
+            </p>
+            <div className="flex items-center gap-3">
+              <h1 className="text-2xl font-bold tracking-tight text-text-primary sm:text-3xl break-words">
+                {errorDetail.message}
+              </h1>
+              <PageDescriptionPopover>
+                {errorDetail.isManualAlertIssue
+                  ? "Review the grouped stack and recent event payloads for this manually triggered alert issue without losing the higher-level inbox context."
+                  : "Review the grouped stack, recent event payloads, and AI guidance for this issue without losing the higher-level inbox context."}
+              </PageDescriptionPopover>
             </div>
           </div>
+          <div className="flex w-full flex-wrap items-center gap-3">
+            <button
+              className="inline-flex h-10 items-center justify-center gap-2 rounded-full border border-border/60 bg-secondary/30 px-5 text-[13px] font-semibold text-text-primary shadow-sm backdrop-blur-md transition-all hover:bg-secondary/60 hover:shadow max-[639px]:w-full sm:w-auto"
+              onClick={handleCopyStack}
+            >
+              <Copy className="h-4 w-4" />
+              {copyStatus ?? "Copy stack"}
+            </button>
+            <button
+              className="inline-flex h-10 items-center justify-center gap-2 rounded-full border border-border/60 bg-secondary/30 px-5 text-[13px] font-semibold text-text-primary shadow-sm backdrop-blur-md transition-all hover:bg-secondary/60 hover:shadow max-[639px]:w-full sm:w-auto"
+              onClick={openGithubModal}
+            >
+              <Github className="h-4 w-4" />
+              GitHub issue
+            </button>
+            {!errorDetail.isManualAlertIssue && (
+              <button
+                className="inline-flex h-10 items-center justify-center gap-2 rounded-full bg-primary px-5 text-[13px] font-semibold text-white shadow-sm transition hover:bg-primary/90 disabled:opacity-70 max-[639px]:w-full sm:w-auto"
+                onClick={handleRegenerate}
+                disabled={regenerating || isAiWorkInFlight(errorDetail)}
+              >
+                <LoadingButtonContent
+                  loading={regenerating}
+                  loadingLabel="Generating..."
+                  idleLabel="Generate AI"
+                  icon={Sparkles}
+                />
+              </button>
+            )}
+            {aiStatus && (
+              <span className="w-full text-[13px] font-medium text-text-secondary sm:w-auto sm:pl-2">{aiStatus}</span>
+            )}
+          </div>
+        </header>
 
-          <div className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-            <div className="rounded-2xl border border-border bg-secondary/20 px-4 py-4">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-text-secondary">
+        <div className="mb-10 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+            <div className="overflow-hidden rounded-[24px] border border-border/40 bg-card p-5 shadow-sm">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.15em] text-text-secondary">
                 First seen
               </p>
-              <p className="mt-2 text-sm font-semibold text-text-primary">
+              <p className="mt-2 text-[15px] font-semibold text-text-primary">
                 {new Date(errorDetail.firstSeen).toLocaleString()}
               </p>
             </div>
-            <div className="rounded-2xl border border-border bg-secondary/20 px-4 py-4">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-text-secondary">
+            <div className="overflow-hidden rounded-[24px] border border-border/40 bg-card p-5 shadow-sm">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.15em] text-text-secondary">
                 Last seen
               </p>
-              <p className="mt-2 text-sm font-semibold text-text-primary">
+              <p className="mt-2 text-[15px] font-semibold text-text-primary">
                 {new Date(errorDetail.lastSeen).toLocaleString()}
               </p>
             </div>
-            <div className="rounded-2xl border border-border bg-secondary/20 px-4 py-4">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-text-secondary">
+            <div className="overflow-hidden rounded-[24px] border border-border/40 bg-card p-5 shadow-sm">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.15em] text-text-secondary">
                 Occurrences
               </p>
-              <p className="mt-2 text-sm font-semibold text-text-primary">
+              <p className="mt-2 text-[15px] font-semibold text-text-primary">
                 {errorDetail.count} hits
               </p>
             </div>
-            <div className="rounded-2xl border border-border bg-secondary/20 px-4 py-4">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-text-secondary">
+            <div className="overflow-hidden rounded-[24px] border border-border/40 bg-card p-5 shadow-sm">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.15em] text-text-secondary">
                 Event payloads
               </p>
-              <p className="mt-2 text-sm font-semibold text-text-primary">
+              <p className="mt-2 text-[15px] font-semibold text-text-primary">
                 {payloadEventCount} with context
               </p>
             </div>
           </div>
-        </header>
 
-        <section className="mt-6 grid gap-6 xl:grid-cols-[minmax(0,1.2fr)_380px]">
+        <section className="mb-10 grid gap-6 xl:grid-cols-[minmax(0,1.2fr)_380px]">
           <div className="space-y-6">
-            <section className="overflow-hidden rounded-3xl border border-border bg-card/95 p-6 shadow-sm">
-              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                <div className="min-w-0">
-                  <p className="text-xs font-semibold uppercase tracking-[0.14em] text-text-secondary">
-                    Stack trace
-                  </p>
-                  <h2 className="mt-2 text-xl font-semibold text-text-primary">
-                    Grouped frames and source locations
-                  </h2>
-                </div>
-                <button
-                  className="tf-button-ghost w-full px-4 py-2 text-sm sm:w-auto"
-                  onClick={() => setShowAllFrames((prev) => !prev)}
-                >
-                  {showAllFrames ? "Collapse frames" : "Show all frames"}
-                </button>
-              </div>
-
-              <div className="mt-5 space-y-3">
-                {visibleFrames.map((frame, index) => (
-                  <div
-                    key={`${frame.raw}-${index}`}
-                    className="min-w-0 overflow-hidden rounded-2xl border border-border bg-secondary/20 px-4 py-4"
-                  >
-                    <div className="overflow-x-auto">
-                      <p className="min-w-0 break-all text-sm font-medium text-text-primary">{frame.raw}</p>
-                    </div>
-                    {frame.file && (
-                      <p className="mt-2 break-all text-xs text-text-secondary">
-                        {frame.file}:{frame.line}:{frame.column}
-                      </p>
-                    )}
+            <section>
+              <h2 className="mb-4 text-sm font-semibold uppercase tracking-[0.15em] text-text-secondary">
+                Stack Trace
+              </h2>
+              <div className="overflow-hidden rounded-[24px] border border-border/40 bg-card shadow-sm">
+                <div className="flex flex-col gap-3 border-b border-border/40 bg-secondary/15 p-4 sm:flex-row sm:items-center sm:justify-between">
+                  <div className="min-w-0">
+                    <p className="text-[14px] font-medium text-text-primary">
+                      Grouped frames and source locations
+                    </p>
                   </div>
-                ))}
-                {!showAllFrames && frames.length > visibleFrames.length && (
-                  <p className="text-sm text-text-secondary">
-                    Showing {visibleFrames.length} of {frames.length} frames.
-                  </p>
-                )}
+                  <button
+                    className="rounded-full bg-secondary/50 px-4 py-2 text-[13px] font-medium text-text-primary transition-colors hover:bg-secondary/80"
+                    onClick={() => setShowAllFrames((prev) => !prev)}
+                  >
+                    {showAllFrames ? "Collapse frames" : "Show all frames"}
+                  </button>
+                </div>
+
+                <div className="flex flex-col">
+                  {visibleFrames.map((frame, index) => (
+                    <div
+                      key={`${frame.raw}-${index}`}
+                      className="border-b border-border/40 p-4 last:border-0 hover:bg-secondary/10 transition-colors"
+                    >
+                      <div className="overflow-x-auto">
+                        <p className="min-w-0 break-all text-[14px] font-medium text-text-primary">{frame.raw}</p>
+                      </div>
+                      {frame.file && (
+                        <p className="mt-1.5 break-all text-[12px] text-text-secondary">
+                          {frame.file}:{frame.line}:{frame.column}
+                        </p>
+                      )}
+                    </div>
+                  ))}
+                  {!showAllFrames && frames.length > visibleFrames.length && (
+                    <div className="p-4 text-center text-[13px] text-text-secondary bg-secondary/5">
+                      Showing {visibleFrames.length} of {frames.length} frames.
+                    </div>
+                  )}
+                </div>
               </div>
             </section>
 
-            <section className="overflow-hidden rounded-3xl border border-border bg-card/95 p-6 shadow-sm">
-              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                <div className="min-w-0">
-                  <p className="text-xs font-semibold uppercase tracking-[0.14em] text-text-secondary">
-                    Recent events
-                  </p>
-                  <h2 className="mt-2 text-xl font-semibold text-text-primary">
-                    Payloads and environment snapshots
-                  </h2>
-                </div>
-                <span className="w-fit rounded-full border border-border bg-card px-3 py-1 text-xs font-semibold text-text-secondary">
-                  {filteredEvents.length} events
+            <section>
+              <div className="mb-4 flex items-center justify-between">
+                <h2 className="text-sm font-semibold uppercase tracking-[0.15em] text-text-secondary">
+                  Recent Events
+                </h2>
+                <span className="rounded-full bg-secondary/50 px-2.5 py-1 text-[11px] font-bold text-text-secondary">
+                  {filteredEvents.length} {filteredEvents.length === 1 ? "event" : "events"}
                 </span>
               </div>
-
-              <div className="tf-filter-panel mt-5">
-                <div className="tf-filter-header">
-                  <div>
-                    <p className="text-sm font-semibold text-text-primary">Event filters</p>
-                    <p className="tf-filter-help">
-                      Search payload content or reveal the full payload JSON when you need deeper context.
-                    </p>
-                  </div>
-                </div>
-                <div className="tf-filter-grid md:grid-cols-[minmax(0,1fr)_200px]">
-                  <label className="tf-filter-field">
-                    <span className="tf-filter-label">Payload search</span>
+              <div className="overflow-hidden rounded-[24px] border border-border/40 bg-card shadow-sm">
+                
+                <div className="flex flex-col gap-3 border-b border-border/40 bg-secondary/15 p-3 sm:flex-row sm:items-center sm:p-4">
+                  <div className="flex min-w-0 flex-1 items-center gap-3">
+                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
+                      <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+                    </div>
                     <input
-                      className="tf-input tf-filter-control min-w-0"
-                      placeholder="Search payloads"
+                      className="w-full bg-transparent text-[15px] text-text-primary outline-none placeholder:text-text-secondary/60"
+                      placeholder="Search payloads..."
                       value={payloadSearch}
                       onChange={(event) => setPayloadSearch(event.target.value)}
                     />
-                  </label>
-                  <label className="tf-filter-field">
-                    <span className="tf-filter-label">Visibility</span>
+                  </div>
+                  <div className="flex shrink-0 items-center pl-12 sm:pl-0">
                     <button
                       type="button"
-                      className={`inline-flex h-11 items-center justify-center rounded-2xl border px-4 text-sm font-semibold transition ${
+                      className={`inline-flex h-10 items-center justify-center rounded-full px-4 text-[13px] font-medium transition-colors ${
                         showPayloads
-                          ? "border-primary/30 bg-primary/12 text-primary"
-                          : "border-border bg-card text-text-secondary hover:bg-secondary/70 hover:text-text-primary"
+                          ? "bg-primary/15 text-primary hover:bg-primary/20"
+                          : "bg-secondary/50 text-text-primary hover:bg-secondary/80"
                       }`}
                       onClick={() => setShowPayloads((current) => !current)}
                     >
                       {showPayloads ? "Hide payloads" : "Show payloads"}
                     </button>
-                  </label>
+                  </div>
                 </div>
-              </div>
 
-              <div className="mt-5 space-y-3">
-                {filteredEvents.map((event) => (
-                  <div
-                    key={event.id}
-                    className="min-w-0 overflow-hidden rounded-2xl border border-border bg-secondary/15 px-4 py-4"
-                  >
-                    <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
-                      <p className="break-words text-sm font-semibold text-text-primary">
-                        {new Date(event.timestamp).toLocaleString()}
-                      </p>
-                      <span className="w-fit rounded-full border border-border bg-card px-2.5 py-1 text-xs font-semibold text-text-secondary">
-                        {event.environment ?? "unknown"}
-                      </span>
+                <div className="flex flex-col">
+                  {filteredEvents.map((event) => (
+                    <div
+                      key={event.id}
+                      className="border-b border-border/40 p-4 last:border-0 hover:bg-secondary/5 transition-colors"
+                    >
+                      <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
+                        <p className="break-words text-[14px] font-medium text-text-primary">
+                          {new Date(event.timestamp).toLocaleString()}
+                        </p>
+                        <span className="w-fit rounded-full bg-secondary/50 px-2.5 py-1 text-[11px] font-medium text-text-secondary">
+                          {event.environment ?? "unknown"}
+                        </span>
+                      </div>
+                      {showPayloads && event.payload && (
+                        <pre className="mt-4 max-w-full overflow-x-auto rounded-[16px] bg-[#0d1117] border border-white/10 p-4 text-[12px] font-mono text-slate-300">
+                          {JSON.stringify(event.payload, null, 2)}
+                        </pre>
+                      )}
                     </div>
-                    {showPayloads && event.payload && (
-                      <pre className="mt-3 max-w-full overflow-x-auto rounded-2xl bg-slate-900 p-4 text-[11px] text-slate-100">
-                        {JSON.stringify(event.payload, null, 2)}
-                      </pre>
-                    )}
-                  </div>
-                ))}
-                {!filteredEvents.length && (
-                  <div className="rounded-2xl border border-dashed border-border bg-secondary/20 px-4 py-4">
-                    <p className="text-sm font-semibold text-text-primary">No matching events</p>
-                    <p className="mt-1 text-sm text-text-secondary">
-                      Try a broader payload search or clear the filter to see recent events again.
-                    </p>
-                  </div>
-                )}
+                  ))}
+                  {!filteredEvents.length && (
+                    <div className="p-6 text-center text-[15px] text-text-secondary bg-secondary/5">
+                      No matching events found. Try a broader search.
+                    </div>
+                  )}
+                </div>
               </div>
             </section>
           </div>
@@ -751,11 +743,11 @@ export default function ErrorDetailPage({ params }: { params: { id: string } }) 
               )}
 
               {errorDetail.aiStatus === "FAILED" && hasAiRequest(errorDetail) && errorDetail.aiLastError && (
-                <div className="mt-4 rounded-2xl border border-red-200 bg-red-50 px-4 py-4">
-                  <p className="text-xs font-semibold uppercase tracking-[0.14em] text-red-700">
+                <div className="mt-4 rounded-[16px] border tf-danger-surface px-4 py-4">
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.15em] opacity-90">
                     AI generation failed
                   </p>
-                  <p className="mt-2 text-sm text-red-700">{errorDetail.aiLastError}</p>
+                  <p className="mt-2 text-[13px]">An error occurred, try again or switch to different model.</p>
                 </div>
               )}
             </section>
@@ -809,7 +801,6 @@ export default function ErrorDetailPage({ params }: { params: { id: string } }) 
             </section>
           </div>
         </section>
-      </div>
 
       {showAiDetail && getAiDetail(errorDetail) && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">

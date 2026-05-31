@@ -1038,11 +1038,11 @@ function IssuesPageInner() {
                         )}
 
                         {issue.aiStatus === "FAILED" && hasAiRequest(issue) && issue.aiLastError && (
-                          <div className="mt-4 rounded-2xl border border-red-200 bg-red-50 px-4 py-3">
-                            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-red-700">
+                          <div className="mt-4 rounded-2xl border tf-danger-surface px-4 py-3">
+                            <p className="text-[11px] font-semibold uppercase tracking-[0.14em] opacity-90">
                               AI generation failed
                             </p>
-                            <p className="mt-2 text-sm text-red-700">{issue.aiLastError}</p>
+                            <p className="mt-1.5 text-[13px]">An error occurred, try again or switch to different model.</p>
                           </div>
                         )}
                       </div>
