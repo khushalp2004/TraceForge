@@ -14,16 +14,25 @@ export const metadata: Metadata = {
   applicationName: SITE_NAME,
   title: {
     default: SITE_NAME,
-    template: `%s | ${SITE_NAME}`
+    template: `${SITE_NAME} | %s`
   },
   description: SITE_DESCRIPTION,
   keywords: SITE_KEYWORDS,
   category: "technology",
   creator: SITE_NAME,
   publisher: SITE_NAME,
+  authors: [{ name: SITE_NAME, url: siteUrl }],
   referrer: "origin-when-cross-origin",
+  formatDetection: {
+    email: false,
+    address: false,
+    telephone: false
+  },
   alternates: {
-    canonical: "/"
+    canonical: "/",
+    languages: {
+      "en-US": "/"
+    }
   },
   openGraph: {
     title: SITE_NAME,
@@ -31,12 +40,13 @@ export const metadata: Metadata = {
     url: "/",
     siteName: SITE_NAME,
     type: "website",
+    locale: "en_US",
     images: [
       {
         url: "/traceforge-logo.svg",
-        width: 512,
-        height: 512,
-        alt: `${SITE_NAME} logo`
+        width: 1200,
+        height: 630,
+        alt: `${SITE_NAME} - AI-powered error monitoring`
       }
     ]
   },
@@ -44,16 +54,36 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title: SITE_NAME,
     description: SITE_DESCRIPTION,
-    images: ["/traceforge-logo.svg"]
+    images: ["/traceforge-logo.svg"],
+    creator: "@traceforge",
+    site: "@traceforge"
   },
   robots: {
     index: true,
-    follow: true
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      "max-video-preview": -1,
+      "max-image-preview": "large",
+      "max-snippet": -1
+    }
   },
   icons: {
-    icon: "/traceforge-logo.svg",
+    icon: [
+      { url: "/favicon.ico" },
+      { url: "/traceforge-logo.svg", type: "image/svg+xml" }
+    ],
     shortcut: "/traceforge-logo.svg",
-    apple: "/traceforge-logo.svg"
+    apple: [
+      { url: "/apple-touch-icon.png", sizes: "180x180", type: "image/png" }
+    ]
+  },
+  manifest: "/manifest.webmanifest",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "default",
+    title: SITE_NAME
   }
 };
 

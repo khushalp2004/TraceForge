@@ -4,21 +4,15 @@ import { Suspense, useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
-  AlertTriangle,
-  BellRing,
-  Bot,
   Eye,
   EyeOff,
-  FolderKanban,
-  GitBranch,
   Github,
-  ShieldCheck,
-  Sparkles,
-  Zap
 } from "lucide-react";
+import { motion } from "framer-motion";
 import { LoadingButtonContent } from "../../components/ui/loading-button-content";
 import { useAuth } from "../../context/AuthContext";
 import AuthToast from "./AuthToast";
+import SiteHeader from "./SiteHeader";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
 const postAuthToastKey = "traceforge_post_auth_toast";
@@ -35,21 +29,9 @@ type AuthScreenProps = {
   mode: "login" | "signup";
 };
 
-const incidentStats = [
-  { label: "Hits", value: "32" },
-  { label: "Environment", value: "production" },
-  { label: "Last seen", value: "2m ago" }
-];
-
-const reliabilityStats = [
-  { label: "Projects", value: "8" },
-  { label: "Alerts", value: "14" },
-  { label: "Organizations", value: "3" }
-];
-
 export default function AuthScreen({ mode }: AuthScreenProps) {
   return (
-    <Suspense fallback={<div className="tf-page pb-20 pt-16" />}>
+    <Suspense fallback={<div className="h-screen w-screen bg-background" />}>
       <AuthScreenInner mode={mode} />
     </Suspense>
   );
@@ -87,74 +69,6 @@ function AuthScreenInner({ mode }: AuthScreenProps) {
       : "";
   const isSocialSignupContinuation = mode === "signup" && Boolean(socialSignupToken);
 
-  const workflowItems =
-    mode === "signup"
-      ? [
-          "Create the account and add your first project",
-          "Send a test exception into the issue inbox",
-          "Invite owners and configure your first alert rule"
-        ]
-      : [
-          "Review the issue inbox with AI context",
-          "Follow alert activity across your organization",
-          "Check recent releases before triage begins"
-        ];
-
-  const featureCards =
-    mode === "signup"
-      ? [
-          {
-            icon: Bot,
-            label: "AI issues",
-            value: "Grouped with context",
-            detail: "Summaries, stack traces, and regression clues stay connected."
-          },
-          {
-            icon: BellRing,
-            label: "Alerts",
-            value: "Manual but team-aware",
-            detail: "Route important signals to the right people without noisy defaults."
-          },
-          {
-            icon: GitBranch,
-            label: "Releases",
-            value: "Deploy context included",
-            detail: "See what changed before an issue started trending."
-          },
-          {
-            icon: ShieldCheck,
-            label: "Coverage",
-            value: "Reliable by design",
-            detail: "Projects, orgs, and alert ownership stay in one operational view."
-          }
-        ]
-      : [
-          {
-            icon: Bot,
-            label: "AI issues",
-            value: "Real-time grouping",
-            detail: "Incidents arrive grouped and summarized, ready for triage."
-          },
-          {
-            icon: BellRing,
-            label: "Alerts",
-            value: "Live notification flow",
-            detail: "Track the signals that matter without refreshing the page."
-          },
-          {
-            icon: GitBranch,
-            label: "Releases",
-            value: "Correlated to incidents",
-            detail: "Connect deploys to spikes before they become expensive."
-          },
-          {
-            icon: ShieldCheck,
-            label: "Coverage",
-            value: "Reliable by design",
-            detail: "Projects, orgs, and alert ownership stay in one operational view."
-          }
-        ];
-
   useEffect(() => {
     if (!isReady) return;
     if (token) {
@@ -164,16 +78,12 @@ function AuthScreenInner({ mode }: AuthScreenProps) {
 
   useEffect(() => {
     if (!toast) return;
-
     const timeout = window.setTimeout(() => setToast(null), 2800);
     return () => window.clearTimeout(timeout);
   }, [toast]);
 
   useEffect(() => {
-    if (!oauthError) {
-      return;
-    }
-
+    if (!oauthError) return;
     const message =
       oauthError === "google_no_account"
         ? "No TraceForge account exists for this Google email yet. Please continue from sign up."
@@ -193,27 +103,17 @@ function AuthScreenInner({ mode }: AuthScreenProps) {
   }, [oauthError]);
 
   useEffect(() => {
-    if (!isSocialSignupContinuation) {
-      return;
-    }
-
-    if (oauthEmail) {
-      setEmail(oauthEmail);
-    }
-
-    if (socialPrefillName) {
-      setFullName((current) => current || socialPrefillName);
-    }
+    if (!isSocialSignupContinuation) return;
+    if (oauthEmail) setEmail(oauthEmail);
+    if (socialPrefillName) setFullName((current) => current || socialPrefillName);
   }, [isSocialSignupContinuation, oauthEmail, socialPrefillName]);
 
   const handleOauth = (provider: "Google" | "GitHub") => {
     setToast(null);
-
     if (provider === "Google") {
       window.location.href = buildGoogleStartUrl(mode, next);
       return;
     }
-
     window.location.href = buildGithubStartUrl(mode, next);
   };
 
@@ -225,17 +125,14 @@ function AuthScreenInner({ mode }: AuthScreenProps) {
         setToast({ message: "Full name and address are required.", tone: "error" });
         return;
       }
-
       if (!agreedToTerms) {
         setToast({ message: "You must agree to the terms.", tone: "error" });
         return;
       }
-
       if (!passwordPolicy.test(password)) {
         setToast({ message: passwordPolicyMessage, tone: "error" });
         return;
       }
-
       if (!password || password !== confirmPassword) {
         setToast({ message: "Passwords do not match.", tone: "error" });
         return;
@@ -273,7 +170,6 @@ function AuthScreenInner({ mode }: AuthScreenProps) {
           );
           return;
         }
-
         throw new Error(data.error || "Authentication failed");
       }
 
@@ -313,254 +209,135 @@ function AuthScreenInner({ mode }: AuthScreenProps) {
 
   if (!isReady) {
     return (
-      <main className="tf-page pb-20 pt-16">
-        <div className="tf-container max-w-md">
-          <div className="tf-card p-8">
-            <div className="h-6 w-28 animate-pulse rounded-full bg-secondary/70" />
-            <div className="mt-4 h-12 w-56 animate-pulse rounded-2xl bg-secondary/70" />
-            <div className="mt-8 space-y-4">
-              <div className="h-11 animate-pulse rounded-full bg-secondary/70" />
-              <div className="h-11 animate-pulse rounded-full bg-secondary/70" />
-              <div className="h-11 animate-pulse rounded-full bg-secondary/70" />
-            </div>
-          </div>
-        </div>
+      <main className="flex h-screen w-screen bg-background items-center justify-center overflow-hidden">
+        <div className="h-6 w-28 animate-pulse rounded-full bg-secondary/70" />
       </main>
     );
   }
 
   return (
-    <main
-      className={`tf-page overflow-x-hidden pt-8 sm:pt-10 ${
-        mode === "signup"
-          ? "pb-12 sm:pb-14 lg:min-h-screen lg:pb-10 lg:pt-6"
-          : "pb-12 sm:pb-14 lg:pb-16 lg:pt-12"
-      }`}
-    >
+    <main className="flex flex-col h-screen w-screen bg-background text-text-primary font-sans overflow-hidden selection:bg-orange-500/30 selection:text-orange-100">
       <AuthToast toast={toast} />
-      <div className="tf-container max-w-[96rem]">
-        <div
-          className={`grid gap-4 sm:gap-5 md:gap-6 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,1.1fr)_minmax(0,1.24fr)] ${
-            mode === "signup" ? "items-start" : ""
-          }`}
-        >
-          <section className="tf-auth-panel order-2 hidden min-w-0 self-start rounded-[28px] border p-4 backdrop-blur md:block md:p-6 lg:order-1 lg:row-span-2 lg:p-8">
-            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-text-secondary">
-              Recent incident
-            </p>
-            <h2 className={`mt-4 max-w-[17ch] font-semibold text-text-primary [text-wrap:balance] text-[1.35rem] leading-[1.05] sm:text-[1.85rem] md:text-[2.35rem] ${mode === "signup" ? "lg:text-[2rem]" : "lg:text-[2.9rem]"}`}>
-              Payment API timeout after release `api@2.8.0`
-            </h2>
-            <div className="mt-4">
-              <span className="tf-danger-tag rounded-full border px-3 py-1 text-xs font-semibold">
-                Critical
-              </span>
-            </div>
+      
+      {/* HEADER (Imported directly from SiteHeader to match homepage perfectly) */}
+      <div className="flex-none">
+        <SiteHeader />
+      </div>
 
-            <div className={`mt-6 grid gap-3 sm:grid-cols-2 xl:grid-cols-3 ${mode === "signup" ? "lg:gap-3" : ""}`}>
-              {incidentStats.map((item) => (
-                <div
-                  key={item.label}
-                  className="tf-auth-inner-card min-w-0 rounded-2xl border px-4 py-3"
-                >
-                  <p
-                    className={`font-semibold uppercase text-text-secondary break-normal ${
-                      mode === "signup"
-                        ? "text-[10px] leading-4 tracking-[0.08em]"
-                        : "text-[11px] leading-4 tracking-[0.12em]"
-                    }`}
-                  >
-                    {item.label}
-                  </p>
-                  <p className="mt-1.5 text-[15px] font-semibold leading-5 text-text-primary sm:text-base">
-                    {item.value}
-                  </p>
-                </div>
-              ))}
-            </div>
-
-            <div className={`tf-auth-inner-card mt-6 rounded-[24px] border p-4 sm:p-5 ${mode === "signup" ? "lg:mt-4 lg:p-4" : ""}`}>
-              <div className="flex items-center gap-2">
-                <Sparkles className="h-4 w-4 text-orange-500" />
-                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-text-secondary">
-                  AI summary
-                </p>
-              </div>
-              <p className={`mt-3 max-w-[38ch] text-[13px] text-text-secondary sm:text-sm ${mode === "signup" ? "leading-5" : "leading-6"}`}>
-                Likely tied to retry handling after the latest deploy, with production traffic exposing the failure path.
+      {/* CONTENT AREA */}
+      <div className="flex-1 flex overflow-hidden">
+        
+        {/* LEFT PANEL: Form */}
+        <div className="relative z-10 flex h-full w-full flex-col items-center px-6 md:w-1/2 md:px-12 xl:px-24 py-8 md:py-12 overflow-y-auto tf-scroll-rail">
+          <motion.div 
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
+            className="w-full max-w-[360px] my-auto"
+          >
+            <div className="text-center mb-8">
+              <h1 className="text-[3.25rem] font-serif leading-[1.1] tracking-[-0.02em] text-text-primary font-light mb-3">
+                {mode === "login" ? "Think fast,\nresolve faster" : "Start resolving\nissues faster"}
+              </h1>
+              <p className="text-[16px] text-text-primary/80 font-serif">
+                {mode === "login" 
+                  ? "Capture in production, debug in TraceForge" 
+                  : "Create an account to unify your monitoring"}
               </p>
             </div>
 
-            {mode === "signup" && (
-              <div className="mt-4 space-y-2.5">
-                {[
-                  "Project-ready setup",
-                  "Invite-aware onboarding",
-                  "Alert-first workflow"
-                ].map((item) => (
-                  <div
-                    key={item}
-                    className="tf-auth-inner-card flex items-center gap-2 rounded-2xl border px-3.5 py-3 text-sm font-medium text-text-secondary"
-                    title={item}
+            <div className="rounded-[24px] border border-border/40 p-5 sm:p-6 bg-card/40 shadow-sm">
+              {!isSocialSignupContinuation && (
+                <>
+                <div className="flex gap-3 w-full">
+                  <button
+                    type="button"
+                    className="group relative flex flex-1 items-center justify-center rounded-[8px] border border-border/60 bg-secondary/30 px-4 py-3 transition-all hover:bg-secondary/60"
+                    onClick={() => handleOauth("Google")}
                   >
-                    <Zap className="h-4 w-4 shrink-0 text-orange-500" />
-                    <span className="whitespace-nowrap text-[13px] leading-5 sm:text-sm">
-                      {item}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            )}
-          </section>
+                    <svg viewBox="0 0 24 24" className="h-[18px] w-[18px]" aria-hidden="true">
+                      <path fill="#EA4335" d="M12 10.2v3.95h5.49c-.24 1.27-.97 2.34-2.06 3.07l3.33 2.58c1.94-1.79 3.06-4.42 3.06-7.54 0-.73-.07-1.43-.19-2.08H12z"/>
+                      <path fill="#34A853" d="M12 21.9c2.77 0 5.1-.92 6.8-2.49l-3.33-2.58c-.92.62-2.1.99-3.47.99-2.67 0-4.94-1.8-5.75-4.23l-3.44 2.65c1.69 3.36 5.17 5.66 9.19 5.66z"/>
+                      <path fill="#4285F4" d="M6.25 13.59c-.2-.62-.32-1.28-.32-1.97s.12-1.35.32-1.97L2.81 7c-.69 1.37-1.08 2.91-1.08 4.62s.39 3.25 1.08 4.62l3.44-2.65z"/>
+                      <path fill="#FBBC05" d="M12 5.43c1.5 0 2.84.52 3.89 1.53l2.91-2.91C17.09 2.45 14.77 1.35 12 1.35 7.98 1.35 4.5 3.65 2.81 7l3.44 2.65C7.06 7.23 9.33 5.43 12 5.43z"/>
+                    </svg>
+                  </button>
+                  <button
+                    type="button"
+                    className="group relative flex flex-1 items-center justify-center rounded-[8px] border border-border/60 bg-secondary/30 px-4 py-3 transition-all hover:bg-secondary/60"
+                    onClick={() => handleOauth("GitHub")}
+                  >
+                    <Github className="h-[18px] w-[18px]" />
+                  </button>
+                </div>
 
-          <div className="order-3 hidden space-y-3 md:order-4 md:block md:space-y-4 lg:order-2 lg:space-y-6">
-            <section className="tf-auth-soft-panel min-w-0 rounded-[24px] border p-4 backdrop-blur sm:p-5 md:p-6">
-              <div className="flex items-center gap-2">
-                <FolderKanban className="h-4 w-4 text-orange-500" />
-                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-text-secondary">
-                  Reliability snapshot
-                </p>
-              </div>
-              <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-                {reliabilityStats.map((item) => (
-                  <div
-                    key={item.label}
-                    className="tf-auth-inner-card min-w-0 rounded-2xl border px-4 py-3"
-                  >
-                    <p
-                      className={`min-w-0 overflow-hidden text-ellipsis whitespace-nowrap font-semibold uppercase text-text-secondary ${
-                        mode === "signup"
-                          ? "text-[10px] leading-4 tracking-[0.08em]"
-                          : "text-[11px] leading-4 tracking-[0.12em]"
-                      }`}
-                    >
-                      {item.label}
-                    </p>
-                    <p className="mt-1.5 text-base font-semibold leading-5 text-text-primary sm:text-lg">
-                      {item.value}
-                    </p>
-                  </div>
-                ))}
-              </div>
-            </section>
-
-            <section className="tf-auth-soft-panel min-w-0 rounded-[24px] border p-4 backdrop-blur sm:p-5 md:p-6">
-              <div className="flex items-center gap-2">
-                <AlertTriangle className="h-4 w-4 text-orange-500" />
-                <p className="text-xs font-semibold uppercase tracking-[0.18em] text-text-secondary">
-                  Workflow
-                </p>
-              </div>
-              <div className="mt-4 space-y-2.5">
-                {workflowItems.map((item) => (
-                  <div
-                    key={item}
-                    className="tf-auth-inner-card min-w-0 rounded-2xl border px-4 py-3"
-                  >
-                    <div className="flex min-w-0 items-start gap-3">
-                      <div className="mt-2 h-2 w-2 shrink-0 rounded-full bg-orange-400" />
-                      <p
-                        className={`min-w-0 text-text-secondary ${
-                          mode === "signup" ? "text-[13px] leading-5" : "text-sm leading-6"
-                        }`}
-                      >
-                        {item}
-                      </p>
+                  <div className="relative my-5">
+                    <div className="absolute inset-0 flex items-center">
+                      <span className="w-full border-t border-border/40" />
+                    </div>
+                    <div className="relative flex justify-center text-[11px] uppercase tracking-wider">
+                      <span className="bg-background px-3 text-text-secondary/70">OR</span>
                     </div>
                   </div>
-                ))}
-              </div>
-            </section>
-          </div>
-
-          <section className="tf-auth-main-card order-1 w-full min-w-0 max-w-xl justify-self-center rounded-[28px] border p-4 backdrop-blur sm:p-5 md:order-3 md:max-w-none md:self-start md:p-6 lg:order-3 lg:row-span-2 lg:p-8">
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <p className="tf-kicker">{mode === "login" ? "Login" : "Sign up"}</p>
-              <span className="tf-auth-chip rounded-full border px-3 py-1 text-xs font-semibold text-text-secondary">
-                {mode === "login" ? "Secure access" : "New account"}
-              </span>
-            </div>
-
-            <h1 className={`mt-4 font-semibold leading-[1.02] text-text-primary text-[1.8rem] sm:text-[2.15rem] md:text-[2.65rem] ${
-              mode === "signup"
-                ? "max-w-[15ch] [text-wrap:pretty] lg:max-w-[16ch] lg:text-[2.4rem]"
-                : "max-w-[12ch] [text-wrap:balance] lg:text-[3.35rem]"
-            }`}>
-              {mode === "login" ? "Welcome back to " : "Create your "}
-              <Link
-                href="/"
-                className="decoration-primary underline underline-offset-[0.16em] transition hover:text-primary"
-              >
-                TraceForge
-              </Link>
-              {mode === "login" ? "" : " account"}
-            </h1>
-            <p className={`mt-3 max-w-[42ch] text-[13px] text-text-secondary sm:text-sm ${mode === "signup" ? "leading-5" : "leading-6"}`}>
-              {mode === "login"
-                ? "Sign in to review issues, manage alerts, and stay in sync with your organization workflows."
-                : isSocialSignupContinuation
-                ? `${socialProvider || "Your social provider"} verified your email. Add the remaining account details to finish creating your workspace.`
-                : "Create your account to start capturing issues, routing alerts, and collaborating with your organization from one place."}
-            </p>
-
-            <div className="mt-6 space-y-3 sm:space-y-3.5">
-              {isSocialSignupContinuation && (
-                <div className="rounded-2xl border border-border bg-secondary/25 px-4 py-3">
-                  <p className="text-xs font-semibold uppercase tracking-[0.14em] text-text-secondary">
-                    {socialProvider || "Social"} account connected
-                  </p>
-                  <p className="mt-1 text-sm font-medium text-text-primary">{email}</p>
-                </div>
+                </>
               )}
 
-              {mode === "signup" && (
-                <div className="grid gap-2.5 lg:grid-cols-2">
-                  <input
-                    className="tf-input w-full bg-card/80"
-                    placeholder="Full name"
-                    value={fullName}
-                    onChange={(event) => setFullName(event.target.value)}
-                  />
-                  <input
-                    className="tf-input w-full bg-card/80"
-                    placeholder="Address"
-                    value={address}
-                    onChange={(event) => setAddress(event.target.value)}
-                  />
-                </div>
-              )}
+              <div className="space-y-3">
+                {isSocialSignupContinuation && (
+                  <div className="rounded-[8px] border border-border bg-card/50 px-4 py-3 mb-4">
+                    <p className="text-[11px] font-medium text-text-secondary uppercase tracking-wider">
+                      {socialProvider || "Social"} Connected
+                    </p>
+                    <p className="mt-1 text-[13px] text-text-primary">{email}</p>
+                  </div>
+                )}
 
-              <input
-                className="tf-input w-full bg-card/80"
-                placeholder="Email"
-                value={email}
-                onChange={(event) => setEmail(event.target.value)}
-                readOnly={isSocialSignupContinuation}
-              />
+                {mode === "signup" && (
+                  <>
+                    <input
+                      className="flex h-[44px] w-full rounded-[8px] border border-border/60 bg-secondary/30 px-4 text-[14px] text-text-primary placeholder:text-text-secondary/60 focus:border-text-primary focus:bg-card focus:outline-none transition-colors"
+                      placeholder="Full name"
+                      value={fullName}
+                      onChange={(event) => setFullName(event.target.value)}
+                    />
+                    <input
+                      className="flex h-[44px] w-full rounded-[8px] border border-border/60 bg-secondary/30 px-4 text-[14px] text-text-primary placeholder:text-text-secondary/60 focus:border-text-primary focus:bg-card focus:outline-none transition-colors"
+                      placeholder="Company address"
+                      value={address}
+                      onChange={(event) => setAddress(event.target.value)}
+                    />
+                  </>
+                )}
 
-              {mode === "signup" ? (
-                <>
-                  <div className="grid gap-2.5 lg:grid-cols-2">
+                <input
+                  className="flex h-[44px] w-full rounded-[8px] border border-border/60 bg-secondary/30 px-4 text-[14px] text-text-primary placeholder:text-text-secondary/60 focus:border-text-primary focus:bg-card focus:outline-none transition-colors"
+                  placeholder="Enter your email"
+                  value={email}
+                  onChange={(event) => setEmail(event.target.value)}
+                  readOnly={isSocialSignupContinuation}
+                />
+
+                {mode === "signup" ? (
+                  <>
                     <div className="relative">
                       <input
-                        className="tf-input w-full bg-card/80 pr-12"
-                        placeholder={isSocialSignupContinuation ? "Create a password for future sign-ins" : "Create a password"}
+                        className="flex h-[44px] w-full rounded-[8px] border border-border/60 bg-secondary/30 px-4 pr-10 text-[14px] text-text-primary placeholder:text-text-secondary/60 focus:border-text-primary focus:bg-card focus:outline-none transition-colors"
+                        placeholder="Create a password"
                         type={showPassword ? "text" : "password"}
                         value={password}
                         onChange={(event) => setPassword(event.target.value)}
                       />
                       <button
                         type="button"
-                        className="absolute right-3 top-1/2 inline-flex -translate-y-1/2 items-center justify-center rounded-full p-1.5 text-text-secondary transition hover:bg-secondary/70 hover:text-text-primary"
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-text-secondary/70 hover:text-text-primary transition-colors"
                         onClick={() => setShowPassword((current) => !current)}
-                        aria-label={showPassword ? "Hide password" : "Show password"}
                       >
-                        {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                        {showPassword ? <EyeOff className="h-[18px] w-[18px]" /> : <Eye className="h-[18px] w-[18px]" />}
                       </button>
                     </div>
                     <div className="relative">
                       <input
-                        className="tf-input w-full bg-card/80 pr-12"
+                        className="flex h-[44px] w-full rounded-[8px] border border-border/60 bg-secondary/30 px-4 pr-10 text-[14px] text-text-primary placeholder:text-text-secondary/60 focus:border-text-primary focus:bg-card focus:outline-none transition-colors"
                         placeholder="Confirm password"
                         type={showConfirmPassword ? "text" : "password"}
                         value={confirmPassword}
@@ -568,205 +345,102 @@ function AuthScreenInner({ mode }: AuthScreenProps) {
                       />
                       <button
                         type="button"
-                        className="absolute right-3 top-1/2 inline-flex -translate-y-1/2 items-center justify-center rounded-full p-1.5 text-text-secondary transition hover:bg-secondary/70 hover:text-text-primary"
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-text-secondary/70 hover:text-text-primary transition-colors"
                         onClick={() => setShowConfirmPassword((current) => !current)}
-                        aria-label={showConfirmPassword ? "Hide confirm password" : "Show confirm password"}
                       >
-                        {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                        {showConfirmPassword ? <EyeOff className="h-[18px] w-[18px]" /> : <Eye className="h-[18px] w-[18px]" />}
                       </button>
                     </div>
-                  </div>
-                  <p className="text-xs leading-5 text-text-secondary">
-                    {isSocialSignupContinuation
-                      ? "Set a password so you can sign in later with email and password, not only OAuth."
-                      : "Use 10-64 characters with uppercase, lowercase, number, and special character."}
-                  </p>
-                  <label className="tf-auth-chip flex items-start gap-3 rounded-2xl border px-4 py-2.5 text-sm text-text-secondary">
+                    
+                    <label className="flex items-start gap-3 p-1 mt-2">
+                      <input
+                        type="checkbox"
+                        checked={agreedToTerms}
+                        onChange={(event) => setAgreedToTerms(event.target.checked)}
+                        className="mt-1 flex-shrink-0 h-[14px] w-[14px] rounded border-border/80 bg-card text-primary focus:ring-primary focus:ring-offset-0 focus:ring-offset-transparent"
+                      />
+                      <span className="text-[12px] text-text-secondary leading-snug">
+                        I agree to the{" "}
+                        <Link className="text-text-primary hover:underline" href="/terms">Terms</Link>
+                        {" "}and{" "}
+                        <Link className="text-text-primary hover:underline" href="/privacy">Privacy Policy</Link>.
+                      </span>
+                    </label>
+                  </>
+                ) : (
+                  <div className="relative">
                     <input
-                      type="checkbox"
-                      checked={agreedToTerms}
-                      onChange={(event) => setAgreedToTerms(event.target.checked)}
-                      className="mt-1 h-4 w-4 rounded border-border text-primary focus:ring-primary/30"
+                      className="flex h-[44px] w-full rounded-[8px] border border-border/60 bg-secondary/30 px-4 pr-10 text-[14px] text-text-primary placeholder:text-text-secondary/60 focus:border-text-primary focus:bg-card focus:outline-none transition-colors"
+                      placeholder="Enter your password"
+                      type={showPassword ? "text" : "password"}
+                      value={password}
+                      onChange={(event) => setPassword(event.target.value)}
                     />
-                    <span>
-                      I agree to the{" "}
-                      <Link className="tf-link" href="/terms">
-                        terms and conditions
-                      </Link>
-                      .
-                    </span>
-                  </label>
-                </>
-              ) : (
-                <div className="relative">
-                  <input
-                    className="tf-input w-full bg-card/80 pr-12"
-                    placeholder="Password"
-                    type={showPassword ? "text" : "password"}
-                    value={password}
-                    onChange={(event) => setPassword(event.target.value)}
-                  />
-                  <button
-                    type="button"
-                    className="absolute right-3 top-1/2 inline-flex -translate-y-1/2 items-center justify-center rounded-full p-1.5 text-text-secondary transition hover:bg-secondary/70 hover:text-text-primary"
-                    onClick={() => setShowPassword((current) => !current)}
-                    aria-label={showPassword ? "Hide password" : "Show password"}
-                  >
-                    {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                  </button>
-                </div>
-              )}
-
-              <button
-                className="tf-button w-full px-4 py-3 text-sm"
-                onClick={handleSubmit}
-                disabled={loading}
-              >
-                <LoadingButtonContent
-                  loading={loading}
-                  loadingLabel={
-                    mode === "login"
-                      ? "Signing in..."
-                      : isSocialSignupContinuation
-                      ? "Completing account..."
-                      : "Creating account..."
-                  }
-                  idleLabel={
-                    mode === "login"
-                      ? "Sign in"
-                      : isSocialSignupContinuation
-                      ? "Complete account"
-                      : "Create account"
-                  }
-                />
-              </button>
-
-              <div className="flex items-center justify-between gap-3 text-sm">
-                {mode === "login" ? (
-                  <Link className="tf-link" href="/forgot">
-                    Forgot password?
-                  </Link>
-                ) : (
-                  <span />
-                )}
-                {mode === "login" ? (
-                  <Link className="tf-link" href={`/signup?next=${encodeURIComponent(next)}`}>
-                    Need an account?
-                  </Link>
-                ) : (
-                  <Link className="tf-link" href={`/signin?next=${encodeURIComponent(next)}`}>
-                    Already have an account?
-                  </Link>
-                )}
-              </div>
-
-              {!isSocialSignupContinuation && (
-                <div className="pt-1">
-                <div className="flex items-center gap-3">
-                  <div className="h-px flex-1 bg-[linear-gradient(90deg,rgba(226,232,240,0),rgba(226,232,240,1))]" />
-                  <p className="shrink-0 text-[11px] font-semibold uppercase tracking-[0.18em] text-text-secondary">
-                    {mode === "login" ? "Or sign in with" : "Or sign up with"}
-                  </p>
-                  <div className="h-px flex-1 bg-[linear-gradient(90deg,rgba(226,232,240,1),rgba(226,232,240,0))]" />
-                </div>
-
-                <div className="mt-4 grid gap-3 sm:grid-cols-2">
-                  <button
-                    type="button"
-                    className="group inline-flex w-full items-center justify-center gap-2.5 rounded-[18px] border border-border/80 bg-card/88 px-3.5 py-3 text-[13px] font-semibold text-text-primary shadow-[0_8px_22px_hsl(var(--foreground)/0.05)] transition duration-200 hover:-translate-y-0.5 hover:border-primary/20 hover:bg-card hover:shadow-[0_14px_28px_hsl(var(--primary)/0.12)]"
-                    onClick={() => handleOauth("Google")}
-                    aria-label="Continue with Google"
-                    title="Continue with Google"
-                  >
-                    <span className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-border bg-card shadow-[0_1px_2px_hsl(var(--foreground)/0.06)]">
-                      <svg viewBox="0 0 24 24" className="h-4 w-4" aria-hidden="true">
-                        <path
-                          fill="#EA4335"
-                          d="M12 10.2v3.95h5.49c-.24 1.27-.97 2.34-2.06 3.07l3.33 2.58c1.94-1.79 3.06-4.42 3.06-7.54 0-.73-.07-1.43-.19-2.08H12z"
-                        />
-                        <path
-                          fill="#34A853"
-                          d="M12 21.9c2.77 0 5.1-.92 6.8-2.49l-3.33-2.58c-.92.62-2.1.99-3.47.99-2.67 0-4.94-1.8-5.75-4.23l-3.44 2.65c1.69 3.36 5.17 5.66 9.19 5.66z"
-                        />
-                        <path
-                          fill="#4285F4"
-                          d="M6.25 13.59c-.2-.62-.32-1.28-.32-1.97s.12-1.35.32-1.97L2.81 7c-.69 1.37-1.08 2.91-1.08 4.62s.39 3.25 1.08 4.62l3.44-2.65z"
-                        />
-                        <path
-                          fill="#FBBC05"
-                          d="M12 5.43c1.5 0 2.84.52 3.89 1.53l2.91-2.91C17.09 2.45 14.77 1.35 12 1.35 7.98 1.35 4.5 3.65 2.81 7l3.44 2.65C7.06 7.23 9.33 5.43 12 5.43z"
-                        />
-                      </svg>
-                    </span>
-                    <span className="tracking-[0.01em]">Google</span>
-                  </button>
-                  <button
-                    type="button"
-                    className="group inline-flex w-full items-center justify-center gap-2.5 rounded-[18px] border border-border/80 bg-card/88 px-3.5 py-3 text-[13px] font-semibold text-text-primary shadow-[0_8px_22px_hsl(var(--foreground)/0.05)] transition duration-200 hover:-translate-y-0.5 hover:border-primary/20 hover:bg-card hover:shadow-[0_14px_28px_hsl(var(--foreground)/0.1)]"
-                    onClick={() => handleOauth("GitHub")}
-                    aria-label="Continue with GitHub"
-                    title="Continue with GitHub"
-                  >
-                    <span className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-[#1f2328] text-white shadow-[0_6px_14px_rgba(31,35,40,0.16)]">
-                      <Github className="h-4 w-4" />
-                    </span>
-                    <span className="tracking-[0.01em]">GitHub</span>
-                  </button>
-                </div>
-                </div>
-              )}
-            </div>
-          </section>
-
-          <section className="order-4 hidden grid-cols-1 gap-3 md:grid md:grid-cols-2 lg:order-4 lg:col-span-3 lg:grid-cols-2 xl:grid-cols-4">
-            {featureCards.map((card) => {
-              const Icon = card.icon;
-              return (
-                <div
-                  key={card.label}
-                  className={`tf-auth-soft-panel min-w-0 rounded-[22px] border backdrop-blur transition duration-300 hover:-translate-y-1 hover:shadow-[0_20px_52px_hsl(var(--primary)/0.16)] ${
-                    mode === "signup" ? "p-3.5 sm:p-4" : "p-4 sm:p-5"
-                  }`}
-                >
-                  <div className="flex items-center gap-2">
-                    <div
-                      className={`rounded-2xl border border-orange-100 bg-orange-50/90 text-orange-500 ${
-                        mode === "signup" ? "p-1.5" : "p-2"
-                      }`}
+                    <button
+                      type="button"
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-text-secondary/70 hover:text-text-primary transition-colors"
+                      onClick={() => setShowPassword((current) => !current)}
                     >
-                      <Icon className={mode === "signup" ? "h-3.5 w-3.5" : "h-4 w-4"} />
-                    </div>
-                    <p
-                      className={`font-semibold uppercase text-text-secondary ${
-                        mode === "signup"
-                          ? "text-[10px] leading-4 tracking-[0.08em]"
-                          : "text-[11px] leading-4 tracking-[0.12em]"
-                      }`}
-                    >
-                      {card.label}
-                    </p>
+                      {showPassword ? <EyeOff className="h-[18px] w-[18px]" /> : <Eye className="h-[18px] w-[18px]" />}
+                    </button>
                   </div>
-                  <p
-                    className={`mt-4 font-semibold text-text-primary ${
-                      mode === "signup" ? "text-[15px] leading-5" : "text-base leading-6"
-                    }`}
-                  >
-                    {card.value}
-                  </p>
-                  {mode === "signup" ? (
-                    <p className="mt-2 text-[11px] leading-4.5 text-text-secondary">
-                      {card.detail}
-                    </p>
-                  ) : (
-                    <p className="mt-2 text-sm leading-6 text-text-secondary">
-                      {card.detail}
-                    </p>
-                  )}
-                </div>
-              );
-            })}
-          </section>
+                )}
+
+                {mode === "login" && (
+                  <div className="flex justify-end pt-0.5 mb-1">
+                    <Link className="text-[12px] text-text-secondary hover:text-text-primary transition-colors" href="/forgot">
+                      Forgot password?
+                    </Link>
+                  </div>
+                )}
+
+                <button
+                  className="flex h-[44px] w-full items-center justify-center rounded-[8px] bg-white px-4 text-[14px] font-medium text-black transition-colors hover:bg-neutral-200 disabled:pointer-events-none disabled:opacity-50 mt-2"
+                  onClick={handleSubmit}
+                  disabled={loading}
+                >
+                  <LoadingButtonContent
+                    loading={loading}
+                    loadingLabel={
+                      mode === "login"
+                        ? "Signing in..."
+                        : isSocialSignupContinuation
+                        ? "Completing account..."
+                        : "Creating account..."
+                    }
+                    idleLabel={
+                      mode === "login"
+                        ? "Continue with email"
+                        : isSocialSignupContinuation
+                        ? "Complete account"
+                        : "Continue with email"
+                    }
+                  />
+                </button>
+              </div>
+            </div>
+          </motion.div>
         </div>
+
+        {/* RIGHT PANEL: Video Demo Container */}
+        <div className="hidden md:flex w-1/2 h-auto mr-4 -mb-10 rounded-t-[2rem] bg-card/40 border border-border/40 overflow-hidden items-center justify-center shadow-2xl relative">
+          <motion.div 
+            initial={{ opacity: 0, scale: 0.98 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
+            className="w-full max-w-[85%] aspect-video rounded-[12px] overflow-hidden border border-border/30 bg-black/50 shadow-2xl relative mb-12"
+          >
+            <iframe
+              src="https://player.cloudinary.com/embed/?cloud_name=dyv5wyxuz&public_id=xazri9ab0zo7z2ae6znd&player[autoplay]=true&player[loop]=true&player[muted]=true&player[controls]=false&player[show_logo]=false"
+              allow="autoplay; fullscreen; encrypted-media; picture-in-picture"
+              allowFullScreen
+              frameBorder="0"
+              onContextMenu={(e) => e.preventDefault()}
+              className="absolute inset-0 w-full h-full pointer-events-none select-none scale-[1.08]"
+            ></iframe>
+          </motion.div>
+        </div>
+
       </div>
     </main>
   );

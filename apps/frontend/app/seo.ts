@@ -38,6 +38,7 @@ type SeoInput = {
   path: string;
   keywords?: string[];
   noIndex?: boolean;
+  image?: string;
 };
 
 export function createPageMetadata({
@@ -45,29 +46,32 @@ export function createPageMetadata({
   description,
   path,
   keywords = [],
-  noIndex = false
+  noIndex = false,
+  image = "/traceforge-logo.svg"
 }: SeoInput): Metadata {
-  const fullTitle = title === SITE_NAME ? SITE_NAME : `${title} | ${SITE_NAME}`;
+  const fullTitle = title === SITE_NAME ? SITE_NAME : `${SITE_NAME} | ${title}`;
+  const url = absoluteUrl(path);
 
   return {
-    title,
+    title: { absolute: fullTitle },
     description,
-    keywords: [...SITE_KEYWORDS, ...keywords],
+    keywords: Array.from(new Set([...SITE_KEYWORDS, ...keywords])),
     alternates: {
-      canonical: path
+      canonical: url
     },
     openGraph: {
       title: fullTitle,
       description,
-      url: path,
+      url,
       siteName: SITE_NAME,
       type: "website",
+      locale: "en_US",
       images: [
         {
-          url: "/traceforge-logo.svg",
-          width: 512,
-          height: 512,
-          alt: `${SITE_NAME} logo`
+          url: image,
+          width: 1200,
+          height: 630,
+          alt: `${fullTitle} - ${SITE_NAME}`
         }
       ]
     },
@@ -75,7 +79,8 @@ export function createPageMetadata({
       card: "summary_large_image",
       title: fullTitle,
       description,
-      images: ["/traceforge-logo.svg"]
+      images: [image],
+      creator: "@traceforge"
     },
     robots: noIndex
       ? {
@@ -91,7 +96,14 @@ export function createPageMetadata({
         }
       : {
           index: true,
-          follow: true
+          follow: true,
+          googleBot: {
+            index: true,
+            follow: true,
+            "max-video-preview": -1,
+            "max-image-preview": "large",
+            "max-snippet": -1
+          }
         }
   };
 }
