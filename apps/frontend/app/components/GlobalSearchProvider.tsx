@@ -12,7 +12,6 @@ import { usePathname, useRouter } from "next/navigation";
 import {
   Bell,
   BookOpen,
-  ChevronRight,
   CircleAlert,
   CreditCard,
   FolderKanban,
@@ -20,8 +19,7 @@ import {
   Search,
   Settings2,
   Sparkles,
-  Users,
-  X
+  Users
 } from "lucide-react";
 import type { KeyboardEvent as ReactKeyboardEvent } from "react";
 import { useAuth } from "../../context/AuthContext";
@@ -248,6 +246,8 @@ export function GlobalSearchProvider({ children }: { children: React.ReactNode }
         }
 
         setBootstrapLoaded(true);
+      } catch (error) {
+        console.error("Failed to load search bootstrap data:", error);
       } finally {
         if (!cancelled) {
           setBootstrapLoading(false);
@@ -289,6 +289,8 @@ export function GlobalSearchProvider({ children }: { children: React.ReactNode }
         if (!cancelled && res.ok) {
           setSearchIssues(data.errors || []);
         }
+      } catch (error) {
+        console.error("Failed to load search issues:", error);
       } finally {
         if (!cancelled) {
           setSearchIssuesLoading(false);
@@ -494,42 +496,41 @@ export function GlobalSearchProvider({ children }: { children: React.ReactNode }
       {children}
       {open ? (
         <div
-          className="fixed inset-0 z-[120] flex items-start justify-center bg-transparent backdrop-blur-2xl px-4 py-8 sm:bg-black/45 sm:backdrop-blur-sm sm:px-6 sm:py-12"
+          className="fixed inset-0 z-[120] flex items-start justify-center bg-transparent backdrop-blur-[2px] px-4 pt-16 sm:pt-24 sm:bg-black/30 sm:px-6"
           onClick={closeSearch}
         >
           <div
-            className="w-full max-w-3xl overflow-hidden rounded-[28px] border border-border bg-card/95 shadow-2xl backdrop-blur"
+            className="w-full max-w-2xl overflow-hidden rounded-[16px] border border-border bg-card text-text-primary shadow-2xl"
             onClick={(event) => event.stopPropagation()}
+            style={{
+              boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.25)"
+            }}
           >
-            <div className="flex items-center gap-3 border-b border-border px-4 py-4 sm:px-5">
-              <Search className="h-5 w-5 text-text-secondary" />
+            {/* Search Input */}
+            <div className="border-b border-border/50 px-5">
               <input
                 ref={inputRef}
                 type="search"
                 value={query}
                 onChange={(event) => setQuery(event.target.value)}
                 onKeyDown={onPaletteKeyDown}
-                placeholder="Type a command or search..."
-                className="h-10 w-full bg-transparent text-[15px] font-medium text-text-primary outline-none placeholder:text-text-secondary"
+                placeholder="Search anything here"
+                className="h-[60px] w-full bg-transparent text-[17px] font-normal text-text-primary outline-none placeholder:text-text-secondary"
+                autoFocus
               />
-              <div className="hidden items-center rounded border border-border bg-secondary/20 px-2 py-1 text-[10px] font-medium uppercase text-text-secondary sm:flex">
-                ESC
-              </div>
             </div>
 
-            <div className="max-h-[min(70vh,42rem)] overflow-y-auto">
+            {/* Results List */}
+            <div className="max-h-[45vh] overflow-y-auto p-3">
               {!groupedResults.length ? (
-                <div className="px-5 py-10 text-center">
-                  <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full border border-border bg-secondary/40">
-                    <Search className="h-5 w-5 text-text-secondary" />
-                  </div>
-                  <p className="mt-4 text-sm font-semibold text-text-primary">No results found</p>
+                <div className="px-5 py-8 text-center text-text-secondary">
+                  <p className="text-sm">No results found</p>
                 </div>
               ) : (
-                <div className="p-2 sm:p-3">
+                <div className="space-y-4">
                   {groupedResults.map((section) => (
-                    <div key={section.group} className="mb-2 last:mb-0">
-                      <p className="px-3 pb-2 pt-3 text-[11px] font-bold uppercase tracking-wider text-text-secondary">
+                    <div key={section.group}>
+                      <p className="px-3 pb-2 pt-1 text-[10px] font-semibold uppercase tracking-wider text-text-secondary">
                         {section.group}
                       </p>
                       <div className="space-y-0.5">
@@ -544,35 +545,28 @@ export function GlobalSearchProvider({ children }: { children: React.ReactNode }
                               type="button"
                               onMouseEnter={() => setSelectedIndex(index)}
                               onClick={() => handleSubmit(item)}
-                              className={`flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left transition ${
+                              className={`group relative flex w-full items-center justify-between rounded-lg px-3 py-2.5 text-left transition ${
                                 active
-                                  ? "bg-secondary/40 shadow-sm"
-                                  : "bg-transparent hover:bg-secondary/20"
+                                  ? "bg-secondary/40 border border-border/50 shadow-sm"
+                                  : "bg-transparent border border-transparent hover:bg-secondary/20"
                               }`}
                             >
-                              <span className="flex shrink-0 items-center justify-center text-text-secondary">
-                                <Icon className="h-4.5 w-4.5" />
-                              </span>
-                              <span className="min-w-0 flex-1">
-                                <span className="flex items-center gap-2">
-                                  <span className="truncate text-[14px] font-medium text-text-primary">
-                                    {item.title}
-                                  </span>
-                                  {item.badge ? (
-                                    <span className="rounded-full border border-border bg-card px-2 py-0.5 text-[10px] font-semibold text-text-secondary">
-                                      {item.badge}
-                                    </span>
-                                  ) : null}
+                              <div className="flex items-center min-w-0 flex-1">
+                                <span className="flex shrink-0 items-center justify-center text-text-secondary mr-3">
+                                  <Icon className="h-4.5 w-4.5" strokeWidth={2} />
                                 </span>
-                                {item.description && (
-                                  <span className="mt-0.5 block truncate text-[13px] text-text-secondary">
-                                    {item.description}
-                                  </span>
-                                )}
-                              </span>
-                              {active && (
-                                <span className="inline-flex shrink-0 items-center justify-center rounded border border-border bg-card px-1.5 py-0.5 text-[10px] text-text-secondary">
-                                  ↵
+                                <span className="truncate text-[14px] font-medium text-text-primary">
+                                  {item.title}
+                                  {item.description && (
+                                    <span className="font-normal text-text-secondary">
+                                      {" "}– {item.description}
+                                    </span>
+                                  )}
+                                </span>
+                              </div>
+                              {item.badge && (
+                                <span className="shrink-0 rounded-[4px] bg-secondary/30 border border-border/50 px-2 py-0.5 text-[10px] font-medium text-text-secondary ml-4">
+                                  {item.badge}
                                 </span>
                               )}
                             </button>
@@ -585,18 +579,19 @@ export function GlobalSearchProvider({ children }: { children: React.ReactNode }
               )}
             </div>
 
-            <div className="flex items-center gap-4 border-t border-border px-4 py-3 text-xs text-text-secondary sm:px-5">
+            {/* Footer */}
+            <div className="flex items-center gap-4 border-t border-border/50 bg-secondary/10 px-5 py-3 text-xs text-text-secondary">
               <div className="flex items-center gap-1.5">
-                <span className="rounded border border-border bg-secondary/50 px-1.5 py-0.5 text-[10px] leading-none">↑↓</span> 
-                navigate
+                <span className="rounded-[4px] border border-border bg-secondary/40 px-1.5 py-0.5 text-[10px] leading-none text-text-secondary">↑↓</span> 
+                Move
               </div>
               <div className="flex items-center gap-1.5">
-                <span className="rounded border border-border bg-secondary/50 px-1.5 py-0.5 text-[10px] leading-none">↵</span> 
-                select
+                <span className="rounded-[4px] border border-border bg-secondary/40 px-1.5 py-0.5 text-[10px] leading-none text-text-secondary">↵</span> 
+                Select
               </div>
               <div className="flex items-center gap-1.5">
-                <span className="rounded border border-border bg-secondary/50 px-1.5 py-0.5 text-[10px] leading-none">esc</span> 
-                close
+                <span className="rounded-[4px] border border-border bg-secondary/40 px-1.5 py-0.5 text-[10px] leading-none text-text-secondary">⌘ ↵</span> 
+                Open in new tab
               </div>
             </div>
           </div>

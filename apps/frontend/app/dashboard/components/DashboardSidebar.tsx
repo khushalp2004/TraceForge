@@ -4,6 +4,37 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
+import {
+  LayoutDashboard,
+  CircleAlert,
+  FolderKanban,
+  Rocket,
+  LineChart,
+  Bell,
+  Users,
+  GitPullRequest,
+  BookOpen,
+  Settings,
+  CreditCard,
+  ShieldCheck,
+  Search,
+  LogOut,
+  ChevronDown,
+  ChevronLeft,
+  ChevronRight,
+  Circle,
+  UserCircle
+} from "lucide-react";
+import { motion } from "framer-motion";
+import { LayoutDashboard as AnimatedLayoutDashboard } from "@/components/animate-ui/icons/layout-dashboard";
+import { MessageCircleWarning as AnimatedMessageCircleWarning } from "@/components/animate-ui/icons/message-circle-warning";
+import { SquareKanban as AnimatedSquareKanban } from "@/components/animate-ui/icons/square-kanban";
+import { Users as AnimatedUsers } from "@/components/animate-ui/icons/users";
+import { ChartLine as AnimatedChartLine } from "@/components/animate-ui/icons/chart-line";
+import { Bell as AnimatedBell } from "@/components/animate-ui/icons/bell";
+import { ClipboardList as AnimatedClipboardList } from "@/components/animate-ui/icons/clipboard-list";
+import { Settings as AnimatedSettings } from "@/components/animate-ui/icons/settings";
+import { AnimateIcon } from "@/components/animate-ui/icons/icon";
 import { useAuth } from "../../../context/AuthContext";
 import { useGlobalSearch } from "../../components/GlobalSearchProvider";
 
@@ -46,6 +77,21 @@ const activeLink = "bg-card text-text-primary shadow-sm";
 const inactiveLink =
   "text-text-secondary hover:bg-secondary/70 hover:text-text-primary";
 
+const navIconMap = {
+  overview: LayoutDashboard,
+  issues: CircleAlert,
+  projects: FolderKanban,
+  releases: Rocket,
+  insights: LineChart,
+  alerts: Bell,
+  team: Users,
+  "repo-analysis": GitPullRequest,
+  docs: BookOpen,
+  settings: Settings,
+  billing: CreditCard,
+  shield: ShieldCheck,
+} as const;
+
 function NavIcon({
   name,
   isActive,
@@ -55,141 +101,21 @@ function NavIcon({
   isActive: boolean;
   collapsed: boolean;
 }) {
-  const common = `transition-all duration-200 ${
-    collapsed ? "h-6 w-6 group-hover/nav:h-4 group-hover/nav:w-4" : "h-4 w-4"
+  const common = `transition-all duration-300 ease-out will-change-transform ${
+    collapsed ? "h-4 w-4 group-hover/nav:h-[18px] group-hover/nav:w-[18px]" : "h-[18px] w-[18px]"
   } ${isActive ? "text-text-primary" : "text-text-secondary group-hover:text-text-primary"}`;
-  switch (name) {
-    case "overview":
-      return (
-        <svg aria-hidden="true" className={common} viewBox="0 0 24 24" fill="none">
-          <rect x="3" y="3" width="7" height="7" rx="2" stroke="currentColor" strokeWidth="1.8" />
-          <rect x="14" y="3" width="7" height="7" rx="2" stroke="currentColor" strokeWidth="1.8" />
-          <rect x="3" y="14" width="7" height="7" rx="2" stroke="currentColor" strokeWidth="1.8" />
-          <rect x="14" y="14" width="7" height="7" rx="2" stroke="currentColor" strokeWidth="1.8" />
-        </svg>
-      );
-    case "issues":
-      return (
-        <svg aria-hidden="true" className={common} viewBox="0 0 24 24" fill="none">
-          <circle cx="12" cy="12" r="9" stroke="currentColor" strokeWidth="1.8" />
-          <line x1="12" y1="8" x2="12" y2="12" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
-          <circle cx="12" cy="16" r="1" fill="currentColor" />
-        </svg>
-      );
-    case "projects":
-      return (
-        <svg aria-hidden="true" className={common} viewBox="0 0 24 24" fill="none">
-          <path
-            d="M3 7.5h7l2 2H21v7.5a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"
-            stroke="currentColor"
-            strokeWidth="1.8"
-            strokeLinejoin="round"
-          />
-          <path d="M3 7.5a2 2 0 0 1 2-2h5l2 2" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round" />
-        </svg>
-      );
-    case "releases":
-      return (
-        <svg aria-hidden="true" className={common} viewBox="0 0 24 24" fill="none">
-          <path d="M6 10.5l6-6 6 6" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
-          <path d="M12 4.5v15" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
-          <path d="M6 19.5h12" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
-        </svg>
-      );
-    case "insights":
-      return (
-        <svg aria-hidden="true" className={common} viewBox="0 0 24 24" fill="none">
-          <path d="M4 19V5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
-          <path d="M10 19V9" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
-          <path d="M16 19V12" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
-          <path d="M22 19V7" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
-        </svg>
-      );
-    case "alerts":
-      return (
-        <svg aria-hidden="true" className={common} viewBox="0 0 24 24" fill="none">
-          <path
-            d="M12 4a5 5 0 0 0-5 5v2.5L5 14v1h14v-1l-2-2.5V9a5 5 0 0 0-5-5z"
-            stroke="currentColor"
-            strokeWidth="1.8"
-            strokeLinejoin="round"
-          />
-          <path d="M9.5 18a2.5 2.5 0 0 0 5 0" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
-        </svg>
-      );
-    case "team":
-      return (
-        <svg aria-hidden="true" className={common} viewBox="0 0 24 24" fill="none">
-          <circle cx="9" cy="8" r="3" stroke="currentColor" strokeWidth="1.8" />
-          <circle cx="17" cy="10" r="2.5" stroke="currentColor" strokeWidth="1.8" />
-          <path d="M4 19a5 5 0 0 1 10 0" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
-          <path d="M14.5 19a4 4 0 0 1 7 0" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
-        </svg>
-      );
-    case "repo-analysis":
-      return (
-        <svg aria-hidden="true" className={common} viewBox="0 0 24 24" fill="none">
-          <path
-            d="M8 7.5h8M8 12h6M8 16.5h4"
-            stroke="currentColor"
-            strokeWidth="1.8"
-            strokeLinecap="round"
-          />
-          <path
-            d="M5.5 4.5h13A1.5 1.5 0 0 1 20 6v12a1.5 1.5 0 0 1-1.5 1.5h-13A1.5 1.5 0 0 1 4 18V6a1.5 1.5 0 0 1 1.5-1.5Z"
-            stroke="currentColor"
-            strokeWidth="1.8"
-            strokeLinejoin="round"
-          />
-        </svg>
-      );
-    case "docs":
-      return (
-        <svg aria-hidden="true" className={common} viewBox="0 0 24 24" fill="none">
-          <path d="M6 4h8a3 3 0 0 1 3 3v13H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2z" stroke="currentColor" strokeWidth="1.8" />
-          <path d="M6 8h11" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
-          <path d="M6 12h11" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
-        </svg>
-      );
-    case "settings":
-      return (
-        <svg aria-hidden="true" className={common} viewBox="0 0 24 24" fill="none">
-          <circle cx="12" cy="12" r="3" stroke="currentColor" strokeWidth="1.8" />
-          <path
-            d="M19 12a7 7 0 0 0-.1-1l2-1.5-2-3.5-2.3.7a7 7 0 0 0-1.7-1l-.3-2.4h-4l-.3 2.4a7 7 0 0 0-1.7 1l-2.3-.7-2 3.5 2 1.5a7 7 0 0 0 0 2l-2 1.5 2 3.5 2.3-.7a7 7 0 0 0 1.7 1l.3 2.4h4l.3-2.4a7 7 0 0 0 1.7-1l2.3.7 2-3.5-2-1.5c.07-.33.1-.66.1-1z"
-            stroke="currentColor"
-            strokeWidth="1.2"
-            strokeLinejoin="round"
-          />
-        </svg>
-      );
-    case "billing":
-      return (
-        <svg aria-hidden="true" className={common} viewBox="0 0 24 24" fill="none">
-          <rect x="3" y="6" width="18" height="12" rx="2.5" stroke="currentColor" strokeWidth="1.8" />
-          <line x1="3" y1="10" x2="21" y2="10" stroke="currentColor" strokeWidth="1.8" />
-          <line x1="7" y1="15" x2="11" y2="15" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
-        </svg>
-      );
-    case "shield":
-      return (
-        <svg aria-hidden="true" className={common} viewBox="0 0 24 24" fill="none">
-          <path
-            d="M12 3l7 3v5c0 4.5-2.7 7.8-7 10-4.3-2.2-7-5.5-7-10V6l7-3z"
-            stroke="currentColor"
-            strokeWidth="1.8"
-            strokeLinejoin="round"
-          />
-          <path d="M9.5 11.5 11.2 13l3.3-3.5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
-        </svg>
-      );
-    default:
-      return (
-        <svg aria-hidden="true" className={common} viewBox="0 0 24 24" fill="none">
-          <circle cx="12" cy="12" r="4" stroke="currentColor" strokeWidth="1.8" />
-        </svg>
-      );
-  }
+  
+  if (name === "overview") return <AnimatedLayoutDashboard className={common} strokeWidth={isActive ? 2.5 : 2} />;
+  if (name === "issues") return <AnimatedMessageCircleWarning className={common} strokeWidth={isActive ? 2.5 : 2} />;
+  if (name === "projects") return <AnimatedSquareKanban className={common} strokeWidth={isActive ? 2.5 : 2} />;
+  if (name === "team") return <AnimatedUsers className={common} strokeWidth={isActive ? 2.5 : 2} />;
+  if (name === "insights") return <AnimatedChartLine className={common} strokeWidth={isActive ? 2.5 : 2} />;
+  if (name === "alerts") return <AnimatedBell className={common} strokeWidth={isActive ? 2.5 : 2} />;
+  if (name === "repo-analysis") return <AnimatedClipboardList className={common} strokeWidth={isActive ? 2.5 : 2} />;
+  if (name === "settings") return <AnimatedSettings className={common} strokeWidth={isActive ? 2.5 : 2} />;
+
+  const Icon = navIconMap[name as keyof typeof navIconMap] || Circle;
+  return <Icon className={common} strokeWidth={isActive ? 2.5 : 2} />;
 }
 
 function UsageRing({
@@ -393,23 +319,16 @@ export default function DashboardSidebar({
         className="absolute right-[-14px] top-1/2 z-50 inline-flex h-7 w-7 -translate-y-1/2 items-center justify-center rounded-full border border-border bg-card text-text-secondary shadow-md transition hover:border-primary/40 hover:bg-secondary/80 hover:text-text-primary"
         aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
       >
-        <svg
-          aria-hidden="true"
-          className="h-3.5 w-3.5"
-          viewBox="0 0 16 16"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="2"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        >
-          {collapsed ? <path d="M6 3.5 10.5 8 6 12.5" /> : <path d="M10 3.5 5.5 8 10 12.5" />}
-        </svg>
+        {collapsed ? (
+          <ChevronRight className="h-4 w-4" strokeWidth={2.5} />
+        ) : (
+          <ChevronLeft className="h-4 w-4" strokeWidth={2.5} />
+        )}
       </button>
       <div className="flex min-h-0 flex-1 flex-col gap-5">
         <div
           className={`rounded-2xl border border-border bg-card shadow-sm transition-all duration-200 ${
-            collapsed ? "px-2 py-2 group-has-[.tf-sidebar-nav:hover]/sidebar:px-3 group-has-[.tf-sidebar-nav:hover]/sidebar:py-3" : "px-3 py-3"
+            collapsed ? "px-2 py-2 group-hover/nav:px-3 group-hover/nav:py-3" : "px-3 py-3"
           }`}
         >
           <Link href="/" className="flex items-center gap-3">
@@ -433,24 +352,12 @@ export default function DashboardSidebar({
 
         <button
           className={`flex items-center gap-2 rounded-2xl border border-border bg-card px-3 py-2 text-xs font-semibold text-text-secondary shadow-sm transition-all duration-200 hover:border-primary/40 hover:text-text-primary ${
-            collapsed ? "justify-center px-2 group-has-[.tf-sidebar-nav:hover]/sidebar:justify-start group-has-[.tf-sidebar-nav:hover]/sidebar:px-3" : ""
+            collapsed ? "justify-center px-2 group-hover/nav:justify-start group-hover/nav:px-3" : ""
           }`}
           type="button"
           onClick={() => openSearch()}
         >
-          <svg
-            aria-hidden="true"
-            className="h-4 w-4 text-text-secondary"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          >
-            <circle cx="11" cy="11" r="7" />
-            <line x1="16.65" y1="16.65" x2="21" y2="21" />
-          </svg>
+          <Search className="h-4 w-4 text-text-secondary" strokeWidth={2} />
           <span className={`${collapsed ? "hidden tf-reveal-inline" : ""}`}>Search</span>
           <span
             className={`ml-auto rounded-md border border-border bg-secondary px-2 py-0.5 text-[10px] font-semibold text-text-secondary ${
@@ -465,19 +372,43 @@ export default function DashboardSidebar({
           <nav className="tf-sidebar-nav group/nav flex flex-col gap-2 text-sm">
             {navItems.map((item) => {
               const isActive = isActiveRoute(pathname, item.href);
+              const MotionLink = motion(Link);
               return (
-                <Link
-                  key={item.href}
-                  className={`${baseLink} group ${isActive ? activeLink : inactiveLink} transition-all duration-200 ${
-                    collapsed ? "justify-center px-2 py-3 group-hover/nav:justify-start group-hover/nav:px-3 group-hover/nav:py-2" : ""
-                  }`}
-                  href={item.href}
-                >
-                  <NavIcon name={item.icon} isActive={isActive} collapsed={collapsed} />
-                  <span className={`${collapsed ? "hidden tf-reveal-inline" : ""}`}>
-                    {item.label}
-                  </span>
-                </Link>
+                <AnimateIcon key={item.href} animateOnHover asChild>
+                  <MotionLink
+                    className={`${baseLink} group ${isActive ? activeLink : inactiveLink} transition-all duration-200 ${
+                      collapsed ? "justify-center px-2 py-3 group-hover/nav:justify-start group-hover/nav:px-3 group-hover/nav:py-2" : ""
+                    }`}
+                    href={item.href}
+                    initial="rest"
+                    whileHover="hover"
+                    animate="rest"
+                  >
+                    {["overview", "issues", "projects", "team", "insights", "alerts", "repo-analysis", "settings"].includes(item.icon) ? (
+                      <NavIcon name={item.icon} isActive={isActive} collapsed={collapsed} />
+                    ) : (
+                      <motion.div
+                        variants={{
+                          rest: { scale: 1, rotate: 0, y: 0 },
+                          hover: { 
+                            scale: 1.15, 
+                            rotate: [0, -8, 8, -4, 4, 0], 
+                            y: -1.5,
+                            transition: { 
+                              duration: 0.5, 
+                              ease: "easeInOut"
+                            } 
+                          }
+                        }}
+                      >
+                        <NavIcon name={item.icon} isActive={isActive} collapsed={collapsed} />
+                      </motion.div>
+                    )}
+                    <span className={`${collapsed ? "hidden tf-reveal-inline" : ""}`}>
+                      {item.label}
+                    </span>
+                  </MotionLink>
+                </AnimateIcon>
               );
             })}
           </nav>
@@ -487,10 +418,10 @@ export default function DashboardSidebar({
       {usage ? (
         <div className={`group/usage relative mt-5 rounded-2xl transition-all duration-200 ${
           collapsed 
-            ? "border border-transparent bg-transparent shadow-none p-2 group-has-[.tf-sidebar-nav:hover]/sidebar:border-border group-has-[.tf-sidebar-nav:hover]/sidebar:bg-card group-has-[.tf-sidebar-nav:hover]/sidebar:px-3 group-has-[.tf-sidebar-nav:hover]/sidebar:py-3 group-has-[.tf-sidebar-nav:hover]/sidebar:shadow-sm" 
+            ? "border border-transparent bg-transparent shadow-none p-2 group-hover/nav:border-border group-hover/nav:bg-card group-hover/nav:px-3 group-hover/nav:py-3 group-hover/nav:shadow-sm" 
             : "border border-border bg-card px-3 py-3 shadow-sm"
         }`}>
-          <div className={`flex items-center gap-3 ${collapsed ? "justify-center group-has-[.tf-sidebar-nav:hover]/sidebar:justify-start" : ""}`}>
+          <div className={`flex items-center gap-3 ${collapsed ? "justify-center group-hover/nav:justify-start" : ""}`}>
             <div className="cursor-help">
               <UsageRing used={usage.used} limit={usage.limit} percentUsed={usage.percentUsed} />
             </div>
@@ -510,7 +441,7 @@ export default function DashboardSidebar({
           </div>
           
           {collapsed && (
-            <div className="pointer-events-none absolute left-[calc(100%+0.5rem)] top-1/2 z-50 hidden w-64 -translate-y-1/2 rounded-[24px] border border-border/50 bg-card/90 p-4 shadow-[0_20px_40px_-15px_rgba(0,0,0,0.1)] backdrop-blur-xl group-hover/usage:block group-focus-within/usage:block group-has-[.tf-sidebar-nav:hover]/sidebar:hidden">
+            <div className="pointer-events-none absolute left-[calc(100%+0.5rem)] top-1/2 z-50 hidden w-64 -translate-y-1/2 rounded-[24px] border border-border/50 bg-card/90 p-4 shadow-[0_20px_40px_-15px_rgba(0,0,0,0.1)] backdrop-blur-xl group-hover/usage:block group-focus-within/usage:block group-hover/nav:hidden">
               <div className="absolute top-1/2 -left-[5px] h-2.5 w-2.5 -translate-y-1/2 rotate-45 border-b border-l border-border/50 bg-card"></div>
               
               <div className="relative z-10 flex items-center justify-between mb-2">
@@ -560,7 +491,7 @@ export default function DashboardSidebar({
           onClick={() => setProfileOpen((open) => !open)}
           className={`flex w-full items-center gap-3 rounded-2xl text-left transition-all duration-200 hover:border-primary/30 hover:bg-secondary/50 ${
             collapsed 
-              ? "border border-transparent bg-transparent p-2 shadow-none justify-center group-has-[.tf-sidebar-nav:hover]/sidebar:border-border group-has-[.tf-sidebar-nav:hover]/sidebar:bg-card group-has-[.tf-sidebar-nav:hover]/sidebar:px-3 group-has-[.tf-sidebar-nav:hover]/sidebar:py-3 group-has-[.tf-sidebar-nav:hover]/sidebar:shadow-sm group-has-[.tf-sidebar-nav:hover]/sidebar:justify-start" 
+              ? "border border-transparent bg-transparent p-2 shadow-none justify-center group-hover/nav:border-border group-hover/nav:bg-card group-hover/nav:px-3 group-hover/nav:py-3 group-hover/nav:shadow-sm group-hover/nav:justify-start" 
               : "border border-border bg-card px-3 py-3 shadow-sm"
           }`}
           aria-label="Open profile menu"
@@ -572,26 +503,18 @@ export default function DashboardSidebar({
             <p className="truncate text-sm font-semibold text-text-primary">{displayName}</p>
             <p className="truncate text-xs text-text-secondary">{user?.email || "Signed in"}</p>
           </div>
-          <svg
-            aria-hidden="true"
-            className={`h-4 w-4 shrink-0 text-text-secondary transition ${
+          <ChevronDown
+            className={`h-[18px] w-[18px] shrink-0 text-text-secondary transition-transform ${
               profileOpen ? "rotate-180" : ""
             } ${collapsed ? "hidden tf-reveal-block" : "block"}`}
-            viewBox="0 0 16 16"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="1.8"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          >
-            <path d="M4 6l4 4 4-4" />
-          </svg>
+            strokeWidth={2}
+          />
         </button>
 
         {profileOpen && (
           <div
             className={`absolute bottom-[calc(100%+0.75rem)] z-50 w-64 rounded-3xl border border-border bg-card/95 p-3 shadow-2xl backdrop-blur transition-all duration-200 ${
-              collapsed ? "left-full ml-3 group-has-[.tf-sidebar-nav:hover]/sidebar:left-0 group-has-[.tf-sidebar-nav:hover]/sidebar:right-0 group-has-[.tf-sidebar-nav:hover]/sidebar:ml-0" : "left-0 right-0"
+              collapsed ? "left-full ml-3 group-hover/nav:left-0 group-hover/nav:right-0 group-hover/nav:ml-0" : "left-0 right-0"
             }`}
           >
             <div className="flex items-center gap-3 rounded-2xl bg-secondary/35 px-3 py-3">
@@ -610,19 +533,7 @@ export default function DashboardSidebar({
                 className="flex w-full items-center gap-3 rounded-2xl px-3 py-3 text-sm font-semibold text-text-primary transition hover:bg-secondary/60"
                 onClick={openSettings}
               >
-                <svg
-                  aria-hidden="true"
-                  className="h-4 w-4 text-text-secondary"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="1.8"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                >
-                  <circle cx="12" cy="12" r="3" />
-                  <path d="M19 12a7 7 0 0 0-.1-1l2-1.5-2-3.5-2.3.7a7 7 0 0 0-1.7-1l-.3-2.4h-4l-.3 2.4a7 7 0 0 0-1.7 1l-2.3-.7-2 3.5 2 1.5a7 7 0 0 0 0 2l-2 1.5 2 3.5 2.3-.7a7 7 0 0 0 1.7 1l.3 2.4h4l.3-2.4a7 7 0 0 0 1.7-1l2.3.7 2-3.5-2-1.5c.07-.33.1-.66.1-1z" />
-                </svg>
+                <UserCircle className="h-[18px] w-[18px] text-text-secondary" strokeWidth={2} />
                 Account Details
               </button>
 
@@ -631,20 +542,7 @@ export default function DashboardSidebar({
                 className="group flex w-full items-center gap-3 rounded-2xl border border-transparent bg-transparent px-3 py-3 text-sm font-semibold text-text-primary transition hover:border-[hsl(var(--destructive-border))] hover:bg-[hsl(var(--destructive-soft))] hover:text-[hsl(var(--destructive))]"
                 onClick={handleSignOut}
               >
-                <svg
-                  aria-hidden="true"
-                  className="h-4 w-4 text-text-secondary transition group-hover:text-[hsl(var(--destructive))]"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="1.8"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                >
-                  <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
-                  <path d="M16 17l5-5-5-5" />
-                  <path d="M21 12H9" />
-                </svg>
+                <LogOut className="h-[18px] w-[18px] text-text-secondary transition group-hover:text-[hsl(var(--destructive))]" strokeWidth={2} />
                 Sign Out
               </button>
             </div>

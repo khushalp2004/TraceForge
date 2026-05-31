@@ -8,6 +8,7 @@ import MarketingShell from "./components/MarketingShell";
 import { SITE_DESCRIPTION, SITE_KEYWORDS, SITE_NAME, siteUrl } from "./seo";
 import { DEFAULT_THEME, isDarkTheme, THEME_STORAGE_KEY } from "./theme";
 import { DEFAULT_LAYOUT, LAYOUT_STORAGE_KEY } from "./layoutPreference";
+import { cn } from "@/lib/utils";
 
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
@@ -133,7 +134,7 @@ export default function RootLayout({
   `;
 
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html lang="en" suppressHydrationWarning className="font-sans">
       <body>
         <script dangerouslySetInnerHTML={{ __html: themeBootScript }} />
         <script dangerouslySetInnerHTML={{ __html: layoutBootScript }} />
