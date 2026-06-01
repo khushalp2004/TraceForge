@@ -1,0 +1,13 @@
+{
+    "name": "traceforge/traceforge-php",
+    "description": "TraceForge PHP SDK",
+    "type": "library",
+    "require": {
+        "php": ">=7.4"
+    },
+    "autoload": {
+        "psr-4": {
+            "TraceForge\\": "src/"
+        }
+    }
+}
