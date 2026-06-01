@@ -1,0 +1,2 @@
+build:
+  file: packages/sdk-java/pom.xml
