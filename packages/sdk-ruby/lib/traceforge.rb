@@ -43,7 +43,7 @@ module TraceForge
       uri = URI(@endpoint)
       request = Net::HTTP::Post.new(uri)
       request['Content-Type'] = 'application/json'
-      request['Authorization'] = "Bearer #{@api_key}"
+      request['X-Traceforge-Key'] = @api_key
       request.body = payload.to_json
 
       # We use Thread to send it asynchronously to avoid blocking the web server
