@@ -274,7 +274,7 @@ export default function OrgsPage() {
   return (
     <main className="tf-page tf-dashboard-page">
       <div className="tf-dashboard">
-        <header className="mt-2 flex flex-wrap items-center justify-between gap-4 animate-stagger-fade-up">
+        <header className="relative z-10 mt-2 flex flex-wrap items-center justify-between gap-4 animate-stagger-fade-up">
           <div className="tf-section-header">
             <p className="tf-kicker">Organizations</p>
             <div className="mt-2 flex items-center">
@@ -282,10 +282,11 @@ export default function OrgsPage() {
                 Organization Management
               </h1>
               <PageDescriptionPopover>
+                Create and manage your teams, members, and permissions.
+                <br /><br />
                 Select an organization to manage members and permissions.
               </PageDescriptionPopover>
             </div>
-            <p className="tf-section-desc">Create and manage your teams, members, and permissions.</p>
           </div>
           <button
             className="tf-button inline-flex items-center gap-2 px-5 py-2.5 text-sm"
@@ -306,7 +307,7 @@ export default function OrgsPage() {
             return (
               <div
                 key={org.id}
-                className={`tf-premium-card group flex flex-col p-5 transition-all animate-stagger-fade-up ${
+                className={`tf-card bg-card border rounded-xl shadow-sm group flex min-w-0 flex-col p-5 transition-all hover:border-primary/20 animate-stagger-fade-up ${
                   isSelected ? "border-primary/30 ring-1 ring-primary/10" : ""
                 }`}
                 style={{ animationDelay: `${index * 70}ms` }}
@@ -433,7 +434,7 @@ export default function OrgsPage() {
 
       {renameTarget && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4 backdrop-blur-sm animate-fade-up" style={{ animationDuration: "300ms" }}>
-          <div className="tf-glass-modal w-full max-w-lg flex flex-col overflow-hidden">
+          <div className="rounded-xl border border-border bg-card shadow-xl w-full max-w-lg flex flex-col overflow-hidden">
             <div className="flex items-center justify-between px-6 py-4 border-b border-border/40">
               <h3 className="text-sm font-semibold text-text-primary">Rename Organization</h3>
               <button onClick={() => {
@@ -483,7 +484,7 @@ export default function OrgsPage() {
 
       {deleteTarget && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4 backdrop-blur-sm animate-fade-up" style={{ animationDuration: "300ms" }}>
-          <div className="tf-glass-modal w-full max-w-lg flex flex-col overflow-hidden">
+          <div className="rounded-xl border border-border bg-card shadow-xl w-full max-w-lg flex flex-col overflow-hidden">
             <div className="flex items-center justify-between px-6 py-4 border-b border-border/40">
               <h3 className="text-sm font-semibold text-text-primary">Delete Organization</h3>
               <button onClick={() => setDeleteTarget(null)} className="inline-flex h-8 w-8 items-center justify-center rounded-xl text-text-secondary transition hover:bg-secondary/70 hover:text-text-primary">
@@ -527,7 +528,7 @@ export default function OrgsPage() {
 
       {showCreateModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4 backdrop-blur-sm animate-fade-up" style={{ animationDuration: "300ms" }}>
-          <div className="tf-glass-modal w-full max-w-lg max-h-[calc(100dvh-env(safe-area-inset-top)-env(safe-area-inset-bottom)-8rem)] sm:max-h-[90vh] flex flex-col overflow-hidden">
+          <div className="rounded-xl border border-border bg-card shadow-xl w-full max-w-lg max-h-[calc(100dvh-env(safe-area-inset-top)-env(safe-area-inset-bottom)-8rem)] sm:max-h-[90vh] flex flex-col overflow-hidden">
             <div className="flex items-center justify-between px-6 py-4 border-b border-border/40 shrink-0">
               <h3 className="text-sm font-semibold text-text-primary">Create Organization</h3>
               <button onClick={() => setShowCreateModal(false)} className="inline-flex h-8 w-8 items-center justify-center rounded-xl text-text-secondary transition hover:bg-secondary/70 hover:text-text-primary">
@@ -609,7 +610,7 @@ export default function OrgsPage() {
 
       {showBulkDeleteModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4 backdrop-blur-sm animate-fade-up" style={{ animationDuration: "300ms" }}>
-          <div className="tf-glass-modal w-full max-w-lg flex flex-col overflow-hidden">
+          <div className="rounded-xl border border-border bg-card shadow-xl w-full max-w-lg flex flex-col overflow-hidden">
             <div className="flex items-center justify-between px-6 py-4 border-b border-border/40">
               <h3 className="text-sm font-semibold text-text-primary">Delete Organizations</h3>
               <button onClick={() => setShowBulkDeleteModal(false)} className="inline-flex h-8 w-8 items-center justify-center rounded-xl text-text-secondary transition hover:bg-secondary/70 hover:text-text-primary">

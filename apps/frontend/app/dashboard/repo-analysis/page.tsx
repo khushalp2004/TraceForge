@@ -341,8 +341,8 @@ export default function RepoAnalysisPage() {
         {loading ? (
           <div className="grid gap-4 xl:grid-cols-2">
             {[0, 1].map((i) => (
-              <div key={i} className="tf-premium-card p-6" style={{ animationDelay: `${i * 150}ms` }}>
-                <div className="space-y-3">
+              <div key={i} className="tf-premium-card flex h-full flex-col p-6" style={{ animationDelay: `${i * 150}ms` }}>
+                <div className="space-y-3 flex-1">
                   <div className="flex gap-2"><div className="tf-shimmer h-6 w-20 rounded-full bg-secondary/40" /><div className="tf-shimmer h-6 w-16 rounded-full bg-secondary/30" /></div>
                   <div className="tf-shimmer h-5 w-40 rounded-lg bg-secondary/35" />
                   <div className="tf-shimmer h-4 w-56 rounded-lg bg-secondary/25" />
@@ -374,7 +374,7 @@ export default function RepoAnalysisPage() {
                 const statusStyles = statusMeta[status];
                 const accentClass = status === "READY" ? "tf-accent-strip-success" : status === "PROCESSING" ? "tf-accent-strip-warning" : status === "FAILED" ? "tf-accent-strip-danger" : "tf-accent-strip-info";
                 return (
-                  <div key={project.id} className={`tf-metric-card ${accentClass} p-5 animate-stagger-fade-up`} style={{ animationDelay: `${index * 80}ms` }}>
+                  <div key={project.id} className={`tf-metric-card ${accentClass} flex h-full flex-col p-5 animate-stagger-fade-up`} style={{ animationDelay: `${index * 80}ms` }}>
                     <div className="flex flex-wrap items-start justify-between gap-3">
                       <div className="min-w-0">
                         <div className="flex flex-wrap items-center gap-2">
@@ -394,7 +394,7 @@ export default function RepoAnalysisPage() {
                       </div>
                     </div>
 
-                    <div className="mt-4 rounded-xl border border-border/60 bg-secondary/15 px-4 py-4">
+                    <div className="mt-4 flex-1 rounded-xl border border-border/60 bg-secondary/15 px-4 py-4">
                       <p className="tf-metric-label">
                         Latest summary
                       </p>

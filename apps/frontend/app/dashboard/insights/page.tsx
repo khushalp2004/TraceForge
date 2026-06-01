@@ -236,7 +236,7 @@ function BreakdownCard<T extends BreakdownItem>({
   const topCount = Math.max(1, ...items.map((item) => item.count));
 
   return (
-    <div className="h-fit rounded-2xl border border-border bg-card/90 p-6">
+    <div className="h-fit min-w-0 rounded-2xl border border-border bg-card/90 p-6">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div className="min-w-0">
           <h2 className="text-base font-semibold text-text-primary">{title}</h2>
@@ -253,7 +253,7 @@ function BreakdownCard<T extends BreakdownItem>({
             const href = getItemHref?.(item) || "";
             const content = (
               <>
-                <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between sm:gap-3">
+                <div className="flex min-w-0 flex-col gap-2 sm:flex-row sm:items-center sm:justify-between sm:gap-3">
                   <p className="min-w-0 break-words text-sm font-semibold text-text-primary sm:truncate">
                     {item.label}
                   </p>
@@ -314,7 +314,7 @@ function SeverityInsightsCard({
   };
 
   return (
-    <div className="rounded-2xl border border-border bg-card/90 p-6">
+    <div className="min-w-0 rounded-2xl border border-border bg-card/90 p-6">
       <div className="flex items-start justify-between gap-4">
         <div>
           <h2 className="text-base font-semibold text-text-primary">Severity mix</h2>
@@ -384,7 +384,7 @@ function TopIssuesCard({ items }: { items: TopIssue[] }) {
   );
 
   return (
-    <div className="rounded-2xl border border-border bg-card/90 p-6">
+    <div className="min-w-0 rounded-2xl border border-border bg-card/90 p-6">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div className="min-w-0">
           <h2 className="text-base font-semibold text-text-primary">Top recurring issues</h2>
@@ -405,7 +405,7 @@ function TopIssuesCard({ items }: { items: TopIssue[] }) {
               className="rounded-2xl border border-border bg-secondary/25 px-4 py-4"
             >
               <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-                <div className="min-w-0">
+                <div className="min-w-0 flex-1">
                   <p className="break-words text-sm font-semibold text-text-primary sm:truncate">
                     {item.message}
                   </p>
@@ -476,7 +476,7 @@ function ReleaseImpactCard({
   };
 
   return (
-    <div className="rounded-2xl border border-border bg-card/90 p-6">
+    <div className="min-w-0 rounded-2xl border border-border bg-card/90 p-6">
       <div className="flex items-start justify-between gap-4">
         <div>
           <h2 className="text-base font-semibold text-text-primary">Release impact</h2>
@@ -574,7 +574,7 @@ function AlertCorrelationCard({
   };
 
   return (
-    <div className="rounded-2xl border border-border bg-card/90 p-6">
+    <div className="min-w-0 rounded-2xl border border-border bg-card/90 p-6">
       <div className="flex items-start justify-between gap-4">
         <div>
           <h2 className="text-base font-semibold text-text-primary">Alert correlation</h2>
@@ -1344,7 +1344,7 @@ export default function InsightsPage() {
           </>
         ) : isTopbarLayout ? (
           <section className="mt-6 grid gap-6 xl:grid-cols-[minmax(0,1.25fr)_minmax(360px,0.75fr)] xl:items-start">
-            <div className="space-y-6">
+            <div className="min-w-0 space-y-6">
               {comparisonGrid}
               {trendGrid}
               <div className="grid gap-4 sm:grid-cols-2">
@@ -1354,7 +1354,7 @@ export default function InsightsPage() {
               {topIssuesCard}
               {alertCorrelationCard}
             </div>
-            <div className="space-y-6 xl:sticky xl:top-24 xl:self-start">
+            <div className="min-w-0 space-y-6 xl:sticky xl:top-24 xl:self-start">
               {highlightsCard}
               {severityCard}
               {releaseImpactCard}
@@ -1363,20 +1363,20 @@ export default function InsightsPage() {
         ) : isCompactLayout ? (
           <>
             <section className="mt-6 grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(360px,0.85fr)] lg:items-start">
-              <div className="space-y-6">{comparisonGrid}</div>
+              <div className="min-w-0 space-y-6">{comparisonGrid}</div>
               <div className="lg:sticky lg:top-24 lg:self-start">{highlightsCard}</div>
             </section>
             <section className="mt-6">{severityCard}</section>
             <section className="mt-6">{trendGrid}</section>
             <section className="mt-6 grid gap-4 xl:grid-cols-2 xl:items-start">
-              <div className="space-y-6">
+              <div className="min-w-0 space-y-6">
                 <div className="grid gap-4 sm:grid-cols-2">
                   {environmentHealthCard}
                   {projectPerformanceCard}
                 </div>
                 {topIssuesCard}
               </div>
-              <div className="space-y-6">
+              <div className="min-w-0 space-y-6">
                 {releaseImpactCard}
                 {alertCorrelationCard}
               </div>
@@ -1389,14 +1389,14 @@ export default function InsightsPage() {
             <section className="mt-6">{trendGrid}</section>
             <section className="mt-6">{severityCard}</section>
             <section className="mt-6 grid gap-4 xl:grid-cols-[minmax(0,1.4fr)_minmax(320px,0.9fr)] xl:items-start">
-              <div className="space-y-6">
+              <div className="min-w-0 space-y-6">
                 <div className="grid gap-4 sm:grid-cols-2">
                   {environmentHealthCard}
                   {projectPerformanceCard}
                 </div>
                 {topIssuesCard}
               </div>
-              <div className="space-y-6">
+              <div className="min-w-0 space-y-6">
                 {releaseImpactCard}
                 {alertCorrelationCard}
               </div>

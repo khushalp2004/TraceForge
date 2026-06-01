@@ -721,7 +721,7 @@ export default function ProjectSettingsPage() {
   return (
     <main className="tf-page tf-dashboard-page">
       <div className="tf-dashboard">
-        <header className="mt-2 flex flex-wrap items-center justify-between gap-4">
+        <header className="mt-2 flex flex-col gap-4">
           <div>
             <p className="tf-kicker">Projects</p>
             <div className="mt-2 flex items-center">
@@ -735,9 +735,9 @@ export default function ProjectSettingsPage() {
               </PageDescriptionPopover>
             </div>
           </div>
-          <div className="flex w-full min-w-0 items-center gap-2 sm:w-auto sm:justify-end sm:gap-3 flex-1 justify-end">
+          <div className="flex w-full min-w-0 items-center gap-2 sm:gap-3">
             <div 
-              className="flex flex-nowrap items-center gap-2 mr-2 overflow-x-auto scroll-smooth [&::-webkit-scrollbar]:hidden relative max-w-[250px] sm:max-w-[400px] lg:max-w-[600px] xl:max-w-[800px] mask-image-fade"
+              className="flex flex-1 flex-nowrap items-center gap-2 overflow-x-auto scroll-smooth [&::-webkit-scrollbar]:hidden relative min-w-0 mask-image-fade"
               style={{ scrollbarWidth: 'none', WebkitMaskImage: 'linear-gradient(to right, black 95%, transparent)' }}
               onDragOver={(e) => {
                 const container = e.currentTarget;
@@ -759,7 +759,7 @@ export default function ProjectSettingsPage() {
                 return (
                   <button
                     key={org.id}
-                    className={`rounded-full px-4 py-1.5 text-[13px] font-semibold transition-all border ${
+                    className={`shrink-0 whitespace-nowrap rounded-full px-4 py-1.5 text-[13px] font-semibold transition-all border ${
                       isSelected
                         ? "bg-primary text-primary-foreground border-primary shadow-sm"
                         : "bg-card text-text-secondary border-border hover:bg-secondary/70 hover:text-text-primary"
@@ -802,7 +802,7 @@ export default function ProjectSettingsPage() {
               <span className="sm:hidden">{showArchived ? "Hide archi..." : "Show archi..."}</span>
             </button>
             <button
-              className="tf-button inline-flex shrink-0 items-center justify-center whitespace-nowrap px-3.5 py-2 text-sm max-[639px]:text-[12px] max-[639px]:leading-none"
+              className="tf-button inline-flex shrink-0 items-center justify-center whitespace-nowrap rounded-full px-4 py-2 text-sm font-semibold max-[639px]:text-[12px] max-[639px]:leading-none"
               onClick={() => setShowCreateModal(true)}
             >
               Create project
