@@ -1691,13 +1691,13 @@ function DashboardPageInner() {
           </div>
 
           <div
-            className={
+            className={`min-w-0 ${
               isTopbarLayout
                 ? "grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(420px,0.9fr)] lg:items-start"
                 : isCompactLayout
                 ? "grid gap-6 lg:grid-cols-2 lg:items-start"
                 : "space-y-6"
-            }
+            }`}
           >
             <div className="tf-card overflow-hidden p-6">
               <div className="flex flex-wrap items-center justify-between gap-4">
@@ -1814,7 +1814,7 @@ function DashboardPageInner() {
             </div>
 
             <div
-              className={`tf-card p-6 ${
+              className={`tf-card p-6 min-w-0 overflow-hidden ${
                 isTopbarLayout ? "lg:sticky lg:top-24 lg:self-start" : ""
               }`}
             >
@@ -1839,9 +1839,11 @@ function DashboardPageInner() {
                     >
                       <div className="flex flex-wrap items-start justify-between gap-4">
                         <div className="min-w-0">
-                          <div className="flex flex-wrap items-center gap-2">
-                            <SeverityTag severity={severity} />
-                            <p className="break-words text-sm font-semibold text-text-primary">{item.message}</p>
+                          <div className="flex items-start gap-2">
+                            <div className="shrink-0 mt-0.5">
+                              <SeverityTag severity={severity} />
+                            </div>
+                            <p className="min-w-0 flex-1 break-words text-sm font-semibold text-text-primary">{item.message}</p>
                           </div>
                           <p className="mt-1 text-xs text-text-secondary">
                             Last seen {new Date(item.lastSeen).toLocaleString()}
@@ -1873,7 +1875,7 @@ function DashboardPageInner() {
                         </p>
                       )}
                       {isExpanded && item.stackTrace && (
-                        <pre className="mt-3 max-h-56 max-w-full overflow-auto whitespace-pre-wrap break-words rounded-xl bg-ink p-3 text-xs text-white/90">
+                        <pre className="mt-3 max-h-56 w-full overflow-auto whitespace-pre rounded-xl bg-ink p-3 text-xs text-white/90">
                           {item.stackTrace}
                         </pre>
                       )}
