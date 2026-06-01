@@ -1,0 +1,8 @@
+setup.py
+traceforge/__init__.py
+traceforge/client.py
+traceforge.egg-info/PKG-INFO
+traceforge.egg-info/SOURCES.txt
+traceforge.egg-info/dependency_links.txt
+traceforge.egg-info/requires.txt
+traceforge.egg-info/top_level.txt

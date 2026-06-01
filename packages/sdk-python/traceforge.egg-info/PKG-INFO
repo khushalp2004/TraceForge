@@ -1,0 +1,11 @@
+Metadata-Version: 2.4
+Name: traceforge
+Version: 1.0.0
+Summary: TraceForge Python SDK for unhandled panic logging
+Home-page: https://github.com/khushalp2004/TraceForge
+Author: Khushal Patil
+Requires-Dist: requests>=2.31.0
+Dynamic: author
+Dynamic: home-page
+Dynamic: requires-dist
+Dynamic: summary

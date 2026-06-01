@@ -25,7 +25,7 @@ def _send_payload(payload):
     try:
         response = requests.post(endpoint, json=payload, headers=headers)
         if response.status_code >= 300:
-            print(f"[TraceForge] Failed to capture exception. Server returned status {response.status_code}", flush=True)
+            print(f"[TraceForge] Failed to capture exception. Server returned status {response.status_code}: {response.text}", flush=True)
     except Exception as e:
         print(f"[TraceForge] Error reporting exception: {e}", flush=True)
 
