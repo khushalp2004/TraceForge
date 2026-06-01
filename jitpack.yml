@@ -1,2 +1,4 @@
-build:
-  file: packages/sdk-java/pom.xml
+jdk:
+  - openjdk11
+install:
+  - cd packages/sdk-java && mvn clean install -DskipTests
