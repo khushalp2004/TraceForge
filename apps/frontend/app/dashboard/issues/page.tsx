@@ -63,6 +63,12 @@ type GithubIntegrationState = {
   error?: string;
 };
 
+type User = {
+  id: string;
+  email: string;
+  plan: "FREE" | "DEV" | "PRO";
+};
+
 type Toast = {
   message: string;
   tone: "success" | "error";
@@ -187,6 +193,7 @@ function IssuesPageInner() {
   const hydratedFromQuery = useRef(false);
   const prefsHydratedRef = useRef(false);
   const fetchIdRef = useRef(0);
+  const [user, setUser] = useState<User | null>(null);
   const [projects, setProjects] = useState<Project[]>([]);
   const [issues, setIssues] = useState<Issue[]>([]);
   const [pagination, setPagination] = useState<Pagination>({
@@ -322,19 +329,28 @@ function IssuesPageInner() {
     showToast(error, "error");
   }, [error]);
 
-  const loadProjects = async (token: string) => {
-    const res = await fetch(`${API_URL}/projects`, {
-      headers: {
-        Authorization: `Bearer ${token}`
-      }
-    });
+  const loadProjectsAndUser = async (token: string) => {
+    const [projectsRes, userRes] = await Promise.all([
+      fetch(`${API_URL}/projects`, {
+        headers: { Authorization: `Bearer ${token}` }
+      }),
+      fetch(`${API_URL}/auth/me`, {
+        headers: { Authorization: `Bearer ${token}` }
+      })
+    ]);
 
-    const data = await res.json();
-    if (!res.ok) {
-      throw new Error(data.error || "Failed to load projects");
+    const projectsData = await projectsRes.json();
+    const userData = await userRes.json();
+
+    if (!projectsRes.ok) {
+      throw new Error(projectsData.error || "Failed to load projects");
+    }
+    if (!userRes.ok) {
+      throw new Error(userData.error || "Failed to load user");
     }
 
-    setProjects(data.projects || []);
+    setProjects(projectsData.projects || []);
+    setUser(userData.user);
   };
 
   const loadIssues = async (token: string) => {
@@ -385,7 +401,7 @@ function IssuesPageInner() {
       return;
     }
 
-    void loadProjects(token).catch((err) => {
+    void loadProjectsAndUser(token).catch((err) => {
       setError(err instanceof Error ? err.message : "Unexpected error");
     });
   }, []);

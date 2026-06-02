@@ -304,6 +304,9 @@ export default function BillingPage() {
       setError(err instanceof Error ? err.message : "Unexpected error");
     } finally {
       setLoading(false);
+      if (typeof window !== "undefined") {
+        window.dispatchEvent(new Event("traceforge_billing_updated"));
+      }
     }
   };
 

@@ -240,6 +240,26 @@ const getEffectiveOrgPlan = async (organizationId: string) => {
   };
 };
 
+const disconnectUserIntegrationsOnDowngrade = async (userId: string) => {
+  const userOrgs = await prisma.organizationMember.findMany({
+    where: { userId, role: "OWNER" },
+    select: { organizationId: true, organization: { select: { plan: true } } }
+  });
+
+  const orgIdsToDelete = userOrgs
+    .filter((m) => m.organization.plan !== "TEAM")
+    .map((m) => m.organizationId);
+
+  if (orgIdsToDelete.length > 0) {
+    await prisma.integrationConnection.deleteMany({
+      where: {
+        organizationId: { in: orgIdsToDelete },
+        provider: { in: ["SLACK", "JIRA"] }
+      }
+    });
+  }
+};
+
 const assertOwnerForOrganization = async (organizationId: string, userId: string) => {
   const membership = await prisma.organizationMember.findUnique({
     where: {
@@ -910,6 +930,11 @@ paymentRouter.post("/cancel", requireAuth, paymentMutationRateLimit, async (req,
           planExpiresAt: expiresAt || null
         }
       });
+      if (!cancelAtCycleEnd) {
+        await prisma.integrationConnection.deleteMany({
+          where: { organizationId: normalizedOrganizationId, provider: { in: ["SLACK", "JIRA"] } }
+        });
+      }
     } else {
       await prisma.user.update({
         where: { id: userId },
@@ -927,6 +952,9 @@ paymentRouter.post("/cancel", requireAuth, paymentMutationRateLimit, async (req,
             cancelAtCycleEnd && subscriptionHolder?.plan === "PRO" ? undefined : null
         }
       });
+      if (!cancelAtCycleEnd) {
+        await disconnectUserIntegrationsOnDowngrade(userId);
+      }
     }
 
     return res.json({
@@ -958,6 +986,7 @@ paymentRouter.post("/downgrade", requireAuth, paymentMutationRateLimit, async (r
       where: { id: userId },
       data: { plan: "FREE", subscriptionStatus: null, planExpiresAt: null }
     });
+    await disconnectUserIntegrationsOnDowngrade(userId);
     return res.json({ ok: true, plan: "free" });
   }
 
@@ -976,6 +1005,7 @@ paymentRouter.post("/downgrade", requireAuth, paymentMutationRateLimit, async (r
         planExpiresAt: null
       }
     });
+    await disconnectUserIntegrationsOnDowngrade(userId);
 
     return res.json({ ok: true, plan: "free", subscriptionId: paused.id, status: paused.status });
   } catch (err) {
@@ -1069,6 +1099,7 @@ paymentRouter.post("/upgrade", requireAuth, paymentMutationRateLimit, async (req
           planExpiresAt: null
         }
       });
+      await disconnectUserIntegrationsOnDowngrade(userId);
       return res.json({ ok: false, requiresPayment: true });
     }
 

@@ -288,11 +288,13 @@ export default function DashboardSidebar({
       void loadUsage();
     };
     window.addEventListener("focus", handleFocus);
+    window.addEventListener("traceforge_billing_updated", handleFocus);
 
     return () => {
       cancelled = true;
       window.clearInterval(intervalId);
       window.removeEventListener("focus", handleFocus);
+      window.removeEventListener("traceforge_billing_updated", handleFocus);
     };
   }, [token, selectedOrgId, pathname]);
 

@@ -62,6 +62,12 @@ type GithubIntegrationState = {
   error?: string;
 };
 
+type User = {
+  id: string;
+  email: string;
+  plan: "FREE" | "DEV" | "PRO";
+};
+
 type Frame = {
   raw: string;
   file?: string;
@@ -177,6 +183,7 @@ const buildGithubIssueBody = (detail: ErrorDetail) => {
 
 export default function ErrorDetailPage({ params }: { params: { id: string } }) {
   const [errorDetail, setErrorDetail] = useState<ErrorDetail | null>(null);
+  const [user, setUser] = useState<User | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [showPayloads, setShowPayloads] = useState(false);
@@ -238,16 +245,27 @@ export default function ErrorDetailPage({ params }: { params: { id: string } }) 
     }
 
     try {
-      const res = await fetch(`${API_URL}/errors/${params.id}`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
+      const [res, userRes] = await Promise.all([
+        fetch(`${API_URL}/errors/${params.id}`, {
+          headers: { Authorization: `Bearer ${token}` }
+        }),
+        fetch(`${API_URL}/auth/me`, {
+          headers: { Authorization: `Bearer ${token}` }
+        })
+      ]);
 
       const data = await res.json();
+      const userData = await userRes.json();
+      
       if (!res.ok) {
         throw new Error(data.error || "Failed to load error detail");
       }
+      if (!userRes.ok) {
+        throw new Error(userData.error || "Failed to load user");
+      }
 
       setErrorDetail(data.error);
+      setUser(userData.user);
       if (!data.error?.analysis?.suggestedFix) {
         setShowAiDetail(false);
       }

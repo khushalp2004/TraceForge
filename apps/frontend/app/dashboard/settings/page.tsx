@@ -15,7 +15,14 @@ type Org = {
   id: string;
   name: string;
   role: "OWNER" | "MEMBER";
+  plan: "FREE" | "DEV" | "PRO" | "TEAM";
   createdAt: string;
+};
+
+type User = {
+  id: string;
+  email: string;
+  plan: "FREE" | "DEV" | "PRO";
 };
 
 type Toast = {
@@ -118,6 +125,7 @@ export default function SettingsPage() {
   const searchParams = useSearchParams();
 
   const [toast, setToast] = useState<Toast | null>(null);
+  const [user, setUser] = useState<User | null>(null);
   const [orgs, setOrgs] = useState<Org[]>([]);
   const [selectedOrgId, setSelectedOrgId] = useState("");
   const [orgsLoading, setOrgsLoading] = useState(false);
@@ -233,16 +241,26 @@ export default function SettingsPage() {
     });
   };
 
-  const loadOrgs = async () => {
+  const loadOrgsAndUser = async () => {
     setOrgsLoading(true);
     try {
-      const res = await authedFetch("/orgs");
-      const data = await res.json();
-      if (!res.ok) {
-        throw new Error(data.error || "Failed to load organizations");
+      const [orgsRes, userRes] = await Promise.all([
+        authedFetch("/orgs"),
+        authedFetch("/auth/me")
+      ]);
+      const orgData = await orgsRes.json();
+      const userData = await userRes.json();
+      
+      if (!orgsRes.ok) {
+        throw new Error(orgData.error || "Failed to load organizations");
+      }
+      if (!userRes.ok) {
+        throw new Error(userData.error || "Failed to load user");
       }
 
-      const nextOrgs = (data.orgs || []) as Org[];
+      setUser(userData.user);
+
+      const nextOrgs = (orgData.orgs || []) as Org[];
       setOrgs(nextOrgs);
       if (!selectedOrgId && nextOrgs[0]) {
         setSelectedOrgId(nextOrgs[0].id);
@@ -313,7 +331,7 @@ export default function SettingsPage() {
   };
 
   useEffect(() => {
-    void loadOrgs();
+    void loadOrgsAndUser();
     void loadGithub();
   }, []);
 
@@ -770,6 +788,21 @@ export default function SettingsPage() {
                 <div className={setupStateClass}>
                   Add Slack OAuth env values first, then connect this workspace.
                 </div>
+              ) : user?.plan === "FREE" && selectedOrg.plan !== "TEAM" ? (
+                <div className="mt-5 flex flex-col gap-4 rounded-xl border border-border bg-secondary/20 px-4 py-4 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
+                  <div className="max-w-xl">
+                    <p className="text-sm font-semibold text-text-primary">Upgrade to connect Slack</p>
+                    <p className="mt-1 break-words text-sm text-text-secondary">
+                      Slack integration is only available on paid plans. Upgrade to Pro or Team to enable alert delivery to Slack.
+                    </p>
+                  </div>
+                  <Link
+                    href="/dashboard/billing"
+                    className="tf-button w-full px-4 py-2 text-sm sm:w-auto text-center"
+                  >
+                    View Plans
+                  </Link>
+                </div>
               ) : !slack?.connected ? (
                 <div className="mt-5 flex flex-col gap-4 rounded-xl border border-border bg-secondary/20 px-4 py-4 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
                   <p className="max-w-xl break-words text-sm text-text-secondary">
@@ -929,6 +962,21 @@ export default function SettingsPage() {
               ) : !jira?.configured ? (
                 <div className={setupStateClass}>
                   Add Jira OAuth env values first, then connect this workspace.
+                </div>
+              ) : user?.plan === "FREE" && selectedOrg.plan !== "TEAM" ? (
+                <div className="mt-5 flex flex-col gap-4 rounded-xl border border-border bg-secondary/20 px-4 py-4 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
+                  <div className="max-w-xl">
+                    <p className="text-sm font-semibold text-text-primary">Upgrade to connect Jira</p>
+                    <p className="mt-1 break-words text-sm text-text-secondary">
+                      Jira integration is only available on paid plans. Upgrade to Pro or Team to enable issue creation in Jira.
+                    </p>
+                  </div>
+                  <Link
+                    href="/dashboard/billing"
+                    className="tf-button w-full px-4 py-2 text-sm sm:w-auto text-center"
+                  >
+                    View Plans
+                  </Link>
                 </div>
               ) : !jira?.connected ? (
                 <div className="mt-5 flex flex-col gap-4 rounded-xl border border-border bg-secondary/20 px-4 py-4 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
