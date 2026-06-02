@@ -1,7 +1,5 @@
 import { decryptIntegrationSecret } from "../utils/integrationSecrets.js";
 
-const GITHUB_REPO_ANALYSIS_MODEL = "groq/compound-mini";
-
 type GroqMessage = {
   role: "system" | "user";
   content: string;
@@ -29,6 +27,13 @@ type GithubRepoFile = {
   content: string;
 };
 
+export type SystemDesignComponent = {
+  name: string;
+  type: string;
+  description: string;
+  dependsOn: string[];
+};
+
 export type GithubRepoAnalysisReport = {
   summary: string;
   architecture: string;
@@ -39,6 +44,7 @@ export type GithubRepoAnalysisReport = {
   entryPoints: string[];
   risks: string[];
   onboardingTips: string[];
+  systemDesign: SystemDesignComponent[];
 };
 
 const groqApiKey = process.env.GROQ_API_KEY;
@@ -169,6 +175,16 @@ const fetchGithubRepoFile = async ({
   };
 };
 
+const normalizeSystemDesign = (value: unknown): SystemDesignComponent[] => {
+  if (!Array.isArray(value)) return [];
+  return value.map((item) => ({
+    name: typeof item?.name === "string" ? item.name : "Unknown Component",
+    type: typeof item?.type === "string" ? item.type : "unknown",
+    description: typeof item?.description === "string" ? item.description : "",
+    dependsOn: Array.isArray(item?.dependsOn) ? item.dependsOn.filter((d: any) => typeof d === "string") : []
+  }));
+};
+
 const normalizeStringList = (value: unknown, fallback: string[]) => {
   const list = Array.isArray(value)
     ? value
@@ -199,7 +215,8 @@ const normalizeReport = (
   onboardingTips: normalizeStringList(value?.onboardingTips, [
     "Start with the README and top-level config files.",
     "Review the main app entry points before digging into implementation details."
-  ])
+  ]),
+  systemDesign: normalizeSystemDesign(value?.systemDesign)
 });
 
 const tryParseReport = (content: string) => {
@@ -213,20 +230,32 @@ const tryParseReport = (content: string) => {
 
 const generateGithubRepoAnalysis = async ({
   repoName,
-  context
+  context,
+  analysisType,
+  aiModel
 }: {
   repoName: string;
   context: string;
+  analysisType: string;
+  aiModel: string;
 }) => {
   if (!groqApiKey) {
     throw new Error("Missing GROQ_API_KEY");
   }
 
+  const systemPromptBase = "You analyze GitHub repositories for developers. Return only valid JSON with this exact shape: ";
+  let systemPrompt = "";
+
+  if (analysisType === "system-design") {
+    systemPrompt = systemPromptBase + '{"systemDesign":[{"name":"...","type":"...","description":"...","dependsOn":["..."]}]}. The systemDesign field must represent the high-level architecture components (e.g. Load Balancer, Web Server, React App, PostgreSQL, Redis) and their dependencies. Use "type" values like "frontend", "backend", "database", "cache", "queue", "load_balancer", or "other". Keep every field concise, accurate, and grounded in the provided repo data. Do not invent tools or architecture patterns that are not supported by the input.';
+  } else {
+    systemPrompt = systemPromptBase + '{"summary":"...","architecture":"...","runtimeFlow":"...","developmentFlow":"...","techStack":["..."],"keyModules":["..."],"entryPoints":["..."],"risks":["..."],"onboardingTips":["..."]}. Keep every field concise, accurate, and grounded in the provided repo data. Do not invent tools or architecture patterns that are not supported by the input.';
+  }
+
   const messages: GroqMessage[] = [
     {
       role: "system",
-      content:
-        'You analyze GitHub repositories for developers. Return only valid JSON with this exact shape: {"summary":"...","architecture":"...","runtimeFlow":"...","developmentFlow":"...","techStack":["..."],"keyModules":["..."],"entryPoints":["..."],"risks":["..."],"onboardingTips":["..."]}. Keep every field concise, accurate, and grounded in the provided repo data. Do not invent tools or architecture patterns that are not supported by the input.'
+      content: systemPrompt
     },
     {
       role: "user",
@@ -241,7 +270,7 @@ const generateGithubRepoAnalysis = async ({
       Authorization: `Bearer ${groqApiKey}`
     },
     body: JSON.stringify({
-      model: GITHUB_REPO_ANALYSIS_MODEL,
+      model: aiModel,
       messages,
       temperature: 0.15,
       response_format: {
@@ -350,6 +379,7 @@ const buildRepoAnalysisContext = async ({
     .map((file) => `### ${file.path}\n${file.content}`);
 
   return {
+    tree,
     context: [
       `Default branch: ${summary.defaultBranch}`,
       summary.description ? `Description: ${summary.description}` : "",
@@ -363,21 +393,40 @@ const buildRepoAnalysisContext = async ({
 
 export const runGithubRepoAnalysis = async ({
   accessTokenEncrypted,
-  repoFullName
+  repoFullName,
+  analysisType,
+  aiModel
 }: {
   accessTokenEncrypted: string;
   repoFullName: string;
+  analysisType: string;
+  aiModel: string;
 }) => {
   const accessToken = decryptIntegrationSecret(accessTokenEncrypted);
+  
+  if (analysisType === "graph") {
+    const summary = await fetchGithubRepoSummary(accessToken, repoFullName);
+    const tree = await fetchGithubRepoTree({
+      accessToken,
+      repoFullName,
+      branch: summary.defaultBranch
+    });
+    return { report: null, tree };
+  }
+
   const repoContext = await buildRepoAnalysisContext({
     accessToken,
     repoFullName
   });
 
-  return generateGithubRepoAnalysis({
+  const report = await generateGithubRepoAnalysis({
     repoName: repoFullName,
-    context: repoContext.context
+    context: repoContext.context,
+    analysisType,
+    aiModel
   });
+
+  return { report, tree: repoContext.tree };
 };
 
-export { GITHUB_REPO_ANALYSIS_MODEL };
+

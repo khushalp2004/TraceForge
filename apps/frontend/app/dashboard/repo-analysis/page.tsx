@@ -6,6 +6,8 @@ import { LoadingButtonContent } from "../../../components/ui/loading-button-cont
 import { X } from "lucide-react";
 import { DashboardPagination } from "../components/DashboardPagination";
 import { PageDescriptionPopover } from "@/components/ui/page-description-popover";
+import { RepoGraphViewer } from "../components/RepoGraphViewer";
+import { SystemDesignViewer } from "../components/SystemDesignViewer";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
 const tokenKey = "traceforge_token";
@@ -20,6 +22,7 @@ type Org = {
 type Project = {
   id: string;
   name: string;
+  aiModel: string;
   orgId?: string | null;
   archivedAt?: string | null;
   githubRepoId?: string | null;
@@ -35,7 +38,9 @@ type Project = {
 };
 
 type Report = {
-  status: "PENDING" | "PROCESSING" | "READY" | "FAILED";
+  status: "UNINITIALIZED" | "PENDING" | "PROCESSING" | "READY" | "FAILED";
+  graphStatus?: "UNINITIALIZED" | "PENDING" | "PROCESSING" | "READY" | "FAILED";
+  systemDesignStatus?: "UNINITIALIZED" | "PENDING" | "PROCESSING" | "READY" | "FAILED";
   model?: string | null;
   summary?: string | null;
   architecture?: string | null;
@@ -46,6 +51,8 @@ type Report = {
   entryPoints?: string[];
   risks?: string[];
   onboardingTips?: string[];
+  folderTree?: { path: string; type: "blob" | "tree"; size?: number }[];
+  systemDesign?: any[];
   lastError?: string | null;
   generatedAt?: string | null;
   updatedAt?: string | null;
@@ -61,6 +68,12 @@ type AnalysisDetailResponse = {
     githubRepoUrl?: string | null;
   };
   analysis: Report | null;
+};
+
+type AiModelOption = {
+  id: string;
+  label: string;
+  description: string;
 };
 
 type Toast = {
@@ -89,6 +102,7 @@ export default function RepoAnalysisPage() {
   const hydratedRef = useRef(false);
   const [projects, setProjects] = useState<Project[]>([]);
   const [orgs, setOrgs] = useState<Org[]>([]);
+  const [availableAiModels, setAvailableAiModels] = useState<AiModelOption[]>([]);
   const [selectedOrgId, setSelectedOrgId] = useState("");
   const [loading, setLoading] = useState(true);
   const [toast, setToast] = useState<Toast | null>(null);
@@ -100,6 +114,7 @@ export default function RepoAnalysisPage() {
   const [reportTarget, setReportTarget] = useState<Project | null>(null);
   const [reportLoading, setReportLoading] = useState(false);
   const [report, setReport] = useState<AnalysisDetailResponse | null>(null);
+  const [activeTab, setActiveTab] = useState<"summary" | "graph" | "system-design">("summary");
 
   useEffect(() => {
     if (hydratedRef.current || typeof window === "undefined") return;
@@ -176,6 +191,9 @@ export default function RepoAnalysisPage() {
       }
 
       setProjects((projectsData.projects || []) as Project[]);
+      if (projectsData.availableAiModels) {
+        setAvailableAiModels(projectsData.availableAiModels);
+      }
       if (orgsRes.ok) {
         setOrgs((orgsData.orgs || []) as Org[]);
       }
@@ -214,15 +232,50 @@ export default function RepoAnalysisPage() {
     setPage((current) => Math.min(current, totalPages));
   }, [totalPages]);
 
-  const analyzeProject = async (project: Project) => {
+  const [updatingAiModelProjectId, setUpdatingAiModelProjectId] = useState<string | null>(null);
+
+  const updateProjectAiModel = async (projectId: string, aiModel: string) => {
     const token = localStorage.getItem(tokenKey);
     if (!token) return;
 
-    setAnalyzingProjectId(project.id);
+    setUpdatingAiModelProjectId(projectId);
     setError(null);
 
     try {
-      const res = await fetch(`${API_URL}/projects/${project.id}/github-analysis/analyze`, {
+      const res = await fetch(`${API_URL}/projects/${projectId}/ai-model`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({ aiModel })
+      });
+
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error || "Failed to update AI model");
+      }
+
+      await loadData({ background: true });
+      showToast("AI model updated successfully", "success");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Unexpected error");
+    } finally {
+      setUpdatingAiModelProjectId(null);
+    }
+  };
+
+  const analyzeProject = async (project: Project, type: "report" | "graph" | "system-design" = "report") => {
+    const token = localStorage.getItem(tokenKey);
+    if (!token) return;
+
+    if (type === "report") {
+      setAnalyzingProjectId(project.id);
+    }
+    setError(null);
+
+    try {
+      const res = await fetch(`${API_URL}/projects/${project.id}/github-analysis/analyze?type=${type}`, {
         method: "POST",
         headers: {
           Authorization: `Bearer ${token}`
@@ -250,6 +303,7 @@ export default function RepoAnalysisPage() {
     if (!token) return;
 
     setReportTarget(project);
+    setActiveTab("summary");
     if (!options?.background) {
       setReportLoading(true);
       setReport(null);
@@ -301,7 +355,7 @@ export default function RepoAnalysisPage() {
   return (
     <main className="tf-page tf-dashboard-page">
       <div className="tf-dashboard">
-        <header className="mt-2 flex flex-wrap items-center justify-between gap-4 animate-stagger-fade-up">
+        <header className="relative z-20 mt-2 flex flex-wrap items-center justify-between gap-4 animate-stagger-fade-up">
           <div className="tf-section-header">
             <p className="tf-kicker">GitHub</p>
             <div className="mt-2">
@@ -339,7 +393,7 @@ export default function RepoAnalysisPage() {
         <div className="my-8" />
 
         {loading ? (
-          <div className="grid gap-4 xl:grid-cols-2">
+          <div className="relative z-0 grid gap-4 xl:grid-cols-2">
             {[0, 1].map((i) => (
               <div key={i} className="tf-premium-card flex h-full flex-col p-6" style={{ animationDelay: `${i * 150}ms` }}>
                 <div className="space-y-3 flex-1">
@@ -368,7 +422,7 @@ export default function RepoAnalysisPage() {
           </div>
         ) : (
           <>
-            <div className="grid gap-5 xl:grid-cols-2">
+            <div className="relative z-0 grid gap-5 xl:grid-cols-2">
               {paginatedProjects.map((project, index) => {
                 const status = project.githubRepoAnalysis?.status || "PENDING";
                 const statusStyles = statusMeta[status];
@@ -422,6 +476,21 @@ export default function RepoAnalysisPage() {
                         An error occurred, try again or switch to different model.
                       </div>
                     ) : null}
+
+                    <div className="mt-3 flex items-center gap-2">
+                      <select
+                        className="tf-input h-9 py-1 px-3 text-sm bg-secondary/15"
+                        value={project.aiModel}
+                        onChange={(event) => updateProjectAiModel(project.id, event.target.value)}
+                        disabled={loading || updatingAiModelProjectId === project.id || analyzingProjectId === project.id}
+                      >
+                        {availableAiModels.map((model) => (
+                          <option key={model.id} value={model.id}>
+                            {model.label}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
 
                     <div className="mt-4 flex flex-wrap items-center gap-2">
                       <button
@@ -500,6 +569,39 @@ export default function RepoAnalysisPage() {
               </button>
             </div>
 
+            <div className="flex gap-4 border-b border-border/40 px-6 pt-3">
+              <button
+                className={`pb-3 text-sm font-semibold transition-colors border-b-2 ${
+                  activeTab === "summary"
+                    ? "border-primary text-text-primary"
+                    : "border-transparent text-text-secondary hover:text-text-primary"
+                }`}
+                onClick={() => setActiveTab("summary")}
+              >
+                Summary
+              </button>
+              <button
+                className={`pb-3 text-sm font-semibold transition-colors border-b-2 ${
+                  activeTab === "graph"
+                    ? "border-primary text-text-primary"
+                    : "border-transparent text-text-secondary hover:text-text-primary"
+                }`}
+                onClick={() => setActiveTab("graph")}
+              >
+                File Graph
+              </button>
+              <button
+                className={`pb-3 text-sm font-semibold transition-colors border-b-2 ${
+                  activeTab === "system-design"
+                    ? "border-primary text-text-primary"
+                    : "border-transparent text-text-secondary hover:text-text-primary"
+                }`}
+                onClick={() => setActiveTab("system-design")}
+              >
+                System Design
+              </button>
+            </div>
+
             <div className="px-6 py-5 overflow-y-auto tf-scroll-rail space-y-4">
               {reportLoading ? (
                 <div className="space-y-4">
@@ -515,7 +617,7 @@ export default function RepoAnalysisPage() {
                   <p className="tf-empty-state-title">No analysis available yet</p>
                   <p className="tf-empty-state-desc">Run the first repo analysis to generate a report.</p>
                 </div>
-              ) : isAnalysisInFlight(report.analysis.status) ? (
+              ) : activeTab === "summary" && isAnalysisInFlight(report.analysis.status) ? (
                 <div className="tf-metric-card tf-accent-strip-warning">
                   <p className="tf-metric-label">
                     Status
@@ -535,7 +637,9 @@ export default function RepoAnalysisPage() {
                 </div>
               ) : (
                 <>
-                  <div className="rounded-xl border border-border/60 bg-secondary/10 px-5 py-4 animate-stagger-fade-up">
+                  {activeTab === "summary" ? (
+                    <>
+                      <div className="rounded-xl border border-border/60 bg-secondary/10 px-5 py-4 animate-stagger-fade-up">
                     <p className="tf-metric-label">
                       Summary
                     </p>
@@ -583,9 +687,93 @@ export default function RepoAnalysisPage() {
                     ) : null
                   )}
 
-                  {report.analysis.lastError ? (
-                    <div className="rounded-xl tf-danger-surface px-5 py-4 text-sm">
-                      An error occurred, try again or switch to different model.
+                  {activeTab === "summary" && report.analysis.lastError ? (
+                    <div className="rounded-xl tf-danger-surface px-5 py-4 text-sm whitespace-pre-wrap">
+                      {report.analysis.lastError}
+                    </div>
+                  ) : null}
+                  </>
+                ) : null}
+
+                  {activeTab === "graph" ? (
+                    <div className="animate-fade-up">
+                      {report.analysis.graphStatus === "UNINITIALIZED" || !report.analysis.graphStatus ? (
+                        <div className="tf-empty-state py-10">
+                          <p className="tf-empty-state-title">File Graph Not Generated</p>
+                          <p className="tf-empty-state-desc mb-4">Generate the file graph to view the repository structure.</p>
+                          <button
+                            type="button"
+                            className="tf-button px-4 py-2 text-sm"
+                            onClick={() => analyzeProject(reportTarget, "graph")}
+                            disabled={analyzingProjectId === reportTarget.id}
+                          >
+                            <LoadingButtonContent loading={analyzingProjectId === reportTarget.id} loadingLabel="Generating..." idleLabel="Generate File Graph" />
+                          </button>
+                        </div>
+                      ) : report.analysis.graphStatus === "PENDING" || report.analysis.graphStatus === "PROCESSING" ? (
+                         <div className="tf-metric-card tf-accent-strip-warning">
+                           <p className="tf-metric-label">Generating File Graph...</p>
+                           <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-secondary/40">
+                             <div className="h-full w-1/3 animate-pulse rounded-full bg-[hsl(var(--warning))]" />
+                           </div>
+                         </div>
+                      ) : report.analysis.graphStatus === "FAILED" ? (
+                        <div className="tf-empty-state py-10">
+                          <p className="tf-empty-state-title text-[hsl(var(--destructive))]">Generation Failed</p>
+                          <p className="tf-empty-state-desc mb-4">An error occurred while generating the file graph. Please try again.</p>
+                          <button
+                            type="button"
+                            className="tf-button px-4 py-2 text-sm"
+                            onClick={() => analyzeProject(reportTarget, "graph")}
+                            disabled={analyzingProjectId === reportTarget.id}
+                          >
+                            <LoadingButtonContent loading={analyzingProjectId === reportTarget.id} loadingLabel="Retrying..." idleLabel="Retry Generation" />
+                          </button>
+                        </div>
+                      ) : (
+                        <RepoGraphViewer folderTree={report.analysis.folderTree || []} />
+                      )}
+                    </div>
+                  ) : null}
+
+                  {activeTab === "system-design" ? (
+                    <div className="animate-fade-up">
+                      {report.analysis.systemDesignStatus === "UNINITIALIZED" || !report.analysis.systemDesignStatus ? (
+                        <div className="tf-empty-state py-10">
+                          <p className="tf-empty-state-title">System Design Not Generated</p>
+                          <p className="tf-empty-state-desc mb-4">Generate the system design using AI to view architecture components.</p>
+                          <button
+                            type="button"
+                            className="tf-button px-4 py-2 text-sm"
+                            onClick={() => analyzeProject(reportTarget, "system-design")}
+                            disabled={analyzingProjectId === reportTarget.id}
+                          >
+                            <LoadingButtonContent loading={analyzingProjectId === reportTarget.id} loadingLabel="Generating..." idleLabel="Generate System Design" />
+                          </button>
+                        </div>
+                      ) : report.analysis.systemDesignStatus === "PENDING" || report.analysis.systemDesignStatus === "PROCESSING" ? (
+                         <div className="tf-metric-card tf-accent-strip-warning">
+                           <p className="tf-metric-label">Generating System Design...</p>
+                           <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-secondary/40">
+                             <div className="h-full w-1/3 animate-pulse rounded-full bg-[hsl(var(--warning))]" />
+                           </div>
+                         </div>
+                      ) : report.analysis.systemDesignStatus === "FAILED" ? (
+                        <div className="tf-empty-state py-10">
+                          <p className="tf-empty-state-title text-[hsl(var(--destructive))]">Generation Failed</p>
+                          <p className="tf-empty-state-desc mb-4">An error occurred while generating the system design. Please try again.</p>
+                          <button
+                            type="button"
+                            className="tf-button px-4 py-2 text-sm"
+                            onClick={() => analyzeProject(reportTarget, "system-design")}
+                            disabled={analyzingProjectId === reportTarget.id}
+                          >
+                            <LoadingButtonContent loading={analyzingProjectId === reportTarget.id} loadingLabel="Retrying..." idleLabel="Retry Generation" />
+                          </button>
+                        </div>
+                      ) : (
+                        <SystemDesignViewer systemDesign={report.analysis.systemDesign || []} />
+                      )}
                     </div>
                   ) : null}
                 </>

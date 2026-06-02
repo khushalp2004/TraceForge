@@ -319,6 +319,7 @@ model ErrorAnalysis {
 }
 
 enum GithubRepoAnalysisStatus {
+  UNINITIALIZED
   PENDING
   PROCESSING
   READY
@@ -332,6 +333,8 @@ model GithubRepoAnalysis {
   repoName         String
   repoUrl          String?
   status           GithubRepoAnalysisStatus @default(PENDING)
+  graphStatus      GithubRepoAnalysisStatus @default(UNINITIALIZED)
+  systemDesignStatus GithubRepoAnalysisStatus @default(UNINITIALIZED)
   model            String?
   summary          String?
   architecture     String?
@@ -342,6 +345,8 @@ model GithubRepoAnalysis {
   entryPoints      Json?
   risks            Json?
   onboardingTips   Json?
+  folderTree       Json?
+  systemDesign     Json?
   lastError        String?
   generatedAt      DateTime?
   createdAt        DateTime                 @default(now())

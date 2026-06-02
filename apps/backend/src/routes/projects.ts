@@ -705,6 +705,8 @@ projectsRouter.get("/:id/github-analysis", async (req, res) => {
     analysis: project.githubRepoAnalysis
       ? {
           status: project.githubRepoAnalysis.status,
+          graphStatus: project.githubRepoAnalysis.graphStatus,
+          systemDesignStatus: project.githubRepoAnalysis.systemDesignStatus,
           model: project.githubRepoAnalysis.model,
           summary: project.githubRepoAnalysis.summary,
           architecture: project.githubRepoAnalysis.architecture,
@@ -715,6 +717,8 @@ projectsRouter.get("/:id/github-analysis", async (req, res) => {
           entryPoints: project.githubRepoAnalysis.entryPoints || [],
           risks: project.githubRepoAnalysis.risks || [],
           onboardingTips: project.githubRepoAnalysis.onboardingTips || [],
+          folderTree: project.githubRepoAnalysis.folderTree || [],
+          systemDesign: project.githubRepoAnalysis.systemDesign || [],
           lastError: project.githubRepoAnalysis.lastError,
           generatedAt: project.githubRepoAnalysis.generatedAt,
           updatedAt: project.githubRepoAnalysis.updatedAt
@@ -726,6 +730,11 @@ projectsRouter.get("/:id/github-analysis", async (req, res) => {
 projectsRouter.post("/:id/github-analysis/analyze", ...groqRequestRateLimits, async (req, res) => {
   const userId = req.user?.id;
   const projectId = req.params.id;
+  const analysisType = (req.query.type as string) || "report";
+
+  if (!["report", "graph", "system-design"].includes(analysisType)) {
+    return res.status(400).json({ error: "Invalid analysis type" });
+  }
 
   if (!userId) {
     return res.status(401).json({ error: "Unauthorized" });
@@ -793,7 +802,9 @@ projectsRouter.post("/:id/github-analysis/analyze", ...groqRequestRateLimits, as
       : "Monthly AI analysis limit reached for this account.";
   const now = new Date();
 
-  if (!proActive) {
+  const usageCost = analysisType === "graph" ? 0 : GITHUB_REPO_ANALYSIS_COST;
+
+  if (!proActive && usageCost > 0) {
     const used = await getEffectiveAiUsage({
       userId,
       organizationId,
@@ -801,27 +812,38 @@ projectsRouter.post("/:id/github-analysis/analyze", ...groqRequestRateLimits, as
       now
     });
 
-    if (used + GITHUB_REPO_ANALYSIS_COST > usageLimit) {
+    if (used + usageCost > usageLimit) {
       return res.status(402).json({ error: limitMessage });
     }
   }
 
+  const updateData: any = {
+    repoId: project.githubRepoId,
+    repoName: project.githubRepoName,
+    repoUrl: project.githubRepoUrl,
+    model: resolveAiModel(project.aiModel),
+    lastError: null
+  };
+
+  if (analysisType === "graph") {
+    updateData.graphStatus = "PENDING";
+  } else if (analysisType === "system-design") {
+    updateData.systemDesignStatus = "PENDING";
+  } else {
+    updateData.status = "PENDING";
+  }
+
   await prisma.githubRepoAnalysis.upsert({
     where: { projectId: project.id },
-    update: {
-      repoId: project.githubRepoId,
-      repoName: project.githubRepoName,
-      repoUrl: project.githubRepoUrl,
-      status: "PENDING",
-      model: resolveAiModel(project.aiModel),
-      lastError: null
-    },
+    update: updateData,
     create: {
       projectId: project.id,
-      repoId: project.githubRepoId,
-      repoName: project.githubRepoName,
+      repoId: project.githubRepoId!,
+      repoName: project.githubRepoName!,
       repoUrl: project.githubRepoUrl,
-      status: "PENDING",
+      status: analysisType === "report" ? "PENDING" : "UNINITIALIZED",
+      graphStatus: analysisType === "graph" ? "PENDING" : "UNINITIALIZED",
+      systemDesignStatus: analysisType === "system-design" ? "PENDING" : "UNINITIALIZED",
       model: GITHUB_REPO_ANALYSIS_MODEL
     }
   });
@@ -840,7 +862,8 @@ projectsRouter.post("/:id/github-analysis/analyze", ...groqRequestRateLimits, as
         requesterEmail: requester.email || null,
         chargeCredits: !proActive,
         incrementFreeEmailUsage: !teamActive && !devActive && Boolean(requester.email),
-        usageCost: GITHUB_REPO_ANALYSIS_COST,
+        usageCost: usageCost,
+        analysisType,
         enqueuedAt: new Date().toISOString()
       },
       {
@@ -857,9 +880,12 @@ projectsRouter.post("/:id/github-analysis/analyze", ...groqRequestRateLimits, as
     return res.status(202).json({
       ok: true,
       queued: true,
-      analysisCost: GITHUB_REPO_ANALYSIS_COST,
+      analysisCost: usageCost,
+      analysisType,
       analysis: {
-        status: "PENDING",
+        status: analysisType === "report" ? "PENDING" : "UNINITIALIZED",
+        graphStatus: analysisType === "graph" ? "PENDING" : "UNINITIALIZED",
+        systemDesignStatus: analysisType === "system-design" ? "PENDING" : "UNINITIALIZED",
         model: GITHUB_REPO_ANALYSIS_MODEL,
         summary: null,
         architecture: null,
@@ -870,25 +896,38 @@ projectsRouter.post("/:id/github-analysis/analyze", ...groqRequestRateLimits, as
         entryPoints: [],
         risks: [],
         onboardingTips: [],
+        folderTree: [],
+        systemDesign: [],
         lastError: null,
         generatedAt: null,
         updatedAt: new Date().toISOString()
       }
     });
   } catch (error) {
+    const errorUpdateData: any = {
+      model: resolveAiModel(project.aiModel),
+      lastError: error instanceof Error ? error.message : "Repo analysis failed"
+    };
+
+    if (analysisType === "graph") {
+      errorUpdateData.graphStatus = "FAILED";
+    } else if (analysisType === "system-design") {
+      errorUpdateData.systemDesignStatus = "FAILED";
+    } else {
+      errorUpdateData.status = "FAILED";
+    }
+
     await prisma.githubRepoAnalysis.upsert({
       where: { projectId: project.id },
-      update: {
-        status: "FAILED",
-        model: resolveAiModel(project.aiModel),
-        lastError: error instanceof Error ? error.message : "Repo analysis failed"
-      },
+      update: errorUpdateData,
       create: {
         projectId: project.id,
-        repoId: project.githubRepoId,
-        repoName: project.githubRepoName,
+        repoId: project.githubRepoId!,
+        repoName: project.githubRepoName!,
         repoUrl: project.githubRepoUrl,
-        status: "FAILED",
+        status: analysisType === "report" ? "FAILED" : "UNINITIALIZED",
+        graphStatus: analysisType === "graph" ? "FAILED" : "UNINITIALIZED",
+        systemDesignStatus: analysisType === "system-design" ? "FAILED" : "UNINITIALIZED",
         model: resolveAiModel(project.aiModel),
         lastError: error instanceof Error ? error.message : "Repo analysis failed"
       }

@@ -9,26 +9,48 @@ datasource db {
 }
 
 model User {
-  id                   String                 @id @default(cuid())
-  fullName             String?
-  address              String?
-  email                String                 @unique
-  passwordHash         String
-  plan                 BillingPlan            @default(FREE)
-  planInterval         PlanInterval?
-  subscriptionStatus   String?
-  planExpiresAt        DateTime?
-  createdAt            DateTime               @default(now())
-  projects             Project[]
-  alertRules           AlertRule[]
-  memberships          OrganizationMember[]
-  invitations          OrganizationInvite[]   @relation("Invitee")
-  auditEvents          OrgAuditLog[]          @relation("Actor")
-  resetTokens          PasswordResetToken[]
-  joinRequests         OrgJoinRequest[]       @relation("Requester")
-  resolvedJoinRequests OrgJoinRequest[]       @relation("Resolver")
-  aiUsageEntries       AiUsageEntry[]
+  id           String                 @id @default(cuid())
+  fullName     String?
+  address      String?
+  email        String                 @unique
+  passwordHash String
+  emailVerifiedAt DateTime?
+  disabledAt   DateTime?
+  disabledReason String?
+  createdAt    DateTime               @default(now())
+  plan         BillingPlan            @default(FREE)
+  planInterval PlanInterval?
+  proPricingTier ProPricingTier?
+  subscriptionStatus String?
+  planExpiresAt DateTime?
+  lastPaymentProvider String?
+  lastPaymentId String?
+  razorpaySubscriptionId String?
+  projects     Project[]
+  alertRules   AlertRule[]
+  memberships  OrganizationMember[]
+  invitations  OrganizationInvite[]   @relation("Invitee")
+  auditEvents  OrgAuditLog[]          @relation("Actor")
+  resetTokens  PasswordResetToken[]
+  verificationCodes EmailVerificationCode[]
+  joinRequests OrgJoinRequest[]       @relation("Requester")
+  resolvedJoinRequests OrgJoinRequest[] @relation("Resolver")
+  payments     Payment[]
+  notificationDismissals NotificationDismissal[]
   integrationConnections IntegrationConnection[]
+  aiUsageEntries AiUsageEntry[]
+}
+
+model MarketingSubscriber {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  sourcePath   String?
+  status       String   @default("SUBSCRIBED")
+  subscribedAt DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@index([status])
+  @@index([subscribedAt])
 }
 
 enum BillingPlan {
@@ -38,9 +60,58 @@ enum BillingPlan {
   TEAM
 }
 
+enum ProPricingTier {
+  LAUNCH
+  STANDARD
+}
+
 enum PlanInterval {
   MONTHLY
   YEARLY
+}
+
+model Payment {
+  id                String      @id @default(cuid())
+  userId            String
+  organizationId    String?
+  provider          String
+  plan              BillingPlan
+  interval          PlanInterval?
+  amount            Int
+  currency          String
+  status            String
+  razorpayOrderId   String?     @unique
+  razorpaySubscriptionId String?
+  razorpayPaymentId String?     @unique
+  capturedAt        DateTime?
+  expiresAt         DateTime?
+  payload           Json?
+  createdAt         DateTime    @default(now())
+  updatedAt         DateTime    @updatedAt
+
+  user User @relation(fields: [userId], references: [id])
+  organization Organization? @relation(fields: [organizationId], references: [id])
+
+  @@index([userId])
+  @@index([organizationId])
+  @@index([createdAt])
+  @@index([userId, createdAt])
+  @@index([organizationId, createdAt])
+  @@index([provider, status])
+}
+
+model EmailVerificationCode {
+  id        String   @id @default(cuid())
+  userId    String
+  codeHash  String
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@index([expiresAt])
 }
 
 model PasswordResetToken {
@@ -58,30 +129,34 @@ model PasswordResetToken {
 }
 
 model Organization {
-  id           String               @id @default(cuid())
-  name         String
-  createdAt    DateTime             @default(now())
-  plan         BillingPlan          @default(FREE)
+  id        String                 @id @default(cuid())
+  name      String
+  createdAt DateTime               @default(now())
+  plan      BillingPlan            @default(FREE)
   planInterval PlanInterval?
   subscriptionStatus String?
   planExpiresAt DateTime?
-  members      OrganizationMember[]
-  projects     Project[]
-  invites      OrganizationInvite[]
-  auditLogs    OrgAuditLog[]
+  lastPaymentProvider String?
+  lastPaymentId String?
+  razorpaySubscriptionId String?
+  members   OrganizationMember[]
+  projects  Project[]
+  invites   OrganizationInvite[]
+  auditLogs OrgAuditLog[]
   joinRequests OrgJoinRequest[]
-  aiUsageEntries AiUsageEntry[]
+  payments  Payment[]
   integrationConnections IntegrationConnection[]
+  aiUsageEntries AiUsageEntry[]
 
   @@index([createdAt])
 }
 
 model OrganizationMember {
-  id             String   @id @default(cuid())
+  id             String         @id @default(cuid())
   organizationId String
   userId         String
-  role           OrgRole  @default(MEMBER)
-  createdAt      DateTime @default(now())
+  role           OrgRole        @default(MEMBER)
+  createdAt      DateTime       @default(now())
 
   organization Organization @relation(fields: [organizationId], references: [id])
   user         User         @relation(fields: [userId], references: [id])
@@ -111,6 +186,7 @@ model OrganizationInvite {
 
   @@index([organizationId])
   @@index([expiresAt])
+  @@index([organizationId, expiresAt])
 }
 
 model OrgAuditLog {
@@ -135,13 +211,13 @@ enum JoinRequestStatus {
 }
 
 model OrgJoinRequest {
-  id             String            @id @default(cuid())
+  id             String             @id @default(cuid())
   organizationId String
   requesterId    String
   inviteToken    String?
-  role           OrgRole           @default(MEMBER)
-  status         JoinRequestStatus @default(PENDING)
-  createdAt      DateTime          @default(now())
+  role           OrgRole            @default(MEMBER)
+  status         JoinRequestStatus  @default(PENDING)
+  createdAt      DateTime           @default(now())
   resolvedAt     DateTime?
   resolvedById   String?
 
@@ -152,32 +228,33 @@ model OrgJoinRequest {
   @@index([organizationId])
   @@index([requesterId])
   @@index([status])
+  @@index([organizationId, status, createdAt])
 }
 
 model Project {
-  id              String          @id @default(cuid())
-  userId          String
-  orgId           String?
-  name            String
-  apiKey          String          @unique
-  apiKeyHash      String?         @unique
-  aiModel         String          @default("groq/compound")
-  githubRepoId    String?
-  githubRepoName  String?
-  githubRepoUrl   String?
-  createdAt       DateTime        @default(now())
-  archivedAt      DateTime?
-  configuredAt    DateTime?
+  id               String    @id @default(cuid())
+  userId           String
+  orgId            String?
+  name             String
+  apiKey           String    @unique
+  apiKeyHash       String?   @unique
+  aiModel          String    @default("groq/compound")
+  githubRepoId     String?
+  githubRepoName   String?
+  githubRepoUrl    String?
+  createdAt        DateTime  @default(now())
+  archivedAt       DateTime?
+  configuredAt     DateTime?
   lastConfiguredAt DateTime?
 
-  user            User            @relation(fields: [userId], references: [id])
-  org             Organization?   @relation(fields: [orgId], references: [id])
-  errors          Error[]
-  alertRules      AlertRule[]
+  user   User          @relation(fields: [userId], references: [id])
+  org    Organization? @relation(fields: [orgId], references: [id])
+  errors Error[]
+  alertRules AlertRule[]
   alertDeliveries AlertDelivery[]
-  releases        Release[]
+  releases Release[]
   githubRepoAnalysis GithubRepoAnalysis?
-  aiUsageEntries  AiUsageEntry[]
+  aiUsageEntries AiUsageEntry[]
 
   @@index([archivedAt])
   @@index([orgId])
@@ -186,24 +263,24 @@ model Project {
 }
 
 model Error {
-  id              String          @id @default(cuid())
-  projectId       String
-  message         String
-  stackTrace      String
-  hash            String
-  firstSeen       DateTime        @default(now())
-  lastSeen        DateTime        @default(now())
-  count           Int             @default(1)
-  archivedAt      DateTime?
-  aiStatus        ErrorAiStatus   @default(PENDING)
-  aiLastError     String?
-  aiRequestedAt   DateTime?
+  id         String   @id @default(cuid())
+  projectId  String
+  message    String
+  stackTrace String
+  hash       String
+  firstSeen  DateTime @default(now())
+  lastSeen   DateTime @default(now())
+  count      Int      @default(1)
+  archivedAt DateTime?
+  aiStatus   ErrorAiStatus @default(PENDING)
+  aiLastError String?
+  aiRequestedAt DateTime?
   aiRequestedByUserId String?
-  aiCompletedAt   DateTime?
+  aiCompletedAt DateTime?
 
-  project         Project         @relation(fields: [projectId], references: [id])
-  events          ErrorEvent[]
-  analysis        ErrorAnalysis?
+  project  Project       @relation(fields: [projectId], references: [id])
+  events   ErrorEvent[]
+  analysis ErrorAnalysis?
   alertDeliveries AlertDelivery[]
 
   @@unique([projectId, hash])
@@ -242,6 +319,7 @@ model ErrorAnalysis {
 }
 
 enum GithubRepoAnalysisStatus {
+  UNINITIALIZED
   PENDING
   PROCESSING
   READY
@@ -255,6 +333,8 @@ model GithubRepoAnalysis {
   repoName         String
   repoUrl          String?
   status           GithubRepoAnalysisStatus @default(PENDING)
+  graphStatus      GithubRepoAnalysisStatus @default(UNINITIALIZED)
+  systemDesignStatus GithubRepoAnalysisStatus @default(UNINITIALIZED)
   model            String?
   summary          String?
   architecture     String?
@@ -265,6 +345,8 @@ model GithubRepoAnalysis {
   entryPoints      Json?
   risks            Json?
   onboardingTips   Json?
+  folderTree       Json?
+  systemDesign     Json?
   lastError        String?
   generatedAt      DateTime?
   createdAt        DateTime                 @default(now())
@@ -274,41 +356,6 @@ model GithubRepoAnalysis {
 
   @@index([status])
   @@index([generatedAt])
-}
-
-model FreeAiEmailUsage {
-  id        String   @id @default(cuid())
-  email     String
-  monthKey  String
-  amount    Int      @default(0)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  @@unique([email, monthKey])
-  @@index([monthKey])
-}
-
-enum AiUsageKind {
-  GITHUB_REPO_ANALYSIS
-}
-
-model AiUsageEntry {
-  id             String      @id @default(cuid())
-  userId         String
-  organizationId String?
-  projectId      String?
-  kind           AiUsageKind
-  amount         Int
-  createdAt      DateTime    @default(now())
-
-  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
-  organization Organization? @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  project      Project?      @relation(fields: [projectId], references: [id], onDelete: SetNull)
-
-  @@index([userId, createdAt])
-  @@index([organizationId, createdAt])
-  @@index([projectId, createdAt])
-  @@index([kind, createdAt])
 }
 
 enum ErrorAiStatus {
@@ -328,9 +375,10 @@ enum AlertChannel {
   IN_APP
 }
 
-enum ReleaseSource {
-  MANUAL
-  INGEST
+enum NotificationDismissalKind {
+  ALERT
+  INVITE
+  JOIN_REQUEST
 }
 
 enum IntegrationProvider {
@@ -348,6 +396,15 @@ enum IntegrationScope {
 enum IntegrationStatus {
   CONNECTED
   ERROR
+}
+
+enum AiUsageKind {
+  GITHUB_REPO_ANALYSIS
+}
+
+enum ReleaseSource {
+  MANUAL
+  INGEST
 }
 
 model Release {
@@ -370,20 +427,21 @@ model Release {
 }
 
 model AlertRule {
-  id              String        @id @default(cuid())
-  userId          String
-  projectId       String?
-  name            String
-  environment     String?
-  severity        AlertSeverity @default(CRITICAL)
-  minOccurrences  Int           @default(1)
-  cooldownMinutes Int           @default(30)
-  channel         AlertChannel  @default(IN_APP)
-  isActive        Boolean       @default(true)
-  lastTriggeredAt DateTime?
-  createdAt       DateTime      @default(now())
-  updatedAt       DateTime      @updatedAt
-  archivedAt      DateTime?
+  id               String        @id @default(cuid())
+  userId           String
+  projectId        String?
+  name             String
+  issueDescription String?
+  environment      String?
+  severity         AlertSeverity @default(CRITICAL)
+  minOccurrences   Int           @default(1)
+  cooldownMinutes  Int           @default(30)
+  channel          AlertChannel  @default(IN_APP)
+  isActive         Boolean       @default(true)
+  lastTriggeredAt  DateTime?
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
+  archivedAt       DateTime?
 
   user       User            @relation(fields: [userId], references: [id])
   project    Project?        @relation(fields: [projectId], references: [id])
@@ -393,24 +451,61 @@ model AlertRule {
   @@index([userId])
   @@index([projectId])
   @@index([isActive])
+  @@index([userId, archivedAt, isActive])
+  @@index([projectId, archivedAt, isActive])
+}
+
+model AlertDelivery {
+  id           String      @id @default(cuid())
+  alertRuleId  String
+  projectId    String
+  errorId      String
+  environment  String?
+  message      String
+  triggeredAt  DateTime    @default(now())
+
+  alertRule AlertRule @relation(fields: [alertRuleId], references: [id], onDelete: Cascade)
+  project   Project   @relation(fields: [projectId], references: [id])
+  error     Error     @relation(fields: [errorId], references: [id])
+
+  @@index([alertRuleId])
+  @@index([projectId])
+  @@index([errorId])
+  @@index([triggeredAt])
+  @@index([projectId, triggeredAt])
+  @@index([errorId, triggeredAt])
+  @@index([alertRuleId, triggeredAt])
+}
+
+model NotificationDismissal {
+  id              String                    @id @default(cuid())
+  userId          String
+  kind            NotificationDismissalKind
+  notificationKey String
+  createdAt       DateTime                  @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, kind, notificationKey])
+  @@index([userId, kind])
 }
 
 model IntegrationConnection {
-  id                   String            @id @default(cuid())
-  provider             IntegrationProvider
-  scope                IntegrationScope
-  status               IntegrationStatus @default(CONNECTED)
-  userId               String?
-  organizationId       String?
-  externalAccountId    String?
-  externalAccountName  String?
+  id                  String              @id @default(cuid())
+  provider            IntegrationProvider
+  scope               IntegrationScope
+  status              IntegrationStatus   @default(CONNECTED)
+  userId              String?
+  organizationId      String?
+  externalAccountId   String?
+  externalAccountName String?
   accessTokenEncrypted String
   refreshTokenEncrypted String?
-  tokenExpiresAt       DateTime?
-  metadata             Json?
-  lastSyncedAt         DateTime?
-  createdAt            DateTime          @default(now())
-  updatedAt            DateTime          @updatedAt
+  tokenExpiresAt      DateTime?
+  metadata            Json?
+  lastSyncedAt        DateTime?
+  createdAt           DateTime            @default(now())
+  updatedAt           DateTime            @updatedAt
 
   user         User?         @relation(fields: [userId], references: [id], onDelete: Cascade)
   organization Organization? @relation(fields: [organizationId], references: [id], onDelete: Cascade)
@@ -424,21 +519,35 @@ model IntegrationConnection {
   @@index([provider, userId, status])
 }
 
-model AlertDelivery {
-  id          String    @id @default(cuid())
-  alertRuleId String
-  projectId   String
-  errorId     String
-  environment String?
-  message     String
-  triggeredAt DateTime  @default(now())
+model AiUsageEntry {
+  id             String      @id @default(cuid())
+  userId         String
+  organizationId String?
+  projectId      String?
+  kind           AiUsageKind
+  amount         Int
+  createdAt      DateTime    @default(now())
 
-  alertRule AlertRule @relation(fields: [alertRuleId], references: [id], onDelete: Cascade)
-  project   Project   @relation(fields: [projectId], references: [id])
-  error     Error     @relation(fields: [errorId], references: [id])
+  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  organization Organization? @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  project      Project?      @relation(fields: [projectId], references: [id], onDelete: SetNull)
 
-  @@index([alertRuleId])
-  @@index([projectId])
-  @@index([errorId])
-  @@index([triggeredAt])
+  @@index([userId, createdAt])
+  @@index([organizationId, createdAt])
+  @@index([projectId, createdAt])
+  @@index([kind, createdAt])
+  @@index([userId, kind, createdAt])
+  @@index([organizationId, kind, createdAt])
+}
+
+model FreeAiEmailUsage {
+  id        String   @id @default(cuid())
+  email     String
+  monthKey  String
+  amount    Int      @default(0)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([email, monthKey])
+  @@index([monthKey])
 }

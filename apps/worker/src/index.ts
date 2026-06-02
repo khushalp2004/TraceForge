@@ -3,7 +3,9 @@ import prisma from "./db/prisma.js";
 import { connectRedis, redis } from "./db/redis.js";
 import { generateExplanation } from "./services/groq.js";
 import {
-  GITHUB_REPO_ANALYSIS_MODEL,
+  GithubRepoAnalysisStatus
+} from "@prisma/client";
+import {
   runGithubRepoAnalysis
 } from "./services/githubRepoAnalysis.js";
 import {
@@ -75,6 +77,7 @@ type GithubAnalysisQueueJob = {
   usageCost?: number;
   attempt?: number;
   enqueuedAt?: string;
+  analysisType?: string;
 };
 
 const parseQueueJob = (value: string): AiQueueJob => {
@@ -109,7 +112,7 @@ const normalizeGithubAnalysisQueueJob = (
 ): Required<Pick<GithubAnalysisQueueJob, "projectId" | "userId" | "attempt" | "enqueuedAt">> &
   Pick<
     GithubAnalysisQueueJob,
-    "orgId" | "requesterEmail" | "chargeCredits" | "incrementFreeEmailUsage" | "usageCost"
+    "orgId" | "requesterEmail" | "chargeCredits" | "incrementFreeEmailUsage" | "usageCost" | "analysisType"
   > => ({
   projectId: job.projectId,
   userId: job.userId,
@@ -119,7 +122,8 @@ const normalizeGithubAnalysisQueueJob = (
   incrementFreeEmailUsage: Boolean(job.incrementFreeEmailUsage),
   usageCost: typeof job.usageCost === "number" && Number.isFinite(job.usageCost) ? job.usageCost : 0,
   attempt: typeof job.attempt === "number" && Number.isFinite(job.attempt) ? job.attempt : 1,
-  enqueuedAt: job.enqueuedAt || new Date().toISOString()
+  enqueuedAt: job.enqueuedAt || new Date().toISOString(),
+  analysisType: job.analysisType || "report"
 });
 const serializeGithubAnalysisQueueJob = (job: GithubAnalysisQueueJob) =>
   JSON.stringify(normalizeGithubAnalysisQueueJob(job));
@@ -272,7 +276,7 @@ const markGithubRepoAnalysisFailed = async (projectId: string, lastError: string
         repoId: "",
         repoName: "unknown",
         status: "FAILED",
-        model: GITHUB_REPO_ANALYSIS_MODEL,
+        model: "groq/compound-mini",
         lastError
       }
     })
@@ -537,70 +541,88 @@ const processGithubAnalysisJob = async (job: GithubAnalysisQueueJob) => {
     return;
   }
 
+  const updateData: any = {
+    repoId: project.githubRepoId,
+    repoName: project.githubRepoName,
+    repoUrl: project.githubRepoUrl,
+    model: project.aiModel || "groq/compound-mini",
+    lastError: null
+  };
+  
+  if (normalized.analysisType === "graph") {
+    updateData.graphStatus = "PROCESSING";
+  } else if (normalized.analysisType === "system-design") {
+    updateData.systemDesignStatus = "PROCESSING";
+  } else {
+    updateData.status = "PROCESSING";
+  }
+
   await prisma.githubRepoAnalysis.upsert({
     where: { projectId: normalized.projectId },
-    update: {
-      repoId: project.githubRepoId,
-      repoName: project.githubRepoName,
-      repoUrl: project.githubRepoUrl,
-      status: "PROCESSING",
-      model: GITHUB_REPO_ANALYSIS_MODEL,
-      lastError: null
-    },
+    update: updateData,
     create: {
       projectId: normalized.projectId,
-      repoId: project.githubRepoId,
-      repoName: project.githubRepoName,
+      repoId: project.githubRepoId!,
+      repoName: project.githubRepoName!,
       repoUrl: project.githubRepoUrl,
-      status: "PROCESSING",
-      model: GITHUB_REPO_ANALYSIS_MODEL
+      status: normalized.analysisType === "report" ? "PROCESSING" : "UNINITIALIZED",
+      graphStatus: normalized.analysisType === "graph" ? "PROCESSING" : "UNINITIALIZED",
+      systemDesignStatus: normalized.analysisType === "system-design" ? "PROCESSING" : "UNINITIALIZED",
+      model: project.aiModel || "groq/compound-mini"
     }
   });
 
-  const report = await runGithubRepoAnalysis({
+  const { report, tree } = await runGithubRepoAnalysis({
     accessTokenEncrypted: connection.accessTokenEncrypted,
-    repoFullName: project.githubRepoName
+    repoFullName: project.githubRepoName,
+    analysisType: normalized.analysisType,
+    aiModel: project.aiModel || "groq/compound-mini"
   });
 
   const now = new Date();
 
+  const readyUpdateData: any = {
+    repoId: project.githubRepoId!,
+    repoName: project.githubRepoName!,
+    repoUrl: project.githubRepoUrl,
+    model: project.aiModel || "groq/compound-mini",
+    lastError: null,
+    generatedAt: now
+  };
+
+  if (normalized.analysisType === "graph") {
+    readyUpdateData.graphStatus = "READY";
+    readyUpdateData.folderTree = tree as any;
+  } else if (normalized.analysisType === "system-design") {
+    readyUpdateData.systemDesignStatus = "READY";
+    readyUpdateData.systemDesign = report?.systemDesign as any || [];
+  } else {
+    readyUpdateData.status = "READY";
+    readyUpdateData.summary = report?.summary;
+    readyUpdateData.architecture = report?.architecture;
+    readyUpdateData.runtimeFlow = report?.runtimeFlow;
+    readyUpdateData.developmentFlow = report?.developmentFlow;
+    readyUpdateData.techStack = report?.techStack;
+    readyUpdateData.keyModules = report?.keyModules;
+    readyUpdateData.entryPoints = report?.entryPoints;
+    readyUpdateData.risks = report?.risks;
+    readyUpdateData.onboardingTips = report?.onboardingTips;
+  }
+
   await prisma.$transaction(async (tx) => {
     await tx.githubRepoAnalysis.upsert({
       where: { projectId: normalized.projectId },
-      update: {
-        repoId: project.githubRepoId!,
-        repoName: project.githubRepoName!,
-        repoUrl: project.githubRepoUrl,
-        status: "READY",
-        model: GITHUB_REPO_ANALYSIS_MODEL,
-        summary: report.summary,
-        architecture: report.architecture,
-        runtimeFlow: report.runtimeFlow,
-        developmentFlow: report.developmentFlow,
-        techStack: report.techStack,
-        keyModules: report.keyModules,
-        entryPoints: report.entryPoints,
-        risks: report.risks,
-        onboardingTips: report.onboardingTips,
-        lastError: null,
-        generatedAt: now
-      },
+      update: readyUpdateData,
       create: {
         projectId: normalized.projectId,
         repoId: project.githubRepoId!,
         repoName: project.githubRepoName!,
         repoUrl: project.githubRepoUrl,
-        status: "READY",
-        model: GITHUB_REPO_ANALYSIS_MODEL,
-        summary: report.summary,
-        architecture: report.architecture,
-        runtimeFlow: report.runtimeFlow,
-        developmentFlow: report.developmentFlow,
-        techStack: report.techStack,
-        keyModules: report.keyModules,
-        entryPoints: report.entryPoints,
-        risks: report.risks,
-        onboardingTips: report.onboardingTips,
+        status: normalized.analysisType === "report" ? "READY" : "UNINITIALIZED",
+        graphStatus: normalized.analysisType === "graph" ? "READY" : "UNINITIALIZED",
+        systemDesignStatus: normalized.analysisType === "system-design" ? "READY" : "UNINITIALIZED",
+        model: project.aiModel || "groq/compound-mini",
+        ...readyUpdateData,
         generatedAt: now
       }
     });
@@ -770,7 +792,7 @@ const handleFailedGithubAnalysisJob = async (
         repoId: "",
         repoName: "unknown",
         status: "PENDING",
-        model: GITHUB_REPO_ANALYSIS_MODEL
+        model: "groq/compound-mini"
       }
     })
     .catch(() => undefined);
@@ -1219,7 +1241,7 @@ const start = async () => {
             repoId: "",
             repoName: "unknown",
             status: "PENDING",
-            model: GITHUB_REPO_ANALYSIS_MODEL
+            model: "groq/compound-mini"
           }
         })
         .catch(() => undefined);
