@@ -286,6 +286,7 @@ export function PricingPlans() {
     { label: "Unlimited organizations", included: true },
     { label: "No limit to add member by you", included: true },
     { label: "Works in every org", included: true },
+    { label: "Slack & Jira integrations", included: true },
     { label: "Launch pricing", included: true }
   ];
 
@@ -296,6 +297,7 @@ export function PricingPlans() {
     { label: "Repo analysis from team quota", included: true },
     { label: "No limit to add member", included: true },
     { label: "Shared workflows", included: true },
+    { label: "Slack & Jira integrations", included: true },
     { label: "Unlimited organizations", included: false },
     { label: "Unlimited personal AI", included: false }
   ];
