@@ -85,7 +85,7 @@ export function PageDescriptionPopover({ children }: { children: ReactNode }) {
                animate={{ opacity: 1, y: 0, scale: 1 }}
                exit={{ opacity: 0, y: 5, scale: 0.95 }}
                transition={{ duration: 0.15, ease: "easeOut" }}
-               className="hidden sm:block absolute left-full ml-2 top-1/2 -translate-y-1/2 z-[100] w-[280px] p-4 bg-card/95 backdrop-blur-xl border border-border shadow-[0_8px_30px_rgb(0,0,0,0.12)] rounded-2xl text-[13px] leading-relaxed text-text-secondary font-normal"
+               className="hidden sm:block absolute left-full ml-2 top-1/2 -translate-y-1/2 z-[100] w-[280px] p-4 bg-card/95 backdrop-blur-xl border border-border shadow-[0_8px_30px_rgb(0,0,0,0.12)] rounded-2xl text-[13px] leading-relaxed text-text-secondary font-normal whitespace-normal font-sans tracking-normal"
              >
                <div className="flex justify-between items-start gap-3">
                   <div className="flex-1">{children}</div>
@@ -107,7 +107,7 @@ export function PageDescriptionPopover({ children }: { children: ReactNode }) {
                    animate={{ opacity: 1, scale: 1 }}
                    exit={{ opacity: 0, scale: 0.95 }}
                    transition={{ duration: 0.2, ease: "easeOut" }}
-                   className="relative w-full max-w-sm p-5 bg-card/95 backdrop-blur-xl border border-border shadow-2xl rounded-2xl text-[13px] leading-relaxed text-text-primary font-medium"
+                   className="relative w-full max-w-sm max-h-[85vh] overflow-y-auto p-5 bg-card/95 backdrop-blur-xl border border-border shadow-2xl rounded-2xl text-[13px] leading-relaxed text-text-primary font-medium whitespace-normal font-sans tracking-normal"
                  >
                    <div className="flex justify-between items-start gap-3">
                       <div className="flex-1">{children}</div>

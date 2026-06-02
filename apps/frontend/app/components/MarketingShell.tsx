@@ -1,6 +1,6 @@
 "use client";
 
-import { Mail, Sparkles, ArrowRight, Twitter, Github, Linkedin } from "lucide-react";
+import { Mail, Sparkles, ArrowRight, Github, Linkedin } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
@@ -230,11 +230,7 @@ export default function MarketingShell({
               </p>
               
               <div className="flex items-center gap-4 text-text-secondary">
-                <a href="https://twitter.com/traceforge" target="_blank" rel="noreferrer" className="transition-colors hover:text-text-primary">
-                  <span className="sr-only">Twitter</span>
-                  <Twitter className="h-4 w-4" />
-                </a>
-                <a href="https://github.com/traceforge" target="_blank" rel="noreferrer" className="transition-colors hover:text-text-primary">
+                <a href="https://github.com/khushalp2004/TraceForge" target="_blank" rel="noreferrer" className="transition-colors hover:text-text-primary">
                   <span className="sr-only">GitHub</span>
                   <Github className="h-4 w-4" />
                 </a>

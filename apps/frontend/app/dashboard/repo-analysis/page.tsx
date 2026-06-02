@@ -552,8 +552,8 @@ export default function RepoAnalysisPage() {
       </div>
 
       {reportTarget ? (
-        <div className="fixed inset-0 z-[100] flex items-start justify-center bg-black/50 px-4 sm:px-8 pt-[120px] pb-12 backdrop-blur-sm animate-fade-up" style={{ animationDuration: "300ms" }}>
-          <div className="tf-glass-modal w-full max-w-3xl my-auto max-h-[calc(100vh-140px)] rounded-xl flex flex-col shadow-2xl overflow-hidden">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 p-4 pt-20 pb-24 sm:p-8 sm:pt-[72px] sm:pb-8 backdrop-blur-sm animate-fade-up" style={{ animationDuration: "300ms" }}>
+          <div className="tf-glass-modal w-full max-w-3xl max-h-full rounded-xl flex flex-col shadow-2xl overflow-hidden">
             <div className="flex items-center justify-between px-6 py-4 border-b border-border/40 shrink-0">
               <div className="flex items-center gap-3">
                 <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-[hsl(var(--accent-soft))] text-[hsl(var(--primary))]">
