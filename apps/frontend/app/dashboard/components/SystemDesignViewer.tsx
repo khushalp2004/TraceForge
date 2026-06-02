@@ -162,7 +162,24 @@ export function SystemDesignViewer({ systemDesign }: { systemDesign: SystemDesig
   }
 
   return (
-    <div style={{ height: "650px", width: "100%", borderRadius: "12px", overflow: "hidden", border: "1px solid hsl(var(--border))" }}>
+    <div style={{ height: "calc(100vh - 280px)", minHeight: "400px", width: "100%", borderRadius: "12px", overflow: "hidden", border: "1px solid hsl(var(--border))" }}>
+      <style>{`
+        .react-flow__controls-button {
+          background-color: hsl(var(--card)) !important;
+          border-color: hsl(var(--border)) !important;
+          color: hsl(var(--text-primary)) !important;
+          border-bottom: 1px solid hsl(var(--border)) !important;
+        }
+        .react-flow__controls-button:hover {
+          background-color: hsl(var(--secondary)) !important;
+        }
+        .react-flow__controls-button svg {
+          fill: currentColor !important;
+        }
+        .react-flow__attribution {
+          display: none !important;
+        }
+      `}</style>
       <ReactFlow
         nodes={nodes}
         edges={edges}
@@ -170,11 +187,18 @@ export function SystemDesignViewer({ systemDesign }: { systemDesign: SystemDesig
         onNodesChange={onNodesChange}
         onEdgesChange={onEdgesChange}
         fitView
+        minZoom={0.01}
         attributionPosition="bottom-right"
       >
         <Background gap={16} size={1} color="hsl(var(--border))" />
         <Controls />
-        <MiniMap zoomable pannable nodeColor={(node) => node.data.color as string || "#ccc"} />
+        <MiniMap 
+          zoomable 
+          pannable 
+          style={{ backgroundColor: 'hsl(var(--card))', border: '1px solid hsl(var(--border))' }}
+          maskColor="hsl(var(--background))"
+          nodeColor={(node) => (node.data.color as string) || "hsl(var(--secondary))"} 
+        />
       </ReactFlow>
     </div>
   );
