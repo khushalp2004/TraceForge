@@ -1231,7 +1231,7 @@ export default function AdminDashboardPage() {
       ) : null}
 
       {detailTarget ? (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 px-4">
           <div className="w-full max-w-4xl max-h-[85vh] overflow-y-auto rounded-xl border border-border bg-card shadow-xl flex flex-col">
             <div className="flex items-center justify-between p-4 border-b border-border/50 shrink-0">
               <div>
@@ -1339,7 +1339,7 @@ export default function AdminDashboardPage() {
       ) : null}
 
       {suspensionTarget ? (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 px-4">
           <div className="w-full max-w-lg rounded-xl border border-border bg-card shadow-xl flex flex-col overflow-hidden">
             <div className="flex items-center justify-between p-4 border-b border-border/50">
               <h3 className="text-sm font-semibold text-text-primary">
@@ -1398,7 +1398,7 @@ export default function AdminDashboardPage() {
       ) : null}
 
       {deleteTarget ? (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 px-4">
           <div className="w-full max-w-lg rounded-xl border border-border bg-card shadow-xl flex flex-col overflow-hidden">
             <div className="flex items-center justify-between p-4 border-b border-border/50">
               <h3 className="text-sm font-semibold text-text-primary">Delete User</h3>

@@ -269,7 +269,7 @@ export default function DashboardTopNav() {
             </Link>
           </div>
 
-          <nav className="flex flex-1 min-w-0 items-center justify-center gap-1 px-4 lg:px-8">
+          <nav className="flex flex-1 items-center justify-center gap-1 px-2 lg:px-4 xl:px-6">
             {primaryItems.map((item) => {
               const active = isActiveRoute(pathname, item.href);
               return (
@@ -277,13 +277,13 @@ export default function DashboardTopNav() {
                   key={item.href}
                   href={item.href}
                   title={item.label}
-                  className={`inline-flex h-10 shrink items-center justify-center rounded-full px-3 xl:px-4 text-sm font-semibold transition min-w-0 max-w-[90px] md:max-w-[110px] lg:max-w-[120px] xl:max-w-none ${
+                  className={`inline-flex h-10 shrink-0 items-center justify-center rounded-full px-2.5 lg:px-3 xl:px-4 text-[13px] xl:text-sm font-semibold transition ${
                     active
                       ? "bg-accent-soft text-text-primary"
                       : "text-text-secondary hover:bg-secondary/70 hover:text-text-primary"
                   }`}
                 >
-                  <span className="truncate block w-full text-center">{item.label}</span>
+                  <span className="whitespace-nowrap">{item.label}</span>
                 </Link>
               );
             })}

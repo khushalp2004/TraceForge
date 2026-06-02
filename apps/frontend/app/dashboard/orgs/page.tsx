@@ -432,7 +432,7 @@ export default function OrgsPage() {
       </div>
 
       {renameTarget && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4 backdrop-blur-sm animate-fade-up" style={{ animationDuration: "300ms" }}>
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 px-4">
           <div className="rounded-xl border border-border bg-card shadow-xl w-full max-w-lg flex flex-col overflow-hidden">
             <div className="flex items-center justify-between px-6 py-4 border-b border-border/40">
               <h3 className="text-sm font-semibold text-text-primary">Rename Organization</h3>
@@ -482,7 +482,7 @@ export default function OrgsPage() {
       )}
 
       {deleteTarget && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4 backdrop-blur-sm animate-fade-up" style={{ animationDuration: "300ms" }}>
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 px-4">
           <div className="rounded-xl border border-border bg-card shadow-xl w-full max-w-lg flex flex-col overflow-hidden">
             <div className="flex items-center justify-between px-6 py-4 border-b border-border/40">
               <h3 className="text-sm font-semibold text-text-primary">Delete Organization</h3>
@@ -526,7 +526,7 @@ export default function OrgsPage() {
       )}
 
       {showCreateModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4 backdrop-blur-sm animate-fade-up" style={{ animationDuration: "300ms" }}>
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 px-4">
           <div className="rounded-xl border border-border bg-card shadow-xl w-full max-w-lg max-h-[calc(100dvh-env(safe-area-inset-top)-env(safe-area-inset-bottom)-8rem)] sm:max-h-[90vh] flex flex-col overflow-hidden">
             <div className="flex items-center justify-between px-6 py-4 border-b border-border/40 shrink-0">
               <h3 className="text-sm font-semibold text-text-primary">Create Organization</h3>
@@ -581,7 +581,7 @@ export default function OrgsPage() {
         </div>
       )}
       {selectedOrgIds.size > 0 && (
-        <div className="fixed bottom-24 md:bottom-6 left-1/2 -translate-x-1/2 z-[60] flex w-max max-w-[95vw] items-center gap-2 sm:gap-4 rounded-full border border-border/60 bg-card/92 px-3 py-2 sm:px-5 sm:py-3 shadow-lifted backdrop-blur-xl animate-fade-up">
+        <div className="fixed bottom-24 md:bottom-6 left-1/2 -translate-x-1/2 z-[60] flex w-max max-w-[95vw] items-center gap-2 sm:gap-4 rounded-full border border-border/80 bg-card/95 px-3 py-2 sm:px-4 sm:py-3 shadow-lg backdrop-blur-md">
           <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
             <span className="flex h-5 w-5 sm:h-6 sm:w-6 items-center justify-center rounded-full bg-primary/20 text-[10px] sm:text-xs font-bold text-primary">
               {selectedOrgIds.size}
@@ -608,7 +608,7 @@ export default function OrgsPage() {
       )}
 
       {showBulkDeleteModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4 backdrop-blur-sm animate-fade-up" style={{ animationDuration: "300ms" }}>
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 px-4">
           <div className="rounded-xl border border-border bg-card shadow-xl w-full max-w-lg flex flex-col overflow-hidden">
             <div className="flex items-center justify-between px-6 py-4 border-b border-border/40">
               <h3 className="text-sm font-semibold text-text-primary">Delete Organizations</h3>

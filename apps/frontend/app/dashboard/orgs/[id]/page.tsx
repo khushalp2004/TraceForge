@@ -613,7 +613,7 @@ function OrganizationDetailPageInner({ params }: { params: { id: string } }) {
         )}
 
       {showInviteModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/40 px-4 backdrop-blur-sm transition-all">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-background/40 px-4 backdrop-blur-sm transition-all">
           <div className="w-full max-w-lg max-h-[calc(100dvh-env(safe-area-inset-top)-env(safe-area-inset-bottom)-8rem)] sm:max-h-[90vh] rounded-[32px] border border-border/50 bg-card/95 shadow-2xl flex flex-col overflow-hidden backdrop-blur-xl">
             <div className="flex items-center justify-between p-5 border-b border-border/40 shrink-0">
               <h3 className="text-[15px] font-semibold text-text-primary">Generate Invite Link</h3>

@@ -666,7 +666,7 @@ export default function AccountDetailsPage() {
       </div>
 
       {showLeaveConfirm && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 px-4">
           <div className="w-full max-w-lg rounded-xl border border-border bg-card shadow-xl flex flex-col overflow-hidden">
             <div className="flex items-center justify-between p-4 border-b border-border/50">
               <h3 className="text-sm font-semibold text-text-primary">Leave Organizations</h3>
@@ -731,7 +731,7 @@ export default function AccountDetailsPage() {
       )}
 
       {showDeleteConfirm && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 px-4">
           <div className="w-full max-w-lg rounded-xl border border-border bg-card shadow-xl flex flex-col overflow-hidden">
             <div className="flex items-center justify-between p-4 border-b border-border/50">
               <h3 className="text-sm font-semibold text-text-primary">Delete Account</h3>
@@ -766,7 +766,7 @@ export default function AccountDetailsPage() {
       )}
 
       {showProDeleteConfirm && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 px-4">
           <div className="w-full max-w-lg rounded-xl border border-border bg-card shadow-xl flex flex-col overflow-hidden">
             <div className="flex items-center justify-between p-4 border-b border-border/50">
               <h3 className="text-sm font-semibold text-text-primary">Delete Pro Account</h3>

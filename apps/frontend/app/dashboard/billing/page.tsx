@@ -980,7 +980,7 @@ export default function BillingPage() {
       </div>
 
       {cancelTarget ? (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 px-4">
           <div className="w-full max-w-lg rounded-2xl border border-border bg-card/90 backdrop-blur-xl shadow-xl flex flex-col overflow-hidden">
             <div className="flex items-center justify-between p-4 border-b border-border/50">
               <h3 className="text-sm font-semibold text-text-primary">Cancel subscription</h3>

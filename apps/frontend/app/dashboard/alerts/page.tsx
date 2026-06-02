@@ -1201,7 +1201,7 @@ function AlertsPageInner() {
       </div>
 
       {appModalRule && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 px-4">
           <div className="w-full max-w-lg max-h-[70vh] sm:max-h-[90vh] rounded-xl border border-border bg-card shadow-xl flex flex-col overflow-hidden">
             <div className="flex items-center justify-between p-4 border-b border-border/50 shrink-0">
               <h3 className="text-sm font-semibold text-text-primary">Send alert</h3>
@@ -1316,7 +1316,7 @@ function AlertsPageInner() {
       )}
 
       {archiveTarget && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 px-4">
           <div className="w-full max-w-lg rounded-xl border border-border bg-card shadow-xl flex flex-col overflow-hidden">
             <div className="flex items-center justify-between p-4 border-b border-border/50">
               <h3 className="text-sm font-semibold text-text-primary">Archive Alert</h3>
@@ -1352,7 +1352,7 @@ function AlertsPageInner() {
       )}
 
       {deleteTarget && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 px-4">
           <div className="w-full max-w-lg rounded-xl border border-border bg-card shadow-xl flex flex-col overflow-hidden">
             <div className="flex items-center justify-between p-4 border-b border-border/50">
               <h3 className="text-sm font-semibold text-text-primary">Delete Alert</h3>
@@ -1388,7 +1388,7 @@ function AlertsPageInner() {
       )}
 
       {showCreateModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 px-4">
           <div className="w-full max-w-lg max-h-[70vh] sm:max-h-[90vh] rounded-xl border border-border bg-card shadow-xl flex flex-col overflow-hidden">
             <div className="flex items-center justify-between p-4 border-b border-border/50 shrink-0">
               <h3 className="text-sm font-semibold text-text-primary">Create alert rule</h3>

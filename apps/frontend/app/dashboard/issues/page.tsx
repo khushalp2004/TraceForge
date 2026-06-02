@@ -1230,8 +1230,8 @@ function IssuesPageInner() {
       </div>
 
       {archiveTarget && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4 py-[100px] sm:p-8">
-          <div className="w-full max-w-lg rounded-xl border border-border bg-card shadow-xl flex flex-col overflow-hidden">
+        <div className="fixed inset-0 z-[100] flex items-start justify-center bg-black/40 px-4 sm:px-8 pt-[120px] pb-12">
+          <div className="w-full max-w-lg my-auto max-h-[calc(100vh-140px)] rounded-xl border border-border bg-card shadow-xl flex flex-col overflow-hidden">
             <div className="flex items-center justify-between p-4 border-b border-border/50">
               <h3 className="text-sm font-semibold text-text-primary">Archive Issue</h3>
               <button onClick={() => setArchiveTarget(null)} className="text-text-secondary hover:text-text-primary transition-colors">
@@ -1239,7 +1239,7 @@ function IssuesPageInner() {
               </button>
             </div>
             
-            <div className="p-6">
+            <div className="flex-1 min-h-0 p-6 overflow-y-auto">
                <h4 className="text-lg sm:text-xl font-bold text-text-primary mb-2">Are you sure you want to archive this issue?</h4>
                <p className="text-sm text-text-secondary">Archived issues are hidden from your primary inbox but remain accessible for historical reference and audit.</p>
             </div>
@@ -1265,8 +1265,8 @@ function IssuesPageInner() {
       )}
 
       {deleteTarget && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4 py-[100px] sm:p-8">
-          <div className="w-full max-w-lg rounded-xl border border-border bg-card shadow-xl flex flex-col overflow-hidden">
+        <div className="fixed inset-0 z-[100] flex items-start justify-center bg-black/40 px-4 sm:px-8 pt-[120px] pb-12">
+          <div className="w-full max-w-lg my-auto max-h-[calc(100vh-140px)] rounded-xl border border-border bg-card shadow-xl flex flex-col overflow-hidden">
             <div className="flex items-center justify-between p-4 border-b border-border/50">
               <h3 className="text-sm font-semibold text-text-primary">Delete Issue</h3>
               <button onClick={() => setDeleteTarget(null)} className="text-text-secondary hover:text-text-primary transition-colors">
@@ -1274,7 +1274,7 @@ function IssuesPageInner() {
               </button>
             </div>
             
-            <div className="p-6">
+            <div className="flex-1 min-h-0 p-6 overflow-y-auto">
                <h4 className="text-lg sm:text-xl font-bold text-text-primary mb-2">Are you sure you want to delete this issue?</h4>
                <p className="text-sm text-text-secondary">This action is permanent and cannot be undone.</p>
             </div>
@@ -1300,8 +1300,8 @@ function IssuesPageInner() {
       )}
 
       {showCreateModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4 py-[100px] sm:p-8">
-          <div className="w-full max-w-lg max-h-full rounded-xl border border-border bg-card shadow-xl flex flex-col overflow-hidden">
+        <div className="fixed inset-0 z-[100] flex items-start justify-center bg-black/40 px-4 sm:px-8 pt-[120px] pb-12">
+          <div className="w-full max-w-lg my-auto max-h-[calc(100vh-140px)] rounded-xl border border-border bg-card shadow-xl flex flex-col overflow-hidden">
             <div className="flex items-center justify-between p-4 border-b border-border/50 shrink-0">
               <h3 className="text-sm font-semibold text-text-primary">Create Project</h3>
               <button onClick={() => {
@@ -1412,8 +1412,8 @@ function IssuesPageInner() {
       )}
 
       {githubIssueTarget && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4 py-[100px] sm:p-8">
-          <div className="w-full max-w-lg max-h-full rounded-xl border border-border bg-card shadow-xl flex flex-col overflow-hidden">
+        <div className="fixed inset-0 z-[100] flex items-start justify-center bg-black/40 px-4 sm:px-8 pt-[120px] pb-12">
+          <div className="w-full max-w-lg my-auto max-h-[calc(100vh-140px)] rounded-xl border border-border bg-card shadow-xl flex flex-col overflow-hidden">
             <div className="flex items-center justify-between p-4 border-b border-border/50 shrink-0">
               <h3 className="text-sm font-semibold text-text-primary">Create GitHub issue</h3>
               <button onClick={() => setGithubIssueTarget(null)} className="text-text-secondary hover:text-text-primary transition-colors">
@@ -1421,7 +1421,7 @@ function IssuesPageInner() {
               </button>
             </div>
 
-            <div className="p-6 overflow-y-auto">
+            <div className="flex-1 min-h-0 p-6 overflow-y-auto">
                <p className="text-sm text-text-secondary mb-6">Send this TraceForge issue to one of your selected repositories without leaving the dashboard.</p>
                
                <div className="space-y-5">

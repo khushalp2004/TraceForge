@@ -477,9 +477,12 @@ export default function RepoAnalysisPage() {
                       </div>
                     ) : null}
 
-                    <div className="mt-3 flex items-center gap-2">
+                    <div className="mt-4 flex flex-col gap-1.5 w-full max-w-sm">
+                      <label className="text-[11px] font-semibold uppercase tracking-wider text-text-secondary">
+                        AI Model
+                      </label>
                       <select
-                        className="tf-input h-9 py-1 px-3 text-sm bg-secondary/15"
+                        className="tf-input w-full bg-card"
                         value={project.aiModel}
                         onChange={(event) => updateProjectAiModel(project.id, event.target.value)}
                         disabled={loading || updatingAiModelProjectId === project.id || analyzingProjectId === project.id}
@@ -549,8 +552,8 @@ export default function RepoAnalysisPage() {
       </div>
 
       {reportTarget ? (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4 backdrop-blur-sm animate-fade-up" style={{ animationDuration: "300ms" }}>
-          <div className="tf-glass-modal w-full max-w-3xl max-h-[70vh] sm:max-h-[90vh] flex flex-col overflow-hidden">
+        <div className="fixed inset-0 z-[100] flex items-start justify-center bg-black/50 px-4 sm:px-8 pt-[120px] pb-12 backdrop-blur-sm animate-fade-up" style={{ animationDuration: "300ms" }}>
+          <div className="tf-glass-modal w-full max-w-3xl my-auto max-h-[calc(100vh-140px)] rounded-xl flex flex-col shadow-2xl overflow-hidden">
             <div className="flex items-center justify-between px-6 py-4 border-b border-border/40 shrink-0">
               <div className="flex items-center gap-3">
                 <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-[hsl(var(--accent-soft))] text-[hsl(var(--primary))]">
@@ -602,7 +605,7 @@ export default function RepoAnalysisPage() {
               </button>
             </div>
 
-            <div className="px-6 py-5 overflow-y-auto tf-scroll-rail space-y-4">
+            <div className="flex-1 min-h-0 px-6 py-5 overflow-y-auto tf-scroll-rail space-y-4">
               {reportLoading ? (
                 <div className="space-y-4">
                   {[0, 1, 2].map((i) => (
