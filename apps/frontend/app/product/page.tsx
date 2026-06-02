@@ -249,7 +249,7 @@ export default function ProductPage() {
             </div>
 
             {/* High-End Animated Beam Diagram */}
-            <div className="relative h-[400px] w-full flex items-center justify-center max-w-4xl mx-auto z-10">
+            <div className="relative h-[250px] sm:h-[400px] w-full flex items-center justify-center max-w-4xl mx-auto z-10">
 
               {/* Background Glows */}
               <div className="absolute left-[15%] top-1/2 -translate-y-1/2 w-32 h-32 bg-destructive/20 blur-[60px] rounded-full" />
@@ -264,7 +264,7 @@ export default function ProductPage() {
                 <motion.circle
                   r="6"
                   fill="rgb(var(--destructive))"
-                  className="filter drop-shadow-[0_0_8px_rgba(var(--destructive),1)] opacity-0 group-hover:opacity-100"
+                  className="filter drop-shadow-[0_0_8px_rgba(var(--destructive),1)] opacity-100 lg:opacity-0 lg:group-hover:opacity-100"
                   animate={{
                     cx: [250, 450],
                     cy: [200, 200],
@@ -282,7 +282,7 @@ export default function ProductPage() {
                 <motion.circle
                   r="6"
                   fill="rgb(var(--success))"
-                  className="filter drop-shadow-[0_0_8px_rgba(var(--success),1)] opacity-0 group-hover:opacity-100"
+                  className="filter drop-shadow-[0_0_8px_rgba(var(--success),1)] opacity-100 lg:opacity-0 lg:group-hover:opacity-100"
                   animate={{
                     cx: [550, 750],
                     cy: [200, 200],
@@ -297,52 +297,52 @@ export default function ProductPage() {
               </svg>
 
               {/* Node Layout */}
-              <div className="absolute inset-0 flex items-center justify-between px-[10%]">
+              <div className="absolute inset-0 flex items-center justify-between px-[2%] sm:px-[10%]">
 
                 {/* Source Node (Next.js) */}
                 <div className="relative flex flex-col items-center">
-                  <div className="w-24 h-24 rounded-[1.25rem] bg-card border border-border/80 shadow-xl flex items-center justify-center relative overflow-hidden group-hover:-translate-y-2 transition-transform duration-500">
-                    <div className="absolute inset-0 bg-gradient-to-br from-destructive/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-                    <Layers className="w-10 h-10 text-text-secondary group-hover:text-destructive transition-colors relative z-10" />
+                  <div className="w-16 h-16 sm:w-24 sm:h-24 rounded-2xl sm:rounded-[1.25rem] bg-card border border-border/80 shadow-xl flex items-center justify-center relative overflow-hidden group-hover:-translate-y-2 transition-transform duration-500">
+                    <div className="absolute inset-0 bg-gradient-to-br from-destructive/10 to-transparent opacity-100 lg:opacity-0 lg:group-hover:opacity-100 transition-opacity" />
+                    <Layers className="w-6 h-6 sm:w-10 sm:h-10 text-destructive lg:text-text-secondary lg:group-hover:text-destructive transition-colors relative z-10" />
 
                     {/* Animated Border Spin */}
-                    <div className="absolute inset-[-100%] animate-[spin_4s_linear_infinite] bg-[conic-gradient(from_90deg_at_50%_50%,transparent_0%,transparent_70%,rgba(var(--destructive),0.3)_100%)] opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
-                    <div className="absolute inset-[1px] bg-card rounded-[1.2rem] z-0" />
+                    <div className="absolute inset-[-100%] animate-[spin_4s_linear_infinite] bg-[conic-gradient(from_90deg_at_50%_50%,transparent_0%,transparent_70%,rgba(var(--destructive),0.3)_100%)] opacity-100 lg:opacity-0 lg:group-hover:opacity-100 transition-opacity duration-700" />
+                    <div className="absolute inset-[1px] bg-card rounded-[0.9rem] sm:rounded-[1.2rem] z-0" />
                   </div>
-                  <div className="mt-4 bg-background border border-border/50 px-3 py-1 rounded-full shadow-sm text-xs font-semibold text-text-primary">
+                  <div className="mt-3 sm:mt-4 bg-background border border-border/50 px-2 sm:px-3 py-1 rounded-full shadow-sm text-[10px] sm:text-xs font-semibold text-text-primary whitespace-nowrap">
                     Next.js App
                   </div>
                 </div>
 
                 {/* Engine Node (TraceForge AI) */}
                 <div className="relative flex flex-col items-center z-20 relative top-[-10px]">
-                  <div className="w-32 h-32 rounded-3xl bg-gradient-to-b from-card to-background border border-primary/30 shadow-[0_0_40px_rgba(var(--primary),0.15)] flex items-center justify-center relative overflow-hidden group-hover:scale-105 group-hover:shadow-[0_0_60px_rgba(var(--primary),0.3)] transition-all duration-700">
+                  <div className="w-20 h-20 sm:w-32 sm:h-32 rounded-2xl sm:rounded-3xl bg-gradient-to-b from-card to-background border border-primary/30 shadow-[0_0_40px_rgba(var(--primary),0.15)] flex items-center justify-center relative overflow-hidden group-hover:scale-105 group-hover:shadow-[0_0_60px_rgba(var(--primary),0.3)] transition-all duration-700">
                     <div className="absolute inset-0 bg-primary/5 group-hover:bg-primary/10 transition-colors" />
-                    <Zap className="w-12 h-12 text-primary relative z-10 group-hover:scale-110 transition-transform duration-500" />
+                    <Zap className="w-8 h-8 sm:w-12 sm:h-12 text-primary relative z-10 group-hover:scale-110 transition-transform duration-500" />
 
                     {/* Magical Ambient Inner Glow */}
-                    <div className="absolute w-20 h-20 bg-primary/30 blur-2xl rounded-full animate-pulse" />
+                    <div className="absolute w-12 h-12 sm:w-20 sm:h-20 bg-primary/30 blur-xl sm:blur-2xl rounded-full animate-pulse" />
 
                     {/* Glowing rotating border */}
                     <div className="absolute inset-[-100%] animate-[spin_3s_linear_infinite] bg-[conic-gradient(from_90deg_at_50%_50%,transparent_0%,transparent_60%,rgba(var(--primary),0.8)_100%)] opacity-50" />
-                    <div className="absolute inset-[1px] bg-card rounded-[1.4rem] z-0" />
+                    <div className="absolute inset-[1px] bg-card rounded-[0.9rem] sm:rounded-[1.4rem] z-0" />
                   </div>
-                  <div className="mt-5 text-center">
-                    <div className="text-sm font-bold text-primary tracking-wide">TraceForge AI</div>
+                  <div className="mt-3 sm:mt-5 text-center">
+                    <div className="text-[11px] sm:text-sm font-bold text-primary tracking-wide whitespace-nowrap">TraceForge AI</div>
                   </div>
                 </div>
 
                 {/* Destination Node (GitHub/Fix) */}
                 <div className="relative flex flex-col items-center">
-                  <div className="w-24 h-24 rounded-[1.25rem] bg-card border border-border/80 shadow-xl flex items-center justify-center relative overflow-hidden group-hover:-translate-y-2 transition-transform duration-500 delay-100">
-                    <div className="absolute inset-0 bg-gradient-to-br from-success/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-                    <Target className="w-10 h-10 text-text-secondary group-hover:text-success transition-colors relative z-10" />
+                  <div className="w-16 h-16 sm:w-24 sm:h-24 rounded-2xl sm:rounded-[1.25rem] bg-card border border-border/80 shadow-xl flex items-center justify-center relative overflow-hidden group-hover:-translate-y-2 transition-transform duration-500 delay-100">
+                    <div className="absolute inset-0 bg-gradient-to-br from-success/10 to-transparent opacity-100 lg:opacity-0 lg:group-hover:opacity-100 transition-opacity" />
+                    <Target className="w-6 h-6 sm:w-10 sm:h-10 text-success lg:text-text-secondary lg:group-hover:text-success transition-colors relative z-10" />
 
                     {/* Animated Border Spin */}
-                    <div className="absolute inset-[-100%] animate-[spin_4s_linear_infinite] bg-[conic-gradient(from_90deg_at_50%_50%,transparent_0%,transparent_70%,rgba(var(--success),0.3)_100%)] opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
-                    <div className="absolute inset-[1px] bg-card rounded-[1.2rem] z-0" />
+                    <div className="absolute inset-[-100%] animate-[spin_4s_linear_infinite] bg-[conic-gradient(from_90deg_at_50%_50%,transparent_0%,transparent_70%,rgba(var(--success),0.3)_100%)] opacity-100 lg:opacity-0 lg:group-hover:opacity-100 transition-opacity duration-700" />
+                    <div className="absolute inset-[1px] bg-card rounded-[0.9rem] sm:rounded-[1.2rem] z-0" />
                   </div>
-                  <div className="mt-4 bg-background border border-border/50 px-3 py-1 rounded-full shadow-sm text-xs font-semibold text-text-primary">
+                  <div className="mt-3 sm:mt-4 bg-background border border-border/50 px-2 sm:px-3 py-1 rounded-full shadow-sm text-[10px] sm:text-xs font-semibold text-text-primary whitespace-nowrap">
                     GitHub PR
                   </div>
                 </div>

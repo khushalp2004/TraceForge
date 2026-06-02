@@ -304,19 +304,19 @@ export default function RepoAnalysisPage() {
         <header className="mt-2 flex flex-wrap items-center justify-between gap-4 animate-stagger-fade-up">
           <div className="tf-section-header">
             <p className="tf-kicker">GitHub</p>
-            <div className="mt-2 flex items-center">
+            <div className="mt-2">
               <h1 className="font-display text-2xl font-semibold text-text-primary">
-                Repo Analysis
+                Repo <span className="whitespace-nowrap">Analysis<PageDescriptionPopover>
+                  AI-powered codebase analysis for your linked repositories.
+                  <br /><br />
+                  Generate a structured AI report for each linked GitHub repository, including
+                  summary, architecture, tech stack, runtime flow, key modules, and onboarding notes.
+                  <br /><br />
+                  Each analysis uses {analysisCost} AI credits on Free and Team plans. Pro remains
+                  unlimited.
+                </PageDescriptionPopover></span>
               </h1>
-              <PageDescriptionPopover>
-                Generate a structured AI report for each linked GitHub repository, including
-                summary, architecture, tech stack, runtime flow, key modules, and onboarding notes.
-                <br /><br />
-                Each analysis uses {analysisCost} AI credits on Free and Team plans. Pro remains
-                unlimited.
-              </PageDescriptionPopover>
             </div>
-            <p className="tf-section-desc">AI-powered codebase analysis for your linked repositories.</p>
           </div>
           <label className="flex items-center gap-2 rounded-full border border-border bg-card/90 px-4 py-2.5 text-xs font-semibold text-text-secondary shadow-sm backdrop-blur transition hover:border-primary/20 hover:shadow-md">
             <svg aria-hidden="true" className="h-3.5 w-3.5 text-text-secondary" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><circle cx="9" cy="8" r="3" /><circle cx="17" cy="10" r="2.5" /><path d="M4 19a5 5 0 0 1 10 0" /><path d="M14.5 19a4 4 0 0 1 7 0" /></svg>

@@ -277,15 +277,14 @@ export default function OrgsPage() {
         <header className="relative z-10 mt-2 flex flex-wrap items-center justify-between gap-4 animate-stagger-fade-up">
           <div className="tf-section-header">
             <p className="tf-kicker">Organizations</p>
-            <div className="mt-2 flex items-center">
+            <div className="mt-2">
               <h1 className="font-display text-2xl font-semibold text-text-primary">
-                Organization Management
+                Organization <span className="whitespace-nowrap">Management<PageDescriptionPopover>
+                  Create and manage your teams, members, and permissions.
+                  <br /><br />
+                  Select an organization to manage members and permissions.
+                </PageDescriptionPopover></span>
               </h1>
-              <PageDescriptionPopover>
-                Create and manage your teams, members, and permissions.
-                <br /><br />
-                Select an organization to manage members and permissions.
-              </PageDescriptionPopover>
             </div>
           </div>
           <button

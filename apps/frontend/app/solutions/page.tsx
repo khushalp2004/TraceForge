@@ -47,17 +47,8 @@ const bentoVariant = {
 } as const;
 
 export default function SolutionsPage() {
-  const containerRef = useRef(null);
-  const { scrollYProgress } = useScroll({
-    target: containerRef,
-    offset: ["start start", "end end"]
-  });
-
-  const heroY = useTransform(scrollYProgress, [0, 0.2], [0, 100]);
-  const heroOpacity = useTransform(scrollYProgress, [0, 0.15], [1, 0]);
-
   return (
-    <main ref={containerRef} className="tf-page pb-24 pt-20 overflow-hidden relative">
+    <main className="tf-page pb-24 pt-20 overflow-hidden relative">
       <div className="absolute inset-0 bg-[linear-gradient(to_right,#8080800a_1px,transparent_1px),linear-gradient(to_bottom,#8080800a_1px,transparent_1px)] bg-[size:40px_40px] [mask-image:radial-gradient(ellipse_80%_50%_at_50%_0%,#000_80%,transparent_100%)] pointer-events-none -z-10" />
       {/* Dynamic Background Elements */}
       <motion.div 
@@ -74,10 +65,7 @@ export default function SolutionsPage() {
       <div className="tf-container relative z-10">
         
         {/* --- Hero Section --- */}
-        <motion.section 
-          style={{ y: heroY, opacity: heroOpacity }}
-          className="flex flex-col lg:flex-row items-center gap-12 lg:gap-20 min-h-[70vh] mb-32"
-        >
+        <section className="flex flex-col lg:flex-row items-center gap-12 lg:gap-20 min-h-[70vh] mb-32">
           <motion.div 
             initial="hidden"
             animate="visible"
@@ -183,7 +171,7 @@ export default function SolutionsPage() {
               </div>
             </div>
           </motion.div>
-        </motion.section>
+        </section>
 
         {/* --- Workflow Bento Grid --- */}
         <section className="mt-20 lg:mt-24">

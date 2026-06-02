@@ -482,7 +482,7 @@ export default function ErrorDetailPage({ params }: { params: { id: string } }) 
               {errorDetail.project.name}
             </p>
             <div className="flex items-center gap-3">
-              <h1 className="text-2xl font-bold tracking-tight text-text-primary sm:text-3xl break-words">
+              <h1 className="min-w-0 text-2xl font-bold tracking-tight text-text-primary sm:text-3xl break-all">
                 {errorDetail.message}
               </h1>
               <PageDescriptionPopover>

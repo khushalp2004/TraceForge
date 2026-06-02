@@ -988,17 +988,6 @@
     @apply relative pb-4;
   }
 
-  .tf-section-header::after {
-    content: "";
-    position: absolute;
-    bottom: 0;
-    left: 0;
-    width: 3rem;
-    height: 3px;
-    border-radius: 999px;
-    background: linear-gradient(90deg, hsl(var(--primary)), hsl(var(--primary) / 0.2));
-  }
-
   .tf-section-desc {
     @apply mt-2 text-sm leading-relaxed text-text-secondary;
     max-width: 36rem;

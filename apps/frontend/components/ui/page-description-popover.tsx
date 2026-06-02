@@ -1,12 +1,18 @@
 "use client";
 
 import { useState, useRef, useEffect, ReactNode } from "react";
+import { createPortal } from "react-dom";
 import { Info, X } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
 
 export function PageDescriptionPopover({ children }: { children: ReactNode }) {
   const [isOpen, setIsOpen] = useState(false);
+  const [mounted, setMounted] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   useEffect(() => {
     const handleOutsideClick = (event: MouseEvent | TouchEvent) => {
@@ -61,7 +67,7 @@ export function PageDescriptionPopover({ children }: { children: ReactNode }) {
       <button 
         type="button"
         onClick={toggleOpen}
-        className={`ml-3 rounded-full p-1 transition-colors focus:outline-none focus:ring-2 focus:ring-primary/20 relative top-[1px] sm:top-0.5 ${
+        className={`ml-2 rounded-full p-1 transition-colors focus:outline-none focus:ring-2 focus:ring-primary/20 relative top-[1px] sm:top-0.5 ${
           isOpen ? "bg-primary/10 text-primary" : "text-text-secondary hover:text-primary hover:bg-secondary/50"
         }`}
         aria-label="More information"
@@ -72,24 +78,52 @@ export function PageDescriptionPopover({ children }: { children: ReactNode }) {
 
       <AnimatePresence>
         {isOpen && (
-           <motion.div
-             initial={{ opacity: 0, y: 5, scale: 0.95 }}
-             animate={{ opacity: 1, y: 0, scale: 1 }}
-             exit={{ opacity: 0, y: 5, scale: 0.95 }}
-             transition={{ duration: 0.15, ease: "easeOut" }}
-             className="absolute left-0 sm:left-full sm:ml-2 top-full mt-2 sm:mt-0 sm:top-1/2 sm:-translate-y-1/2 z-[100] w-[280px] p-4 bg-card/95 backdrop-blur-xl border border-border shadow-[0_8px_30px_rgb(0,0,0,0.12)] rounded-2xl text-[13px] leading-relaxed text-text-secondary font-normal"
-           >
-             <div className="flex justify-between items-start gap-3">
-                <div className="flex-1">{children}</div>
-                <button 
-                  onClick={() => setIsOpen(false)} 
-                  className="sm:hidden shrink-0 -mt-1 -mr-1 p-1 text-text-secondary hover:text-text-primary rounded-full hover:bg-secondary/50 transition-colors"
-                  aria-label="Close"
-                >
-                  <X className="w-4 h-4" />
-                </button>
-             </div>
-           </motion.div>
+           <>
+             {/* Desktop Popover */}
+             <motion.div
+               initial={{ opacity: 0, y: 5, scale: 0.95 }}
+               animate={{ opacity: 1, y: 0, scale: 1 }}
+               exit={{ opacity: 0, y: 5, scale: 0.95 }}
+               transition={{ duration: 0.15, ease: "easeOut" }}
+               className="hidden sm:block absolute left-full ml-2 top-1/2 -translate-y-1/2 z-[100] w-[280px] p-4 bg-card/95 backdrop-blur-xl border border-border shadow-[0_8px_30px_rgb(0,0,0,0.12)] rounded-2xl text-[13px] leading-relaxed text-text-secondary font-normal"
+             >
+               <div className="flex justify-between items-start gap-3">
+                  <div className="flex-1">{children}</div>
+               </div>
+             </motion.div>
+
+             {/* Mobile Modal via Portal */}
+             {mounted && createPortal(
+               <div className="sm:hidden fixed inset-0 z-[99999] flex items-center justify-center p-4">
+                 <motion.div 
+                   initial={{ opacity: 0 }} 
+                   animate={{ opacity: 1 }} 
+                   exit={{ opacity: 0 }} 
+                   className="absolute inset-0 bg-background/80 backdrop-blur-sm"
+                   onClick={() => setIsOpen(false)}
+                 />
+                 <motion.div
+                   initial={{ opacity: 0, scale: 0.95 }}
+                   animate={{ opacity: 1, scale: 1 }}
+                   exit={{ opacity: 0, scale: 0.95 }}
+                   transition={{ duration: 0.2, ease: "easeOut" }}
+                   className="relative w-full max-w-sm p-5 bg-card/95 backdrop-blur-xl border border-border shadow-2xl rounded-2xl text-[13px] leading-relaxed text-text-primary font-medium"
+                 >
+                   <div className="flex justify-between items-start gap-3">
+                      <div className="flex-1">{children}</div>
+                      <button 
+                        onClick={() => setIsOpen(false)} 
+                        className="shrink-0 -mt-1 -mr-1 p-2 text-text-secondary hover:text-text-primary rounded-full hover:bg-secondary/80 transition-colors"
+                        aria-label="Close"
+                      >
+                        <X className="w-5 h-5" />
+                      </button>
+                   </div>
+                 </motion.div>
+               </div>,
+               document.body
+             )}
+           </>
         )}
       </AnimatePresence>
     </div>
