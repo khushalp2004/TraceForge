@@ -330,18 +330,18 @@ function SnippetBlock({
   return (
     <div className="group relative min-w-0 overflow-hidden rounded-2xl border border-border/50 bg-[#0C0C0E] shadow-2xl transition-all duration-300 hover:border-border/80">
       {/* Mac window header */}
-      <div className="flex items-center justify-between border-b border-white/[0.04] bg-[#141416] px-4 py-3">
-        <div className="flex items-center gap-2">
-          <div className="flex gap-1.5">
+      <div className="flex items-center justify-between border-b border-white/[0.04] bg-[#141416] px-4 py-3 gap-3">
+        <div className="flex items-center gap-2 min-w-0">
+          <div className="flex gap-1.5 shrink-0">
             <div className="h-3 w-3 rounded-full bg-[#FF5F56] border border-black/10"></div>
             <div className="h-3 w-3 rounded-full bg-[#FFBD2E] border border-black/10"></div>
             <div className="h-3 w-3 rounded-full bg-[#27C93F] border border-black/10"></div>
           </div>
-          {title && <span className="ml-2 text-xs font-medium text-white/50 font-mono">{title}</span>}
+          {title && <span className="ml-2 text-xs font-medium text-white/50 font-mono truncate">{title}</span>}
         </div>
         <button
           onClick={handleCopy}
-          className="flex items-center gap-1.5 rounded-lg bg-white/5 px-2.5 py-1.5 text-xs font-medium text-white/70 opacity-100 sm:opacity-0 transition-all hover:bg-white/10 hover:text-white sm:group-hover:opacity-100"
+          className="flex shrink-0 items-center gap-1.5 rounded-lg bg-white/5 px-2.5 py-1.5 text-xs font-medium text-white/70 opacity-100 sm:opacity-0 transition-all hover:bg-white/10 hover:text-white sm:group-hover:opacity-100"
         >
           {copied ? <Check className="h-3.5 w-3.5 text-emerald-400" /> : <Copy className="h-3.5 w-3.5" />}
           {copied ? "Copied!" : "Copy"}
@@ -437,6 +437,20 @@ export default function DocsPage() {
     rest: [
       { title: "Raw Payload Format", description: "Send a simple JSON payload to the ingest endpoint from any environment, CI script, or language.", codeSnippet: restSnippet, codeTitle: "cURL / HTTP" }
     ]
+  };
+
+  const demoRepoLinks: Record<string, string> = {
+    nextjs: "https://github.com/khushalp2004/Testing-apps-for-traceforge/tree/main/nextjs-project",
+    react: "https://github.com/khushalp2004/Testing-apps-for-traceforge/tree/main/react-vite-project",
+    nodejs: "https://github.com/khushalp2004/Testing-apps-for-traceforge/tree/main/nodejs-project",
+    python: "https://github.com/khushalp2004/Testing-apps-for-traceforge/tree/main/python-project",
+    java: "https://github.com/khushalp2004/Testing-apps-for-traceforge/tree/main/java-project",
+    php: "https://github.com/khushalp2004/Testing-apps-for-traceforge/tree/main/php-project",
+    go: "https://github.com/khushalp2004/Testing-apps-for-traceforge/tree/main/go-project",
+    rust: "https://github.com/khushalp2004/Testing-apps-for-traceforge/tree/main/rust-project",
+    csharp: "https://github.com/khushalp2004/Testing-apps-for-traceforge/tree/main/csharp-project",
+    ruby: "https://github.com/khushalp2004/Testing-apps-for-traceforge/tree/main/ruby-project",
+    rest: "PLACE_YOUR_REST_LINK_HERE"
   };
 
   const steps = frameworkSteps[activeTab] || [];
@@ -647,9 +661,28 @@ export default function DocsPage() {
                         Your application is now configured to send events to TraceForge. Trigger a test error in your app to verify everything is working.
                       </p>
                     </div>
-                    <Link href="/dashboard" className="px-5 py-2.5 sm:px-6 sm:py-3 bg-primary text-white rounded-xl font-medium text-sm sm:text-base hover:bg-primary/90 transition-colors shadow-lg shadow-primary/25">
-                      Go to Dashboard
-                    </Link>
+                    <div className="flex flex-col sm:flex-row items-center justify-center gap-4 w-full mt-4">
+                      <Link 
+                        href="/dashboard" 
+                        className="w-full sm:w-auto px-6 py-3 bg-primary text-white rounded-xl font-medium text-sm sm:text-base hover:bg-primary/90 transition-all duration-300 shadow-[0_0_20px_rgba(var(--primary-rgb),0.3)] hover:shadow-[0_0_30px_rgba(var(--primary-rgb),0.5)] hover:-translate-y-0.5 flex justify-center"
+                      >
+                        Go to Dashboard
+                      </Link>
+                      
+                      {activeTab && demoRepoLinks[activeTab] && (
+                        <a 
+                          href={demoRepoLinks[activeTab]}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="group w-full sm:w-auto relative inline-flex items-center justify-center gap-2.5 px-6 py-3 rounded-xl border border-border/50 bg-secondary/30 backdrop-blur-md text-sm sm:text-base font-medium text-text-secondary transition-all duration-300 hover:bg-secondary/60 hover:border-border/80 hover:text-text-primary hover:-translate-y-0.5 overflow-hidden"
+                        >
+                          <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-primary/0 via-primary/5 to-primary/0 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+                          <Globe className="w-4 h-4 text-primary/80 group-hover:text-primary transition-colors relative z-10" />
+                          <span className="relative z-10">Explore {tabs.find(t => t.id === activeTab)?.label} Demo</span>
+                          <span className="relative z-10 ml-0.5 opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-300">→</span>
+                        </a>
+                      )}
+                    </div>
                   </div>
                 )}
               </motion.div>
