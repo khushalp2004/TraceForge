@@ -79,155 +79,101 @@ app.use(async (error: unknown, req: Request, _res: Response, next: NextFunction)
   next(error);
 });`;
 
-const pythonInstallSnippet = `pip install requests`;
+const pythonInstallSnippet = `pip install python-dotenv traceforge`;
 
-const pythonSetupSnippet = `import sys
-import requests
-import traceback
+const pythonSetupSnippet = `import os
+from dotenv import load_dotenv
+import traceforge
 
-TRACEFORGE_INGEST_URL = "http://localhost:3001/ingest"
-TRACEFORGE_API_KEY = "YOUR_PROJECT_API_KEY"
-TRACEFORGE_ENV = "production"
-TRACEFORGE_RELEASE = "api@1.0.0"
+load_dotenv()
 
-def send_to_traceforge(exc_type, exc_value, exc_traceback):
-    stack_trace = "".join(traceback.format_exception(exc_type, exc_value, exc_traceback))
-    try:
-        requests.post(
-            TRACEFORGE_INGEST_URL,
-            headers={
-                "Content-Type": "application/json",
-                "X-Traceforge-Key": TRACEFORGE_API_KEY
-            },
-            json={
-                "message": str(exc_value),
-                "stackTrace": stack_trace,
-                "environment": TRACEFORGE_ENV,
-                "release": TRACEFORGE_RELEASE,
-            },
-            timeout=3
-        )
-    except Exception:
-        pass # Silently fail
-
-# Catch all uncaught exceptions globally
-sys.excepthook = send_to_traceforge`;
-
-const goSetupSnippet = `package main
-
-import (
-    "bytes"
-    "encoding/json"
-    "net/http"
-    "runtime/debug"
+traceforge.init(
+    api_key=os.getenv("YOUR_TRACEFORGE_PROJECT_KEY", ""),
+    environment="production",
+    endpoint=os.getenv("TRACEFORGE_API_URL", "http://localhost:3001/ingest")
 )
 
-const (
-    TraceForgeIngestURL = "http://localhost:3001/ingest"
-    TraceForgeAPIKey    = "YOUR_PROJECT_API_KEY"
-    TraceForgeEnv       = "production"
-    TraceForgeRelease   = "api@1.0.0"
-)
+# Usage in your exception handler:
+# traceforge.capture_exception(exc, context={"path": request.url.path})`;
 
-// Helper to manually send an error to TraceForge
-func SendToTraceForge(err error) {
-    stackTrace := string(debug.Stack())
+const goInstallSnippet = `go get github.com/khushalp2004/TraceForge/packages/sdk-go`;
+
+const goSetupSnippet = `import "github.com/khushalp2004/TraceForge/packages/sdk-go"
+
+func main() {
+    traceforge.InitWithConfig(traceforge.Config{
+        APIKey:   "YOUR_TRACEFORGE_GO_KEY",
+        Endpoint: "http://localhost:3001/ingest",
+    })
     
-    payload := map[string]interface{}{
-        "message":     err.Error(),
-        "stackTrace":  stackTrace,
-        "environment": TraceForgeEnv,
-        "release":     TraceForgeRelease,
-    }
-    
-    jsonPayload, _ := json.Marshal(payload)
-    
-    req, _ := http.NewRequest("POST", TraceForgeIngestURL, bytes.NewBuffer(jsonPayload))
-    req.Header.Set("Content-Type", "application/json")
-    req.Header.Set("X-Traceforge-Key", TraceForgeAPIKey)
-    
-    client := &http.Client{}
-    client.Do(req)
+    // Usage inside panic recovery middleware:
+    // defer func() {
+    //     if err := recover(); err != nil {
+    //         traceforge.CapturePanic(err, debug.Stack())
+    //     }
+    // }()
 }`;
 
-const javaSetupSnippet = `import java.net.URI;
-import java.net.http.HttpClient;
-import java.net.http.HttpRequest;
-import java.net.http.HttpResponse;
+const javaInstallSnippet = `<!-- Add to pom.xml -->
+<repositories>
+    <repository>
+        <id>jitpack.io</id>
+        <url>https://jitpack.io</url>
+    </repository>
+</repositories>
 
-public class TraceForge {
-    public static void captureException(Exception e) {
-        try {
-            String json = String.format("""
-            {
-                "message": "%s",
-                "stackTrace": "%s",
-                "environment": "production",
-                "release": "api@1.0.0"
-            }
-            """, e.getMessage().replace("\"", "\\\""), java.util.Arrays.toString(e.getStackTrace()));
+<dependency>
+    <groupId>com.github.khushalp2004.TraceForge</groupId>
+    <artifactId>traceforge-spring-boot</artifactId>
+    <version>dacb764e3e</version>
+</dependency>`;
 
-            HttpRequest request = HttpRequest.newBuilder()
-                .uri(URI.create("http://localhost:3001/ingest"))
-                .header("Content-Type", "application/json")
-                .header("X-Traceforge-Key", "YOUR_PROJECT_API_KEY")
-                .POST(HttpRequest.BodyPublishers.ofString(json))
-                .build();
+const javaSetupSnippet = `import io.traceforge.TraceForge;
+import io.traceforge.Config;
 
-            HttpClient.newHttpClient().sendAsync(request, HttpResponse.BodyHandlers.discarding());
-        } catch (Exception ignored) {}
-    }
+// Initialize in main
+Config config = new Config();
+config.setApiKey("YOUR_TRACEFORGE_JAVA_KEY");
+config.setEndpoint("http://localhost:3001/ingest");
+TraceForge.initWithConfig(config);
+
+// Usage in @ControllerAdvice
+@ExceptionHandler(Exception.class)
+public ResponseEntity<Map<String, Object>> handleAllExceptions(Exception ex) {
+    TraceForge.captureException(ex);
+    // Return standard 500 response...
 }`;
 
-const phpSetupSnippet = `<?php
-function sendToTraceForge($exception) {
-    $url = "http://localhost:3001/ingest";
-    $data = json_encode([
-        "message" => $exception->getMessage(),
-        "stackTrace" => $exception->getTraceAsString(),
-        "environment" => "production",
-        "release" => "web@1.0.0"
-    ]);
+const phpInstallSnippet = `composer require traceforge/traceforge-php:dev-main`;
 
-    $ch = curl_init($url);
-    curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
-    curl_setopt($ch, CURLOPT_HTTPHEADER, [
-        "Content-Type: application/json",
-        "X-Traceforge-Key: YOUR_PROJECT_API_KEY"
-    ]);
-    curl_setopt($ch, CURLOPT_POST, true);
-    curl_setopt($ch, CURLOPT_POSTFIELDS, $data);
-    curl_setopt($ch, CURLOPT_TIMEOUT, 3);
-    
-    curl_exec($ch);
-    curl_close($ch);
-}
+const phpSetupSnippet = `require_once __DIR__ . '/../vendor/autoload.php';
 
-// Automatically catch all unhandled exceptions
-set_exception_handler('sendToTraceForge');
-?>`;
+\\TraceForge\\Client::init([
+    'apiKey' => 'YOUR_TRACEFORGE_PHP_KEY',
+    'environment' => 'production',
+    'endpoint' => 'http://localhost:3001/ingest'
+]);
 
-const rustSetupSnippet = `use reqwest::Client;
-use serde_json::json;
-use std::env;
+// Usage in global ErrorHandler:
+// \\TraceForge\\Client::captureException($exception);`;
 
-pub async fn send_to_traceforge(error_msg: &str, stack_trace: &str) {
-    let client = Client::new();
-    
-    let payload = json!({
-        "message": error_msg,
-        "stackTrace": stack_trace,
-        "environment": "production",
-        "release": "api@1.0.0"
-    });
+const rustInstallSnippet = `# Add to Cargo.toml
+[dependencies]
+traceforge = { git = "https://github.com/khushalp2004/TraceForge.git", branch = "main" }`;
 
-    let _ = client.post("http://localhost:3001/ingest")
-        .header("Content-Type", "application/json")
-        .header("X-Traceforge-Key", "YOUR_PROJECT_API_KEY")
-        .json(&payload)
-        .send()
-        .await;
-}`;
+const rustSetupSnippet = `// Initialize in main
+tokio::task::spawn_blocking(|| {
+    let mut config = traceforge::Config::default();
+    config.api_key = "YOUR_TRACEFORGE_RUST_KEY".to_string();
+    config.endpoint = "http://localhost:3001/ingest".to_string();
+    traceforge::init_with_config(config);
+}).await.unwrap();
+
+// Usage in handlers:
+// tokio::task::spawn_blocking(|| {
+//     traceforge::capture_message("Rust route panic triggered");
+//     panic!("Intentional panic");
+// }).await;`;
 
 const csharpSetupSnippet = `using System;
 using System.Net.Http;
@@ -264,29 +210,22 @@ public static class TraceForge
     }
 }`;
 
-const rubySetupSnippet = `require 'net/http'
-require 'json'
-require 'uri'
+const rubyInstallSnippet = `# Add to Gemfile
+gem 'traceforge', git: 'https://github.com/khushalp2004/TraceForge.git', branch: 'main', glob: 'packages/sdk-ruby/traceforge.gemspec'`;
 
-def send_to_traceforge(exception)
-  uri = URI.parse("http://localhost:3001/ingest")
-  request = Net::HTTP::Post.new(uri)
-  request.content_type = "application/json"
-  request["X-Traceforge-Key"] = "YOUR_PROJECT_API_KEY"
-  
-  request.body = JSON.dump({
-    "message" => exception.message,
-    "stackTrace" => exception.backtrace.join("\n"),
-    "environment" => "production",
-    "release" => "api@1.0.0"
-  })
+const rubySetupSnippet = `require 'traceforge'
 
-  Net::HTTP.start(uri.hostname, uri.port, use_ssl: uri.scheme == "https", open_timeout: 3, read_timeout: 3) do |http|
-    http.request(request)
-  end
-rescue StandardError
-  # Silently fail
-end`;
+TraceForge.init(
+  api_key: 'YOUR_TRACEFORGE_RUBY_KEY',
+  environment: 'production',
+  endpoint: 'http://localhost:3001/ingest'
+)
+
+# Usage in Sinatra error block:
+# error do
+#   exception = env['sinatra.error']
+#   TraceForge.capture_exception(exception)
+# end`;
 
 const restSnippet = `POST /ingest
 X-Traceforge-Key: <PROJECT_API_KEY>
@@ -413,26 +352,31 @@ export default function DocsPage() {
       { title: "Add Express Middleware", description: "Place the error handler *before* your final catch-all error middleware.", codeSnippet: nodeSetupSnippet, codeTitle: "server.ts" }
     ],
     python: [
-      { title: "Requirements", description: "You only need a simple HTTP client to post data.", codeSnippet: pythonInstallSnippet, codeTitle: "Terminal" },
-      { title: "Send via REST", description: "Hook into your framework's exception handler or `sys.excepthook` to send JSON payloads.", codeSnippet: pythonSetupSnippet, codeTitle: "app.py" }
+      { title: "Install the SDK", description: "Install the TraceForge Python SDK.", codeSnippet: pythonInstallSnippet, codeTitle: "Terminal" },
+      { title: "Initialize & Capture", description: "Initialize the SDK and hook into your framework's exception handler.", codeSnippet: pythonSetupSnippet, codeTitle: "app/main.py" }
     ],
     go: [
-      { title: "Send via HTTP", description: "Use Go's standard library to format errors and send them to the ingest endpoint.", codeSnippet: goSetupSnippet, codeTitle: "traceforge.go" }
+      { title: "Install the SDK", description: "Get the TraceForge Go SDK package.", codeSnippet: goInstallSnippet, codeTitle: "Terminal" },
+      { title: "Initialize & Capture", description: "Initialize in your main loop and capture panics in recovery middleware.", codeSnippet: goSetupSnippet, codeTitle: "main.go" }
     ],
     java: [
-      { title: "Send via HTTP Client", description: "Use Java's built-in `HttpClient` (Java 11+) to push stack traces asynchronously to TraceForge.", codeSnippet: javaSetupSnippet, codeTitle: "TraceForge.java" }
+      { title: "Install the SDK", description: "Add the JitPack repository and TraceForge dependency to your `pom.xml`.", codeSnippet: javaInstallSnippet, codeTitle: "pom.xml" },
+      { title: "Initialize & Capture", description: "Initialize in your main class and capture exceptions via `@ControllerAdvice`.", codeSnippet: javaSetupSnippet, codeTitle: "Application.java" }
     ],
     php: [
-      { title: "Send via cURL", description: "Catch exceptions globally and fire a JSON payload using standard PHP `curl_init()`.", codeSnippet: phpSetupSnippet, codeTitle: "traceforge.php" }
+      { title: "Install the SDK", description: "Require the TraceForge PHP SDK via Composer.", codeSnippet: phpInstallSnippet, codeTitle: "Terminal" },
+      { title: "Initialize & Capture", description: "Initialize the client and hook into your global error handler.", codeSnippet: phpSetupSnippet, codeTitle: "index.php" }
     ],
     rust: [
-      { title: "Send via reqwest", description: "Use the popular `reqwest` crate to dispatch memory-safe error logs to the ingest endpoint.", codeSnippet: rustSetupSnippet, codeTitle: "traceforge.rs" }
+      { title: "Install the SDK", description: "Add the TraceForge crate to your `Cargo.toml` dependencies.", codeSnippet: rustInstallSnippet, codeTitle: "Cargo.toml" },
+      { title: "Initialize & Capture", description: "Initialize the SDK and capture panics in your Axum handlers.", codeSnippet: rustSetupSnippet, codeTitle: "src/main.rs" }
     ],
     csharp: [
       { title: "Send via HttpClient", description: "Integrate TraceForge seamlessly into your .NET Enterprise apps using `System.Net.Http`.", codeSnippet: csharpSetupSnippet, codeTitle: "TraceForge.cs" }
     ],
     ruby: [
-      { title: "Send via net/http", description: "Track errors in your Rails or Sinatra apps by dumping backtraces via Ruby's standard `net/http` library.", codeSnippet: rubySetupSnippet, codeTitle: "traceforge.rb" }
+      { title: "Install the SDK", description: "Add the TraceForge gem to your `Gemfile`.", codeSnippet: rubyInstallSnippet, codeTitle: "Gemfile" },
+      { title: "Initialize & Capture", description: "Initialize the SDK and catch exceptions in your Sinatra routes.", codeSnippet: rubySetupSnippet, codeTitle: "app.rb" }
     ],
     rest: [
       { title: "Raw Payload Format", description: "Send a simple JSON payload to the ingest endpoint from any environment, CI script, or language.", codeSnippet: restSnippet, codeTitle: "cURL / HTTP" }
