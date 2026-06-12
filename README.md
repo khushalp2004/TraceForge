@@ -1,160 +1,98 @@
-# TraceForge (Local Dev)
+<div align="center">
+  <img src="https://res.cloudinary.com/drri6ut0i/image/upload/v1779566028/traceforge/traceforge-logo.png" width="120" alt="TraceForge Logo" />
+  <h1>TraceForge</h1>
+  <p><strong>Intelligent Error Monitoring for Modern Engineering Teams.</strong></p>
+  <p>TraceForge bridges the gap between <i>"something broke"</i> and <i>"here is the PR to fix it."</i></p>
+</div>
 
-TraceForge is a lightweight, AI-assisted error monitoring platform built for developers. This repo scaffolds the local Docker environment and baseline services for the MVP.
+---
 
-## What We Have So Far
-- Dockerized local environment (Postgres, Redis, backend API, worker, frontend)
-- TypeScript Express API skeleton
-- Next.js + Tailwind frontend shell
-- AI worker that processes queued errors with Groq
+## ⚡️ What is TraceForge?
 
-## Why This Structure
-- `apps/` keeps deployable services isolated and modular.
-- `packages/` will house shared types and the SDK.
-- Docker ensures parity between local dev and future cloud deployment.
+TraceForge is an open-source, AI-powered APM and error tracking platform. Instead of giving you a firehose of unreadable stack traces, TraceForge automatically groups noise, provides instant AI-driven root-cause analysis, and routes context-rich tickets directly into your team's workflow (Slack, Jira, GitHub).
 
-## Local Setup
-1. Copy env file and update secrets:
+**Built for speed, scale, and sanity.**
 
+### ✨ Key Features
+
+- 🤖 **AI-Assisted Diagnostics:** Uses advanced LLMs (via Groq) to instantly analyze stack traces and suggest exact code fixes.
+- 📊 **Smart Grouping:** Reduces alert fatigue by intelligently grouping related errors into single incidents.
+- 🔗 **Deep Integrations:** Native support for Jira, Slack, and GitHub. Open issues and PRs directly from the dashboard.
+- 🚄 **High-Performance Infrastructure:** Built with a scalable Node.js/Express backend, Redis for high-speed queues, and PostgreSQL.
+- 🎨 **Beautiful Developer Experience:** A sleek, dark-mode first Next.js frontend built for speed and aesthetics.
+- 📦 **Universal SDK:** Drop-in Node.js SDK (`usetraceforge`) to start capturing errors in seconds.
+
+---
+
+## 🏗️ Architecture & Tech Stack
+
+TraceForge is a modern monorepo built for enterprise scale:
+
+- **Frontend:** Next.js 14, TailwindCSS, Framer Motion
+- **Backend:** Node.js, Express, Prisma ORM
+- **Queue & Workers:** Redis, BullMQ, Dedicated AI Worker
+- **Database:** PostgreSQL
+- **AI Models:** Groq
+- **Infrastructure:** Fully Dockerized (Nginx reverse proxy, multi-stage builds)
+
+---
+
+## 🚀 Getting Started (Self-Hosted)
+
+Get TraceForge running locally in under 3 minutes.
+
+### 1. Prerequisites
+- Docker & Docker Compose
+- Node.js 20+
+
+### 2. Environment Setup
+Copy the example environment file and add your `GROQ_API_KEY` (Free from groq.com):
 ```bash
 cp .env.example .env
 ```
 
-2. Start the stack:
-
+### 3. Start the Platform
+Run the unified Docker Compose stack:
 ```bash
-docker compose up --build
+docker compose up -d --build
 ```
+*Note: Database migrations will apply automatically when the backend boots.*
 
-3. Database migrations are applied automatically when the backend and worker start. If you need to run them manually:
+### 4. Access the Services
+- **Dashboard:** [http://localhost:3000](http://localhost:3000)
+- **API:** [http://localhost:3001](http://localhost:3001)
 
-```bash
-docker compose exec backend npm run prisma:migrate:deploy
-```
+---
 
-4. Open services:
-- Frontend: http://localhost:3000
-- Backend: http://localhost:3001
-- Health check: http://localhost:3001/health
+## 🔌 Using the SDK
 
-## Billing (Razorpay)
-The `/dashboard/billing` page uses Razorpay Checkout to upgrade a user from **Free** → **Pro**.
-
-1. Add these to `.env` (see `.env.example`):
-   - `RAZORPAY_KEY_ID`
-   - `RAZORPAY_KEY_SECRET`
-   - `RAZORPAY_WEBHOOK_SECRET` (recommended for reliability)
-2. Apply DB schema changes and restart:
-   - `docker compose exec backend npm run prisma:migrate:deploy`
-   - `docker compose restart backend`
-3. Open `/dashboard/billing` and click **Upgrade to Pro**.
-
-Webhook setup (optional but recommended):
-- Expose backend (e.g. `ngrok http 3001`) and set the webhook URL to `/api/payment/webhook`.
-
-Local test notes:
-- Use Razorpay **Test Mode** keys (`rzp_test_...`) so you can simulate successful and failed payments safely.
-- The frontend calls `POST /api/payment/create-order` → opens Razorpay Checkout → then calls `POST /api/payment/verify`.
-- Pro is activated only after server-side signature verification + Razorpay payment status check.
-
-## Production-style Docker runtime
-
-Use the dedicated production compose file when you want a deployment-shaped run instead of the live-reload dev stack:
-
-```bash
-docker compose -f docker-compose.prod.yml up --build -d
-```
-
-This production path:
-- builds Next.js once and runs `next start`
-- compiles backend and worker TypeScript before startup
-- removes bind mounts and startup-time `npm install`
-- keeps Prisma migration deploy in backend startup
-
-## Ingestion Test (Phase 3)
-1. Create a user + project to get an API key.
-2. Send a sample error:
-
-```bash
-curl -X POST http://localhost:3001/ingest \
-  -H "Content-Type: application/json" \
-  -H "X-Traceforge-Key: YOUR_PROJECT_API_KEY" \
-  -d '{
-    "message": "TypeError: Cannot read properties of undefined",
-    "stackTrace": "TypeError: Cannot read properties of undefined\\n    at handler (/app/index.js:10:5)",
-    "environment": "development",
-    "payload": { "route": "/signup" }
-  }'
-```
-
-## SDK (Local Pack Workflow)
-Build and test the SDK locally before publishing:
-
-```bash
-cd packages/sdk
-npm run build
-npm pack
-```
-
-Install the generated tarball in a local app:
-
-```bash
-npm install /path/to/usetraceforge-0.1.4.tgz
-```
-
-## SDK (npm Publish Workflow)
-Publish the SDK so users can install it with `npm install usetraceforge`:
-
-```bash
-cd packages/sdk
-npm login
-npm run build
-npm version patch
-npm publish --access public
-```
-
-After publish, consumers can install it in any app with:
+Start monitoring your Node.js apps instantly.
 
 ```bash
 npm install usetraceforge
 ```
 
-Basic usage:
-
-```ts
+```typescript
 import TraceForge from "usetraceforge";
 
 TraceForge.init({
-  apiKey: process.env.TRACEFORGE_API_KEY!,
-  endpoint: process.env.TRACEFORGE_INGEST_URL,
-  autoCapture: true,
-  environment: process.env.TRACEFORGE_ENV,
-  release: process.env.TRACEFORGE_RELEASE
+  apiKey: "YOUR_PROJECT_API_KEY",
+  autoCapture: true, // Automatically catches unhandled exceptions
+  environment: "production",
 });
+
+// Or manually capture errors:
+try {
+  throw new Error("Database connection failed");
+} catch (error) {
+  TraceForge.captureException(error);
+}
 ```
 
-## Project Layout
-- `apps/backend` - Express API (TypeScript)
-- `apps/frontend` - Next.js UI (Tailwind)
-- `apps/worker` - AI worker service (TypeScript)
-- `packages/sdk` - publishable TraceForge SDK
-- `packages/shared` - shared types/utilities (scaffold)
-- `docker/postgres` - DB init scripts
+---
 
-## 🎉 MVP Complete!
+## 🤝 Contributing
+We welcome contributions! Whether it's adding new SDKs (Python, Go, Java), improving the AI heuristics, or squashing bugs, feel free to open a Pull Request.
 
-**Full local SaaS ready.** See TODO.md for status.
-
-## Quick Start
-1. `cp .env.example .env` (add `GROQ_API_KEY` from groq.com)
-2. `docker compose up -d`
-3. Migrations run automatically on startup. If needed, run `docker compose exec backend npx prisma migrate deploy`
-4. Open http://localhost:3000 → register → create project → test ingest
-
-## Test Ingest
-```
-curl -X POST http://localhost:3001/ingest \\
-  -H "Content-Type: application/json" \\
-  -H "X-Traceforge-Key: YOUR_API_KEY" \\
-  -d '{\"message\":\"Test error\",\"stackTrace\":\"at test.js:42\"}'
-```
+## 📄 License
+TraceForge is licensed under the MIT License. Built for calmer production environments.
