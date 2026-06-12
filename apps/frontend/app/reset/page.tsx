@@ -16,13 +16,7 @@ const passwordPolicy =
 const passwordPolicyMessage =
   "Use 10-64 characters with uppercase, lowercase, number, and special character.";
 
-import { createPageMetadata } from "../seo";
-export const metadata = createPageMetadata({
-  title: "Reset Password",
-  description: "Create a new password to get back into your TraceForge workspace.",
-  path: "/reset",
-  noIndex: true
-});
+
 
 export default function ResetPasswordPage() {
   return (

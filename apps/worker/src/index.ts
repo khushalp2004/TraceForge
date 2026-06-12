@@ -574,8 +574,8 @@ const processGithubAnalysisJob = async (job: GithubAnalysisQueueJob) => {
 
   const { report, tree } = await runGithubRepoAnalysis({
     accessTokenEncrypted: connection.accessTokenEncrypted,
-    repoFullName: project.githubRepoName,
-    analysisType: normalized.analysisType,
+    repoFullName: project.githubRepoName!,
+    analysisType: normalized.analysisType || "report",
     aiModel: project.aiModel || "groq/compound-mini"
   });
 

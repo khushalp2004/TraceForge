@@ -12,13 +12,7 @@ import { useAuth } from "../../context/AuthContext";
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
 const postAuthToastKey = "traceforge_post_auth_toast";
 
-import { createPageMetadata } from "../seo";
-export const metadata = createPageMetadata({
-  title: "Verify Email",
-  description: "Verify your email address to access your TraceForge workspace.",
-  path: "/verify",
-  noIndex: true
-});
+
 
 export default function VerifyEmailPage() {
   return (

@@ -59,7 +59,7 @@ const nextConfig = {
   
   // Optimize images for CDN
   images: {
-    unoptimized: false,
+    unoptimized: true,
     remotePatterns: [
       {
         protocol: 'https',

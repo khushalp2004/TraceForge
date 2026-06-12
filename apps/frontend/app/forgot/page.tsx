@@ -10,13 +10,7 @@ import { useAuth } from "../../context/AuthContext";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
 
-import { createPageMetadata } from "../seo";
-export const metadata = createPageMetadata({
-  title: "Forgot Password",
-  description: "Reset your TraceForge workspace password.",
-  path: "/forgot",
-  noIndex: true
-});
+
 
 export default function ForgotPasswordPage() {
   const { isReady } = useAuth();
