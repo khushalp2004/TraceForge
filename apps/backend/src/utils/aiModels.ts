@@ -15,8 +15,8 @@ export const supportedAiModels = [
     description: "Faster and lighter for quick AI triage."
   },
   {
-    id: "gemini/gemini-1.5-flash",
-    label: "Gemini 1.5 Flash",
+    id: "gemini/gemini-3.1-flash-lite",
+    label: "Gemini 3.1 Flash Lite",
     description: "Massive 1M token context window for analyzing large enterprise repositories, incredibly fast."
   },
   {

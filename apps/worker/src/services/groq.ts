@@ -1,3 +1,6 @@
+import prisma from "../db/prisma.js";
+import { generateEmbedding } from "./embeddings.js";
+
 type GroqMessage = {
   role: "system" | "user" | "assistant";
   content: string;
@@ -23,7 +26,7 @@ const supportedAiModels = new Set([
   "allam-2-7b",
   "groq/compound",
   "groq/compound-mini",
-  "gemini/gemini-1.5-flash",
+  "gemini/gemini-3.1-flash-lite",
   "llama-3.1-8b-instant",
   "openai/gpt-oss-120b",
   "openai/gpt-oss-20b"
@@ -66,6 +69,7 @@ export const generateExplanation = async (input: {
   message: string;
   stackTrace: string;
   model?: string;
+  projectId?: string;
   timeoutMs?: number;
 }) => {
   const resolvedModel = resolveAiModel(input.model);
@@ -81,15 +85,43 @@ export const generateExplanation = async (input: {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), timeoutMs);
 
+  let additionalContext = "";
+  if (input.projectId) {
+    try {
+      const errorVector = await generateEmbedding(`${input.message}\n${input.stackTrace}`);
+      
+      const analysisRecord = await prisma.githubRepoAnalysis.findUnique({
+        where: { projectId: input.projectId }
+      });
+
+      if (analysisRecord) {
+        // Find top 5 similar code chunks
+        const similarChunks = await prisma.$queryRaw<Array<{ filePath: string; startLine: number; endLine: number; content: string }>>`
+          SELECT "filePath", "startLine", "endLine", "content"
+          FROM "RepoFileChunk"
+          WHERE "githubAnalysisId" = ${analysisRecord.id}
+          ORDER BY "vector" <=> ${errorVector}::vector
+          LIMIT 5
+        `;
+
+        if (similarChunks && similarChunks.length > 0) {
+          additionalContext = "\n\nRelevant Code Snippets from Repository:\n" + similarChunks.map((c: any) => `### ${c.filePath} (Lines ${c.startLine}-${c.endLine})\n${c.content}`).join("\n\n");
+        }
+      }
+    } catch (err) {
+      console.error("Failed to retrieve RAG context for error:", err);
+    }
+  }
+
   const messages: GroqMessage[] = [
     {
       role: "system",
       content:
-        'You are an expert debugging assistant. Return only valid JSON with this exact shape: {"summary":"...","rootCause":"...","recommendedFix":"...","nextSteps":["..."]}. Keep each field concise, practical, and developer-focused. nextSteps must contain 2 to 4 short action items.'
+        'You are an expert debugging assistant. Return only valid JSON with this exact shape: {"summary":"...","rootCause":"...","recommendedFix":"...","nextSteps":["..."]}. Keep each field concise, practical, and developer-focused. nextSteps must contain 2 to 4 short action items. If relevant code snippets are provided, use them to pinpoint the exact root cause.'
     },
     {
       role: "user",
-      content: `Error message:\n${input.message}\n\nStack trace:\n${input.stackTrace}`
+      content: `Error message:\n${input.message}\n\nStack trace:\n${input.stackTrace}${additionalContext}`
     }
   ];
 

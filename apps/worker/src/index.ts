@@ -452,6 +452,7 @@ const processError = async ({ errorId, requestedByUserId }: AiQueueJob) => {
       message: errorRecord.message,
       stackTrace: errorRecord.stackTrace,
       model: errorRecord.project.aiModel,
+      projectId: errorRecord.projectId,
       timeoutMs: AI_GROQ_TIMEOUT_MS
     });
 
@@ -559,7 +560,7 @@ const processGithubAnalysisJob = async (job: GithubAnalysisQueueJob) => {
     updateData.status = "PROCESSING";
   }
 
-  await prisma.githubRepoAnalysis.upsert({
+  const analysisRecord = await prisma.githubRepoAnalysis.upsert({
     where: { projectId: normalized.projectId },
     update: updateData,
     create: {
@@ -578,7 +579,8 @@ const processGithubAnalysisJob = async (job: GithubAnalysisQueueJob) => {
     accessTokenEncrypted: connection.accessTokenEncrypted,
     repoFullName: project.githubRepoName!,
     analysisType: normalized.analysisType || "report",
-    aiModel: project.aiModel || "groq/compound-mini"
+    aiModel: project.aiModel || "groq/compound-mini",
+    githubAnalysisId: analysisRecord.id
   });
 
   const now = new Date();

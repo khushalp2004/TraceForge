@@ -1,4 +1,6 @@
 import { decryptIntegrationSecret } from "../utils/integrationSecrets.js";
+import prisma from "../db/prisma.js";
+import { generateEmbedding } from "./embeddings.js";
 
 type GroqMessage = {
   role: "system" | "user";
@@ -328,10 +330,12 @@ const generateGithubRepoAnalysis = async ({
 
 const buildRepoAnalysisContext = async ({
   accessToken,
-  repoFullName
+  repoFullName,
+  githubAnalysisId
 }: {
   accessToken: string;
   repoFullName: string;
+  githubAnalysisId: string;
 }) => {
   const summary = await fetchGithubRepoSummary(accessToken, repoFullName);
   const tree = await fetchGithubRepoTree({
@@ -401,8 +405,14 @@ const buildRepoAnalysisContext = async ({
     })
   );
 
-  const fileSections = fetchedFiles
-    .filter((file): file is { path: string; content: string } => Boolean(file?.content))
+  const validFiles = fetchedFiles.filter((file): file is { path: string; content: string } => Boolean(file?.content));
+
+  // Run the embedding pipeline asynchronously so it doesn't block or crash the main analysis
+  chunkAndEmbedFiles(githubAnalysisId, validFiles).catch((err) => {
+    console.error("Background embedding failed:", err);
+  });
+
+  const fileSections = validFiles
     .map((file) => `### ${file.path}\n${file.content}`);
 
   return {
@@ -422,12 +432,14 @@ export const runGithubRepoAnalysis = async ({
   accessTokenEncrypted,
   repoFullName,
   analysisType,
-  aiModel
+  aiModel,
+  githubAnalysisId
 }: {
   accessTokenEncrypted: string;
   repoFullName: string;
   analysisType: string;
   aiModel: string;
+  githubAnalysisId: string;
 }) => {
   const accessToken = decryptIntegrationSecret(accessTokenEncrypted);
   
@@ -443,7 +455,8 @@ export const runGithubRepoAnalysis = async ({
 
   const repoContext = await buildRepoAnalysisContext({
     accessToken,
-    repoFullName
+    repoFullName,
+    githubAnalysisId
   });
 
   const report = await generateGithubRepoAnalysis({
@@ -456,4 +469,41 @@ export const runGithubRepoAnalysis = async ({
   return { report, tree: repoContext.tree };
 };
 
+const chunkAndEmbedFiles = async (githubAnalysisId: string, files: { path: string; content: string }[]) => {
+  try {
+    for (const file of files) {
+      if (!file.content) continue;
 
+      const lines = file.content.split('\n');
+      const chunkSize = 500;
+
+      for (let i = 0; i < lines.length; i += chunkSize) {
+        const chunkLines = lines.slice(i, i + chunkSize);
+        const chunkContent = chunkLines.join('\n');
+        if (chunkContent.trim().length === 0) continue;
+
+        try {
+          const vector = await generateEmbedding(`File: ${file.path}\nLines: ${i+1}-${i+chunkLines.length}\n\n${chunkContent}`);
+          
+          await prisma.$executeRaw`
+            INSERT INTO "RepoFileChunk" ("id", "githubAnalysisId", "filePath", "startLine", "endLine", "content", "vector", "createdAt")
+            VALUES (
+              gen_random_uuid()::text,
+              ${githubAnalysisId},
+              ${file.path},
+              ${i + 1},
+              ${i + chunkLines.length},
+              ${chunkContent},
+              ${vector}::vector,
+              NOW()
+            )
+          `;
+        } catch (embedError) {
+          console.error(`Failed to embed chunk for ${file.path}:`, embedError);
+        }
+      }
+    }
+  } catch (error) {
+    console.error("Fatal error in chunkAndEmbedFiles:", error);
+  }
+};
