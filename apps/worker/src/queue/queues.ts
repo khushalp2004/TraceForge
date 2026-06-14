@@ -25,6 +25,7 @@ export const bullConnection = toBullConnection();
 
 export const AI_GENERATE_QUEUE = "ai-generate";
 export const GITHUB_ANALYSIS_QUEUE = "github-repo-analysis";
+export const BILLING_RECONCILIATION_QUEUE = "billing-reconciliation";
 
 export const createAiWorker = <T>(processor: (job: { data: T; id?: string }) => Promise<void>, concurrency: number) =>
   new Worker<T>(
@@ -49,3 +50,12 @@ export const createAiQueueEvents = () =>
 export const createGithubQueueEvents = () =>
   new QueueEvents(GITHUB_ANALYSIS_QUEUE, { connection: bullConnection });
 
+export const createBillingReconciliationWorker = <T>(
+  processor: (job: { data: T; id?: string }) => Promise<void>,
+  concurrency: number
+) =>
+  new Worker<T>(
+    BILLING_RECONCILIATION_QUEUE,
+    async (job) => processor({ data: job.data, id: job.id }),
+    { connection: bullConnection, concurrency }
+  );

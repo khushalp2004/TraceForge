@@ -25,6 +25,7 @@ const connection = toBullConnection();
 
 export const AI_GENERATE_QUEUE = "ai-generate";
 export const GITHUB_ANALYSIS_QUEUE = "github-repo-analysis";
+export const BILLING_RECONCILIATION_QUEUE = "billing-reconciliation";
 
 export const aiGenerateQueue = new Queue(AI_GENERATE_QUEUE, {
   connection,
@@ -51,8 +52,25 @@ export const githubAnalysisQueue = new Queue(GITHUB_ANALYSIS_QUEUE, {
   }
 });
 
+export const billingReconciliationQueue = new Queue(BILLING_RECONCILIATION_QUEUE, {
+  connection,
+  defaultJobOptions: {
+    attempts: 3,
+    backoff: {
+      type: 'exponential',
+      delay: 5000
+    },
+    removeOnComplete: 10,
+    removeOnFail: 50
+  }
+});
+
 export const closeQueues = async () => {
-  await Promise.all([aiGenerateQueue.close(), githubAnalysisQueue.close()]);
+  await Promise.all([
+    aiGenerateQueue.close(),
+    githubAnalysisQueue.close(),
+    billingReconciliationQueue.close()
+  ]);
 };
 
 export { toBullConnection };

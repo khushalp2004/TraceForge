@@ -499,6 +499,11 @@ paymentRouter.post("/verify", requireAuth, paymentMutationRateLimit, async (req,
       return res.status(400).json({ error: "Invalid payment signature" });
     }
 
+    if (process.env.TEST_FAIL_WEBHOOK === "true") {
+      console.warn("Simulating verify failure due to TEST_FAIL_WEBHOOK flag. Database will not be updated.");
+      return res.json({ success: true, simulated_failure: true });
+    }
+
     const subscriptionEntity = razorpay_subscription_id
       ? await fetchSubscription(razorpay_subscription_id)
       : null;
@@ -1235,6 +1240,11 @@ paymentRouter.post("/webhook", webhookRateLimit, async (req, res) => {
       const expiresAt = subscriptionEntity
         ? subscriptionExpiryFromEntity(subscriptionEntity, baseExpiry, interval)
         : addInterval(baseExpiry, interval);
+
+      if (process.env.TEST_FAIL_WEBHOOK === "true") {
+        console.warn("Simulating webhook failure due to TEST_FAIL_WEBHOOK flag. Database will not be updated.");
+        return res.status(200).json({ received: true, simulated_failure: true });
+      }
 
       await prisma.$transaction(async (tx) => {
         const pending = subscriptionId

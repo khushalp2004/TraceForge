@@ -12,8 +12,10 @@ import {
   createAiQueueEvents,
   createAiWorker,
   createGithubAnalysisWorker,
-  createGithubQueueEvents
+  createGithubQueueEvents,
+  createBillingReconciliationWorker
 } from "./queue/queues.js";
+import { processBillingReconciliation } from "./services/billingReconciliation.js";
 import {
   DEV_MONTHLY_AI_LIMIT,
   FREE_MONTHLY_AI_LIMIT,
@@ -1190,6 +1192,13 @@ const start = async () => {
     },
     GITHUB_ANALYSIS_WORKER_CONCURRENCY
   );
+  const billingReconciliationWorker = createBillingReconciliationWorker(
+    async () => {
+      await processBillingReconciliation();
+    },
+    1
+  );
+  
   const aiQueueEvents = createAiQueueEvents();
   const githubQueueEvents = createGithubQueueEvents();
 
