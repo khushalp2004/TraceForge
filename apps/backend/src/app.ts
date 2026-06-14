@@ -21,6 +21,7 @@ import { paymentRouter } from "./routes/payment.js";
 import { fxRouter } from "./routes/fx.js";
 import { publicBillingRouter } from "./routes/publicBilling.js";
 import { integrationsRouter } from "./routes/integrations.js";
+import { webhooksRouter } from "./routes/webhooks.js";
 import { supportRouter } from "./routes/support.js";
 import { adminRouter } from "./routes/admin.js";
 import { marketingRouter } from "./routes/marketing.js";
@@ -148,6 +149,7 @@ export const createApp = () => {
     app.use("/support", supportRouter);
     app.use("/marketing", marketingRouter);
     app.use("/admin", adminRouter);
+    app.use("/webhooks", webhooksRouter);
     app.use("/integrations", integrationsRouter);
     app.use("/projects", projectsRouter);
     app.use("/orgs", orgsRouter);

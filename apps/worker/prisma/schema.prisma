@@ -1,11 +1,13 @@
 generator client {
-  provider = "prisma-client-js"
+  provider        = "prisma-client-js"
+  previewFeatures = ["postgresqlExtensions"]
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
-  directUrl = env("DIRECT_DATABASE_URL")
+  provider   = "postgresql"
+  url        = env("DATABASE_URL")
+  directUrl  = env("DIRECT_DATABASE_URL")
+  extensions = [vector]
 }
 
 model User {
@@ -353,6 +355,7 @@ model GithubRepoAnalysis {
   updatedAt        DateTime                 @updatedAt
 
   project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  chunks  RepoFileChunk[]
 
   @@index([status])
   @@index([generatedAt])
@@ -545,9 +548,24 @@ model FreeAiEmailUsage {
   email     String
   monthKey  String
   amount    Int      @default(0)
+  marketingConsent Boolean  @default(false)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   @@unique([email, monthKey])
   @@index([monthKey])
+}
+
+model RepoFileChunk {
+  id               String               @id @default(cuid())
+  githubAnalysisId String
+  githubAnalysis   GithubRepoAnalysis   @relation(fields: [githubAnalysisId], references: [id], onDelete: Cascade)
+  filePath         String
+  startLine        Int
+  endLine          Int
+  content          String               @db.Text
+  vector           Unsupported("vector(768)")?
+  createdAt        DateTime             @default(now())
+
+  @@index([githubAnalysisId])
 }

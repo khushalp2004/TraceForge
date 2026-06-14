@@ -6,7 +6,8 @@ import {
   GithubRepoAnalysisStatus
 } from "@prisma/client";
 import {
-  runGithubRepoAnalysis
+  runGithubRepoAnalysis,
+  syncRepoFileChunks
 } from "./services/githubRepoAnalysis.js";
 import {
   createAiQueueEvents,
@@ -80,6 +81,10 @@ type GithubAnalysisQueueJob = {
   attempt?: number;
   enqueuedAt?: string;
   analysisType?: string;
+  syncPayload?: {
+    filesToSync: string[];
+    filesToRemove: string[];
+  };
 };
 
 const parseQueueJob = (value: string): AiQueueJob => {
@@ -114,7 +119,7 @@ const normalizeGithubAnalysisQueueJob = (
 ): Required<Pick<GithubAnalysisQueueJob, "projectId" | "userId" | "attempt" | "enqueuedAt">> &
   Pick<
     GithubAnalysisQueueJob,
-    "orgId" | "requesterEmail" | "chargeCredits" | "incrementFreeEmailUsage" | "usageCost" | "analysisType"
+    "orgId" | "requesterEmail" | "chargeCredits" | "incrementFreeEmailUsage" | "usageCost" | "analysisType" | "syncPayload"
   > => ({
   projectId: job.projectId,
   userId: job.userId,
@@ -125,7 +130,8 @@ const normalizeGithubAnalysisQueueJob = (
   usageCost: typeof job.usageCost === "number" && Number.isFinite(job.usageCost) ? job.usageCost : 0,
   attempt: typeof job.attempt === "number" && Number.isFinite(job.attempt) ? job.attempt : 1,
   enqueuedAt: job.enqueuedAt || new Date().toISOString(),
-  analysisType: job.analysisType || "report"
+  analysisType: job.analysisType || "report",
+  syncPayload: job.syncPayload
 });
 const serializeGithubAnalysisQueueJob = (job: GithubAnalysisQueueJob) =>
   JSON.stringify(normalizeGithubAnalysisQueueJob(job));
@@ -574,6 +580,15 @@ const processGithubAnalysisJob = async (job: GithubAnalysisQueueJob) => {
       model: project.aiModel || "groq/compound-mini"
     }
   });
+
+  if (normalized.analysisType === "sync" && normalized.syncPayload) {
+    await syncRepoFileChunks({
+      projectId: normalized.projectId,
+      filesToSync: normalized.syncPayload.filesToSync,
+      filesToRemove: normalized.syncPayload.filesToRemove
+    });
+    return;
+  }
 
   const { report, tree } = await runGithubRepoAnalysis({
     accessTokenEncrypted: connection.accessTokenEncrypted,

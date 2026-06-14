@@ -507,3 +507,86 @@ const chunkAndEmbedFiles = async (githubAnalysisId: string, files: { path: strin
     console.error("Fatal error in chunkAndEmbedFiles:", error);
   }
 };
+
+export const syncRepoFileChunks = async ({
+  projectId,
+  filesToSync,
+  filesToRemove
+}: {
+  projectId: string;
+  filesToSync: string[];
+  filesToRemove: string[];
+}) => {
+  try {
+    const project = await prisma.project.findUnique({
+      where: { id: projectId }
+    });
+
+    if (!project?.githubRepoName || !project?.userId) return;
+
+    const connection = await prisma.integrationConnection.findUnique({
+      where: {
+        provider_userId: {
+          provider: "GITHUB",
+          userId: project.userId
+        }
+      }
+    });
+
+    if (!connection?.accessTokenEncrypted) return;
+
+    const accessToken = decryptIntegrationSecret(connection.accessTokenEncrypted);
+
+    const lastAnalysis = await prisma.githubRepoAnalysis.findFirst({
+      where: { projectId },
+      orderBy: { createdAt: "desc" }
+    });
+
+    if (!lastAnalysis) return;
+
+    // 1. Remove deleted files
+    if (filesToRemove.length > 0) {
+      await prisma.repoFileChunk.deleteMany({
+        where: {
+          githubAnalysisId: lastAnalysis.id,
+          filePath: { in: filesToRemove }
+        }
+      });
+    }
+
+    // 2. Fetch and embed modified/added files
+    if (filesToSync.length > 0) {
+      await prisma.repoFileChunk.deleteMany({
+        where: {
+          githubAnalysisId: lastAnalysis.id,
+          filePath: { in: filesToSync }
+        }
+      });
+
+      const summary = await fetchGithubRepoSummary(
+        accessToken,
+        project.githubRepoName!
+      );
+
+      const fetchedFiles = await Promise.all(
+        filesToSync.map(async (path) => {
+          const file = await fetchGithubRepoFile({
+            accessToken,
+            repoFullName: project.githubRepoName!,
+            branch: summary.defaultBranch || "main",
+            path
+          });
+          if (!file) return null;
+          return { path: file.path, content: file.content };
+        })
+      );
+
+      const validFiles = fetchedFiles.filter((f): f is { path: string; content: string } => Boolean(f?.content));
+      if (validFiles.length > 0) {
+        await chunkAndEmbedFiles(lastAnalysis.id, validFiles);
+      }
+    }
+  } catch (error) {
+    console.error("Fatal error in syncRepoFileChunks:", error);
+  }
+};
