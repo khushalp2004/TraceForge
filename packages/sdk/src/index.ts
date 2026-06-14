@@ -167,6 +167,10 @@ const setupAutoCapture = () => {
 
 const TraceForge = {
   init: (options: TraceForgeConfig) => {
+    if (!options.apiKey) {
+      throw new Error("TraceForge.init() failed: Missing API Key.");
+    }
+
     const previousApiKey = config?.apiKey ?? null;
     const previousEndpoint = config?.endpoint ?? defaultEndpoint;
     config = {

@@ -139,6 +139,12 @@ ingestRouter.post("/", requireProjectApiKey, ingestRateLimit(), async (req, res)
       }
     });
   } else {
+    // If this is the very first error, mark the project as configured
+    await prisma.project.updateMany({
+      where: { id: projectId, configuredAt: null },
+      data: { configuredAt: now, lastConfiguredAt: now }
+    });
+
     errorRecord = await prisma.error.create({
       data: {
         projectId,

@@ -138,8 +138,8 @@ const serializeProject = <T extends ProjectRecord>(
     githubRepoUrl: project.githubRepoUrl,
     createdAt: project.createdAt,
     archivedAt: project.archivedAt,
-    configuredAt: project.configuredAt ?? lastEventAt,
-    lastConfiguredAt: project.lastConfiguredAt ?? lastEventAt,
+    configuredAt: project.configuredAt,
+    lastConfiguredAt: project.lastConfiguredAt,
     orgId: project.orgId,
     githubRepoAnalysis: project.githubRepoAnalysis
       ? {

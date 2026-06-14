@@ -2,7 +2,19 @@
 
 TraceForge JavaScript SDK for sending errors to your TraceForge backend.
 
-## Install
+## 🪄 The 2-Click Installation (Recommended)
+
+The easiest way to install and configure TraceForge in a Next.js or Node.js app is to use our interactive CLI wizard. It will automatically install the SDK and write the configuration code for you!
+
+```bash
+npx usetraceforge-cli init
+```
+
+That's it! If you prefer to do it manually, read the manual instructions below.
+
+---
+
+## Manual Installation
 
 ```bash
 npm install usetraceforge
