@@ -48,6 +48,7 @@ export type GithubRepoAnalysisReport = {
 };
 
 const groqApiKey = process.env.GROQ_API_KEY;
+const geminiApiKey = process.env.GEMINI_API_KEY;
 
 const githubHeaders = (accessToken: string) => ({
   Authorization: `Bearer ${accessToken}`,
@@ -239,7 +240,11 @@ const generateGithubRepoAnalysis = async ({
   analysisType: string;
   aiModel: string;
 }) => {
-  if (!groqApiKey) {
+  const isGemini = aiModel.startsWith("gemini/");
+
+  if (isGemini && !geminiApiKey) {
+    throw new Error("Missing GEMINI_API_KEY");
+  } else if (!isGemini && !groqApiKey) {
     throw new Error("Missing GROQ_API_KEY");
   }
 
@@ -263,32 +268,54 @@ const generateGithubRepoAnalysis = async ({
     }
   ];
 
-  const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${groqApiKey}`
-    },
-    body: JSON.stringify({
-      model: aiModel,
-      messages,
-      temperature: 0.15,
-      response_format: {
-        type: "json_object"
-      }
-    })
-  });
+  let response: Response;
+
+  if (isGemini) {
+    const modelName = aiModel.replace("gemini/", "");
+    response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${geminiApiKey}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        contents: [{ role: "user", parts: [{ text: messages[1].content }] }],
+        systemInstruction: { parts: [{ text: messages[0].content }] },
+        generationConfig: { responseMimeType: "application/json", temperature: 0.15 }
+      })
+    });
+  } else {
+    response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${groqApiKey}`
+      },
+      body: JSON.stringify({
+        model: aiModel,
+        messages,
+        temperature: 0.15,
+        response_format: {
+          type: "json_object"
+        }
+      })
+    });
+  }
 
   if (!response.ok) {
     const errorBody = await response.text();
-    throw new Error(`Groq API error: ${response.status} ${errorBody}`);
+    throw new Error(`${isGemini ? "Gemini" : "Groq"} API error: ${response.status} ${errorBody}`);
   }
 
-  const data = (await response.json()) as GroqResponse;
-  const content = data.choices?.[0]?.message?.content?.trim();
+  let content: string | undefined;
+
+  if (isGemini) {
+    const data = await response.json();
+    content = data.candidates?.[0]?.content?.parts?.[0]?.text?.trim();
+  } else {
+    const data = (await response.json()) as GroqResponse;
+    content = data.choices?.[0]?.message?.content?.trim();
+  }
 
   if (!content) {
-    throw new Error("Groq response missing content");
+    throw new Error(`${isGemini ? "Gemini" : "Groq"} response missing content`);
   }
 
   const report = tryParseReport(content);

@@ -17,11 +17,13 @@ type StructuredAiExplanation = {
 };
 
 const groqApiKey = process.env.GROQ_API_KEY;
+const geminiApiKey = process.env.GEMINI_API_KEY;
 const groqModel = process.env.GROQ_MODEL || "groq/compound";
 const supportedAiModels = new Set([
   "allam-2-7b",
   "groq/compound",
   "groq/compound-mini",
+  "gemini/gemini-1.5-flash",
   "llama-3.1-8b-instant",
   "openai/gpt-oss-120b",
   "openai/gpt-oss-20b"
@@ -66,7 +68,12 @@ export const generateExplanation = async (input: {
   model?: string;
   timeoutMs?: number;
 }) => {
-  if (!groqApiKey) {
+  const resolvedModel = resolveAiModel(input.model);
+  const isGemini = resolvedModel.startsWith("gemini/");
+
+  if (isGemini && !geminiApiKey) {
+    throw new Error("Missing GEMINI_API_KEY");
+  } else if (!isGemini && !groqApiKey) {
     throw new Error("Missing GROQ_API_KEY");
   }
 
@@ -88,22 +95,36 @@ export const generateExplanation = async (input: {
 
   let response: Response;
   try {
-    response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${groqApiKey}`
-      },
-      body: JSON.stringify({
-        model: resolveAiModel(input.model),
-        messages,
-        temperature: 0.2,
-        response_format: {
-          type: "json_object"
-        }
-      }),
-      signal: controller.signal
-    });
+    if (isGemini) {
+      const modelName = resolvedModel.replace("gemini/", "");
+      response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${geminiApiKey}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          contents: [{ role: "user", parts: [{ text: messages[1].content }] }],
+          systemInstruction: { parts: [{ text: messages[0].content }] },
+          generationConfig: { responseMimeType: "application/json", temperature: 0.2 }
+        }),
+        signal: controller.signal
+      });
+    } else {
+      response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${groqApiKey}`
+        },
+        body: JSON.stringify({
+          model: resolvedModel,
+          messages,
+          temperature: 0.2,
+          response_format: {
+            type: "json_object"
+          }
+        }),
+        signal: controller.signal
+      });
+    }
   } catch (error) {
     if (error instanceof Error && error.name === "AbortError") {
       throw new Error(`Groq request timed out after ${timeoutMs}ms`);
@@ -119,12 +140,18 @@ export const generateExplanation = async (input: {
     throw new Error(`Groq API error: ${response.status} ${errorBody}`);
   }
 
-  const data = (await response.json()) as GroqResponse;
+  let content: string | undefined;
 
-  const content = data.choices?.[0]?.message?.content?.trim();
+  if (isGemini) {
+    const data = await response.json();
+    content = data.candidates?.[0]?.content?.parts?.[0]?.text?.trim();
+  } else {
+    const data = (await response.json()) as GroqResponse;
+    content = data.choices?.[0]?.message?.content?.trim();
+  }
 
   if (!content) {
-    throw new Error("Groq response missing content");
+    throw new Error(`${isGemini ? "Gemini" : "Groq"} response missing content`);
   }
 
   const structured = tryParseStructuredResponse(content);

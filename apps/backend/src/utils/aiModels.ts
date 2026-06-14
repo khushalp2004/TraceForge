@@ -15,6 +15,11 @@ export const supportedAiModels = [
     description: "Faster and lighter for quick AI triage."
   },
   {
+    id: "gemini/gemini-1.5-flash",
+    label: "Gemini 1.5 Flash",
+    description: "Massive 1M token context window for analyzing large enterprise repositories, incredibly fast."
+  },
+  {
     id: "llama-3.1-8b-instant",
     label: "Llama 3.1 8B Instant",
     description: "Fastest option for lightweight issue summaries."
