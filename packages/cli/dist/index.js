@@ -3,6 +3,9 @@ import { intro, outro, text, select, spinner } from "@clack/prompts";
 import chalk from "chalk";
 import { execa } from "execa";
 import { installNextJs } from "./installers/nextjs.js";
+import { installExpress } from "./installers/express.js";
+import { installReact } from "./installers/react.js";
+import { installNode } from "./installers/node.js";
 async function main() {
     console.log();
     intro(chalk.bgBlue(chalk.white(" Welcome to TraceForge ")));
@@ -27,7 +30,9 @@ async function main() {
         message: "Which framework are you using?",
         options: [
             { value: "nextjs", label: "Next.js (Prebuilt)" },
-            { value: "express", label: "Express.js (Prebuilt)" },
+            { value: "express", label: "Express.js (Auto Setup)" },
+            { value: "react", label: "React (Manual Setup)" },
+            { value: "node", label: "Raw Node.js (Manual Setup)" },
         ],
     });
     if (typeof framework !== "string") {
@@ -49,7 +54,13 @@ async function main() {
         await installNextJs(apiKey, endpoint);
     }
     else if (framework === "express") {
-        console.log(chalk.yellow("Express auto-installation coming soon."));
+        await installExpress(apiKey, endpoint);
+    }
+    else if (framework === "react") {
+        await installReact(apiKey, endpoint);
+    }
+    else if (framework === "node") {
+        await installNode(apiKey, endpoint);
     }
     outro(chalk.green("✨ You're all set! TraceForge is now protecting your application."));
 }

@@ -14,8 +14,12 @@ export async function installNextJs(apiKey: string, endpoint: string) {
     const envVar = `\nNEXT_PUBLIC_TRACEFORGE_API_KEY="${apiKey}"\nNEXT_PUBLIC_TRACEFORGE_INGEST_URL="${endpoint}"\n`;
     
     if (fs.existsSync(envPath)) {
-      const content = fs.readFileSync(envPath, "utf-8");
-      if (!content.includes("NEXT_PUBLIC_TRACEFORGE_API_KEY")) {
+      let content = fs.readFileSync(envPath, "utf-8");
+      if (content.includes("NEXT_PUBLIC_TRACEFORGE_API_KEY")) {
+        content = content.replace(/NEXT_PUBLIC_TRACEFORGE_API_KEY=.*/g, `NEXT_PUBLIC_TRACEFORGE_API_KEY="${apiKey}"`);
+        content = content.replace(/NEXT_PUBLIC_TRACEFORGE_INGEST_URL=.*/g, `NEXT_PUBLIC_TRACEFORGE_INGEST_URL="${endpoint}"`);
+        fs.writeFileSync(envPath, content);
+      } else {
         fs.appendFileSync(envPath, envVar);
       }
     } else {

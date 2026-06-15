@@ -60,8 +60,9 @@ export function TraceForgeProvider({
   endpoint?: string;
 }) {
   React.useEffect(() => {
-    const finalApiKey = apiKey || process.env.NEXT_PUBLIC_TRACEFORGE_API_KEY;
-    const finalEndpoint = endpoint || process.env.NEXT_PUBLIC_TRACEFORGE_INGEST_URL;
+    const envObj = typeof process !== "undefined" && process.env ? process.env : {};
+    const finalApiKey = apiKey || envObj.NEXT_PUBLIC_TRACEFORGE_API_KEY;
+    const finalEndpoint = endpoint || envObj.NEXT_PUBLIC_TRACEFORGE_INGEST_URL;
     
     if (finalApiKey) {
       TraceForge.init({

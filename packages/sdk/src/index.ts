@@ -146,21 +146,30 @@ const sendSetupHandshake = async () => {
 
 const setupAutoCapture = () => {
   if (autoCaptureInitialized) return;
-  if (typeof window === "undefined") return;
+  if (typeof window !== "undefined") {
+    window.addEventListener("error", (event) => {
+      if (event.error) {
+        capture(event.error, { environment: "browser" }).catch(() => undefined);
+      } else if (event.message) {
+        capture(new Error(event.message), { environment: "browser" }).catch(() => undefined);
+      }
+    });
 
-  window.addEventListener("error", (event) => {
-    if (event.error) {
-      capture(event.error, { environment: "browser" }).catch(() => undefined);
-    } else if (event.message) {
-      capture(new Error(event.message), { environment: "browser" }).catch(() => undefined);
-    }
-  });
-
-  window.addEventListener("unhandledrejection", (event) => {
-    capture(event.reason ?? new Error("Unhandled promise rejection"), {
-      environment: "browser"
-    }).catch(() => undefined);
-  });
+    window.addEventListener("unhandledrejection", (event) => {
+      capture(event.reason ?? new Error("Unhandled promise rejection"), {
+        environment: "browser"
+      }).catch(() => undefined);
+    });
+  } else if (typeof process !== "undefined") {
+    process.on("uncaughtException", (error) => {
+      capture(error, { environment: "node" }).catch(() => undefined);
+    });
+    process.on("unhandledRejection", (reason) => {
+      capture(reason ?? new Error("Unhandled promise rejection"), {
+        environment: "node"
+      }).catch(() => undefined);
+    });
+  }
 
   autoCaptureInitialized = true;
 };
@@ -175,7 +184,7 @@ const TraceForge = {
     const previousEndpoint = config?.endpoint ?? defaultEndpoint;
     config = {
       endpoint: defaultEndpoint,
-      autoCapture: false,
+      autoCapture: typeof window !== "undefined",
       ...options
     };
 
