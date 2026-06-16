@@ -26,28 +26,40 @@ export async function installNextJs(apiKey, endpoint) {
         }
         // 2. Generate instrumentation.ts
         const isSrc = fs.existsSync(path.resolve(process.cwd(), "src"));
-        const instrumentationDir = isSrc ? path.resolve(process.cwd(), "src") : process.cwd();
-        const instrumentationPath = path.resolve(instrumentationDir, "instrumentation.ts");
-        const instrumentationCode = `import TraceForge from "usetraceforge";
+        const isAppRouter = fs.existsSync(path.resolve(process.cwd(), "app")) || fs.existsSync(path.resolve(process.cwd(), "src/app"));
+        if (isAppRouter) {
+            console.log(chalk.cyan(`\n=================================================`));
+            console.log(chalk.yellow(`import TraceForgeNext from 'usetraceforge/next';
 
-export function register() {
-  TraceForge.init({
-    apiKey: process.env.NEXT_PUBLIC_TRACEFORGE_API_KEY!,
-    endpoint: process.env.NEXT_PUBLIC_TRACEFORGE_INGEST_URL,
-    autoCapture: true,
-  });
-}
+TraceForgeNext.init({
+  apiKey: process.env.NEXT_PUBLIC_TRACEFORGE_API_KEY,
+  endpoint: process.env.NEXT_PUBLIC_TRACEFORGE_INGEST_URL, // Optional
+  autoCapture: true
+});
 
-export function onRequestError(err: any, request: any) {
-  TraceForge.captureException(err, { tags: { route: request.url } });
-}
-`;
-        if (!fs.existsSync(instrumentationPath)) {
-            fs.writeFileSync(instrumentationPath, instrumentationCode);
-            console.log(chalk.green(`\nAgent: Created ${isSrc ? "src/" : ""}instrumentation.ts!`));
+export default function RootLayout({ children }) {
+  return (
+    <html lang="en">
+      <body>{children}</body>
+    </html>
+  );
+}`));
+            console.log(chalk.cyan(`=================================================\n`));
         }
         else {
-            console.log(chalk.yellow(`\nAgent: instrumentation.ts already exists. Please manually add TraceForge.`));
+            console.log(chalk.cyan(`\n=================================================`));
+            console.log(chalk.yellow(`import TraceForgeNext from 'usetraceforge/next';
+
+TraceForgeNext.init({
+  apiKey: process.env.NEXT_PUBLIC_TRACEFORGE_API_KEY,
+  endpoint: process.env.NEXT_PUBLIC_TRACEFORGE_INGEST_URL, // Optional
+  autoCapture: true
+});
+
+export default function MyApp({ Component, pageProps }) {
+  return <Component {...pageProps} />;
+}`));
+            console.log(chalk.cyan(`=================================================\n`));
         }
         // 3. Layout AST Injection (Client-side Provider)
         const project = new Project();

@@ -71,7 +71,7 @@ export const createApp = () => {
       crossOriginResourcePolicy: false
     })
   );
-  app.use(cors(corsOptions));
+
   app.use(compression());
   app.use(
     express.json({
@@ -82,6 +82,18 @@ export const createApp = () => {
     })
   );
   app.use(express.urlencoded({ extended: true, limit: "64kb" }));
+
+  // The ingest route MUST accept errors from ANY origin (user's websites)
+  app.use("/ingest", cors());
+  app.use("/ingest", ingestRouter);
+
+  // Global strict CORS for the rest of the API
+  app.use((req, res, next) => {
+    if (req.path.startsWith('/ingest')) {
+      return next();
+    }
+    cors(corsOptions)(req, res, next);
+  });
   app.use((req, res, next) => {
     const requestId =
       (typeof req.headers["x-request-id"] === "string" && req.headers["x-request-id"].trim()) ||
@@ -153,7 +165,6 @@ export const createApp = () => {
     app.use("/integrations", integrationsRouter);
     app.use("/projects", projectsRouter);
     app.use("/orgs", orgsRouter);
-    app.use("/ingest", ingestRouter);
     app.use("/errors", errorsRouter);
     app.use("/analytics", analyticsRouter);
   }

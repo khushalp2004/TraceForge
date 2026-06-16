@@ -6,6 +6,9 @@ import { installNextJs } from "./installers/nextjs.js";
 import { installExpress } from "./installers/express.js";
 import { installReact } from "./installers/react.js";
 import { installNode } from "./installers/node.js";
+import { installVue } from "./installers/vue.js";
+import { installAngular } from "./installers/angular.js";
+import { installSvelte } from "./installers/svelte.js";
 async function main() {
     console.log();
     intro(chalk.bgBlue(chalk.white(" Welcome to TraceForge ")));
@@ -32,6 +35,9 @@ async function main() {
             { value: "nextjs", label: "Next.js (Prebuilt)" },
             { value: "express", label: "Express.js (Auto Setup)" },
             { value: "react", label: "React (Manual Setup)" },
+            { value: "vue", label: "Vue.js (Manual Setup)" },
+            { value: "angular", label: "Angular (Manual Setup)" },
+            { value: "svelte", label: "Svelte / SvelteKit (Manual Setup)" },
             { value: "node", label: "Raw Node.js (Manual Setup)" },
         ],
     });
@@ -58,6 +64,15 @@ async function main() {
     }
     else if (framework === "react") {
         await installReact(apiKey, endpoint);
+    }
+    else if (framework === "vue") {
+        await installVue(apiKey, endpoint);
+    }
+    else if (framework === "angular") {
+        await installAngular(apiKey, endpoint);
+    }
+    else if (framework === "svelte") {
+        await installSvelte(apiKey, endpoint);
     }
     else if (framework === "node") {
         await installNode(apiKey, endpoint);

@@ -1,6 +1,6 @@
 {
   "name": "usetraceforge",
-  "version": "0.1.20",
+  "version": "0.1.26",
   "private": false,
   "description": "TraceForge JavaScript SDK for sending errors to a TraceForge ingest endpoint.",
   "type": "module",
@@ -48,6 +48,21 @@
       "import": "./dist/next.js",
       "require": "./dist/next.js",
       "default": "./dist/next.js"
+    },
+    "./vue": {
+      "import": "./dist/vue.js",
+      "require": "./dist/vue.js",
+      "types": "./dist/vue.d.ts"
+    },
+    "./angular": {
+      "import": "./dist/angular.js",
+      "require": "./dist/angular.js",
+      "types": "./dist/angular.d.ts"
+    },
+    "./svelte": {
+      "import": "./dist/svelte.js",
+      "require": "./dist/svelte.js",
+      "types": "./dist/svelte.d.ts"
     }
   },
   "files": [
