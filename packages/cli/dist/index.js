@@ -9,6 +9,7 @@ import { installNode } from "./installers/node.js";
 import { installVue } from "./installers/vue.js";
 import { installAngular } from "./installers/angular.js";
 import { installSvelte } from "./installers/svelte.js";
+import { installFastify } from "./installers/fastify.js";
 async function main() {
     console.log();
     intro(chalk.bgBlue(chalk.white(" Welcome to TraceForge ")));
@@ -34,6 +35,7 @@ async function main() {
         options: [
             { value: "nextjs", label: "Next.js (Prebuilt)" },
             { value: "express", label: "Express.js (Auto Setup)" },
+            { value: "fastify", label: "Fastify (Manual Setup)" },
             { value: "react", label: "React (Manual Setup)" },
             { value: "vue", label: "Vue.js (Manual Setup)" },
             { value: "angular", label: "Angular (Manual Setup)" },
@@ -61,6 +63,9 @@ async function main() {
     }
     else if (framework === "express") {
         await installExpress(apiKey, endpoint);
+    }
+    else if (framework === "fastify") {
+        await installFastify(apiKey, endpoint);
     }
     else if (framework === "react") {
         await installReact(apiKey, endpoint);

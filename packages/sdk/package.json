@@ -1,6 +1,6 @@
 {
   "name": "usetraceforge",
-  "version": "0.1.26",
+  "version": "0.1.28",
   "private": false,
   "description": "TraceForge JavaScript SDK for sending errors to a TraceForge ingest endpoint.",
   "type": "module",
@@ -36,6 +36,11 @@
       "import": "./dist/react.js",
       "require": "./dist/react.js",
       "default": "./dist/react.js"
+    },
+    "./fastify": {
+      "import": "./dist/fastify.js",
+      "require": "./dist/fastify.js",
+      "types": "./dist/fastify.d.ts"
     },
     "./express": {
       "types": "./dist/express.d.ts",

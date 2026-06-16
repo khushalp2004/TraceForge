@@ -9,6 +9,7 @@ import { installNode } from "./installers/node.js";
 import { installVue } from "./installers/vue.js";
 import { installAngular } from "./installers/angular.js";
 import { installSvelte } from "./installers/svelte.js";
+import { installFastify } from "./installers/fastify.js";
 
 async function main() {
   console.log();
@@ -38,6 +39,7 @@ async function main() {
     options: [
       { value: "nextjs", label: "Next.js (Prebuilt)" },
       { value: "express", label: "Express.js (Auto Setup)" },
+      { value: "fastify", label: "Fastify (Manual Setup)" },
       { value: "react", label: "React (Manual Setup)" },
       { value: "vue", label: "Vue.js (Manual Setup)" },
       { value: "angular", label: "Angular (Manual Setup)" },
@@ -67,6 +69,8 @@ async function main() {
     await installNextJs(apiKey as string, endpoint as string);
   } else if (framework === "express") {
     await installExpress(apiKey as string, endpoint as string);
+  } else if (framework === "fastify") {
+    await installFastify(apiKey as string, endpoint as string);
   } else if (framework === "react") {
     await installReact(apiKey as string, endpoint as string);
   } else if (framework === "vue") {
