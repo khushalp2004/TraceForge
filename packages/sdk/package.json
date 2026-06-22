@@ -1,6 +1,6 @@
 {
   "name": "usetraceforge",
-  "version": "0.1.28",
+  "version": "0.1.29",
   "private": false,
   "description": "TraceForge JavaScript SDK for sending errors to a TraceForge ingest endpoint.",
   "type": "module",
@@ -41,6 +41,11 @@
       "import": "./dist/fastify.js",
       "require": "./dist/fastify.js",
       "types": "./dist/fastify.d.ts"
+    },
+    "./nestjs": {
+      "import": "./dist/nestjs.js",
+      "require": "./dist/nestjs.js",
+      "types": "./dist/nestjs.d.ts"
     },
     "./express": {
       "types": "./dist/express.d.ts",
@@ -84,19 +89,25 @@
   "publishConfig": {
     "access": "public"
   },
-  "dependencies": {},
   "devDependencies": {
-    "typescript": "^5.5.4",
-    "tsx": "^4.16.2",
+    "@nestjs/common": "^11.1.27",
+    "@types/express": "^4.17.21",
     "@types/react": "^18.2.0",
-    "@types/express": "^4.17.21"
+    "reflect-metadata": "^0.2.2",
+    "rxjs": "^7.8.2",
+    "tsx": "^4.16.2",
+    "typescript": "^5.5.4"
   },
   "peerDependencies": {
-    "react": ">=16.8.0",
-    "express": ">=4.0.0"
+    "express": ">=4.0.0",
+    "react": ">=16.8.0"
   },
   "peerDependenciesMeta": {
-    "react": { "optional": true },
-    "express": { "optional": true }
+    "react": {
+      "optional": true
+    },
+    "express": {
+      "optional": true
+    }
   }
 }

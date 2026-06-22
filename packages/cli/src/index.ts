@@ -40,6 +40,7 @@ async function main() {
       { value: "nextjs", label: "Next.js (Prebuilt)" },
       { value: "express", label: "Express.js (Auto Setup)" },
       { value: "fastify", label: "Fastify (Manual Setup)" },
+      { value: "nestjs", label: "NestJS (Manual Setup)" },
       { value: "react", label: "React (Manual Setup)" },
       { value: "vue", label: "Vue.js (Manual Setup)" },
       { value: "angular", label: "Angular (Manual Setup)" },
@@ -71,6 +72,9 @@ async function main() {
     await installExpress(apiKey as string, endpoint as string);
   } else if (framework === "fastify") {
     await installFastify(apiKey as string, endpoint as string);
+  } else if (framework === "nestjs") {
+    const { installNestJS } = await import("./installers/nestjs.js");
+    await installNestJS(apiKey as string, endpoint as string);
   } else if (framework === "react") {
     await installReact(apiKey as string, endpoint as string);
   } else if (framework === "vue") {
