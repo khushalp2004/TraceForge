@@ -64,7 +64,7 @@ export class GlobalExceptionFilter implements ExceptionFilter {
     TraceForgeNest.captureException(exception, {
       tags: { framework: 'nestjs' },
       payload: { url: request.url, method: request.method }
-    });
+    }).catch(() => {});
     
     // ... rest of your custom error handling ...
   }
