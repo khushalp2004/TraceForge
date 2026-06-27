@@ -1,0 +1,110 @@
+Metadata-Version: 2.4
+Name: usetraceforge
+Version: 1.0.2
+Summary: TraceForge Python SDK for unhandled panic logging
+Home-page: https://github.com/khushalp2004/TraceForge
+Author: Khushal Patil
+Description-Content-Type: text/markdown
+Requires-Dist: requests>=2.31.0
+Dynamic: author
+Dynamic: description
+Dynamic: description-content-type
+Dynamic: home-page
+Dynamic: requires-dist
+Dynamic: summary
+
+# TraceForge SDK for Python
+
+TraceForge is a powerful exception tracking and unhandled panic logging platform. This SDK allows you to seamlessly integrate TraceForge into any Python application, with native support for **FastAPI** and **Django**.
+
+## Installation
+
+Install the SDK via pip:
+
+```bash
+pip install usetraceforge python-dotenv
+```
+
+## Basic Configuration (Any Python App)
+
+You can use TraceForge in any standard Python script. It automatically hooks into `sys.excepthook` to capture all unhandled exceptions across your entire application.
+
+First, create a `.env` file in the root of your project:
+```env
+TRACEFORGE_API_KEY="your_api_key_here"
+TRACEFORGE_INGEST_URL="http://localhost:3001/ingest" # Your TraceForge backend URL
+```
+
+Then, initialize the SDK as early as possible in your application lifecycle:
+
+```python
+import traceforge
+from dotenv import load_dotenv
+
+load_dotenv() # Load your .env file
+
+# Automatically reads TRACEFORGE_API_KEY from the environment
+traceforge.init() 
+```
+
+---
+
+## FastAPI Integration
+
+If you are building a FastAPI application, TraceForge provides a native exception handler.
+
+```python
+from fastapi import FastAPI
+from traceforge.integrations import fastapi
+import traceforge
+from dotenv import load_dotenv
+
+load_dotenv()
+traceforge.init()
+
+app = FastAPI()
+
+# Register the TraceForge FastAPI exception handler
+fastapi.init(app)
+```
+
+*(Note: If you use completely custom exception handlers that catch `Exception` and return a `JSONResponse`, you can manually capture errors inside your handler by calling `traceforge.capture_exception(exc)`).*
+
+---
+
+## Django Integration
+
+For Django applications, TraceForge provides a native Middleware.
+
+1. Initialize TraceForge at the top of your `settings.py`:
+```python
+import traceforge
+from dotenv import load_dotenv
+
+load_dotenv()
+traceforge.init()
+```
+
+2. Add the TraceForge middleware to the **END** of your `MIDDLEWARE` list in `settings.py`:
+```python
+MIDDLEWARE = [
+    'django.middleware.security.SecurityMiddleware',
+    # ... your other middlewares ...
+    
+    # Must be at the end to catch exceptions thrown by views
+    'traceforge.integrations.django.TraceForgeMiddleware',
+]
+```
+
+## Manual Capturing
+
+You can manually capture handled exceptions anywhere in your codebase without crashing your application:
+
+```python
+import traceforge
+
+try:
+    1 / 0
+except Exception as e:
+    traceforge.capture_exception(e)
+```

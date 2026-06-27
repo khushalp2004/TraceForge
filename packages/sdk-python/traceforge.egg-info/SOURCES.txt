@@ -6,3 +6,6 @@ traceforge.egg-info/SOURCES.txt
 traceforge.egg-info/dependency_links.txt
 traceforge.egg-info/requires.txt
 traceforge.egg-info/top_level.txt
+traceforge/integrations/__init__.py
+traceforge/integrations/django.py
+traceforge/integrations/fastapi.py
