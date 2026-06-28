@@ -1,7 +1,6 @@
 package tfecho
 
 import (
-	"fmt"
 	"net/http"
 	"runtime/debug"
 

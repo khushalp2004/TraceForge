@@ -2,7 +2,6 @@ package tfhttp
 
 import (
 	"encoding/json"
-	"fmt"
 	"net/http"
 	"runtime/debug"
 
