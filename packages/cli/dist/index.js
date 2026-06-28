@@ -12,6 +12,7 @@ import { installSvelte } from "./installers/svelte.js";
 import { installFastify } from "./installers/fastify.js";
 import { installPython } from "./installers/python.js";
 import { installGo } from "./installers/go.js";
+import { installPHP } from "./installers/php.js";
 async function main() {
     console.log();
     intro(chalk.bgBlue(chalk.white(" Welcome to TraceForge ")));
@@ -45,6 +46,7 @@ async function main() {
             { value: "svelte", label: "Svelte / SvelteKit (Manual Setup)" },
             { value: "python", label: "Python (Django / FastAPI)" },
             { value: "go", label: "Go (Gin / Echo / net/http)" },
+            { value: "php", label: "PHP (Laravel / Core)" },
             { value: "node", label: "Raw Node.js (Manual Setup)" },
         ],
     });
@@ -93,6 +95,9 @@ async function main() {
     }
     else if (framework === "go") {
         await installGo(apiKey, endpoint);
+    }
+    else if (framework === "php") {
+        await installPHP(apiKey, endpoint);
     }
     else if (framework === "node") {
         await installNode(apiKey, endpoint);

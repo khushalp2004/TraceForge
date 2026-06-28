@@ -1,13 +1,32 @@
 {
-    "name": "traceforge/traceforge-php",
-    "description": "TraceForge PHP SDK",
+    "name": "khushalp2004/traceforge-php",
+    "description": "TraceForge SDK for PHP and Laravel",
     "type": "library",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Khushal Patil",
+            "email": "khushalp2004@example.com"
+        }
+    ],
     "require": {
-        "php": ">=7.4"
+        "php": "^8.1",
+        "guzzlehttp/guzzle": "^7.0"
+    },
+    "require-dev": {
+        "illuminate/support": "^10.0|^11.0",
+        "illuminate/contracts": "^10.0|^11.0"
     },
     "autoload": {
         "psr-4": {
             "TraceForge\\": "src/"
+        }
+    },
+    "extra": {
+        "laravel": {
+            "providers": [
+                "TraceForge\\Laravel\\TraceForgeServiceProvider"
+            ]
         }
     }
 }

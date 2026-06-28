@@ -1,6 +1,6 @@
 {
   "name": "usetraceforge-cli",
-  "version": "0.1.41",
+  "version": "0.1.42",
   "description": "TraceForge CLI Wizard for 2-click installations",
   "bin": {
     "traceforge": "./dist/index.js"

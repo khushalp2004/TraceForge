@@ -12,6 +12,7 @@ import { installSvelte } from "./installers/svelte.js";
 import { installFastify } from "./installers/fastify.js";
 import { installPython } from "./installers/python.js";
 import { installGo } from "./installers/go.js";
+import { installPHP } from "./installers/php.js";
 
 async function main() {
   console.log();
@@ -49,6 +50,7 @@ async function main() {
       { value: "svelte", label: "Svelte / SvelteKit (Manual Setup)" },
       { value: "python", label: "Python (Django / FastAPI)" },
       { value: "go", label: "Go (Gin / Echo / net/http)" },
+      { value: "php", label: "PHP (Laravel / Core)" },
       { value: "node", label: "Raw Node.js (Manual Setup)" },
     ],
   });
@@ -91,6 +93,8 @@ async function main() {
     await installPython(apiKey as string, endpoint as string);
   } else if (framework === "go") {
     await installGo(apiKey as string, endpoint as string);
+  } else if (framework === "php") {
+    await installPHP(apiKey as string, endpoint as string);
   } else if (framework === "node") {
     await installNode(apiKey as string, endpoint as string);
   }
