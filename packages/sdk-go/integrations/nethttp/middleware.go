@@ -56,6 +56,16 @@ func TraceForge(next http.Handler) http.Handler {
 			errMessage := fmt.Sprintf("HTTP %d Error", rbw.status)
 			responseBody := rbw.body.String()
 			
+			// Try to extract the actual error message from the JSON response
+			var jsonBody map[string]interface{}
+			if err := json.Unmarshal(rbw.body.Bytes(), &jsonBody); err == nil {
+				if errMsg, ok := jsonBody["error"].(string); ok {
+					errMessage = errMsg
+				} else if msg, ok := jsonBody["message"].(string); ok {
+					errMessage = msg
+				}
+			}
+			
 			payload := map[string]any{
 				"url":      r.URL.String(),
 				"method":   r.Method,

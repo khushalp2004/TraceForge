@@ -2,6 +2,7 @@ package tfgin
 
 import (
 	"bytes"
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"runtime/debug"
@@ -52,6 +53,16 @@ func TraceForge() gin.HandlerFunc {
 		if status >= 400 {
 			errMessage := fmt.Sprintf("HTTP %d Error", status)
 			responseBody := w.body.String()
+			
+			// Try to extract the actual error message from the JSON response
+			var jsonBody map[string]interface{}
+			if err := json.Unmarshal(w.body.Bytes(), &jsonBody); err == nil {
+				if errMsg, ok := jsonBody["error"].(string); ok {
+					errMessage = errMsg
+				} else if msg, ok := jsonBody["message"].(string); ok {
+					errMessage = msg
+				}
+			}
 			
 			payload := map[string]any{
 				"url":      c.Request.URL.String(),

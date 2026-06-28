@@ -2,6 +2,7 @@ package tfecho
 
 import (
 	"bytes"
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"runtime/debug"
@@ -58,6 +59,17 @@ func TraceForge() echo.MiddlewareFunc {
 				}
 				
 				responseBody := w.body.String()
+				
+				// Try to extract the actual error message from the JSON response
+				var jsonBody map[string]interface{}
+				if jsonErr := json.Unmarshal(w.body.Bytes(), &jsonBody); jsonErr == nil {
+					if errMsg, ok := jsonBody["error"].(string); ok {
+						errMessage = errMsg
+					} else if msg, ok := jsonBody["message"].(string); ok {
+						errMessage = msg
+					}
+				}
+				
 				payload := map[string]any{
 					"url":      c.Request().URL.String(),
 					"method":   c.Request().Method,
