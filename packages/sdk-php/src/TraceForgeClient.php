@@ -19,7 +19,7 @@ class TraceForgeClient
         $this->httpClient = new Client([
             'timeout' => 1.0,
             'headers' => [
-                'Authorization' => 'Bearer ' . $this->apiKey,
+                'X-Traceforge-Key' => $this->apiKey,
                 'Content-Type' => 'application/json',
                 'User-Agent' => 'traceforge-php-sdk/1.0',
             ],
