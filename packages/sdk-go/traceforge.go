@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"os"
 )
 
 type Config struct {
@@ -29,20 +30,29 @@ var (
 	isSetup   bool
 )
 
-const defaultEndpoint = "http://localhost:3001/ingest"
+const defaultEndpoint = "http://localhost:80/ingest"
 
-// Init initializes the TraceForge SDK.
-func Init(apiKey string) {
-	InitWithConfig(Config{APIKey: apiKey})
+// Init initializes the TraceForge SDK. It automatically reads TRACEFORGE_API_KEY and TRACEFORGE_INGEST_URL from the environment if no config is provided.
+func Init() {
+	InitWithConfig(Config{
+		APIKey:   os.Getenv("TRACEFORGE_API_KEY"),
+		Endpoint: os.Getenv("TRACEFORGE_INGEST_URL"),
+	})
 }
 
 // InitWithConfig initializes the TraceForge SDK with extended options.
 func InitWithConfig(c Config) {
+	if c.APIKey == "" {
+		c.APIKey = os.Getenv("TRACEFORGE_API_KEY")
+	}
+	if c.Endpoint == "" {
+		c.Endpoint = os.Getenv("TRACEFORGE_INGEST_URL")
+	}
 	if c.Endpoint == "" {
 		c.Endpoint = defaultEndpoint
 	}
 	config = &c
-	sendSetupHandshake()
+	go sendSetupHandshake()
 }
 
 func getSetupEndpoint() string {
@@ -63,7 +73,7 @@ func sendSetupHandshake() {
 	isSetup = true
 	
 	payload := map[string]interface{}{
-		"environment": config.Environment,
+		"environment": "go",
 		"release":     config.Release,
 		"tags":        config.Tags,
 	}
@@ -83,16 +93,57 @@ func sendSetupHandshake() {
 	req.Header.Set("X-Traceforge-Key", config.APIKey)
 	
 	client := &http.Client{}
-	_, err = client.Do(req)
+	res, err := client.Do(req)
 	if err != nil {
+		isSetup = false
+		return
+	}
+	defer res.Body.Close()
+	
+	if res.StatusCode >= 400 {
 		isSetup = false
 	}
 }
 
+// CaptureException manually captures an error and sends it to TraceForge asynchronously.
+func CaptureException(err error, tags map[string]string, payload map[string]any) {
+	if err == nil || config == nil {
+		return
+	}
+	
+	// Create merged tags
+	mergedTags := make(map[string]string)
+	for k, v := range config.Tags {
+		mergedTags[k] = v
+	}
+	for k, v := range tags {
+		mergedTags[k] = v
+	}
+	
+	event := Event{
+		Message:     err.Error(),
+		StackTrace:  fmt.Sprintf("%+v", err), // Simple stack formatting, real SDKs might use runtime.Callers
+		Environment: config.Environment,
+		Release:     config.Release,
+		Tags:        mergedTags,
+		Payload:     payload,
+	}
+	
+	go sendEvent(event)
+}
+
 // CapturePanic captures a panic error and stack trace and sends it to TraceForge.
-func CapturePanic(err interface{}, stack []byte) {
+func CapturePanic(err interface{}, stack []byte, tags map[string]string, payload map[string]any) {
 	if config == nil {
 		return
+	}
+	
+	mergedTags := make(map[string]string)
+	for k, v := range config.Tags {
+		mergedTags[k] = v
+	}
+	for k, v := range tags {
+		mergedTags[k] = v
 	}
 	
 	msg := fmt.Sprintf("%v", err)
@@ -101,14 +152,15 @@ func CapturePanic(err interface{}, stack []byte) {
 		StackTrace:  string(stack),
 		Environment: config.Environment,
 		Release:     config.Release,
-		Tags:        config.Tags,
+		Tags:        mergedTags,
+		Payload:     payload,
 	}
 	
-	sendEvent(event)
+	go sendEvent(event)
 }
 
 func sendEvent(event Event) {
-	if config == nil {
+	if config == nil || config.APIKey == "" {
 		return
 	}
 	
@@ -126,5 +178,8 @@ func sendEvent(event Event) {
 	req.Header.Set("X-Traceforge-Key", config.APIKey)
 	
 	client := &http.Client{}
-	_, _ = client.Do(req)
+	res, err := client.Do(req)
+	if err == nil {
+		res.Body.Close()
+	}
 }
