@@ -1,0 +1,30 @@
+name: 'Packages Split'
+
+on:
+  push:
+    branches:
+      - main
+    tags:
+      - '*'
+
+jobs:
+  packages_split:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # fetch-depth: 0 is required for the split action to work
+          fetch-depth: 0
+
+      - name: Split PHP SDK
+        uses: symplify/monorepo-split-github-action@v2.3.0
+        with:
+          package_directory: 'packages/sdk-php'
+          repository_organization: 'khushalp2004'
+          repository_name: 'traceforge-php'
+          user_name: "TraceForge Split Bot"
+          user_email: "action@github.com"
+          branch: "main"
+        env:
+          GITHUB_TOKEN: ${{ secrets.SPLIT_TOKEN }}
