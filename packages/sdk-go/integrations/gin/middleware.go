@@ -1,6 +1,8 @@
 package tfgin
 
 import (
+	"bytes"
+	"fmt"
 	"net/http"
 	"runtime/debug"
 
@@ -8,26 +10,35 @@ import (
 	"github.com/khushalp2004/TraceForge/packages/sdk-go"
 )
 
-// TraceForge is a Gin middleware that recovers from any panics and writes a 500 if there was one.
-// It logs the panic and sends the payload asynchronously to TraceForge.
+type responseBodyWriter struct {
+	gin.ResponseWriter
+	body *bytes.Buffer
+}
+
+func (w responseBodyWriter) Write(b []byte) (int, error) {
+	w.body.Write(b)
+	return w.ResponseWriter.Write(b)
+}
+
+// TraceForge is a zero-touch Gin middleware.
+// It catches panics AND automatically intercepts any 4xx/5xx responses to log them in TraceForge.
 func TraceForge() gin.HandlerFunc {
 	return func(c *gin.Context) {
+		w := &responseBodyWriter{body: &bytes.Buffer{}, ResponseWriter: c.Writer}
+		c.Writer = w
+
 		defer func() {
+			// Catch Panics
 			if err := recover(); err != nil {
-				// Capture stack trace
 				stack := debug.Stack()
-				
-				// Extract request payload data
 				payload := map[string]any{
 					"url":    c.Request.URL.String(),
 					"method": c.Request.Method,
 					"ip":     c.ClientIP(),
 				}
+				traceforge.CapturePanic(err, stack, map[string]string{"framework": "gin", "type": "panic"}, payload)
 				
-				// Send to TraceForge
-				traceforge.CapturePanic(err, stack, map[string]string{"framework": "gin"}, payload)
-				
-				// Return a generic 500 Internal Server Error response
+				// Standard panic response
 				c.AbortWithStatusJSON(http.StatusInternalServerError, gin.H{
 					"error": "Internal Server Error",
 				})
@@ -35,5 +46,27 @@ func TraceForge() gin.HandlerFunc {
 		}()
 		
 		c.Next()
+
+		// Intercept errors returned by standard handlers
+		status := c.Writer.Status()
+		if status >= 400 {
+			errMessage := fmt.Sprintf("HTTP %d Error", status)
+			responseBody := w.body.String()
+			
+			payload := map[string]any{
+				"url":      c.Request.URL.String(),
+				"method":   c.Request.Method,
+				"ip":       c.ClientIP(),
+				"status":   status,
+				"response": responseBody,
+			}
+			
+			err := fmt.Errorf(errMessage)
+			traceforge.CaptureException(err, map[string]string{
+				"framework": "gin", 
+				"type": "http_error",
+				"status_code": fmt.Sprintf("%d", status),
+			}, payload)
+		}
 	}
 }
