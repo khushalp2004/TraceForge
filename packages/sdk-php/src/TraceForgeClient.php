@@ -40,7 +40,7 @@ class TraceForgeClient
         $event = [
             'type' => $metadata['type'] ?? 'exception',
             'message' => $exception->getMessage(),
-            'stack' => $exception->getTraceAsString(),
+            'stackTrace' => $exception->getTraceAsString(),
             'file' => $exception->getFile(),
             'line' => $exception->getLine(),
             'metadata' => $metadata,
