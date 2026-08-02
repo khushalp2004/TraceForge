@@ -20,7 +20,7 @@ impl Default for Config {
     fn default() -> Self {
         Self {
             api_key: "".to_string(),
-            endpoint: "http://localhost:3001/ingest".to_string(),
+            endpoint: "http://localhost:80/ingest".to_string(),
         }
     }
 }
@@ -111,8 +111,6 @@ pub fn init_with_config(config: Config) {
 pub fn capture_exception(message: &str, stack_trace: &str, file: &str, line: u32) {
     let config_opt = CONFIG.lock().unwrap().clone();
     if let Some(config) = config_opt {
-        let client = Client::new();
-
         let payload = json!({
             "type": "panic",
             "message": message,
@@ -125,12 +123,44 @@ pub fn capture_exception(message: &str, stack_trace: &str, file: &str, line: u32
             }
         });
 
-        // We use reqwest::blocking to synchronously transmit the panic before the thread dies
-        let _ = client
-            .post(&config.endpoint)
-            .header("X-Traceforge-Key", &config.api_key)
-            .header("Content-Type", "application/json")
-            .json(&payload)
-            .send();
+        // Spawn an OS thread to send the payload synchronously without blocking the Tokio runtime
+        std::thread::spawn(move || {
+            let client = Client::new();
+            let _ = client
+                .post(&config.endpoint)
+                .header("X-Traceforge-Key", &config.api_key)
+                .header("Content-Type", "application/json")
+                .json(&payload)
+                .send();
+        });
+    }
+}
+
+/// Manually capture a custom error message and send it to TraceForge
+pub fn capture_message(message: &str) {
+    let config_opt = CONFIG.lock().unwrap().clone();
+    if let Some(config) = config_opt {
+        let payload = json!({
+            "type": "error",
+            "message": message,
+            "stackTrace": "Manual capture (no stack trace)",
+            "file": "unknown",
+            "line": 0,
+            "metadata": {
+                "framework": "rust-core",
+                "language": "rust"
+            }
+        });
+
+        // Spawn an OS thread to send the payload synchronously without blocking the Tokio runtime
+        std::thread::spawn(move || {
+            let client = Client::new();
+            let _ = client
+                .post(&config.endpoint)
+                .header("X-Traceforge-Key", &config.api_key)
+                .header("Content-Type", "application/json")
+                .json(&payload)
+                .send();
+        });
     }
 }
