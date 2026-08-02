@@ -14,6 +14,7 @@ import { installPython } from "./installers/python.js";
 import { installGo } from "./installers/go.js";
 import { installPHP } from "./installers/php.js";
 import { installRuby } from "./installers/ruby.js";
+import { installRust } from "./installers/rust.js";
 
 async function main() {
   console.log();
@@ -53,6 +54,7 @@ async function main() {
       { value: "go", label: "Go (Gin / Echo / net/http)" },
       { value: "php", label: "PHP (Laravel / Core)" },
       { value: "ruby", label: "Ruby (Rails)" },
+      { value: "rust", label: "Rust (Actix / Axum / Core)" },
       { value: "node", label: "Raw Node.js (Manual Setup)" },
     ],
   });
@@ -99,6 +101,8 @@ async function main() {
     await installPHP(apiKey as string, endpoint as string);
   } else if (framework === "ruby") {
     await installRuby(apiKey as string, endpoint as string);
+  } else if (framework === "rust") {
+    await installRust(apiKey as string, endpoint as string);
   } else if (framework === "node") {
     await installNode(apiKey as string, endpoint as string);
   }

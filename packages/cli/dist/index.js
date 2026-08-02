@@ -14,6 +14,7 @@ import { installPython } from "./installers/python.js";
 import { installGo } from "./installers/go.js";
 import { installPHP } from "./installers/php.js";
 import { installRuby } from "./installers/ruby.js";
+import { installRust } from "./installers/rust.js";
 async function main() {
     console.log();
     intro(chalk.bgBlue(chalk.white(" Welcome to TraceForge ")));
@@ -49,6 +50,7 @@ async function main() {
             { value: "go", label: "Go (Gin / Echo / net/http)" },
             { value: "php", label: "PHP (Laravel / Core)" },
             { value: "ruby", label: "Ruby (Rails)" },
+            { value: "rust", label: "Rust (Actix / Axum / Core)" },
             { value: "node", label: "Raw Node.js (Manual Setup)" },
         ],
     });
@@ -103,6 +105,9 @@ async function main() {
     }
     else if (framework === "ruby") {
         await installRuby(apiKey, endpoint);
+    }
+    else if (framework === "rust") {
+        await installRust(apiKey, endpoint);
     }
     else if (framework === "node") {
         await installNode(apiKey, endpoint);
