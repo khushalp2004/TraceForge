@@ -7,6 +7,7 @@ import { DashboardPagination } from "../components/DashboardPagination";
 import { useLayout } from "../../../context/LayoutContext";
 import { useMediaQuery } from "../../hooks/useMediaQuery";
 import { PageDescriptionPopover } from "@/components/ui/page-description-popover";
+import { AdvancedCharts } from "./components/AdvancedCharts";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
 const tokenKey = "traceforge_token";
@@ -1356,6 +1357,7 @@ export default function InsightsPage() {
             </div>
             <div className="min-w-0 space-y-6 xl:sticky xl:top-24 xl:self-start">
               {highlightsCard}
+              <AdvancedCharts severityBreakdown={severityBreakdown} environmentHealth={environmentHealth} />
               {severityCard}
               {releaseImpactCard}
             </div>
@@ -1364,7 +1366,10 @@ export default function InsightsPage() {
           <>
             <section className="mt-6 grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(360px,0.85fr)] lg:items-start">
               <div className="min-w-0 space-y-6">{comparisonGrid}</div>
-              <div className="lg:sticky lg:top-24 lg:self-start">{highlightsCard}</div>
+              <div className="lg:sticky lg:top-24 lg:self-start">
+                {highlightsCard}
+                <AdvancedCharts severityBreakdown={severityBreakdown} environmentHealth={environmentHealth} />
+              </div>
             </section>
             <section className="mt-6">{severityCard}</section>
             <section className="mt-6">{trendGrid}</section>
@@ -1385,7 +1390,10 @@ export default function InsightsPage() {
         ) : (
           <>
             <section className="mt-6">{comparisonGrid}</section>
-            <section className="mt-6">{highlightsCard}</section>
+            <section className="mt-6">
+              {highlightsCard}
+              <AdvancedCharts severityBreakdown={severityBreakdown} environmentHealth={environmentHealth} />
+            </section>
             <section className="mt-6">{trendGrid}</section>
             <section className="mt-6">{severityCard}</section>
             <section className="mt-6 grid gap-4 xl:grid-cols-[minmax(0,1.4fr)_minmax(320px,0.9fr)] xl:items-start">
