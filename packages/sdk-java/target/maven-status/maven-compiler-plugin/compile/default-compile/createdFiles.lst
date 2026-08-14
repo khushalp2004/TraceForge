@@ -1,2 +1,5 @@
-io/traceforge/TraceForge.class
-io/traceforge/Config.class
+com/usetraceforge/Config.class
+com/usetraceforge/spring/TraceForgeAutoConfiguration.class
+com/usetraceforge/spring/TraceForgeProperties.class
+com/usetraceforge/spring/TraceForgeExceptionHandler.class
+com/usetraceforge/TraceForge.class
