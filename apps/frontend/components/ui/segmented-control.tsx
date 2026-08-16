@@ -26,8 +26,8 @@ export function SegmentedControl<T extends string>({
   size = "md",
   shape = "pill"
 }: SegmentedControlProps<T>) {
-  const containerShape = shape === "pill" ? "rounded-full" : "rounded-lg";
-  const buttonShape = shape === "pill" ? "rounded-full" : "rounded-md";
+  const containerShape = shape === "pill" ? "rounded-full" : "rounded-md";
+  const buttonShape = shape === "pill" ? "rounded-full" : "rounded-sm";
   const buttonSize = size === "md" ? "px-4 py-2 text-sm" : "px-3 py-1 text-xs";
 
   return (

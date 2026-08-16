@@ -3,14 +3,14 @@
 import { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { Archive, Copy, Github, RotateCcw, Sparkles, Trash2, PlusCircle, Edit3, X } from "lucide-react";
+import { Archive, Copy, Github, RotateCcw, Sparkles, Trash2, PlusCircle, Edit3, X, Search, Clock, Activity, ExternalLink } from "lucide-react";
 import { LoadingButtonContent } from "../../../components/ui/loading-button-content";
 import { useDebouncedValue } from "../../hooks/useDebouncedValue";
 import { DashboardPagination } from "../components/DashboardPagination";
 import { SegmentedControl } from "../../../components/ui/segmented-control";
 import { PageDescriptionPopover } from "@/components/ui/page-description-popover";
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:80";
 const tokenKey = "traceforge_token";
 const issuesPrefsKey = "traceforge_issues_prefs_v1";
 
@@ -796,20 +796,17 @@ function IssuesPageInner() {
   return (
     <main className="tf-page tf-dashboard-page lg:h-screen lg:overflow-hidden">
       <div className="tf-dashboard flex min-h-0 flex-col lg:h-full">
-        <header className="flex flex-wrap items-center justify-between gap-4">
-          <div>
-            <p className="tf-kicker">Issues</p>
-            <div className="mt-3 flex items-center">
-              <h1 className="tf-title text-3xl">Issue inbox</h1>
-              <PageDescriptionPopover>
-                Manage and resolve issues reported across your projects.
-              </PageDescriptionPopover>
-            </div>
+        <header className="flex flex-wrap items-center justify-between gap-4 mb-6">
+          <div className="flex items-center gap-2">
+            <h1 className="text-xl font-bold text-text-primary tracking-tight">Issue inbox</h1>
+            <PageDescriptionPopover>
+              Manage and resolve issues reported across your projects.
+            </PageDescriptionPopover>
           </div>
           <div className="flex flex-wrap items-center gap-3">
             <button
               type="button"
-              className="tf-button px-4 py-2 text-sm"
+              className="rounded-sm bg-card px-3 py-1.5 text-xs font-semibold text-text-secondary border border-border/40 hover:text-text-primary hover:border-border transition shadow-sm"
               onClick={() => {
                 setError(null);
                 setShowCreateModal(true);
@@ -819,72 +816,64 @@ function IssuesPageInner() {
             </button>
           </div>
         </header>
-
-        <section className="mt-6 grid gap-3 md:grid-cols-3">
-          <div className="rounded-xl border border-border bg-card/90 px-4 py-3">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-text-secondary">
-              Active issues
-            </p>
-            <p className="mt-1.5 text-xl font-semibold text-text-primary sm:text-[22px]">
-              {pagination.total}
-            </p>
-          </div>
-          <div className="rounded-xl border border-border bg-card/90 px-4 py-3">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-text-secondary">
-              Critical issues
-            </p>
-            <p className="mt-1.5 text-xl font-semibold text-text-primary sm:text-[22px]">{stats.critical}</p>
-          </div>
-          <div className="rounded-xl border border-border bg-card/90 px-4 py-3">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-text-secondary">
-              Affected projects
-            </p>
-            <p className="mt-1.5 text-xl font-semibold text-text-primary sm:text-[22px]">{stats.projectCount}</p>
+        <section className="grid gap-6">
+          <div className="grid gap-3 sm:grid-cols-3">
+            {[
+              { label: "Active issues", value: pagination.total },
+              { label: "Critical issues", value: stats.critical },
+              { label: "Affected projects", value: stats.projectCount }
+            ].map((stat) => (
+              <div key={stat.label} className="group relative overflow-hidden rounded-sm border border-border bg-card/90 p-5 shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md hover:border-primary/20">
+                <div className="absolute -right-4 -top-4 h-24 w-24 rounded-sm bg-primary/5 blur-2xl transition-opacity group-hover:bg-primary/10" />
+                <p className="relative z-10 text-[11px] font-semibold uppercase tracking-[0.14em] text-text-secondary">{stat.label}</p>
+                <p className="relative z-10 mt-2 text-2xl font-bold text-text-primary sm:text-3xl">{stat.value}</p>
+              </div>
+            ))}
           </div>
         </section>
 
-        <div className="mt-6 flex flex-wrap items-center gap-2">
-          <SegmentedControl
-            name="issues-view-mode"
-            options={[
-              { label: "Active issues", value: "active" },
-              { label: "Archived issues", value: "archived" }
-            ]}
-            value={viewMode}
-            onChange={setViewMode}
-          />
-        </div>
+        <div className="mt-8 flex flex-wrap items-center gap-3">
+          <div className="flex items-center rounded-sm bg-secondary/30 p-1">
+            <button
+              className={`rounded-sm px-3 py-1.5 text-[11px] font-semibold transition-all ${
+                viewMode === "active" ? "bg-card text-text-primary shadow-sm" : "text-text-secondary hover:text-text-primary"
+              }`}
+              onClick={() => setViewMode("active")}
+            >
+              Active issues
+            </button>
+            <button
+              className={`rounded-sm px-3 py-1.5 text-[11px] font-semibold transition-all ${
+                viewMode === "archived" ? "bg-card text-text-primary shadow-sm" : "text-text-secondary hover:text-text-primary"
+              }`}
+              onClick={() => setViewMode("archived")}
+            >
+              Archived issues
+            </button>
+          </div>
 
-        <section className="tf-filter-panel mt-6">
-          <div className="tf-filter-grid sm:grid-cols-2 xl:grid-cols-[minmax(0,1.3fr)_220px_200px_200px_160px_132px]">
-            <label className="tf-filter-field">
-              <span className="tf-filter-label">Search</span>
-              <input
-                className="tf-input tf-filter-control w-full"
-                placeholder="Search issue message"
-                value={search}
-                onChange={(event) => setSearch(event.target.value)}
-              />
-            </label>
-            <label className="tf-filter-field">
-              <span className="tf-filter-label">Project</span>
+          <div className="flex flex-1 flex-col sm:flex-row sm:flex-wrap items-stretch sm:items-center gap-3">
+            <input
+              className="tf-input !h-9 !bg-secondary/40 !border-transparent hover:!border-border/50 focus:!bg-card focus:!border-primary/30 transition text-xs flex-1 min-w-0 sm:min-w-[200px]"
+              placeholder="Search issues..."
+              value={search}
+              onChange={(event) => setSearch(event.target.value)}
+            />
+            
+            <div className="grid grid-cols-2 sm:flex sm:flex-wrap items-center gap-2 sm:gap-3">
               <select
-                className="tf-select tf-filter-control"
+                className="tf-select !h-9 !bg-secondary/40 !border-transparent hover:!border-border/50 focus:!bg-card focus:!border-primary/30 transition text-xs w-full sm:w-auto"
                 value={selectedProjectId}
                 onChange={(event) => setSelectedProjectId(event.target.value)}
               >
                 <option value="">All projects</option>
                 {projects.map((project) => (
-                  <option key={project.id} value={project.id}>
-                    {project.name}
-                  </option>
+                  <option key={project.id} value={project.id}>{project.name}</option>
                 ))}
               </select>
-            </label>
-            <label className="tf-filter-field">
-              <span className="tf-filter-label">Environment</span>
+              
               <select
-                className="tf-select tf-filter-control"
+                className="tf-select !h-9 !bg-secondary/40 !border-transparent hover:!border-border/50 focus:!bg-card focus:!border-primary/30 transition text-xs w-full sm:w-auto"
                 value={environmentFilter}
                 onChange={(event) => setEnvironmentFilter(event.target.value)}
               >
@@ -894,69 +883,59 @@ function IssuesPageInner() {
                 <option value="development">Development</option>
                 <option value="browser">Browser</option>
               </select>
-            </label>
-            <label className="tf-filter-field">
-              <span className="tf-filter-label">Severity</span>
+              
               <select
-                className="tf-select tf-filter-control"
+                className="tf-select !h-9 !bg-secondary/40 !border-transparent hover:!border-border/50 focus:!bg-card focus:!border-primary/30 transition text-xs w-full sm:w-auto"
                 value={severityFilter}
-                onChange={(event) =>
-                  setSeverityFilter(event.target.value as "all" | Severity)
-                }
+                onChange={(event) => setSeverityFilter(event.target.value as "all" | Severity)}
               >
                 <option value="all">All severities</option>
                 <option value="critical">Critical</option>
                 <option value="warning">Warning</option>
                 <option value="info">Info</option>
               </select>
-            </label>
-            <label className="tf-filter-field">
-              <span className="tf-filter-label">Sort by</span>
-              <select
-                className="tf-select tf-filter-control"
-                value={sortBy}
-                onChange={(event) =>
-                  setSortBy(event.target.value === "count" ? "count" : "lastSeen")
-                }
-              >
-                <option value="lastSeen">Last seen</option>
-                <option value="count">Most frequent</option>
-              </select>
-            </label>
-            <div className="flex items-end">
-              <button
-                type="button"
-                className="tf-filter-reset w-full"
-                onClick={() => {
-                  setSearch("");
-                  setSelectedProjectId("");
-                  setEnvironmentFilter("");
-                  setSeverityFilter("all");
-                  setSortBy("lastSeen");
-                }}
-              >
-                Reset
-              </button>
-            </div>
-          </div>
-        </section>
 
-        <div className="mt-6 min-h-0 flex-1 rounded-3xl border border-border bg-card/80 p-4 shadow-sm lg:flex lg:flex-col lg:overflow-hidden">
-          <section className="tf-scroll-rail min-h-0 space-y-4 lg:flex-1 lg:overflow-y-auto lg:overscroll-contain lg:pr-2">
+              <select
+                className="tf-select !h-9 !bg-secondary/40 !border-transparent hover:!border-border/50 focus:!bg-card focus:!border-primary/30 transition text-xs w-full sm:w-auto"
+                value={sortBy}
+                onChange={(event) => setSortBy(event.target.value === "count" ? "count" : "lastSeen")}
+              >
+                <option value="lastSeen">Sort: Last seen</option>
+                <option value="count">Sort: Frequent</option>
+              </select>
+            </div>
+            
+            <button
+              className="text-[11px] font-semibold text-text-secondary hover:text-text-primary transition self-start sm:self-auto mt-1 sm:mt-0"
+              onClick={() => {
+                setSearch("");
+                setSelectedProjectId("");
+                setEnvironmentFilter("");
+                setSeverityFilter("all");
+                setSortBy("lastSeen");
+              }}
+            >
+              Clear
+            </button>
+          </div>
+        </div>
+
+        <div className="mt-4 min-h-0 flex-1 flex flex-col lg:overflow-hidden">
+          <section className="tf-scroll-rail min-h-0 space-y-0 lg:flex-1 lg:overflow-y-auto lg:overscroll-contain pr-2">
             {loading && (
-              <div className="rounded-2xl border border-border bg-card/90 p-6 text-sm text-text-secondary">
+              <div className="py-6 text-center text-sm text-text-secondary">
                 Loading issues...
               </div>
             )}
 
             {!loading && !issues.length && (
-              <div className="rounded-2xl border border-border bg-card/90 p-6 text-center">
+              <div className="py-12 text-center">
                 <p className="text-sm font-semibold text-text-primary">No issues found</p>
                 <div className="mt-4 flex flex-wrap justify-center gap-3">
                   {viewMode === "active" && (
                     <button
                       type="button"
-                      className="tf-button px-4 py-2 text-sm"
+                      className="rounded-sm bg-card px-3 py-1.5 text-xs font-semibold text-text-secondary border border-border/40 hover:text-text-primary hover:border-border transition shadow-sm"
                       onClick={() => {
                         setError(null);
                         setShowCreateModal(true);
@@ -966,7 +945,7 @@ function IssuesPageInner() {
                     </button>
                   )}
                   <button
-                    className="tf-button-ghost px-4 py-2 text-sm"
+                    className="rounded-sm bg-secondary/30 px-3 py-1.5 text-xs font-semibold text-text-secondary hover:text-text-primary transition"
                     onClick={() => {
                       setSearch("");
                       setSelectedProjectId("");
@@ -981,250 +960,164 @@ function IssuesPageInner() {
               </div>
             )}
 
-            {!loading &&
-              issues.map((issue) => {
-                const severity = severityForMessage(issue.message);
-                const project = projectMap.get(issue.projectId);
+            {!loading && issues.length > 0 && (
+              <div className="flex flex-col gap-3 pb-8">
+                {issues.map((issue) => {
+                  const severity = severityForMessage(issue.message);
+                  const project = projectMap.get(issue.projectId);
 
-                return (
-                  <div
-                    key={issue.id}
-                    className="rounded-2xl border border-border bg-card/95 p-5 shadow-sm transition hover:border-primary/25"
-                  >
-                    <div className="gap-4 lg:grid lg:grid-cols-[minmax(0,1.45fr)_220px_248px] lg:items-start">
-                      <div className="min-w-0">
-                        <div className="flex flex-wrap items-center gap-2">
-                          <span
-                            className={`rounded-full border px-2.5 py-1 text-xs font-semibold ${severityClasses[severity]}`}
-                          >
-                            {severity === "critical"
-                              ? "Critical"
-                              : severity === "warning"
-                                ? "Warning"
-                                : "Info"}
-                          </span>
-                          <span className="rounded-full border border-border bg-card px-2.5 py-1 text-xs font-semibold text-text-secondary">
-                            {project?.name ?? "Unknown project"}
-                          </span>
-                          <span className="rounded-full border border-border bg-card px-2.5 py-1 text-xs font-semibold text-text-secondary">
-                            {getAiBadgeLabel(issue)}
-                          </span>
+                  return (
+                    <div
+                      key={issue.id}
+                      className="group relative flex flex-col lg:flex-row lg:items-center justify-between p-5 gap-4 rounded-md bg-card border border-border/40 hover:border-border transition-all duration-200"
+                    >
+                      {/* Left: Content Area */}
+                      <div className="flex items-start gap-4 flex-1 min-w-0">
+                        {/* Severity Indicator */}
+                        <div className="mt-1.5 shrink-0 flex items-center justify-center">
+                          {severity === "critical" ? (
+                            <div className="w-2 h-2 rounded-full bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.5)]"></div>
+                          ) : severity === "warning" ? (
+                            <div className="w-2 h-2 rounded-full bg-amber-500 shadow-[0_0_8px_rgba(245,158,11,0.5)]"></div>
+                          ) : (
+                            <div className="w-2 h-2 rounded-full bg-blue-500 shadow-[0_0_8px_rgba(59,130,246,0.5)]"></div>
+                          )}
                         </div>
 
-                        <h2 className="mt-3 text-lg font-semibold text-text-primary">
-                          {issue.message}
-                        </h2>
+                        {/* Title and Meta */}
+                        <div className="flex flex-col gap-2 flex-1 min-w-0">
+                          <div className="flex items-center gap-3 flex-wrap">
+                            <Link href={`/dashboard/errors/${issue.id}`} className="text-[15px] font-semibold text-text-primary hover:text-primary transition-colors truncate max-w-[80%]">
+                              {issue.message}
+                            </Link>
+                            <span className="shrink-0 text-[11px] font-medium text-text-secondary/50">
+                              {project?.name ?? "Unknown"}
+                            </span>
+                          </div>
+                          
+                          <div className="flex flex-wrap items-center gap-3 text-[11px] font-medium text-text-secondary/70">
+                            <span className="flex items-center gap-1.5"><Clock className="w-3.5 h-3.5" /> {formatRelative(issue.lastSeen)}</span>
+                            <span className="w-1 h-1 rounded-full bg-border"></span>
+                            <span className="flex items-center gap-1.5"><Activity className="w-3.5 h-3.5" /> {issue.count} events</span>
+                          </div>
 
-                        <div className="mt-2 overflow-hidden rounded-2xl border border-border bg-secondary/20">
-                          <pre className="max-h-28 overflow-auto px-4 py-3 text-sm text-text-secondary">
-                            <code className="block whitespace-pre-wrap break-all">{issue.stackTrace}</code>
-                          </pre>
-                        </div>
+                          {/* Minimal Stack Trace */}
+                          <div className="mt-2 text-[11px] font-mono text-text-secondary/50 truncate border-l-2 border-border/60 pl-3 py-0.5">
+                            {issue.stackTrace.split('\n')[0]}
+                          </div>
 
-                        {issue.analysis?.aiExplanation && (
-                          <div className="mt-4 rounded-2xl border border-border bg-secondary/50 px-4 py-3">
-                            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-text-secondary">
-                              Summary
-                            </p>
-                            <p className="mt-2 text-sm text-text-secondary">
+                          {/* AI Summary Inline */}
+                          {issue.analysis?.aiExplanation && (
+                            <div className="mt-2 text-[11px] text-text-secondary border-l-2 border-primary/50 pl-3 py-0.5 line-clamp-1 group-hover:line-clamp-none transition-all duration-300">
+                              <strong className="text-primary mr-1">AI</strong> 
                               {getAiSummary(issue)}
-                            </p>
-                            <Link
-                              className="mt-3 inline-flex items-center rounded-full border border-primary/20 bg-accent-soft px-3 py-1.5 text-xs font-semibold text-primary transition hover:border-primary/35 hover:bg-accent-soft/80"
-                              href={`/dashboard/errors/${issue.id}`}
-                            >
-                              View in detail
-                            </Link>
-                          </div>
-                        )}
-
-                        {!hasAiResult(issue) && isAiWorkInFlight(issue) && (
-                          <div className="mt-4 rounded-2xl border border-primary/15 bg-accent-soft/40 px-4 py-3">
-                            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-primary/80">
-                              AI status
-                            </p>
-                            <p className="mt-2 text-sm text-text-secondary">
-                              {issue.queue?.state === "queued" && issue.queue?.queuePosition
-                                ? `Queued at position ${issue.queue.queuePosition}. We’ll refresh this card automatically when the result is ready.`
-                                : issue.queue?.state === "processing" || issue.aiStatus === "PROCESSING"
-                                  ? "Generating a fresh solution now. This card refreshes automatically when it finishes."
-                                  : "Queued for AI processing. This card refreshes automatically when it finishes."}
-                            </p>
-                          </div>
-                        )}
-
-                        {issue.aiStatus === "FAILED" && hasAiRequest(issue) && issue.aiLastError && (
-                          <div className="mt-4 rounded-2xl border tf-danger-surface px-4 py-3">
-                            <p className="text-[11px] font-semibold uppercase tracking-[0.14em] opacity-90">
-                              AI generation failed
-                            </p>
-                            <p className="mt-1.5 text-[13px]">An error occurred, try again or switch to different model.</p>
-                          </div>
-                        )}
-                      </div>
-
-                      <div className="mt-4 grid gap-3 sm:grid-cols-3 lg:mt-0 lg:grid-cols-1">
-                        <div className="rounded-2xl border border-border bg-secondary/25 px-3 py-3">
-                          <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-text-secondary">
-                            Frequency
-                          </p>
-                          <p className="mt-1 text-sm font-medium text-text-primary">
-                            {issue.count} hits
-                          </p>
-                        </div>
-                        <div className="rounded-2xl border border-border bg-secondary/25 px-3 py-3">
-                          <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-text-secondary">
-                            Last seen
-                          </p>
-                          <p className="mt-1 text-sm font-medium text-text-primary">
-                            {formatRelative(issue.lastSeen)}
-                          </p>
-                        </div>
-                        <div className="rounded-2xl border border-border bg-secondary/25 px-3 py-3">
-                          <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-text-secondary">
-                            Timestamp
-                          </p>
-                          <p className="mt-1 text-sm font-medium text-text-primary">
-                            {new Date(issue.lastSeen).toLocaleString()}
-                          </p>
-                        </div>
-                      </div>
-
-                      <div className="mt-4 w-full lg:mt-0 lg:min-w-[248px]">
-                        <div className="rounded-2xl border border-border bg-secondary/20 p-3">
-                          <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-text-secondary">
-                            Actions
-                          </p>
-                          <div className="mt-3 space-y-2.5">
-                            <Link
-                              className="tf-button flex w-full items-center justify-center gap-2 px-4 py-2.5 text-sm"
-                              href={`/dashboard/errors/${issue.id}`}
-                            >
-                              Open issue
-                            </Link>
-
-                            <button
-                              type="button"
-                              className="tf-button-ghost inline-flex h-10 w-full items-center justify-center gap-1.5 px-3 py-2 text-[13px]"
-                              onClick={() => openGithubIssueModal(issue)}
-                              disabled={creatingGithubIssueId === issue.id}
-                            >
-                              <LoadingButtonContent
-                                loading={creatingGithubIssueId === issue.id}
-                                loadingLabel="Creating..."
-                                idleLabel="GitHub issue"
-                                icon={Github}
-                                iconClassName="h-3.5 w-3.5"
-                                spinnerClassName="h-3.5 w-3.5"
-                              />
-                            </button>
-
-                            <div
-                              className={`grid gap-2.5 ${viewMode === "active" && issue.isManualAlertIssue
-                                  ? "grid-cols-1"
-                                  : viewMode === "archived"
-                                    ? "grid-cols-1 sm:grid-cols-2"
-                                    : "sm:grid-cols-2"
-                                }`}
-                            >
-                              <button
-                                className="tf-button-ghost inline-flex h-10 w-full items-center justify-center gap-1.5 px-3 py-2 text-[13px]"
-                                onClick={() => copyStackTrace(issue.stackTrace)}
-                              >
-                                <Copy className="h-3.5 w-3.5" />
-                                Copy
-                              </button>
-
-                              {viewMode === "active" && !issue.isManualAlertIssue ? (
-                                <button
-                                  className="tf-button inline-flex h-10 w-full items-center justify-center gap-1.5 px-3 py-2 text-[13px] text-center"
-                                  onClick={() => regenerateIssue(issue.id)}
-                                  disabled={regeneratingId === issue.id || isAiWorkInFlight(issue)}
-                                >
-                                  <LoadingButtonContent
-                                    loading={regeneratingId === issue.id}
-                                    loadingLabel="Generating..."
-                                    idleLabel="Generate"
-                                    icon={Sparkles}
-                                    iconClassName="h-3.5 w-3.5"
-                                    spinnerClassName="h-3.5 w-3.5"
-                                  />
-                                </button>
-                              ) : viewMode === "archived" ? (
-                                <button
-                                  type="button"
-                                  className="tf-button-ghost inline-flex h-11 w-full items-center justify-center gap-2 px-4 py-2 text-sm"
-                                  onClick={() => restoreIssue(issue.id)}
-                                  disabled={restoringIssueId === issue.id}
-                                >
-                                  <LoadingButtonContent
-                                    loading={restoringIssueId === issue.id}
-                                    loadingLabel="Restoring..."
-                                    idleLabel="Restore"
-                                    icon={RotateCcw}
-                                  />
-                                </button>
-                              ) : null}
                             </div>
-
-                            {viewMode === "archived" && (
-                              <button
-                                type="button"
-                                className="tf-danger-button inline-flex h-11 w-full items-center justify-center gap-2 rounded-full border px-4 py-2 text-sm font-semibold transition"
-                                onClick={() => setDeleteTarget(issue)}
-                                disabled={deletingIssueId === issue.id}
-                              >
-                                <LoadingButtonContent
-                                  loading={deletingIssueId === issue.id}
-                                  loadingLabel="Deleting..."
-                                  idleLabel="Delete"
-                                />
-                              </button>
-                            )}
-
-                            {viewMode === "active" && (
-                              <button
-                                type="button"
-                                className="tf-danger-button mt-1 inline-flex w-full items-center justify-center gap-2 rounded-full border px-4 py-2.5 text-sm font-semibold transition"
-                                onClick={() => setArchiveTarget(issue)}
-                                aria-label="Archive issue"
-                                title="Archive issue"
-                              >
-                                <LoadingButtonContent
-                                  loading={false}
-                                  loadingLabel="Archiving..."
-                                  idleLabel="Archive"
-                                  icon={Archive}
-                                />
-                              </button>
-                            )}
-                          </div>
+                          )}
                         </div>
+                      </div>
+
+                      {/* Right: Actions Container */}
+                      <div className="shrink-0 flex items-center gap-2 lg:opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-opacity duration-200 mt-4 lg:mt-0">
+                        <Link
+                          className="flex items-center justify-center h-8 px-3 rounded-md text-[11px] font-semibold text-text-secondary hover:text-text-primary hover:bg-secondary/40 transition-colors"
+                          href={`/dashboard/errors/${issue.id}`}
+                        >
+                          View
+                        </Link>
+                        
+                        <div className="w-px h-4 bg-border/50 mx-1"></div>
+
+                        <button
+                          type="button"
+                          className="p-1.5 rounded-md text-text-secondary hover:text-text-primary hover:bg-secondary/40 transition-colors"
+                          onClick={() => copyStackTrace(issue.stackTrace)}
+                          title="Copy Stack Trace"
+                        >
+                          <Copy className="h-4 w-4" />
+                        </button>
+                        
+                        <button
+                          type="button"
+                          className="p-1.5 rounded-md text-text-secondary hover:text-text-primary hover:bg-secondary/40 transition-colors disabled:opacity-50"
+                          onClick={() => openGithubIssueModal(issue)}
+                          disabled={creatingGithubIssueId === issue.id}
+                          title="Create GitHub Issue"
+                        >
+                          {creatingGithubIssueId === issue.id ? <div className="h-4 w-4 rounded-full border-2 border-text-secondary border-t-transparent animate-spin"></div> : <Github className="h-4 w-4" />}
+                        </button>
+
+                        {viewMode === "active" && !issue.isManualAlertIssue && (
+                          <button
+                            type="button"
+                            className="p-1.5 rounded-md text-text-secondary hover:text-text-primary hover:bg-secondary/40 transition-colors disabled:opacity-50"
+                            onClick={() => regenerateIssue(issue.id)}
+                            disabled={regeneratingId === issue.id || isAiWorkInFlight(issue)}
+                            title="Regenerate AI Analysis"
+                          >
+                            {regeneratingId === issue.id ? <div className="h-4 w-4 rounded-full border-2 border-text-secondary border-t-transparent animate-spin"></div> : <Sparkles className="h-4 w-4" />}
+                          </button>
+                        )}
+                        
+                        {viewMode === "archived" && (
+                          <button
+                            type="button"
+                            className="p-1.5 rounded-md text-text-secondary hover:text-text-primary hover:bg-secondary/40 transition-colors disabled:opacity-50"
+                            onClick={() => restoreIssue(issue.id)}
+                            disabled={restoringIssueId === issue.id}
+                            title="Restore Issue"
+                          >
+                            {restoringIssueId === issue.id ? <div className="h-4 w-4 rounded-full border-2 border-text-secondary border-t-transparent animate-spin"></div> : <RotateCcw className="h-4 w-4" />}
+                          </button>
+                        )}
+
+                        <div className="w-px h-4 bg-border/50 mx-1"></div>
+
+                        {viewMode === "active" && (
+                          <button
+                            type="button"
+                            className="p-1.5 rounded-md text-text-secondary hover:text-text-primary hover:bg-secondary/40 transition-colors"
+                            onClick={() => setArchiveTarget(issue)}
+                            title="Archive Issue"
+                          >
+                            <Archive className="h-4 w-4" />
+                          </button>
+                        )}
+
+                        {viewMode === "archived" && (
+                          <button
+                            type="button"
+                            className="p-1.5 rounded-md text-destructive/80 hover:text-destructive hover:bg-destructive/10 transition-colors disabled:opacity-50"
+                            onClick={() => setDeleteTarget(issue)}
+                            disabled={deletingIssueId === issue.id}
+                            title="Delete Issue"
+                          >
+                            {deletingIssueId === issue.id ? <div className="h-4 w-4 rounded-full border-2 border-destructive/80 border-t-transparent animate-spin"></div> : <Trash2 className="h-4 w-4" />}
+                          </button>
+                        )}
                       </div>
                     </div>
-                  </div>
-                );
-              })}
+                  );
+                })}
+              </div>
+            )}
           </section>
 
           {!loading && pagination.total > 5 && (
-            <div className="mt-4 rounded-2xl border border-border bg-card/90 px-4 py-3 shadow-sm">
-              <DashboardPagination
-                page={pagination.page}
-                totalPages={pagination.totalPages}
-                pageSize={pagination.pageSize}
-                pageSizeOptions={[
-                  { value: 5, label: "5" },
-                  { value: 10, label: "10" },
-                  { value: 20, label: "20" }
-                ]}
-                onPageChange={(page) => setPagination((prev) => ({ ...prev, page }))}
-                onPageSizeChange={(pageSize) =>
-                  setPagination((prev) => ({ ...prev, page: 1, pageSize }))
-                }
-                className=""
-              />
-            </div>
+            <DashboardPagination
+              page={pagination.page}
+              totalPages={pagination.totalPages}
+              pageSize={pagination.pageSize}
+              pageSizeOptions={[
+                { value: 5, label: "5" },
+                { value: 10, label: "10" },
+                { value: 20, label: "20" }
+              ]}
+              onPageChange={(page) => setPagination((prev) => ({ ...prev, page }))}
+              onPageSizeChange={(pageSize) =>
+                setPagination((prev) => ({ ...prev, page: 1, pageSize }))
+              }
+              className="mt-4"
+            />
           )}
         </div>
       </div>

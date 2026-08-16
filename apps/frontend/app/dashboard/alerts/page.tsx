@@ -728,66 +728,75 @@ function AlertsPageInner() {
   return (
     <main className="tf-page tf-dashboard-page lg:h-screen lg:overflow-hidden">
       <div className="tf-dashboard flex min-h-0 flex-col lg:h-full">
-        <header className="flex flex-wrap items-center justify-between gap-4">
-          <div>
-            <p className="tf-kicker">Alerts</p>
-            <div className="mt-3 flex items-center">
-              <h1 className="tf-title text-3xl">Alert rules</h1>
-              <PageDescriptionPopover>
-                Create issue thresholds that watch your projects and notify you in real time
-                when operational risk starts climbing.
-              </PageDescriptionPopover>
-            </div>
+        <header className="flex flex-wrap items-center justify-between gap-4 mb-6">
+          <div className="flex items-center gap-2">
+            <h1 className="text-xl font-bold text-text-primary tracking-tight">Alert rules</h1>
+            <PageDescriptionPopover>
+              Create issue thresholds that watch your projects and notify you in real time
+              when operational risk starts climbing.
+            </PageDescriptionPopover>
           </div>
-          <button
-            type="button"
-            className="tf-button px-4 py-2 text-sm"
-            onClick={() => {
-              setError(null);
-              setShowCreateModal(true);
-            }}
-          >
-            Create alert
-          </button>
+          <div className="flex flex-wrap items-center gap-3">
+            <button
+              type="button"
+              className="rounded-sm bg-card px-3 py-1.5 text-xs font-semibold text-text-secondary border border-border/40 hover:text-text-primary hover:border-border transition shadow-sm"
+              onClick={() => {
+                setError(null);
+                setShowCreateModal(true);
+              }}
+            >
+              Create alert
+            </button>
+          </div>
         </header>
 
-        <section className="mt-6 grid gap-3 md:grid-cols-3">
-          <div className="rounded-xl border border-border bg-card/90 px-4 py-3">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-text-secondary">
-              Active rules
-            </p>
-            <p className="mt-1.5 text-xl font-semibold text-text-primary sm:text-[22px]">{activeRules.length}</p>
-          </div>
-          <div className="rounded-xl border border-border bg-card/90 px-4 py-3">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-text-secondary">
-              Recent triggers
-            </p>
-            <p className="mt-1.5 text-xl font-semibold text-text-primary sm:text-[22px]">{triggeredToday}</p>
-          </div>
-          <div className="rounded-xl border border-border bg-card/90 px-4 py-3">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-text-secondary">
-              Tracked projects
-            </p>
-            <p className="mt-1.5 text-xl font-semibold text-text-primary sm:text-[22px]">{projects.length}</p>
+        <section className="grid gap-6">
+          <div className="grid gap-3 sm:grid-cols-3">
+            {[
+              { label: "Active rules", value: activeRules.length },
+              { label: "Recent triggers", value: triggeredToday },
+              { label: "Tracked projects", value: projects.length }
+            ].map((stat) => (
+              <div key={stat.label} className="group relative overflow-hidden rounded-sm border border-border bg-card/90 p-5 shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md hover:border-primary/20">
+                <div className="absolute -right-4 -top-4 h-24 w-24 rounded-sm bg-primary/5 blur-2xl transition-opacity group-hover:bg-primary/10" />
+                <p className="relative z-10 text-[11px] font-semibold uppercase tracking-[0.14em] text-text-secondary">{stat.label}</p>
+                <p className="relative z-10 mt-2 text-2xl font-bold text-text-primary sm:text-3xl">{stat.value}</p>
+              </div>
+            ))}
           </div>
         </section>
 
-        <section className="tf-filter-panel mt-6">
-          <div className="tf-filter-grid md:grid-cols-2 xl:grid-cols-[minmax(0,1.25fr)_180px_180px_170px_160px_132px]">
-            <label className="tf-filter-field">
-              <span className="tf-filter-label">Search</span>
-              <input
-                className="tf-input tf-filter-control w-full"
-                placeholder="Search rules, events, or projects"
-                value={search}
-                onChange={(event) => setSearch(event.target.value)}
-              />
-            </label>
+        <section className="mt-8 flex flex-col xl:flex-row xl:flex-wrap items-start xl:items-center gap-3">
+          <div className="flex items-center rounded-sm bg-secondary/30 p-1 shrink-0">
+            <button
+              className={`rounded-sm px-3 py-1.5 text-[11px] font-semibold transition-all ${
+                view === "active" ? "bg-card text-text-primary shadow-sm" : "text-text-secondary hover:text-text-primary"
+              }`}
+              onClick={() => setView("active")}
+            >
+              Active rules
+            </button>
+            <button
+              className={`rounded-sm px-3 py-1.5 text-[11px] font-semibold transition-all ${
+                view === "archived" ? "bg-card text-text-primary shadow-sm" : "text-text-secondary hover:text-text-primary"
+              }`}
+              onClick={() => setView("archived")}
+            >
+              Archived rules
+            </button>
+          </div>
 
-            <label className="tf-filter-field">
-              <span className="tf-filter-label">Project</span>
+          <div className="flex flex-1 flex-col sm:flex-row sm:flex-wrap items-stretch sm:items-center gap-3 w-full">
+            <input
+              className="tf-input !h-9 !bg-secondary/40 !border-transparent hover:!border-border/50 focus:!bg-card focus:!border-primary/30 transition text-xs flex-1 min-w-0 sm:min-w-[200px]"
+              placeholder="Search rules, events, or projects"
+              value={search}
+              onChange={(event) => setSearch(event.target.value)}
+            />
+            
+            <div className="grid grid-cols-2 sm:flex sm:flex-wrap items-center gap-2 sm:gap-3">
               <select
-                className="tf-select tf-filter-control w-full"
+                className="tf-select !h-9 !bg-secondary/40 !border-transparent hover:!border-border/50 focus:!bg-card focus:!border-primary/30 transition text-xs w-full sm:w-auto"
                 value={projectFilter}
                 onChange={(event) => setProjectFilter(event.target.value)}
               >
@@ -798,12 +807,9 @@ function AlertsPageInner() {
                   </option>
                 ))}
               </select>
-            </label>
 
-            <label className="tf-filter-field">
-              <span className="tf-filter-label">Environment</span>
               <select
-                className="tf-select tf-filter-control w-full"
+                className="tf-select !h-9 !bg-secondary/40 !border-transparent hover:!border-border/50 focus:!bg-card focus:!border-primary/30 transition text-xs w-full sm:w-auto"
                 value={environmentFilter}
                 onChange={(event) => setEnvironmentFilter(event.target.value)}
               >
@@ -813,12 +819,9 @@ function AlertsPageInner() {
                 <option value="development">Development</option>
                 <option value="browser">Browser</option>
               </select>
-            </label>
 
-            <label className="tf-filter-field">
-              <span className="tf-filter-label">Severity</span>
               <select
-                className="tf-select tf-filter-control w-full"
+                className="tf-select !h-9 !bg-secondary/40 !border-transparent hover:!border-border/50 focus:!bg-card focus:!border-primary/30 transition text-xs w-full sm:w-auto"
                 value={severityFilter}
                 onChange={(event) =>
                   setSeverityFilter(event.target.value as AlertRule["severity"] | "")
@@ -829,12 +832,9 @@ function AlertsPageInner() {
                 <option value="WARNING">Warning</option>
                 <option value="INFO">Info</option>
               </select>
-            </label>
 
-            <label className="tf-filter-field">
-              <span className="tf-filter-label">Status</span>
               <select
-                className="tf-select tf-filter-control w-full"
+                className="tf-select !h-9 !bg-secondary/40 !border-transparent hover:!border-border/50 focus:!bg-card focus:!border-primary/30 transition text-xs w-full sm:w-auto"
                 value={statusFilter}
                 onChange={(event) => setStatusFilter(event.target.value as "active" | "paused" | "")}
               >
@@ -842,75 +842,49 @@ function AlertsPageInner() {
                 <option value="active">Active</option>
                 <option value="paused">Paused</option>
               </select>
-            </label>
-            <div className="flex items-end">
-              <button
-                type="button"
-                className="tf-filter-reset w-full"
-                onClick={() => {
-                  setSearch("");
-                  setProjectFilter("");
-                  setEnvironmentFilter("");
-                  setSeverityFilter("");
-                  setStatusFilter("");
-                }}
-              >
-                Reset filters
-              </button>
             </div>
+            
+            <button
+              type="button"
+              className="text-[11px] font-semibold text-text-secondary hover:text-text-primary transition self-start sm:self-auto mt-1 sm:mt-0"
+              onClick={() => {
+                setSearch("");
+                setProjectFilter("");
+                setEnvironmentFilter("");
+                setSeverityFilter("");
+                setStatusFilter("");
+              }}
+            >
+              Clear
+            </button>
           </div>
         </section>
 
-        <section className="mt-6 grid min-h-0 flex-1 gap-6 lg:grid-cols-[minmax(0,1.2fr)_360px]">
+        <section className="mt-8 grid min-h-0 flex-1 gap-6 lg:grid-cols-[minmax(0,1.2fr)_360px]">
           <div className="min-h-0 lg:flex lg:flex-col">
-            <div className="rounded-2xl border border-border bg-card/80 p-4">
-              <div className="flex flex-wrap items-center justify-between gap-3">
-                <div>
-                  <h2 className="text-lg font-semibold text-text-primary">
-                    {view === "archived" ? "Archived alerts" : "Your rules"}
-                  </h2>
-                  <p className="mt-1 text-sm text-text-secondary">
-                    {view === "archived"
-                      ? "Bring back archived rules whenever you want them in the live workflow again."
-                      : "Active alert coverage across your projects and environments."}
-                  </p>
-                </div>
-                <div className="flex flex-wrap items-center gap-2">
-                  <SegmentedControl
-                    name="alerts-view-mode"
-                    options={[
-                      { label: "Active", value: "active" },
-                      { label: "Archived", value: "archived" }
-                    ]}
-                    value={view}
-                    onChange={(val) => setView(val as "active" | "archived")}
-                    size="sm"
-                    shape="pill"
-                    className="bg-card border-border"
-                  />
-                  <span className="rounded-full border border-border bg-card px-3 py-1 text-xs font-semibold text-text-secondary">
-                    {filteredRules.length} shown
-                  </span>
-                </div>
-              </div>
+            <div className="flex flex-wrap items-center justify-between gap-3 mb-4 px-1">
+              <h2 className="text-[11px] font-semibold uppercase tracking-[0.14em] text-text-secondary">
+                {view === "archived" ? "Archived rules" : "Your rules"}
+                <span className="ml-2 rounded-sm border border-border/40 bg-card/50 px-2 py-0.5 text-[10px] font-semibold normal-case tracking-normal text-text-secondary">
+                  {filteredRules.length} shown
+                </span>
+              </h2>
             </div>
 
-            <div className="mt-4 rounded-3xl border border-border bg-card/80 p-4 shadow-sm lg:flex lg:min-h-0 lg:flex-1 lg:flex-col lg:overflow-hidden">
-              <div className="tf-scroll-rail min-h-0 space-y-4 lg:flex-1 lg:overflow-y-auto lg:overscroll-contain lg:pr-2">
+            <div className="lg:flex lg:min-h-0 lg:flex-1 lg:flex-col lg:overflow-hidden">
+              <div className="tf-scroll-rail min-h-0 flex flex-col gap-3 lg:flex-1 lg:overflow-y-auto lg:overscroll-contain lg:pr-2 pb-8">
                 {loading && (
-                  <div className="rounded-2xl border border-border bg-card/90 p-6 text-sm text-text-secondary">
+                  <div className="rounded-md border border-border/40 bg-card p-6 text-sm text-text-secondary">
                     Loading alert rules...
                   </div>
                 )}
 
                 {!loading && !filteredRules.length && (
-                  <div
-                    className="rounded-2xl border border-border bg-card/90 p-6"
-                  >
+                  <div className="rounded-md border border-border/40 bg-card p-6">
                     <p className="text-sm font-semibold text-text-primary">
                       {view === "archived" ? "No archived alerts" : "No matching alert rules"}
                     </p>
-                    <p className="mt-2 text-sm text-text-secondary">
+                    <p className="mt-2 text-[13px] text-text-secondary">
                       {view === "archived"
                         ? "Archived rules will show up here once you archive them from the active list."
                         : "Adjust the filters above or create a new alert rule for the projects you want to watch."}
@@ -922,215 +896,173 @@ function AlertsPageInner() {
                   paginatedRules.map((rule) => (
                     <div
                       key={rule.id}
-                      className="rounded-2xl border border-border bg-card/95 p-5 shadow-sm"
+                      className="group relative flex flex-col lg:flex-row lg:items-center justify-between p-5 gap-4 rounded-md bg-card border border-border/40 hover:border-border transition-all duration-200"
                     >
-                      <div className="gap-5 lg:grid lg:grid-cols-[minmax(0,1.4fr)_288px_168px] lg:items-start">
-                        <div className="min-w-0">
-                          <div className="flex flex-wrap items-center gap-2">
-                            <h3 className="text-base font-semibold text-text-primary">
-                              {rule.name}
-                            </h3>
-                            <span
-                              className={`rounded-full border px-2.5 py-1 text-xs font-semibold ${severityTone[rule.severity]}`}
-                            >
-                              {rule.severity}
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-3 mb-1.5">
+                          <h3 className="text-[15px] font-semibold text-text-primary truncate">
+                            {rule.name}
+                          </h3>
+                          <span className={`shrink-0 text-[10px] uppercase tracking-wider font-semibold ${
+                            rule.severity === "CRITICAL" ? "text-red-500" :
+                            rule.severity === "WARNING" ? "text-amber-500" :
+                            "text-blue-500"
+                          }`}>
+                            {rule.severity}
+                          </span>
+                          {!rule.isActive && (
+                            <span className="shrink-0 rounded-sm bg-secondary/50 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-text-secondary">
+                              Paused
                             </span>
-                            <span className="rounded-full border border-border bg-card px-2.5 py-1 text-xs font-semibold text-text-secondary">
-                              {rule.isActive ? "Active" : "Paused"}
-                            </span>
-                          </div>
-
-                          <div className="mt-4 flex flex-wrap items-center gap-3 text-sm text-text-secondary">
-                            <span>Last triggered {relativeTime(rule.lastTriggeredAt)}</span>
-                            <span className="hidden h-1 w-1 rounded-full bg-border sm:block" />
-                            <span>
-                              Fired {rule._count.deliveries} time
-                              {rule._count.deliveries === 1 ? "" : "s"}
-                            </span>
-                          </div>
-
-                          {rule.issueDescription && (
-                            <p className="mt-3 max-w-2xl text-sm leading-6 text-text-secondary">
-                              {rule.issueDescription}
-                            </p>
                           )}
                         </div>
-
-                        <div className="mt-4 grid gap-2.5 sm:grid-cols-2 lg:mt-0 lg:grid-cols-2">
-                          <div className="rounded-xl border border-border bg-secondary/25 px-3 py-2.5">
-                            <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-text-secondary">
-                              Scope
-                            </p>
-                            <p className="mt-1 text-[13px] font-medium leading-5 text-text-primary">
-                              {rule.project?.name ?? "All projects"}
-                            </p>
+                        
+                        {rule.issueDescription && (
+                          <div className="mb-2.5 text-[13px] text-text-secondary truncate max-w-3xl">
+                            {rule.issueDescription}
                           </div>
-                          <div className="rounded-xl border border-border bg-secondary/25 px-3 py-2.5">
-                            <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-text-secondary">
-                              Environment
-                            </p>
-                            <p className="mt-1 text-[13px] font-medium leading-5 text-text-primary">
-                              {rule.environment || "All environments"}
-                            </p>
-                          </div>
-                          <div className="rounded-xl border border-border bg-secondary/25 px-3 py-2.5">
-                            <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-text-secondary">
-                              Trigger
-                            </p>
-                            <p className="mt-1 text-[13px] font-medium leading-5 text-text-primary">
-                              {rule.minOccurrences} occurrence{rule.minOccurrences > 1 ? "s" : ""}
-                            </p>
-                          </div>
-                          <div className="rounded-xl border border-border bg-secondary/25 px-3 py-2.5">
-                            <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-text-secondary">
-                              Cooldown
-                            </p>
-                            <p className="mt-1 text-[13px] font-medium leading-5 text-text-primary">
-                              {rule.cooldownMinutes} minutes
-                            </p>
-                          </div>
+                        )}
+                        
+                        <div className="flex flex-wrap items-center gap-2.5 text-[12px] text-text-secondary">
+                          <span className="font-medium text-text-primary">{rule.project?.name ?? "All projects"}</span>
+                          <span className="w-1 h-1 rounded-full bg-border" />
+                          <span className="uppercase text-[10px] tracking-wider opacity-70">{rule.environment || "All envs"}</span>
+                          <span className="w-1 h-1 rounded-full bg-border" />
+                          <span>Trigger: {rule.minOccurrences} occurrence{rule.minOccurrences > 1 ? "s" : ""}</span>
+                          <span className="w-1 h-1 rounded-full bg-border" />
+                          <span>Cooldown: {rule.cooldownMinutes}m</span>
+                          <span className="w-1 h-1 rounded-full bg-border" />
+                          <span>Fired {rule._count.deliveries} time{rule._count.deliveries === 1 ? "" : "s"}</span>
+                          {rule.lastTriggeredAt && (
+                            <>
+                              <span className="w-1 h-1 rounded-full bg-border" />
+                              <span>Last fired {relativeTime(rule.lastTriggeredAt)}</span>
+                            </>
+                          )}
                         </div>
+                      </div>
 
-                        <div className="mt-4 flex w-full flex-col gap-2.5 lg:mt-0 lg:min-w-[176px]">
+                        <div className="shrink-0 flex items-center gap-2 mt-4 lg:mt-0">
                           {view === "active" ? (
                             <>
                               <button
                                 type="button"
-                                className="tf-button flex w-full items-center justify-center gap-2 px-4 py-2 text-sm"
+                                className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-[11px] font-semibold text-text-secondary hover:text-text-primary hover:bg-secondary/40 transition-colors"
                                 onClick={() => sendAlertNotification(rule.id)}
                                 disabled={notifyingRuleId === rule.id}
                               >
-                                <LoadingButtonContent
-                                  loading={notifyingRuleId === rule.id}
-                                  loadingLabel="Sending..."
-                                  idleLabel="Notify"
-                                  icon={BellRing}
-                                />
+                                {notifyingRuleId === rule.id ? <div className="h-3.5 w-3.5 rounded-full border-2 border-text-secondary border-t-transparent animate-spin"></div> : <BellRing className="h-3.5 w-3.5" />}
+                                Notify
                               </button>
+                              
+                              <div className="w-px h-4 bg-border/50 mx-1"></div>
+
                               <button
                                 type="button"
-                                className="tf-button-ghost flex w-full items-center justify-center gap-2 px-4 py-2 text-sm"
+                                className="p-1.5 rounded-md text-text-secondary hover:text-text-primary hover:bg-secondary/40 transition-colors"
                                 onClick={() => void openAppAlertModal(rule)}
+                                title="Send Alert"
                               >
                                 <Send className="h-4 w-4" />
-                                Send alert
                               </button>
-                              <div className="grid grid-cols-2 gap-2">
-                                <button
-                                  type="button"
-                                  className="tf-button-ghost inline-flex h-10 items-center justify-center rounded-full border border-border bg-card px-0 text-text-secondary transition hover:bg-secondary/70 hover:text-text-primary"
-                                  onClick={() =>
-                                    updateRule(
-                                      rule.id,
-                                      { isActive: !rule.isActive },
-                                      rule.isActive ? "Alert paused" : "Alert resumed"
-                                    )
-                                  }
-                                  aria-label={rule.isActive ? "Pause alert" : "Resume alert"}
-                                  title={rule.isActive ? "Pause alert" : "Resume alert"}
-                                >
-                                  {rule.isActive ? (
-                                    <Pause className="h-4 w-4" />
-                                  ) : (
-                                    <Play className="h-4 w-4" />
-                                  )}
-                                </button>
-                                <button
-                                  type="button"
-                                  className="inline-flex h-10 items-center justify-center rounded-full border border-red-500/25 bg-red-500/10 px-0 text-red-400 transition hover:bg-red-500/15"
-                                  onClick={() => setArchiveTarget(rule)}
-                                  aria-label="Archive alert"
-                                  title="Archive alert"
-                                >
-                                  <Trash2 className="h-4 w-4" />
-                                </button>
-                              </div>
+                              
+                              <button
+                                type="button"
+                                className="p-1.5 rounded-md text-text-secondary hover:text-text-primary hover:bg-secondary/40 transition-colors"
+                                onClick={() =>
+                                  updateRule(rule.id, { isActive: !rule.isActive }, rule.isActive ? "Alert paused" : "Alert resumed")
+                                }
+                                title={rule.isActive ? "Pause alert" : "Resume alert"}
+                              >
+                                {rule.isActive ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
+                              </button>
+                              
+                              <div className="w-px h-4 bg-border/50 mx-1"></div>
+
+                              <button
+                                type="button"
+                                className="p-1.5 rounded-md text-text-secondary hover:text-destructive hover:bg-destructive/10 transition-colors"
+                                onClick={() => setArchiveTarget(rule)}
+                                title="Archive alert"
+                              >
+                                <Archive className="h-4 w-4" />
+                              </button>
                             </>
                           ) : (
                             <>
                               <button
                                 type="button"
-                                className="tf-button-ghost inline-flex w-full items-center justify-center gap-2 px-4 py-2 text-sm"
+                                className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-[11px] font-semibold text-text-secondary hover:text-text-primary hover:bg-secondary/40 transition-colors"
                                 onClick={() => restoreRule(rule.id)}
                                 disabled={restoringRuleId === rule.id}
                               >
-                                <LoadingButtonContent
-                                  loading={restoringRuleId === rule.id}
-                                  loadingLabel="Restoring..."
-                                  idleLabel="Restore alert"
-                                  icon={RotateCcw}
-                                />
+                                {restoringRuleId === rule.id ? <div className="h-3.5 w-3.5 rounded-full border-2 border-text-secondary border-t-transparent animate-spin"></div> : <RotateCcw className="h-3.5 w-3.5" />}
+                                Restore
                               </button>
+
+                              <div className="w-px h-4 bg-border/50 mx-1"></div>
+
                               <button
                                 type="button"
-                                className="tf-danger-button flex w-full items-center justify-center gap-2 rounded-full border px-4 py-2 text-sm font-semibold transition"
+                                className="p-1.5 rounded-md text-destructive/80 hover:text-destructive hover:bg-destructive/10 transition-colors disabled:opacity-50"
                                 onClick={() => setDeleteTarget(rule)}
                                 disabled={deletingRuleId === rule.id}
+                                title="Delete alert permanently"
                               >
-                                <LoadingButtonContent
-                                  loading={deletingRuleId === rule.id}
-                                  loadingLabel="Deleting..."
-                                  idleLabel="Delete"
-                                />
+                                {deletingRuleId === rule.id ? <div className="h-4 w-4 rounded-full border-2 border-destructive/80 border-t-transparent animate-spin"></div> : <Trash2 className="h-4 w-4" />}
                               </button>
                             </>
                           )}
                         </div>
-                      </div>
                     </div>
                   ))}
               </div>
 
               {!loading && filteredRules.length > 5 && (
-                <div className="rounded-2xl border border-border bg-card/90 px-4 py-3 shadow-sm">
-                  <DashboardPagination
-                    page={rulesPage}
-                    totalPages={rulesTotalPages}
-                    pageSize={rulesPageSize}
-                    pageSizeOptions={[
-                      { value: 6, label: "6" },
-                      { value: 12, label: "12" },
-                      { value: 18, label: "18" }
-                    ]}
-                    onPageChange={setRulesPage}
-                    onPageSizeChange={(pageSize) => {
-                      setRulesPage(1);
-                      setRulesPageSize(pageSize);
-                    }}
-                    className=""
-                  />
-                </div>
+                <DashboardPagination
+                  page={rulesPage}
+                  totalPages={rulesTotalPages}
+                  pageSize={rulesPageSize}
+                  pageSizeOptions={[
+                    { value: 6, label: "6" },
+                    { value: 12, label: "12" },
+                    { value: 18, label: "18" }
+                  ]}
+                  onPageChange={setRulesPage}
+                  onPageSizeChange={(pageSize) => {
+                    setRulesPage(1);
+                    setRulesPageSize(pageSize);
+                  }}
+                  className="mt-4"
+                />
               )}
             </div>
           </div>
 
-          <div className="min-h-0 lg:flex lg:flex-col">
-            <div className="rounded-2xl border border-border bg-card/90 p-5 shadow-sm lg:flex lg:min-h-0 lg:flex-1 lg:flex-col lg:overflow-hidden">
-              <div className="flex items-start justify-between gap-3">
-                <div className="min-w-0">
-                  <h2 className="text-lg font-semibold text-text-primary">Recent activity</h2>
-                  <p className="mt-1 text-sm text-text-secondary">
-                    Latest alert deliveries and quick jumps into issues.
-                  </p>
-                </div>
-                <span className="ml-auto shrink-0 whitespace-nowrap rounded-full border border-border bg-card px-3 py-1 text-xs font-semibold text-text-secondary">
+          <div className="hidden min-h-0 lg:flex lg:flex-col">
+            <div className="flex items-center justify-between gap-3 mb-4 px-1">
+              <h2 className="text-[11px] font-semibold uppercase tracking-[0.14em] text-text-secondary">
+                Recent activity
+                <span className="ml-2 rounded-sm border border-border/40 bg-card/50 px-2 py-0.5 text-[10px] font-semibold normal-case tracking-normal text-text-secondary">
                   {filteredEvents.length} events
                 </span>
-              </div>
+              </h2>
+            </div>
 
-              <div className="tf-scroll-rail mt-4 min-h-0 space-y-3 lg:flex-1 lg:overflow-y-auto lg:overscroll-contain lg:pr-2">
+            <div className="lg:flex lg:min-h-0 lg:flex-1 lg:flex-col lg:overflow-hidden">
+              <div className="tf-scroll-rail min-h-0 flex flex-col gap-3 lg:flex-1 lg:overflow-y-auto lg:overscroll-contain lg:pr-2 pb-8">
                 {loading && (
-                  <div className="rounded-2xl border border-border bg-secondary/30 px-4 py-4 text-sm text-text-secondary">
+                  <div className="rounded-md border border-border/40 bg-card px-4 py-4 text-sm text-text-secondary">
                     Loading alert history...
                   </div>
                 )}
 
                 {!loading && !filteredEvents.length && (
-                  <div className="rounded-2xl border border-dashed border-border bg-secondary/20 px-4 py-4">
+                  <div className="rounded-md border border-border/40 bg-card px-4 py-4">
                     <p className="text-sm font-semibold text-text-primary">
                       No matching alert activity
                     </p>
-                    <p className="mt-1 text-sm text-text-secondary">
+                    <p className="mt-1 text-[13px] text-text-secondary">
                       Try widening the filters or trigger an alert to see recent activity here.
                     </p>
                   </div>
@@ -1140,40 +1072,32 @@ function AlertsPageInner() {
                   paginatedEvents.map((event) => (
                     <div
                       key={event.id}
-                      className="rounded-2xl border border-border bg-card px-4 py-4"
+                      className="group relative rounded-md border border-border/40 bg-card px-5 py-4 hover:border-border transition-all duration-200"
                     >
                       <div className="flex items-start justify-between gap-3">
                         <div className="min-w-0">
-                          <p className="text-sm font-semibold text-text-primary">
+                          <p className="text-[14px] font-semibold text-text-primary">
                             {event.alertRule.name}
                           </p>
-                          <p className="mt-1 text-sm text-text-secondary">{event.message}</p>
+                          <p className="mt-1.5 text-[12px] text-text-secondary border-l border-border/60 pl-2.5 py-0.5">
+                            {event.message}
+                          </p>
+                          
+                          <div className="mt-3 flex flex-wrap items-center gap-3 text-[11px] font-medium text-text-secondary/70">
+                            <span>{relativeTime(event.triggeredAt)}</span>
+                            <span className="w-1 h-1 rounded-full bg-border" />
+                            <span>{event.project.name}</span>
+                            <span className="w-1 h-1 rounded-full bg-border" />
+                            <span className="uppercase text-text-secondary/50 tracking-wider">
+                              {event.alertRule.severity}
+                            </span>
+                          </div>
                         </div>
-                        <span
-                          className={`rounded-full border px-2.5 py-1 text-[11px] font-semibold ${severityTone[event.alertRule.severity]}`}
-                        >
-                          {event.alertRule.severity}
-                        </span>
-                      </div>
-
-                      <div className="mt-3 flex flex-wrap items-center gap-2 text-xs text-text-secondary">
-                        <span className="rounded-full border border-border bg-card px-2.5 py-1">
-                          {event.project.name}
-                        </span>
-                        <span className="rounded-full border border-border bg-card px-2.5 py-1">
-                          {event.environment || "All environments"}
-                        </span>
-                        <span className="rounded-full border border-border bg-card px-2.5 py-1">
-                          {relativeTime(event.triggeredAt)}
-                        </span>
-                      </div>
-
-                      <div className="mt-4">
                         <Link
-                          className="inline-flex rounded-full border border-border px-3 py-1.5 text-xs font-semibold text-text-secondary transition hover:bg-secondary/70 hover:text-text-primary"
                           href={`/dashboard/errors/${event.error.id}`}
+                          className="shrink-0 flex items-center justify-center h-7 px-2.5 rounded-md text-[11px] font-semibold text-text-secondary hover:text-text-primary hover:bg-secondary/40 transition-colors lg:opacity-0 group-hover:opacity-100 focus-within:opacity-100"
                         >
-                          Open issue
+                          View issue
                         </Link>
                       </div>
                     </div>

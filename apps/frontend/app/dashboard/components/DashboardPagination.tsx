@@ -47,11 +47,11 @@ export function DashboardPagination({
   const visiblePages = getVisiblePages(page, totalPages);
 
   return (
-    <div className={`${className} flex flex-col sm:flex-row items-center justify-between gap-4 pt-2`}>
-      <div className="flex items-center gap-2.5 text-sm text-text-secondary">
+    <div className={`flex flex-col sm:flex-row items-center justify-between gap-4 rounded-md border border-border/40 bg-card p-3 shadow-sm ${className}`}>
+      <div className="flex items-center gap-2.5 text-xs text-text-secondary font-medium">
         <span>Rows per page</span>
         <select
-          className="bg-transparent font-medium text-text-primary outline-none focus:ring-0 cursor-pointer"
+          className="bg-transparent font-medium text-text-primary outline-none focus:ring-0 cursor-pointer appearance-none"
           value={pageSize}
           onChange={(event) => onPageSizeChange(Number(event.target.value))}
         >

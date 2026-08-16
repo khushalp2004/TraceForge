@@ -159,7 +159,7 @@ type InviteLinkStatus = {
 };
 
 const Skeleton = ({ className }: { className?: string }) => (
-  <div className={`animate-pulse rounded-xl bg-secondary/70 ${className ?? ""}`} />
+  <div className={`animate-pulse rounded-sm bg-secondary/70 ${className ?? ""}`} />
 );
 
 const severityForMessage = (message: string) => {
@@ -182,7 +182,7 @@ const SeverityTag = ({ severity }: { severity: "critical" | "warning" | "info" }
       : "tf-muted-tag";
   const label = severity === "critical" ? "Critical" : severity === "warning" ? "Warning" : "Info";
   return (
-    <span className={`rounded-full border px-2.5 py-1 text-xs font-semibold ${styles}`}>
+    <span className={`rounded-sm border px-2.5 py-1 text-xs font-semibold ${styles}`}>
       {label}
     </span>
   );
@@ -1205,11 +1205,11 @@ function DashboardPageInner() {
       <main className="tf-page tf-dashboard-page">
         <div className="tf-container max-w-md">
           <div className="tf-card p-8">
-            <div className="h-6 w-32 animate-pulse rounded-full bg-secondary/70" />
-            <div className="mt-4 h-10 w-52 animate-pulse rounded-2xl bg-secondary/70" />
+            <div className="h-6 w-32 animate-pulse rounded-sm bg-secondary/70" />
+            <div className="mt-4 h-10 w-52 animate-pulse rounded-sm bg-secondary/70" />
             <div className="mt-8 space-y-4">
-              <div className="h-32 animate-pulse rounded-3xl bg-secondary/70" />
-              <div className="h-32 animate-pulse rounded-3xl bg-secondary/70" />
+              <div className="h-32 animate-pulse rounded-sm bg-secondary/70" />
+              <div className="h-32 animate-pulse rounded-sm bg-secondary/70" />
             </div>
           </div>
         </div>
@@ -1246,17 +1246,17 @@ function DashboardPageInner() {
               <button
                 type="button"
                 onClick={rollStyle}
-                className="group relative inline-flex h-10 w-10 items-center justify-center rounded-full bg-card/90 text-text-secondary shadow-sm transition hover:border-primary/40 hover:bg-secondary/70 hover:text-text-primary"
+                className="group relative inline-flex h-10 w-10 items-center justify-center rounded-sm bg-card/90 text-text-secondary shadow-sm transition hover:border-primary/40 hover:bg-secondary/70 hover:text-text-primary"
                 aria-label="Surprise me (random theme + layout)"
               >
                 <Dices className={`h-4 w-4 transition ${diceRolling ? "tf-dice-roll" : "group-hover:rotate-12"}`} />
-                <span className="pointer-events-none absolute left-1/2 top-full z-30 mt-2 -translate-x-1/2 whitespace-nowrap rounded-full bg-card/95 px-3 py-1.5 text-[11px] font-semibold text-text-secondary opacity-0 shadow-lg backdrop-blur transition group-hover:opacity-100">
+                <span className="pointer-events-none absolute left-1/2 top-full z-30 mt-2 -translate-x-1/2 whitespace-nowrap rounded-sm bg-card/95 px-3 py-1.5 text-[11px] font-semibold text-text-secondary opacity-0 shadow-lg backdrop-blur transition group-hover:opacity-100">
                   Surprise me: random theme + layout
                 </span>
               </button>
               <div className="relative" ref={notificationsRef}>
                 <button
-                  className={`relative inline-flex h-10 items-center gap-2 rounded-full border border-border px-3 py-2 text-[13px] font-semibold shadow-sm transition hover:bg-secondary/80 sm:gap-2.5 sm:px-4 ${showRequests ? "bg-secondary/80 text-text-primary" : "bg-card/95 text-text-secondary hover:text-text-primary"}`}
+                  className={`relative inline-flex h-10 items-center gap-2 rounded-sm border border-border px-3 py-2 text-[13px] font-semibold shadow-sm transition hover:bg-secondary/80 sm:gap-2.5 sm:px-4 ${showRequests ? "bg-secondary/80 text-text-primary" : "bg-card/95 text-text-secondary hover:text-text-primary"}`}
                   onClick={() => setShowRequests((prev) => !prev)}
                   aria-label="Notifications"
                 >
@@ -1275,7 +1275,7 @@ function DashboardPageInner() {
                   </svg>
                   <span className="hidden sm:inline">Notifications</span>
                   {joinRequests.length + pendingInvites.length + alertNotifications.length > 0 && (
-                    <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-[16px] items-center justify-center rounded-full bg-primary px-1 text-[9px] font-bold text-white ring-2 ring-card sm:static sm:h-5 sm:min-w-[20px] sm:px-1.5 sm:text-[10px] sm:ring-0">
+                    <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-[16px] items-center justify-center rounded-sm bg-primary px-1 text-[9px] font-bold text-white ring-2 ring-card sm:static sm:h-5 sm:min-w-[20px] sm:px-1.5 sm:text-[10px] sm:ring-0">
                       {joinRequests.length + pendingInvites.length + alertNotifications.length}
                     </span>
                   )}
@@ -1288,7 +1288,7 @@ function DashboardPageInner() {
                       aria-hidden="true" 
                     />
                     <div
-                      className={`absolute right-0 top-[calc(100%+12px)] z-50 overflow-hidden rounded-[28px] border border-border/40 bg-card/95 shadow-2xl backdrop-blur-xl animate-in fade-in zoom-in-95 duration-200 max-[639px]:fixed max-[639px]:left-4 max-[639px]:right-4 max-[639px]:top-[5.5rem] max-[639px]:w-auto max-[639px]:max-w-none ${
+                      className={`absolute right-0 top-[calc(100%+12px)] z-50 overflow-hidden rounded-sm border border-border/40 bg-card/95 shadow-2xl backdrop-blur-xl animate-in fade-in zoom-in-95 duration-200 max-[639px]:fixed max-[639px]:left-4 max-[639px]:right-4 max-[639px]:top-[5.5rem] max-[639px]:w-auto max-[639px]:max-w-none ${
                         notificationsExpanded ? "w-[28rem]" : "w-80"
                       }`}
                     >
@@ -1342,19 +1342,19 @@ function DashboardPageInner() {
                             Join Requests
                           </h4>
                           {joinRequests.map((req) => (
-                            <div key={req.id} className="group relative flex items-start gap-3 rounded-[16px] px-3 py-3 transition-colors hover:bg-secondary/30">
-                              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
+                            <div key={req.id} className="group relative flex items-start gap-3 rounded-sm px-3 py-3 transition-colors hover:bg-secondary/30">
+                              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-sm bg-primary/10 text-primary">
                                 <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" x2="19" y1="8" y2="14"/><line x1="22" x2="16" y1="11" y2="11"/></svg>
                               </div>
                               <div className="min-w-0 flex-1">
                                 <p className="truncate text-[13px] font-medium text-text-primary">{req.requesterEmail}</p>
                                 <p className="truncate text-[12px] text-text-secondary">Requested to join {req.orgName}</p>
                                 <div className="mt-2 flex items-center gap-2">
-                                  <button onClick={() => handleRequestAction(req.id, "approve")} className="rounded-full bg-primary/10 px-3 py-1 text-[11px] font-semibold text-primary transition-colors hover:bg-primary/20">Approve</button>
-                                  <button onClick={() => handleRequestAction(req.id, "reject")} className="rounded-full bg-destructive/10 px-3 py-1 text-[11px] font-semibold text-destructive transition-colors hover:bg-destructive/20">Reject</button>
+                                  <button onClick={() => handleRequestAction(req.id, "approve")} className="rounded-sm bg-primary/10 px-3 py-1 text-[11px] font-semibold text-primary transition-colors hover:bg-primary/20">Approve</button>
+                                  <button onClick={() => handleRequestAction(req.id, "reject")} className="rounded-sm bg-destructive/10 px-3 py-1 text-[11px] font-semibold text-destructive transition-colors hover:bg-destructive/20">Reject</button>
                                 </div>
                               </div>
-                              <button onClick={() => dismissJoinRequestNotification(req.id)} className="absolute right-2 top-2 flex h-6 w-6 items-center justify-center rounded-full text-text-secondary opacity-0 transition-all hover:bg-secondary/50 hover:text-text-primary group-hover:opacity-100 max-[639px]:opacity-100">
+                              <button onClick={() => dismissJoinRequestNotification(req.id)} className="absolute right-2 top-2 flex h-6 w-6 items-center justify-center rounded-sm text-text-secondary opacity-0 transition-all hover:bg-secondary/50 hover:text-text-primary group-hover:opacity-100 max-[639px]:opacity-100">
                                 <svg className="h-3 w-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
                               </button>
                             </div>
@@ -1368,18 +1368,18 @@ function DashboardPageInner() {
                             Invites
                           </h4>
                           {pendingInvites.map((invite) => (
-                            <div key={invite.token} className="group relative flex items-start gap-3 rounded-[16px] px-3 py-3 transition-colors hover:bg-secondary/30">
-                              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-emerald-500/10 text-emerald-500">
+                            <div key={invite.token} className="group relative flex items-start gap-3 rounded-sm px-3 py-3 transition-colors hover:bg-secondary/30">
+                              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-sm bg-emerald-500/10 text-emerald-500">
                                 <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>
                               </div>
                               <div className="min-w-0 flex-1">
                                 <p className="truncate text-[13px] font-medium text-text-primary">{invite.orgName}</p>
                                 <p className="truncate text-[12px] text-text-secondary">Invited as {invite.role.toLowerCase()}</p>
                                 <div className="mt-2 flex items-center gap-2">
-                                  <button onClick={() => handleAcceptInvite(invite.token)} className="rounded-full bg-emerald-500/10 px-3 py-1 text-[11px] font-semibold text-emerald-500 transition-colors hover:bg-emerald-500/20">Accept</button>
+                                  <button onClick={() => handleAcceptInvite(invite.token)} className="rounded-sm bg-emerald-500/10 px-3 py-1 text-[11px] font-semibold text-emerald-500 transition-colors hover:bg-emerald-500/20">Accept</button>
                                 </div>
                               </div>
-                              <button onClick={() => dismissInviteNotification(invite.token)} className="absolute right-2 top-2 flex h-6 w-6 items-center justify-center rounded-full text-text-secondary opacity-0 transition-all hover:bg-secondary/50 hover:text-text-primary group-hover:opacity-100 max-[639px]:opacity-100">
+                              <button onClick={() => dismissInviteNotification(invite.token)} className="absolute right-2 top-2 flex h-6 w-6 items-center justify-center rounded-sm text-text-secondary opacity-0 transition-all hover:bg-secondary/50 hover:text-text-primary group-hover:opacity-100 max-[639px]:opacity-100">
                                 <svg className="h-3 w-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
                               </button>
                             </div>
@@ -1393,8 +1393,8 @@ function DashboardPageInner() {
                             Alerts
                           </h4>
                           {alertNotifications.map((alert) => (
-                            <div key={alert.id} className="group relative flex items-start gap-3 rounded-[16px] px-3 py-3 transition-colors hover:bg-secondary/30">
-                              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-warning/10 text-warning">
+                            <div key={alert.id} className="group relative flex items-start gap-3 rounded-sm px-3 py-3 transition-colors hover:bg-secondary/30">
+                              <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-sm bg-warning/10 text-warning">
                                 <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg>
                               </div>
                               <div className="min-w-0 flex-1">
@@ -1404,10 +1404,10 @@ function DashboardPageInner() {
                                   {alert.project.name}{alert.environment ? ` · ${alert.environment}` : ""} · {formatNotificationDateTime(alert.triggeredAt)}
                                 </p>
                                 <div className="mt-2 flex items-center gap-2">
-                                  <Link href="/dashboard/issues" onClick={() => setShowRequests(false)} className="rounded-full bg-secondary/80 px-3 py-1 text-[11px] font-semibold text-text-primary transition-colors hover:bg-secondary">View Issues</Link>
+                                  <Link href="/dashboard/issues" onClick={() => setShowRequests(false)} className="rounded-sm bg-secondary/80 px-3 py-1 text-[11px] font-semibold text-text-primary transition-colors hover:bg-secondary">View Issues</Link>
                                 </div>
                               </div>
-                              <button onClick={() => dismissAlertNotification(alert.id)} className="absolute right-2 top-2 flex h-6 w-6 items-center justify-center rounded-full text-text-secondary opacity-0 transition-all hover:bg-secondary/50 hover:text-text-primary group-hover:opacity-100 max-[639px]:opacity-100">
+                              <button onClick={() => dismissAlertNotification(alert.id)} className="absolute right-2 top-2 flex h-6 w-6 items-center justify-center rounded-sm text-text-secondary opacity-0 transition-all hover:bg-secondary/50 hover:text-text-primary group-hover:opacity-100 max-[639px]:opacity-100">
                                 <svg className="h-3 w-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
                               </button>
                             </div>
@@ -1417,7 +1417,7 @@ function DashboardPageInner() {
 
                       {!joinRequests.length && !pendingInvites.length && !alertNotifications.length && (
                         <div className="flex flex-col items-center justify-center px-4 py-12 text-center">
-                          <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-secondary/40 text-text-secondary">
+                          <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-sm bg-secondary/40 text-text-secondary">
                             <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>
                           </div>
                           <p className="text-[14px] font-medium text-text-primary">All caught up!</p>
@@ -1430,7 +1430,7 @@ function DashboardPageInner() {
                 )}
               </div>
               <button
-                className="tf-danger-button inline-flex items-center gap-2 rounded-full border bg-card/90 px-4 py-2 text-sm font-semibold shadow-sm transition"
+                className="tf-danger-button inline-flex items-center gap-2 rounded-sm border bg-card/90 px-4 py-2 text-sm font-semibold shadow-sm transition"
                 onClick={handleLogout}
               >
                 <svg
@@ -1455,7 +1455,7 @@ function DashboardPageInner() {
           {inviteTokenFromUrl &&
             inviteLinkStatus?.valid !== false &&
             inviteLinkStatus?.reason === "request_approval" && (
-            <div className="rounded-2xl border border-primary/20 bg-primary/5 px-4 py-3">
+            <div className="rounded-sm border border-primary/20 bg-primary/5 px-4 py-3">
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <div>
                   <p className="text-sm font-semibold text-text-primary">
@@ -1485,96 +1485,69 @@ function DashboardPageInner() {
             </div>
           )}
 
-          <div className="tf-filter-panel">
-            <div className="tf-filter-header">
-              <div>
-                <h2 className="text-lg font-semibold text-text-primary">Workspace filters</h2>
-              </div>
-              <div className="flex flex-wrap items-center gap-2">
-                <button
-                  type="button"
-                  className="tf-filter-reset"
-                  onClick={() => {
-                    setSelectedOrgId("");
-                    setSelectedProject("");
-                    setSearch("");
-                    setEnvironmentFilter("");
-                    setSortBy("lastSeen");
-                  }}
-                >
-                  Reset filters
-                </button>
-              </div>
-            </div>
-            <div className="tf-filter-grid sm:grid-cols-2 xl:grid-cols-[220px_minmax(0,1.4fr)_190px_180px_auto]">
-              <label className="tf-filter-field">
-                <span className="tf-filter-label">Organization</span>
-                <select
-                  className="tf-select tf-filter-control max-[639px]:w-full"
-                  value={selectedOrgId}
-                  onChange={(event) => {
-                    setSelectedOrgId(event.target.value);
-                    setSelectedProject("");
-                  }}
-                >
-                  <option value="">Personal</option>
-                  {orgs.map((org) => (
-                    <option key={org.id} value={org.id}>
-                      {org.name} ({org.role.toLowerCase()})
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <label className="tf-filter-field">
-                <span className="tf-filter-label">Search</span>
-                <input
-                  className="tf-input tf-filter-control !h-10 min-h-[2.5rem] flex-1 !py-0 leading-none sm:min-w-[180px] max-[639px]:basis-full max-[639px]:w-full"
-                  placeholder="Search errors"
-                  value={search}
-                  onChange={(event) => setSearch(event.target.value)}
-                />
-              </label>
-              <label className="tf-filter-field">
-                <span className="tf-filter-label">Environment</span>
-                <select
-                  className="tf-select tf-filter-control max-[639px]:w-full"
-                  value={environmentFilter}
-                  onChange={(event) => setEnvironmentFilter(event.target.value)}
-                >
-                  <option value="">All env</option>
-                  <option value="development">Development</option>
-                  <option value="staging">Staging</option>
-                  <option value="production">Production</option>
-                  <option value="browser">Browser</option>
-                </select>
-              </label>
-              <label className="tf-filter-field">
-                <span className="tf-filter-label">Sort by</span>
-                <select
-                  className="tf-select tf-filter-control max-[639px]:w-full"
-                  value={sortBy}
-                  onChange={(event) =>
-                    setSortBy(event.target.value === "count" ? "count" : "lastSeen")
-                  }
-                >
-                  <option value="lastSeen">Last seen</option>
-                  <option value="count">Most frequent</option>
-                </select>
-              </label>
-              <div className="flex flex-wrap items-end gap-2">
-                <Link
-                  href="/dashboard/orgs"
-                  className="tf-filter-reset"
-                >
-                  Organizations
-                </Link>
-                <Link
-                  href="/dashboard/projects"
-                  className="tf-filter-reset"
-                >
-                  Projects
-                </Link>
-              </div>
+          <div className="flex flex-wrap items-center gap-3 mb-2">
+            <select
+              className="tf-select !h-9 !bg-secondary/40 !border-transparent hover:!border-border/50 focus:!bg-card focus:!border-primary/30 transition text-xs max-[639px]:w-full"
+              value={selectedOrgId}
+              onChange={(event) => {
+                setSelectedOrgId(event.target.value);
+                setSelectedProject("");
+              }}
+            >
+              <option value="">Personal Organization</option>
+              {orgs.map((org) => (
+                <option key={org.id} value={org.id}>
+                  {org.name} ({org.role.toLowerCase()})
+                </option>
+              ))}
+            </select>
+            
+            <input
+              className="tf-input !h-9 !bg-secondary/40 !border-transparent hover:!border-border/50 focus:!bg-card focus:!border-primary/30 transition text-xs sm:min-w-[200px] max-[639px]:w-full"
+              placeholder="Search errors..."
+              value={search}
+              onChange={(event) => setSearch(event.target.value)}
+            />
+
+            <select
+              className="tf-select !h-9 !bg-secondary/40 !border-transparent hover:!border-border/50 focus:!bg-card focus:!border-primary/30 transition text-xs max-[639px]:w-full"
+              value={environmentFilter}
+              onChange={(event) => setEnvironmentFilter(event.target.value)}
+            >
+              <option value="">All environments</option>
+              <option value="development">Development</option>
+              <option value="staging">Staging</option>
+              <option value="production">Production</option>
+              <option value="browser">Browser</option>
+            </select>
+
+            <select
+              className="tf-select !h-9 !bg-secondary/40 !border-transparent hover:!border-border/50 focus:!bg-card focus:!border-primary/30 transition text-xs max-[639px]:w-full"
+              value={sortBy}
+              onChange={(event) =>
+                setSortBy(event.target.value === "count" ? "count" : "lastSeen")
+              }
+            >
+              <option value="lastSeen">Sort by: Last seen</option>
+              <option value="count">Sort by: Most frequent</option>
+            </select>
+
+            <div className="flex items-center gap-3 ml-auto">
+              <button
+                type="button"
+                className="text-[11px] font-semibold text-text-secondary hover:text-text-primary transition"
+                onClick={() => {
+                  setSelectedOrgId("");
+                  setSelectedProject("");
+                  setSearch("");
+                  setEnvironmentFilter("");
+                  setSortBy("lastSeen");
+                }}
+              >
+                Clear
+              </button>
+              <Link href="/dashboard/orgs" className="text-[11px] font-semibold text-text-secondary hover:text-text-primary transition">Orgs</Link>
+              <Link href="/dashboard/projects" className="text-[11px] font-semibold text-text-secondary hover:text-text-primary transition">Projects</Link>
             </div>
           </div>
         </header>
@@ -1593,101 +1566,96 @@ function DashboardPageInner() {
                 { label: "Total errors", value: totalErrors },
                 { label: "Organizations", value: orgs.length }
               ].map((stat) => (
-                <div key={stat.label} className="group relative overflow-hidden rounded-2xl border border-border bg-card/90 p-5 shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md hover:border-primary/20">
-                  <div className="absolute -right-4 -top-4 h-24 w-24 rounded-full bg-primary/5 blur-2xl transition-opacity group-hover:bg-primary/10" />
+                <div key={stat.label} className="group relative overflow-hidden rounded-sm border border-border bg-card/90 p-5 shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md hover:border-primary/20">
+                  <div className="absolute -right-4 -top-4 h-24 w-24 rounded-sm bg-primary/5 blur-2xl transition-opacity group-hover:bg-primary/10" />
                   <p className="relative z-10 text-[11px] font-semibold uppercase tracking-[0.14em] text-text-secondary">{stat.label}</p>
                   <p className="relative z-10 mt-2 text-2xl font-bold text-text-primary sm:text-3xl">{stat.value}</p>
                 </div>
               ))
             )}
           </div>
-          <div className="tf-card overflow-hidden p-5" id="analytics">
-            <div className="flex flex-wrap items-center justify-between gap-2">
-              <div className="min-w-0">
-                <h2 className="text-sm font-semibold text-text-secondary">Project</h2>
-              </div>
-              <Link
-                href="/dashboard/projects"
-                className="rounded-full px-2.5 py-1 text-[11px] font-semibold text-text-secondary"
-              >
-                Manage projects
-              </Link>
-            </div>
-              <div className="mt-3 flex flex-wrap items-center gap-2">
-                <select
-                className="tf-select min-w-0 w-full flex-1 sm:min-w-[180px]"
-                value={selectedProject}
-                onChange={(event) => setSelectedProject(event.target.value)}
-              >
-                <option value="">Select a project</option>
-                {displayedProjects.map((project) => (
-                  <option key={project.id} value={project.id}>
-                    {project.name}
-                  </option>
-                ))}
-              </select>
-              {selectedProjectMeta && (
-                <button
-                  className="rounded-full px-3 py-2 text-xs font-semibold text-text-secondary"
-                  onClick={() => void handleToggleApiKey()}
-                >
-                  {showApiKey ? "Hide key" : "Show key"}
-                </button>
-              )}
-            </div>
-            {selectedProjectMeta && showApiKey && (
-              <div className="mt-3 rounded-xl bg-secondary/70 px-3 py-2 text-xs text-text-secondary">
-                <div className="flex flex-wrap items-center justify-between gap-2">
-                  <p className="font-semibold text-text-secondary">API Key</p>
-                  <button
-                    type="button"
-                    className="rounded-full px-2.5 py-1 text-[11px] font-semibold text-text-secondary transition hover:bg-card hover:text-text-primary"
-                    onClick={() => void handleCopyApiKey()}
+          <div className="flex flex-col gap-6" id="analytics">
+            <div className="flex flex-wrap items-center justify-between gap-4">
+              <div className="flex items-center gap-3">
+                <div className="relative">
+                  <select
+                    className="appearance-none bg-card border border-border/50 text-text-primary text-[13px] font-semibold h-9 pl-3 pr-8 rounded-sm hover:border-border hover:bg-card/80 focus:outline-none focus:ring-1 focus:ring-primary/30 transition shadow-sm min-w-[200px]"
+                    value={selectedProject}
+                    onChange={(event) => setSelectedProject(event.target.value)}
                   >
-                    Copy
-                  </button>
+                    <option value="">All Projects Overview</option>
+                    {displayedProjects.map((project) => (
+                      <option key={project.id} value={project.id}>
+                        {project.name}
+                      </option>
+                    ))}
+                  </select>
+                  <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2.5 text-text-secondary">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                  </div>
                 </div>
-                <p className="mt-1 break-all">{selectedProjectMeta.apiKey ?? "Loading…"}</p>
+
+                {selectedProjectMeta && (
+                  <button
+                    className="rounded-sm bg-secondary/30 px-3 py-1.5 text-[11px] font-semibold text-text-secondary border border-transparent hover:border-border/50 hover:text-text-primary transition"
+                    onClick={() => void handleToggleApiKey()}
+                  >
+                    {showApiKey ? "Hide API key" : "Show API key"}
+                  </button>
+                )}
               </div>
-            )}
-            <div className="mt-4 grid gap-3 md:grid-cols-2">
-              <div className="rounded-xl bg-secondary/70 p-3">
-                <p className="text-xs font-semibold text-text-secondary">Create Project</p>
-                <div className="mt-2 flex flex-wrap gap-2">
+              
+              <div className="flex flex-wrap items-center gap-3">
+                <div className="flex items-center gap-1 rounded-sm border border-border/30 bg-secondary/10 p-1 focus-within:border-border focus-within:bg-secondary/20 transition-all">
                   <input
-                    className="tf-input min-w-0 flex-1"
-                    placeholder="Project name"
+                    className="bg-transparent px-2 py-1 text-[11px] text-text-primary outline-none placeholder:text-text-secondary/70 w-28 focus:w-40 transition-all"
+                    placeholder="New project..."
                     value={projectName}
                     onChange={(event) => setProjectName(event.target.value)}
                   />
                   <button
-                    className="tf-button px-4 py-2 text-sm font-semibold"
+                    className="rounded-sm bg-card px-3 py-1 text-[11px] font-semibold text-text-secondary border border-border/40 hover:text-text-primary hover:border-border transition disabled:opacity-50"
                     onClick={handleProjectCreate}
-                    disabled={loading}
+                    disabled={loading || !projectName}
                   >
-                    <LoadingButtonContent loading={loading} loadingLabel="Creating..." idleLabel="Create" />
+                    Create
                   </button>
                 </div>
-              </div>
-              <div className="rounded-xl bg-secondary/70 p-3">
-                <p className="text-xs font-semibold text-text-secondary">Create Organization</p>
-                <div className="mt-2 flex flex-wrap gap-2">
+                <div className="flex items-center gap-1 rounded-sm border border-border/30 bg-secondary/10 p-1 focus-within:border-border focus-within:bg-secondary/20 transition-all">
                   <input
-                    className="tf-input min-w-0 flex-1"
-                    placeholder="Organization name"
+                    className="bg-transparent px-2 py-1 text-[11px] text-text-primary outline-none placeholder:text-text-secondary/70 w-28 focus:w-40 transition-all"
+                    placeholder="New org..."
                     value={orgName}
                     onChange={(event) => setOrgName(event.target.value)}
                   />
                   <button
-                    className="tf-button-ghost px-4 py-2 text-sm font-semibold"
+                    className="rounded-sm bg-card px-3 py-1 text-[11px] font-semibold text-text-secondary border border-border/40 hover:text-text-primary hover:border-border transition disabled:opacity-50"
                     onClick={handleOrgCreate}
-                    disabled={loading}
+                    disabled={loading || !orgName}
                   >
-                    <LoadingButtonContent loading={loading} loadingLabel="Creating..." idleLabel="Create" />
+                    Create
                   </button>
                 </div>
               </div>
             </div>
+
+            {selectedProjectMeta && showApiKey && (
+              <div className="rounded-sm bg-secondary/30 px-4 py-3 text-xs text-text-secondary animate-in fade-in slide-in-from-top-2 duration-200">
+                <div className="flex items-center justify-between gap-4">
+                  <div>
+                    <span className="font-semibold text-text-primary mr-2">API Key:</span>
+                    <span className="font-mono text-primary break-all">{selectedProjectMeta.apiKey ?? "Loading…"}</span>
+                  </div>
+                  <button
+                    type="button"
+                    className="shrink-0 rounded-sm bg-card/90 px-3 py-1.5 text-[11px] font-semibold text-text-primary shadow-sm hover:bg-secondary/70 transition"
+                    onClick={() => void handleCopyApiKey()}
+                  >
+                    Copy Key
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
 
           <div
@@ -1699,50 +1667,53 @@ function DashboardPageInner() {
                 : "space-y-6"
             }`}
           >
-            <div className="tf-card overflow-hidden p-6">
+            <div className="tf-card overflow-hidden p-6 flex flex-col gap-6">
               <div className="flex flex-wrap items-center justify-between gap-4">
-                <div>
-                  <h2 className="text-lg font-semibold text-text-primary">Analytics</h2>
-                  <p className="text-sm text-text-secondary">Last {days} days</p>
-                </div>
-                <div className="flex w-full flex-wrap items-center gap-3 sm:w-auto sm:justify-end">
-                  <div className="inline-flex items-center rounded-full bg-card/90 p-1 text-xs font-semibold text-text-secondary shadow-sm">
+                <h2 className="text-lg font-semibold text-text-primary tracking-tight">Analytics</h2>
+                
+                <div className="flex flex-wrap items-center gap-3">
+                  {/* Segmented control for chart type */}
+                  <div className="flex items-center rounded-sm bg-secondary/30 p-1">
                     <button
                       type="button"
-                      className={`rounded-full px-3 py-1 transition ${
+                      className={`rounded-sm px-3 py-1.5 text-[11px] font-semibold transition-all ${
                         chartVariant === "area"
-                          ? "bg-accent-soft text-text-primary"
-                          : "hover:bg-secondary/70 hover:text-text-primary"
+                          ? "bg-card text-text-primary shadow-sm"
+                          : "text-text-secondary hover:text-text-primary"
                       }`}
                       onClick={() => setChartVariant("area")}
-                      aria-label="Line chart view"
                     >
-                      Line
+                      Area
                     </button>
                     <button
                       type="button"
-                      className={`rounded-full px-3 py-1 transition ${
+                      className={`rounded-sm px-3 py-1.5 text-[11px] font-semibold transition-all ${
                         chartVariant === "bar"
-                          ? "bg-accent-soft text-text-primary"
-                          : "hover:bg-secondary/70 hover:text-text-primary"
+                          ? "bg-card text-text-primary shadow-sm"
+                          : "text-text-secondary hover:text-text-primary"
                       }`}
                       onClick={() => setChartVariant("bar")}
-                      aria-label="Bar chart view"
                     >
                       Bar
                     </button>
                   </div>
+                  
+                  {/* Sleek day selector */}
                   <select
-                    className="tf-select min-w-0 max-[639px]:flex-1"
+                    className="tf-select !h-8 !py-1 !bg-secondary/30 !border-transparent hover:!bg-secondary/50 focus:!bg-card focus:!border-primary/30 transition text-[11px] font-semibold"
                     value={days}
                     onChange={(event) => setDays(Number(event.target.value))}
                   >
-                    <option value={7}>7 days</option>
-                    <option value={14}>14 days</option>
-                    <option value={30}>30 days</option>
+                    <option value={1}>Last 24 hours</option>
+                    <option value={7}>Last 7 days</option>
+                    <option value={14}>Last 14 days</option>
+                    <option value={30}>Last 30 days</option>
+                    <option value={90}>Last 90 days</option>
                   </select>
+                  
+                  {/* Refresh button */}
                   <button
-                    className="rounded-full px-3 py-1 text-xs font-semibold text-text-secondary max-[639px]:flex-1"
+                    className="flex h-8 items-center justify-center rounded-sm bg-secondary/30 px-3 text-[11px] font-semibold text-text-secondary hover:bg-secondary/50 hover:text-text-primary transition"
                     onClick={() => setRefreshTick((value) => value + 1)}
                   >
                     Refresh
@@ -1750,64 +1721,52 @@ function DashboardPageInner() {
                 </div>
               </div>
 
-              <div className="mt-6 grid gap-6 md:grid-cols-2">
-                <div className="min-w-0 rounded-2xl bg-card/70 p-4">
-                  <div className="flex flex-wrap items-start justify-between gap-3">
-                    <div className="min-w-0">
-                      <p className="text-xs font-semibold uppercase tracking-[0.2em] text-text-secondary">
-                        Error Frequency
-                      </p>
-                    </div>
+              <div className="grid gap-8 md:grid-cols-2 pt-2">
+                <div className="group min-w-0 flex flex-col">
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-[11px] font-bold uppercase tracking-[0.15em] text-text-secondary">
+                      Error Frequency
+                    </h3>
                     <Link
                       href="/dashboard/insights"
-                      className="rounded-full bg-card/90 px-3 py-1 text-xs font-semibold text-text-secondary transition hover:bg-secondary/70 hover:text-text-primary"
+                      className="text-[11px] font-medium text-text-secondary opacity-0 transition-opacity group-hover:opacity-100 hover:text-primary"
                     >
-                      Insights
+                      View Insights &rarr;
                     </Link>
                   </div>
-                  <div className="mt-4 rounded-2xl bg-secondary/20 p-3">
+                  <div className="flex-1">
                     <SparkAreaChart
                       data={frequency}
                       tone="primary"
-                      height={96}
+                      height={120}
                       unitLabel="events"
                       variant={chartVariant}
                       showXAxis={false}
                     />
-                    <div className="mt-2 flex justify-between text-[10px] text-text-secondary">
-                      <span>{frequency[0]?.date.slice(5) || ""}</span>
-                      <span>{frequency[frequency.length - 1]?.date.slice(5) || ""}</span>
-                    </div>
                   </div>
                 </div>
 
-                <div className="min-w-0 rounded-2xl bg-card/70 p-4">
-                  <div className="flex flex-wrap items-start justify-between gap-3">
-                    <div className="min-w-0">
-                      <p className="text-xs font-semibold uppercase tracking-[0.2em] text-text-secondary">
-                        Errors Last Seen
-                      </p>
-                    </div>
+                <div className="group min-w-0 flex flex-col">
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-[11px] font-bold uppercase tracking-[0.15em] text-text-secondary">
+                      Errors Last Seen
+                    </h3>
                     <Link
                       href="/dashboard/issues"
-                      className="rounded-full bg-card/90 px-3 py-1 text-xs font-semibold text-text-secondary transition hover:bg-secondary/70 hover:text-text-primary"
+                      className="text-[11px] font-medium text-text-secondary opacity-0 transition-opacity group-hover:opacity-100 hover:text-primary"
                     >
-                      Issues
+                      View Issues &rarr;
                     </Link>
                   </div>
-                  <div className="mt-4 rounded-2xl bg-secondary/20 p-3">
+                  <div className="flex-1">
                     <SparkAreaChart
                       data={lastSeen}
                       tone="muted"
-                      height={96}
+                      height={120}
                       unitLabel="issues"
                       variant={chartVariant}
                       showXAxis={false}
                     />
-                    <div className="mt-2 flex justify-between text-[10px] text-text-secondary">
-                      <span>{lastSeen[0]?.date.slice(5) || ""}</span>
-                      <span>{lastSeen[lastSeen.length - 1]?.date.slice(5) || ""}</span>
-                    </div>
                   </div>
                 </div>
               </div>
@@ -1833,57 +1792,57 @@ function DashboardPageInner() {
                   const severity = severityForMessage(item.message);
                   const isExpanded = expandedErrorId === item.id;
                   return (
-                    <div
-                      key={item.id}
-                      className="min-w-0 overflow-hidden rounded-xl px-4 py-4 transition hover:border-primary/30 hover:bg-accent-soft"
-                    >
-                      <div className="flex flex-wrap items-start justify-between gap-4">
-                        <div className="min-w-0">
-                          <div className="flex items-start gap-2">
-                            <div className="shrink-0 mt-0.5">
-                              <SeverityTag severity={severity} />
-                            </div>
-                            <p className="min-w-0 flex-1 break-words text-sm font-semibold text-text-primary">{item.message}</p>
+                    <div key={item.id} className="group relative border-b border-border/40 last:border-0">
+                      <div className="flex flex-col gap-3 p-4 transition-colors hover:bg-secondary/20 sm:flex-row sm:items-start sm:justify-between">
+                        <div className="flex min-w-0 items-start gap-3">
+                          <div className="mt-0.5 shrink-0">
+                            <SeverityTag severity={severity} />
                           </div>
-                          <p className="mt-1 text-xs text-text-secondary">
-                            Last seen {new Date(item.lastSeen).toLocaleString()}
-                          </p>
+                          <div className="min-w-0">
+                            <Link href={`/dashboard/errors/${item.id}`} className="block break-words text-[13px] font-semibold text-text-primary transition-colors hover:text-primary">
+                              {item.message}
+                            </Link>
+                            <div className="mt-1.5 flex items-center gap-2 text-[11px] font-medium text-text-secondary">
+                              <span>{item.count} {item.count === 1 ? 'event' : 'events'}</span>
+                              <span className="h-1 w-1 rounded-sm bg-border"></span>
+                              <span>{new Date(item.lastSeen).toLocaleString()}</span>
+                            </div>
+                            {item.analysis?.aiExplanation && (
+                              <p className="mt-2.5 text-xs leading-relaxed text-text-secondary">
+                                <span className="font-bold text-primary">AI ✨</span> {item.analysis.aiExplanation}
+                              </p>
+                            )}
+                          </div>
                         </div>
-                        <div className="flex max-w-full flex-wrap items-center gap-2 sm:mt-0 mt-2">
-                          <span className="rounded-full bg-accent-soft border border-border px-3 py-1.5 text-xs font-semibold text-text-primary">
-                            {item.count} hits
-                          </span>
-                          <Link
-                            href={`/dashboard/errors/${item.id}`}
-                            className="tf-button-ghost rounded-full px-3 py-1.5 text-xs font-semibold"
-                          >
-                            View
-                          </Link>
+                        
+                        <div className="flex items-center gap-4 sm:opacity-0 sm:transition-opacity sm:group-hover:opacity-100">
                           <button
-                            className="tf-button-ghost rounded-full px-3 py-1.5 text-xs font-semibold"
-                            onClick={() =>
-                              setExpandedErrorId(isExpanded ? null : item.id)
-                            }
+                            onClick={() => setExpandedErrorId(isExpanded ? null : item.id)}
+                            className="text-[11px] font-semibold text-text-secondary hover:text-text-primary"
                           >
                             {isExpanded ? "Hide stack" : "Show stack"}
                           </button>
+                          <Link
+                            href={`/dashboard/errors/${item.id}`}
+                            className="text-[11px] font-semibold text-primary hover:text-primary/80"
+                          >
+                            View details &rarr;
+                          </Link>
                         </div>
                       </div>
-                      {item.analysis?.aiExplanation && (
-                        <p className="mt-3 text-sm text-text-secondary">
-                          AI: {item.analysis.aiExplanation}
-                        </p>
-                      )}
+                      
                       {isExpanded && item.stackTrace && (
-                        <pre className="mt-3 max-h-56 w-full overflow-auto whitespace-pre rounded-xl bg-ink p-3 text-xs text-white/90">
-                          {item.stackTrace}
-                        </pre>
+                        <div className="px-4 pb-4">
+                          <pre className="max-h-64 w-full overflow-auto whitespace-pre rounded-sm border border-border/50 bg-ink p-3 text-[11px] text-white/90 shadow-inner">
+                            {item.stackTrace}
+                          </pre>
+                        </div>
                       )}
                     </div>
                   );
                 })}
                 {!dashboardLoading && !errors.length && (
-                  <div className="rounded-2xl bg-card/90 p-6 text-center">
+                  <div className="rounded-sm bg-card/90 p-6 text-center">
                     <p className="text-sm font-semibold text-text-primary">No errors yet</p>
                     <p className="mt-2 text-sm text-text-secondary">
                       Create a project and send your first exception to see live issues here.
