@@ -65,7 +65,7 @@ export function AdvancedCharts({ severityBreakdown, environmentHealth }: Advance
   return (
     <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-2 animate-in fade-in slide-in-from-bottom-4 duration-700 ease-out fill-mode-both">
       {/* Premium Severity Breakdown Donut */}
-      <div className="group relative flex flex-col overflow-hidden rounded-2xl border border-white/5 bg-gradient-to-b from-card/80 to-background/40 p-6 shadow-xl backdrop-blur-md transition-all hover:border-white/10 hover:shadow-2xl hover:shadow-primary/5">
+      <div className="group relative flex flex-col overflow-hidden rounded-md border border-white/5 bg-gradient-to-b from-card/80 to-background/40 p-6 shadow-xl backdrop-blur-md transition-all hover:border-white/10 hover:shadow-2xl hover:shadow-primary/5">
         <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-transparent opacity-0 transition-opacity duration-500 group-hover:opacity-100" />
         <h3 className="relative z-10 text-lg font-bold tracking-tight text-white">Severity Breakdown</h3>
         <p className="relative z-10 mb-6 text-sm font-medium text-white/50">Distribution of errors by severity level.</p>
@@ -122,7 +122,7 @@ export function AdvancedCharts({ severityBreakdown, environmentHealth }: Advance
       </div>
 
       {/* Premium Environment Health Bar Chart */}
-      <div className="group relative flex flex-col overflow-hidden rounded-2xl border border-white/5 bg-gradient-to-b from-card/80 to-background/40 p-6 shadow-xl backdrop-blur-md transition-all hover:border-white/10 hover:shadow-2xl hover:shadow-primary/5 delay-75">
+      <div className="group relative flex flex-col overflow-hidden rounded-md border border-white/5 bg-gradient-to-b from-card/80 to-background/40 p-6 shadow-xl backdrop-blur-md transition-all hover:border-white/10 hover:shadow-2xl hover:shadow-primary/5 delay-75">
         <div className="absolute inset-0 bg-gradient-to-bl from-primary/5 via-transparent to-transparent opacity-0 transition-opacity duration-500 group-hover:opacity-100" />
         <h3 className="relative z-10 text-lg font-bold tracking-tight text-white">Environment Health</h3>
         <p className="relative z-10 mb-6 text-sm font-medium text-white/50">Error frequency across different environments.</p>

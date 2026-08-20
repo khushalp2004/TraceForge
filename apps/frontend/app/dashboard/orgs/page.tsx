@@ -274,106 +274,101 @@ export default function OrgsPage() {
   return (
     <main className="tf-page tf-dashboard-page">
       <div className="tf-dashboard">
-        <header className="relative z-10 mt-2 flex flex-wrap items-center justify-between gap-4 animate-stagger-fade-up">
-          <div className="tf-section-header">
-            <p className="tf-kicker">Organizations</p>
-            <div className="mt-2">
-              <h1 className="font-display text-2xl font-semibold text-text-primary">
-                Organization <span className="whitespace-nowrap">Management<PageDescriptionPopover>
-                  Create and manage your teams, members, and permissions.
-                  <br /><br />
-                  Select an organization to manage members and permissions.
-                </PageDescriptionPopover></span>
-              </h1>
-            </div>
+        <header className="flex flex-wrap items-center justify-between gap-4 mb-6">
+          <div className="flex items-center gap-2">
+            <h1 className="text-xl font-bold text-text-primary tracking-tight">Manage Organizations</h1>
+            <PageDescriptionPopover>
+              Create and manage your teams, members, and permissions.
+              <br /><br />
+              Select an organization to view detailed membership settings and activity.
+            </PageDescriptionPopover>
           </div>
-          <button
-            className="tf-button inline-flex items-center gap-2 px-5 py-2.5 text-sm"
-            onClick={() => setShowCreateModal(true)}
-          >
-            <PlusCircle className="h-4 w-4" />
-            Create organization
-          </button>
+          <div className="flex flex-wrap items-center gap-3">
+            <button
+              className="rounded-sm bg-card px-3 py-1.5 text-xs font-semibold text-text-secondary border border-border/40 hover:text-text-primary hover:border-border transition shadow-sm"
+              onClick={() => setShowCreateModal(true)}
+            >
+              Create organization
+            </button>
+          </div>
         </header>
-
-        <div className="my-8" />
 
         {loading && <div className="flex items-center gap-2 text-sm text-text-secondary animate-pulse"><span className="tf-status-dot bg-primary" />Working...</div>}
 
-        <section className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
+        <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
           {paginatedOrgs.map((org, index) => {
             const isSelected = selectedOrgIds.has(org.id);
             return (
               <div
                 key={org.id}
-                className={`tf-card bg-card border rounded-xl shadow-sm group flex min-w-0 flex-col p-5 transition-all hover:border-primary/20 animate-stagger-fade-up ${
-                  isSelected ? "border-primary/30 ring-1 ring-primary/10" : ""
+                className={`group flex min-w-0 flex-col p-6 sm:p-8 transition-all duration-500 ease-out rounded-[24px] border animate-stagger-fade-up ${
+                  isSelected 
+                    ? "border-primary/50 bg-primary/5 shadow-lg" 
+                    : "border-border/40 bg-gradient-to-b from-card to-card/90 shadow-[0_4px_20px_-4px_rgba(0,0,0,0.05)] hover:border-border/80 hover:shadow-[0_12px_32px_-8px_rgba(0,0,0,0.15)] hover:-translate-y-[2px]"
                 }`}
                 style={{ animationDelay: `${index * 70}ms` }}
               >
-              {/* Header */}
-              <div className="flex items-start justify-between mb-4">
-                <div className="flex items-start gap-3">
-                  <label className="relative flex cursor-pointer items-center p-1 -ml-1 hover:bg-secondary/50 group/checkbox mt-0.5 rounded-md">
-                    <input
-                      type="checkbox"
-                      className="peer sr-only"
-                      checked={isSelected}
-                      onChange={() => toggleOrgSelection(org.id)}
-                    />
-                    <div className={`h-[18px] w-[18px] rounded-[4px] border-2 transition-all flex items-center justify-center ${
-                      isSelected 
-                        ? "border-primary bg-primary" 
-                        : "border-text-secondary/50 bg-transparent group-hover/checkbox:border-text-secondary/80"
-                    }`}>
-                      {isSelected && (
-                        <svg className="h-3 w-3 text-primary-foreground" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round">
-                          <polyline points="20 6 9 17 4 12" />
-                        </svg>
-                      )}
+                {/* Top Section */}
+                <div className="flex flex-col gap-6">
+                  {/* Header */}
+                  <div className="flex items-center justify-between gap-4 relative">
+                    <div className="flex items-center gap-3 min-w-0">
+                      <label className="relative flex cursor-pointer items-center group/checkbox shrink-0">
+                        <input
+                          type="checkbox"
+                          className="peer sr-only"
+                          checked={isSelected}
+                          onChange={() => toggleOrgSelection(org.id)}
+                        />
+                        <div className={`h-[18px] w-[18px] rounded-full border transition-all flex items-center justify-center ${
+                          isSelected 
+                            ? "border-primary bg-primary text-primary-foreground" 
+                            : "border-text-secondary/40 hover:border-text-secondary/80 bg-secondary/20 text-transparent"
+                        }`}>
+                          <svg className="h-2.5 w-2.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                            <polyline points="20 6 9 17 4 12" />
+                          </svg>
+                        </div>
+                      </label>
+                      <h2 className="text-[17px] font-semibold text-text-primary truncate tracking-tight">{org.name}</h2>
+                      <span
+                        className={`shrink-0 inline-flex items-center rounded-md px-2 py-0.5 text-[11px] font-medium tracking-wide ${
+                          org.role === "OWNER" ? "border-amber-500/30 text-amber-600 bg-amber-500/10 border" : "border-border text-text-secondary bg-secondary/30 border"
+                        }`}
+                      >
+                        <span className="w-1.5 h-1.5 rounded-full mr-1.5 bg-current opacity-70"></span>
+                        {org.role}
+                      </span>
                     </div>
-                  </label>
-                  <div>
+                    
                     <Link
                       href={`/dashboard/orgs/${org.id}`}
-                      className="text-sm font-semibold text-text-primary leading-tight hover:text-primary transition-colors"
+                      className="p-2.5 rounded-full bg-secondary/20 hover:bg-secondary/60 text-text-secondary hover:text-text-primary transition-all duration-300 cursor-pointer shadow-sm border border-border/30 hover:border-border/60 hover:scale-105 shrink-0"
+                      title="View Details"
                     >
-                      {org.name}
+                      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M7 17l9.2-9.2M17 17V7H7"/></svg>
                     </Link>
-                    <p className="text-[11px] text-text-secondary mt-0.5">
-                      Created {new Date(org.createdAt).toLocaleDateString()}
-                    </p>
+                  </div>
+
+                  <div className="flex flex-col gap-3">
+                    <div className="flex items-center justify-between text-[11px] font-bold text-text-secondary/70 uppercase tracking-[0.15em]">
+                      <span>Type</span>
+                    </div>
+                    <div className="font-mono text-[14px] font-medium text-text-primary/90 truncate bg-secondary/10 px-4 py-3 rounded-[16px] border border-border/40 shadow-inner">
+                      Organization
+                    </div>
                   </div>
                 </div>
-                <span
-                    className={`inline-flex rounded border px-2 py-0.5 text-[10px] font-medium tracking-wide ${
-                      org.role === "OWNER" ? "border-amber-500/30 text-amber-600 bg-amber-500/10" : "border-border text-text-secondary bg-secondary/30"
-                    }`}
-                  >
-                    {org.role}
-                  </span>
-                </div>
 
-                <div className="flex flex-col gap-4 flex-1">
-                   <div className="flex items-center justify-between text-xs border border-border bg-secondary/10 rounded-lg p-3">
-                      <div className="flex flex-col">
-                         <span className="text-text-secondary text-[10px] uppercase font-semibold">Type</span>
-                         <span className="text-text-primary mt-1 font-medium">Organization</span>
-                      </div>
-                      <Link
-                        href={`/dashboard/orgs/${org.id}`}
-                        className="text-[11px] font-medium text-text-secondary hover:text-text-primary transition-colors"
-                      >
-                        Manage Members
-                      </Link>
-                   </div>
-                </div>
-
-                <div className="flex items-center justify-between mt-5 pt-4 border-t border-border/50">
+                {/* Footer */}
+                <div className="mt-6 pt-4 border-t border-border/40 flex items-center justify-between">
+                  <div className="text-[12px] font-medium text-text-secondary/60">
+                    Created {new Date(org.createdAt).toLocaleDateString()}
+                  </div>
                   <div className="flex items-center gap-4">
                     {org.role === "OWNER" && (
                       <button
-                        className="text-[11px] font-medium text-text-secondary hover:text-text-primary transition-colors"
+                        className="text-[12px] font-medium text-text-secondary hover:text-text-primary transition-colors"
                         onClick={(event) => {
                           event.preventDefault();
                           setError(null);
@@ -384,38 +379,38 @@ export default function OrgsPage() {
                         Rename
                       </button>
                     )}
+                    {org.role === "OWNER" && (
+                      <button
+                        className="text-[12px] font-medium text-destructive hover:text-destructive/80 transition-colors"
+                        onClick={(event) => {
+                          event.preventDefault();
+                          setError(null);
+                          setDeleteTarget(org);
+                          setDeleteInput("");
+                        }}
+                        disabled={loading}
+                      >
+                        Delete
+                      </button>
+                    )}
                   </div>
-                  {org.role === "OWNER" && (
-                    <button
-                      className="text-[11px] font-medium text-destructive hover:text-destructive/80 transition-colors"
-                      onClick={(event) => {
-                        event.preventDefault();
-                        setError(null);
-                        setDeleteTarget(org);
-                        setDeleteInput("");
-                      }}
-                      disabled={loading}
-                    >
-                      Delete
-                    </button>
-                  )}
                 </div>
               </div>
             );
           })}
           {!orgs.length && !loading && (
-            <div className="tf-empty-state sm:col-span-2 xl:col-span-3">
-              <div className="tf-empty-state-icon">
-                <svg aria-hidden="true" className="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><circle cx="9" cy="8" r="3" /><circle cx="17" cy="10" r="2.5" /><path d="M4 19a5 5 0 0 1 10 0" strokeLinecap="round" /><path d="M14.5 19a4 4 0 0 1 7 0" strokeLinecap="round" /></svg>
+            <div className="col-span-full rounded-[24px] border border-dashed border-border/40 bg-secondary/10 px-6 py-12 text-center">
+              <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-secondary/30">
+                <svg aria-hidden="true" className="h-6 w-6 text-text-secondary" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><circle cx="9" cy="8" r="3" /><circle cx="17" cy="10" r="2.5" /><path d="M4 19a5 5 0 0 1 10 0" strokeLinecap="round" /><path d="M14.5 19a4 4 0 0 1 7 0" strokeLinecap="round" /></svg>
               </div>
-              <p className="tf-empty-state-title">No organizations yet</p>
-              <p className="tf-empty-state-desc">Create one from the dashboard to get started with team collaboration.</p>
+              <p className="text-base font-semibold text-text-primary">No organizations yet</p>
+              <p className="mt-1 text-sm text-text-secondary">Create one from the dashboard to get started with team collaboration.</p>
             </div>
           )}
         </section>
 
         {orgs.length > 5 && (
-          <div className="mt-6">
+          <div className="mt-6 border-t border-border/40 pt-4">
             <DashboardPagination
               page={orgsPage}
               totalPages={orgsTotalPages}
@@ -433,13 +428,13 @@ export default function OrgsPage() {
 
       {renameTarget && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 px-4">
-          <div className="rounded-xl border border-border bg-card shadow-xl w-full max-w-lg flex flex-col overflow-hidden">
-            <div className="flex items-center justify-between px-6 py-4 border-b border-border/40">
+          <div className="w-full max-w-lg rounded-md border border-border bg-card shadow-xl flex flex-col overflow-hidden">
+            <div className="flex items-center justify-between p-4 border-b border-border/50 shrink-0">
               <h3 className="text-sm font-semibold text-text-primary">Rename Organization</h3>
               <button onClick={() => {
                   setRenameTarget(null);
                   setRenameInput("");
-                }} className="inline-flex h-8 w-8 items-center justify-center rounded-xl text-text-secondary transition hover:bg-secondary/70 hover:text-text-primary">
+                }} className="text-text-secondary hover:text-text-primary transition-colors">
                 <X className="h-4 w-4" />
               </button>
             </div>
@@ -450,7 +445,7 @@ export default function OrgsPage() {
                  Organization name
                </label>
                <input
-                 className="w-full rounded-lg border border-border bg-background px-4 py-2 text-sm text-text-primary outline-none transition focus:border-primary/30 focus:ring-2 focus:ring-primary/10"
+                 className="w-full rounded-sm border border-border bg-secondary/20 px-4 py-3 text-sm text-text-primary shadow-sm outline-none transition focus:border-primary/50 focus:bg-card focus:ring-2 focus:ring-primary/20"
                  placeholder="e.g. Acme Corp"
                  value={renameInput}
                  onChange={(event) => setRenameInput(event.target.value)}
@@ -462,7 +457,7 @@ export default function OrgsPage() {
                <button 
                  onClick={handleRenameOrg} 
                  disabled={loading || !renameInput.trim()}
-                 className="flex-1 bg-primary hover:bg-primary-hover disabled:opacity-50 text-primary-foreground font-semibold py-2 px-4 rounded-lg transition-colors flex items-center justify-center"
+                 className="flex-1 bg-primary hover:bg-primary-hover disabled:opacity-50 text-primary-foreground font-semibold py-2 px-4 rounded-sm transition-colors flex items-center justify-center"
                >
                  <LoadingButtonContent loading={loading} loadingLabel="Saving..." idleLabel="Save name" />
                </button>
@@ -472,7 +467,7 @@ export default function OrgsPage() {
                    setRenameInput("");
                  }} 
                  disabled={loading}
-                 className="flex-1 bg-secondary/50 border border-border hover:bg-secondary/80 text-text-primary font-semibold py-2 px-4 rounded-lg transition-colors flex items-center justify-center"
+                 className="flex-1 bg-secondary/50 border border-border hover:bg-secondary/80 text-text-primary font-semibold py-2 px-4 rounded-sm transition-colors flex items-center justify-center"
                >
                  Cancel
                </button>
@@ -483,10 +478,10 @@ export default function OrgsPage() {
 
       {deleteTarget && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 px-4">
-          <div className="rounded-xl border border-border bg-card shadow-xl w-full max-w-lg flex flex-col overflow-hidden">
-            <div className="flex items-center justify-between px-6 py-4 border-b border-border/40">
+          <div className="w-full max-w-lg rounded-md border border-border bg-card shadow-xl flex flex-col overflow-hidden">
+            <div className="flex items-center justify-between p-4 border-b border-border/50 shrink-0">
               <h3 className="text-sm font-semibold text-text-primary">Delete Organization</h3>
-              <button onClick={() => setDeleteTarget(null)} className="inline-flex h-8 w-8 items-center justify-center rounded-xl text-text-secondary transition hover:bg-secondary/70 hover:text-text-primary">
+              <button onClick={() => setDeleteTarget(null)} className="text-text-secondary hover:text-text-primary transition-colors">
                 <X className="h-4 w-4" />
               </button>
             </div>
@@ -497,7 +492,7 @@ export default function OrgsPage() {
                  This action is permanent and cannot be undone. Type <span className="font-semibold">{deleteTarget.name}</span> to confirm.
                </p>
                <input
-                 className="mt-4 w-full rounded-lg border border-border bg-background px-4 py-2 text-sm text-text-primary outline-none transition focus:border-primary/30 focus:ring-2 focus:ring-primary/10"
+                 className="mt-4 w-full rounded-sm border border-border bg-secondary/20 px-4 py-3 text-sm text-text-primary shadow-sm outline-none transition focus:border-primary/50 focus:bg-card focus:ring-2 focus:ring-primary/20"
                  placeholder={deleteTarget.name}
                  value={deleteInput}
                  onChange={(e) => setDeleteInput(e.target.value)}
@@ -509,14 +504,14 @@ export default function OrgsPage() {
                <button 
                  onClick={handleDeleteOrg} 
                  disabled={loading || deleteInput !== deleteTarget.name}
-                 className="flex-1 bg-destructive/15 text-destructive border border-destructive/30 hover:bg-destructive/25 backdrop-blur-md disabled:opacity-50 font-semibold py-2 px-4 rounded-lg transition-all duration-300 flex items-center justify-center shadow-[0_8px_16px_-6px_rgba(var(--destructive-rgb),0.1)]"
+                 className="flex-1 bg-destructive/15 text-destructive border border-destructive/30 hover:bg-destructive/25 backdrop-blur-md disabled:opacity-50 font-semibold py-2 px-4 rounded-sm transition-all duration-300 flex items-center justify-center shadow-[0_8px_16px_-6px_rgba(var(--destructive-rgb),0.1)]"
                >
                  Delete
                </button>
                <button 
                  onClick={() => setDeleteTarget(null)} 
                  disabled={loading}
-                 className="flex-1 bg-secondary/50 border border-border hover:bg-secondary/80 text-text-primary font-semibold py-2 px-4 rounded-lg transition-colors flex items-center justify-center"
+                 className="flex-1 bg-secondary/50 border border-border hover:bg-secondary/80 text-text-primary font-semibold py-2 px-4 rounded-sm transition-colors flex items-center justify-center"
                >
                  Cancel
                </button>
@@ -527,10 +522,10 @@ export default function OrgsPage() {
 
       {showCreateModal && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 px-4">
-          <div className="rounded-xl border border-border bg-card shadow-xl w-full max-w-lg max-h-[calc(100dvh-env(safe-area-inset-top)-env(safe-area-inset-bottom)-8rem)] sm:max-h-[90vh] flex flex-col overflow-hidden">
-            <div className="flex items-center justify-between px-6 py-4 border-b border-border/40 shrink-0">
+          <div className="w-full max-w-lg max-h-[70vh] sm:max-h-[90vh] rounded-md border border-border/40 bg-card shadow-xl flex flex-col overflow-hidden">
+            <div className="flex items-center justify-between p-4 border-b border-border/50 shrink-0">
               <h3 className="text-sm font-semibold text-text-primary">Create Organization</h3>
-              <button onClick={() => setShowCreateModal(false)} className="inline-flex h-8 w-8 items-center justify-center rounded-xl text-text-secondary transition hover:bg-secondary/70 hover:text-text-primary">
+              <button onClick={() => setShowCreateModal(false)} className="text-text-secondary hover:text-text-primary transition-colors">
                 <X className="h-4 w-4" />
               </button>
             </div>
@@ -541,7 +536,7 @@ export default function OrgsPage() {
                  Organization name
                </label>
                <input
-                 className="w-full rounded-lg border border-border bg-background px-4 py-2 text-sm text-text-primary outline-none transition focus:border-primary/30 focus:ring-2 focus:ring-primary/10"
+                 className="w-full rounded-sm border border-border bg-secondary/20 px-4 py-3 text-sm text-text-primary shadow-sm outline-none transition focus:border-primary/50 focus:bg-card focus:ring-2 focus:ring-primary/20"
                  placeholder="e.g. Acme Corp"
                  value={newOrgName}
                  onChange={(event) => setNewOrgName(event.target.value)}
@@ -553,14 +548,14 @@ export default function OrgsPage() {
                <button 
                  onClick={handleCreateOrg} 
                  disabled={loading || !newOrgName.trim()}
-                 className="flex-1 bg-primary hover:bg-primary-hover disabled:opacity-50 text-primary-foreground font-semibold py-2 px-4 rounded-lg transition-colors flex items-center justify-center"
+                 className="flex-1 bg-primary hover:bg-primary-hover disabled:opacity-50 text-primary-foreground font-semibold py-2 px-4 rounded-sm transition-colors flex items-center justify-center"
                >
                  <LoadingButtonContent loading={loading} loadingLabel="Creating..." idleLabel="Create Organization" />
                </button>
                <button 
                  onClick={() => setShowCreateModal(false)} 
                  disabled={loading}
-                 className="flex-1 bg-secondary/50 border border-border hover:bg-secondary/80 text-text-primary font-semibold py-2 px-4 rounded-lg transition-colors flex items-center justify-center"
+                 className="flex-1 bg-secondary/50 border border-border hover:bg-secondary/80 text-text-primary font-semibold py-2 px-4 rounded-sm transition-colors flex items-center justify-center"
                >
                  Cancel
                </button>
@@ -609,10 +604,10 @@ export default function OrgsPage() {
 
       {showBulkDeleteModal && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 px-4">
-          <div className="rounded-xl border border-border bg-card shadow-xl w-full max-w-lg flex flex-col overflow-hidden">
-            <div className="flex items-center justify-between px-6 py-4 border-b border-border/40">
+          <div className="w-full max-w-lg rounded-md border border-border bg-card shadow-xl flex flex-col overflow-hidden">
+            <div className="flex items-center justify-between p-4 border-b border-border/50 shrink-0">
               <h3 className="text-sm font-semibold text-text-primary">Delete Organizations</h3>
-              <button onClick={() => setShowBulkDeleteModal(false)} className="inline-flex h-8 w-8 items-center justify-center rounded-xl text-text-secondary transition hover:bg-secondary/70 hover:text-text-primary">
+              <button onClick={() => setShowBulkDeleteModal(false)} className="text-text-secondary hover:text-text-primary transition-colors">
                 <X className="h-4 w-4" />
               </button>
             </div>
@@ -623,7 +618,7 @@ export default function OrgsPage() {
                  This action is permanent and cannot be undone. Type <span className="font-semibold">Delete organizations</span> to confirm.
                </p>
                <input
-                 className="mt-4 w-full rounded-lg border border-border bg-background px-4 py-2 text-sm text-text-primary outline-none transition focus:border-primary/30 focus:ring-2 focus:ring-primary/10"
+                 className="mt-4 w-full rounded-sm border border-border bg-secondary/20 px-4 py-3 text-sm text-text-primary shadow-sm outline-none transition focus:border-primary/50 focus:bg-card focus:ring-2 focus:ring-primary/20"
                  placeholder="Delete organizations"
                  value={bulkActionInput}
                  onChange={(e) => setBulkActionInput(e.target.value)}
@@ -635,14 +630,14 @@ export default function OrgsPage() {
                <button 
                  onClick={handleBulkDeleteOrgs} 
                  disabled={loading || bulkActionInput !== "Delete organizations"}
-                 className="flex-1 bg-destructive/15 text-destructive border border-destructive/30 hover:bg-destructive/25 backdrop-blur-md disabled:opacity-50 font-semibold py-2 px-4 rounded-lg transition-all duration-300 flex items-center justify-center shadow-[0_8px_16px_-6px_rgba(var(--destructive-rgb),0.1)]"
+                 className="flex-1 bg-destructive/15 text-destructive border border-destructive/30 hover:bg-destructive/25 backdrop-blur-md disabled:opacity-50 font-semibold py-2 px-4 rounded-sm transition-all duration-300 flex items-center justify-center shadow-[0_8px_16px_-6px_rgba(var(--destructive-rgb),0.1)]"
                >
                  Delete
                </button>
                <button 
                  onClick={() => setShowBulkDeleteModal(false)} 
                  disabled={loading}
-                 className="flex-1 bg-secondary/50 border border-border hover:bg-secondary/80 text-text-primary font-semibold py-2 px-4 rounded-lg transition-colors flex items-center justify-center"
+                 className="flex-1 bg-secondary/50 border border-border hover:bg-secondary/80 text-text-primary font-semibold py-2 px-4 rounded-sm transition-colors flex items-center justify-center"
                >
                  Cancel
                </button>

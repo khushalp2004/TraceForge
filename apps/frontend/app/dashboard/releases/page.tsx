@@ -349,21 +349,18 @@ function ReleasesPageInner() {
   return (
     <main className="tf-page tf-dashboard-page">
       <div className="tf-dashboard">
-        <header className="flex flex-wrap items-center justify-between gap-4">
-          <div>
-            <p className="tf-kicker">Releases</p>
-            <div className="mt-3 flex items-center">
-              <h1 className="tf-title text-3xl">Release health</h1>
-              <PageDescriptionPopover>
-                Track what shipped, which project it belongs to, and whether new issues
-                started appearing after that release.
-              </PageDescriptionPopover>
-            </div>
+        <header className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="flex items-center gap-2">
+            <h1 className="text-xl font-bold text-text-primary tracking-tight">Release health</h1>
+            <PageDescriptionPopover>
+              Track what shipped, which project it belongs to, and whether new issues
+              started appearing after that release.
+            </PageDescriptionPopover>
           </div>
           <div className="flex flex-wrap items-center gap-3">
             <button
               type="button"
-              className="tf-button px-4 py-2 text-sm"
+              className="rounded-sm bg-card px-3 py-1.5 text-xs font-semibold text-text-secondary border border-border/40 hover:text-text-primary hover:border-border transition shadow-sm"
               onClick={() => {
                 setError(null);
                 setShowCreateModal(true);
@@ -371,45 +368,34 @@ function ReleasesPageInner() {
             >
               Add release
             </button>
-            <Link className="tf-button-ghost px-4 py-2 text-sm" href="/dashboard/issues">
+            <Link className="rounded-sm bg-secondary/30 px-3 py-1.5 text-xs font-semibold text-text-secondary hover:text-text-primary transition" href="/dashboard/issues">
               Open issues
             </Link>
           </div>
         </header>
 
-        <section className="mt-6 grid gap-4 md:grid-cols-4">
-          <div className="rounded-2xl border border-border bg-card/90 px-5 py-4">
-            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-text-secondary">
-              Total releases
-            </p>
-            <p className="mt-2 text-2xl font-semibold text-text-primary">{summary.total}</p>
-          </div>
-          <div className="rounded-2xl border border-border bg-card/90 px-5 py-4">
-            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-text-secondary">
-              Healthy
-            </p>
-            <p className="mt-2 text-2xl font-semibold text-text-primary">{summary.healthy}</p>
-          </div>
-          <div className="rounded-2xl border border-border bg-card/90 px-5 py-4">
-            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-text-secondary">
-              Monitoring
-            </p>
-            <p className="mt-2 text-2xl font-semibold text-text-primary">{summary.monitoring}</p>
-          </div>
-          <div className="rounded-2xl border border-border bg-card/90 px-5 py-4">
-            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-text-secondary">
-              Regression rate
-            </p>
-            <p className="mt-2 text-2xl font-semibold text-text-primary">{regressionRate}%</p>
+        <section className="grid gap-6 mt-6">
+          <div className="grid gap-3 sm:grid-cols-4">
+            {[
+              { label: "Total releases", value: summary.total },
+              { label: "Healthy", value: summary.healthy },
+              { label: "Monitoring", value: summary.monitoring },
+              { label: "Regression rate", value: `${regressionRate}%` }
+            ].map((stat) => (
+              <div key={stat.label} className="group relative overflow-hidden rounded-sm border border-border bg-card/90 p-5 shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md hover:border-primary/20">
+                <div className="absolute -right-4 -top-4 h-24 w-24 rounded-sm bg-primary/5 blur-2xl transition-opacity group-hover:bg-primary/10" />
+                <p className="relative z-10 text-[11px] font-semibold uppercase tracking-[0.14em] text-text-secondary">{stat.label}</p>
+                <p className="relative z-10 mt-2 text-2xl font-bold text-text-primary sm:text-3xl">{stat.value}</p>
+              </div>
+            ))}
           </div>
         </section>
 
-        <section className="tf-filter-panel mt-6">
-          <div className="tf-filter-grid sm:grid-cols-2 xl:grid-cols-[minmax(0,1.1fr)_220px_132px]">
-            <label className="tf-filter-field">
-              <span className="tf-filter-label">Project</span>
+        <div className="mt-8 flex flex-wrap items-center gap-3">
+          <div className="flex flex-1 flex-col sm:flex-row sm:flex-wrap items-stretch sm:items-center gap-3">
+            <div className="grid grid-cols-2 sm:flex sm:flex-wrap items-center gap-2 sm:gap-3 flex-1">
               <select
-                className="tf-select tf-filter-control"
+                className="tf-select !h-9 !bg-secondary/40 !border-transparent hover:!border-border/50 focus:!bg-card focus:!border-primary/30 transition text-xs w-full sm:w-auto"
                 value={selectedProjectId}
                 onChange={(event) => setSelectedProjectId(event.target.value)}
               >
@@ -420,11 +406,8 @@ function ReleasesPageInner() {
                   </option>
                 ))}
               </select>
-            </label>
-            <label className="tf-filter-field">
-              <span className="tf-filter-label">Environment</span>
               <select
-                className="tf-select tf-filter-control"
+                className="tf-select !h-9 !bg-secondary/40 !border-transparent hover:!border-border/50 focus:!bg-card focus:!border-primary/30 transition text-xs w-full sm:w-auto"
                 value={environmentFilter}
                 onChange={(event) => setEnvironmentFilter(event.target.value)}
               >
@@ -434,21 +417,19 @@ function ReleasesPageInner() {
                 <option value="development">Development</option>
                 <option value="browser">Browser</option>
               </select>
-            </label>
-            <div className="flex items-end">
-              <button
-                type="button"
-                className="tf-filter-reset w-full"
-                onClick={() => {
-                  setSelectedProjectId("");
-                  setEnvironmentFilter("");
-                }}
-              >
-                Reset
-              </button>
             </div>
+            
+            <button
+              className="text-[11px] font-semibold text-text-secondary hover:text-text-primary transition self-start sm:self-auto mt-1 sm:mt-0"
+              onClick={() => {
+                setSelectedProjectId("");
+                setEnvironmentFilter("");
+              }}
+            >
+              Clear
+            </button>
           </div>
-        </section>
+        </div>
 
         <section className="mt-6 space-y-4">
           {loading && (
@@ -479,15 +460,16 @@ function ReleasesPageInner() {
             </div>
           )}
 
+          <div className="mt-4 flex flex-col gap-3 pb-8">
           {!loading &&
             paginatedReleases.map((release) => (
               <article
                 key={release.id}
                 data-release-id={release.id}
-                className={`rounded-2xl border bg-card/95 p-5 shadow-sm transition hover:border-primary/25 ${
+                className={`group relative flex flex-col p-5 gap-4 rounded-md bg-card border transition-all duration-200 ${
                   highlightReleaseId && release.id === highlightReleaseId
-                    ? "border-primary/40 ring-2 ring-primary/15"
-                    : "border-border"
+                    ? "border-primary/40 shadow-[0_0_0_2px_rgba(var(--primary-rgb),0.15)]"
+                    : "border-border/40 hover:border-border"
                 }`}
               >
                 <div className="flex flex-wrap items-start justify-between gap-4">
@@ -555,42 +537,42 @@ function ReleasesPageInner() {
                       </div>
                     </div>
                   </div>
-                  <div className="flex shrink-0 items-start mt-1 sm:mt-0">
+                  <div className="flex shrink-0 items-start mt-1 sm:mt-0 lg:opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-opacity duration-200">
                     <button
                       type="button"
-                      className="flex items-center gap-1.5 rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2 text-xs font-semibold text-destructive transition-colors hover:bg-destructive hover:text-destructive-foreground shadow-sm"
+                      className="p-1.5 rounded-md text-destructive/80 hover:text-destructive hover:bg-destructive/10 transition-colors"
                       onClick={() => setDeleteTarget(release)}
+                      title="Delete Release"
                     >
-                      <Trash2 className="h-3.5 w-3.5" />
-                      Delete
+                      <Trash2 className="h-4 w-4" />
                     </button>
                   </div>
                 </div>
 
                 {release.sampleIssues.length > 0 && (
-                  <div className="mt-5 rounded-2xl border border-border bg-secondary/30 px-4 py-3">
-                    <p className="text-xs font-semibold uppercase tracking-[0.14em] text-text-secondary">
+                  <div className="mt-5 rounded-md border border-border/40 bg-secondary/10 px-4 py-3">
+                    <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-text-secondary">
                       Linked issues
                     </p>
                     <div className="mt-3 space-y-2">
                       {release.sampleIssues.map((issue) => (
                         <div
                           key={issue.id}
-                          className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 rounded-2xl border border-border bg-card px-3 py-3"
+                          className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 rounded-md border border-border/40 bg-card px-3 py-2.5 transition-colors hover:border-border/60"
                         >
                           <div className="min-w-0 flex-1">
-                            <p className="truncate text-sm font-medium text-text-primary">
+                            <p className="truncate text-[13px] font-semibold text-text-primary">
                               {issue.message}
                             </p>
-                            <p className="mt-1 text-xs text-text-secondary">
+                            <p className="mt-1 text-[11px] text-text-secondary/80">
                               {new Date(issue.timestamp).toLocaleString()}
                             </p>
                           </div>
                           <Link
                             href={`/dashboard/errors/${issue.id}`}
-                            className="tf-button-ghost shrink-0 px-3 py-1.5 text-xs sm:w-auto w-full text-center"
+                            className="flex items-center justify-center h-8 px-3 rounded-md text-[11px] font-semibold text-text-secondary hover:text-text-primary hover:bg-secondary/40 transition-colors border border-border/40 sm:border-transparent shrink-0 w-full sm:w-auto"
                           >
-                            Open issue
+                            View issue
                           </Link>
                         </div>
                       ))}
@@ -599,6 +581,7 @@ function ReleasesPageInner() {
                 )}
               </article>
             ))}
+          </div>
         </section>
 
         {releases.length > 5 && !loading && (

@@ -1,0 +1,120 @@
+"use client";
+
+import { useEffect, useMemo, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
+import Link from "next/link";
+import { GripVertical, Archive, Trash2, X } from "lucide-react";
+import { LoadingButtonContent } from "../../../components/ui/loading-button-content";
+import { DashboardPagination } from "../components/DashboardPagination";
+import { PageDescriptionPopover } from "@/components/ui/page-description-popover";
+
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
+const tokenKey = "traceforge_token";
+const dashboardPrefsKey = "traceforge_dashboard_prefs_v1";
+const projectsPrefsKey = "traceforge_projects_prefs_v1";
+
+type Org = {
+  id: string;
+  name: string;
+  role: "OWNER" | "MEMBER";
+  createdAt: string;
+};
+
+type Project = {
+  id: string;
+  name: string;
+  apiKey: string | null;
+  aiModel: string;
+  githubRepoId?: string | null;
+  githubRepoName?: string | null;
+  githubRepoUrl?: string | null;
+  createdAt: string;
+  orgId?: string | null;
+  archivedAt?: string | null;
+  configuredAt?: string | null;
+  lastConfiguredAt?: string | null;
+  telemetryStatus: "configured" | "not_configured";
+  configurationSource: "handshake" | "legacy_telemetry" | "stale" | "pending";
+  lastEventAt?: string | null;
+  eventCount: number;
+};
+
+type Toast = {
+  message: string;
+  tone: "success" | "error";
+};
+
+type AiModelOption = {
+  id: string;
+  label: string;
+  description: string;
+};
+
+type GithubRepo = {
+  id: string;
+  fullName: string;
+  private: boolean;
+  url: string;
+};
+
+type GithubIntegrationState = {
+  configured: boolean;
+  connected: boolean;
+  repos?: GithubRepo[];
+  selectedRepoIds?: string[];
+  error?: string;
+};
+
+const PROJECT_PAGE_SIZE_OPTIONS = [
+  { value: 6, label: "6 / page" },
+  { value: 12, label: "12 / page" },
+  { value: 18, label: "18 / page" }
+];
+
+const getProjectStatusMeta = (project: Project) =>
+  project.telemetryStatus === "configured"
+    ? {
+        label: "Configured",
+        className: "tf-success-tag"
+      }
+    : {
+        label: "Not configured",
+        className: "tf-warning-tag"
+      };
+
+export default function ProjectSettingsPage() {
+  const router = useRouter();
+  const orgPrefsHydratedRef = useRef(false);
+  const pagePrefsHydratedRef = useRef(false);
+  const [projects, setProjects] = useState<Project[]>([]);
+  const [orgs, setOrgs] = useState<Org[]>([]);
+  const [selectedOrgId, setSelectedOrgId] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<Project | null>(null);
+  const [deleteInput, setDeleteInput] = useState("");
+  const [permanentDeleteTarget, setPermanentDeleteTarget] = useState<Project | null>(null);
+  const [permanentDeleteInput, setPermanentDeleteInput] = useState("");
+  const [renameTarget, setRenameTarget] = useState<Project | null>(null);
+  const [renameInput, setRenameInput] = useState("");
+  const [toast, setToast] = useState<Toast | null>(null);
+  const [showArchived, setShowArchived] = useState(false);
+  const [revealedProjectId, setRevealedProjectId] = useState<string | null>(null);
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [newProjectName, setNewProjectName] = useState("");
+  const [availableAiModels, setAvailableAiModels] = useState<AiModelOption[]>([]);
+  const [defaultAiModel, setDefaultAiModel] = useState("groq/compound");
+  const [newProjectAiModel, setNewProjectAiModel] = useState("groq/compound");
+  const [availableGithubRepos, setAvailableGithubRepos] = useState<GithubRepo[]>([]);
+  const [githubConfigured, setGithubConfigured] = useState(false);
+  const [githubConnected, setGithubConnected] = useState(false);
+  const [newProjectGithubRepoId, setNewProjectGithubRepoId] = useState("");
+  const [updatingGithubRepoProjectId, setUpdatingGithubRepoProjectId] = useState<string | null>(null);
+  const [updatingAiModelProjectId, setUpdatingAiModelProjectId] = useState<string | null>(null);
+  const [activeProjectsPage, setActiveProjectsPage] = useState(1);
+  const [activeProjectsPageSize, setActiveProjectsPageSize] = useState(6);
+  const [archivedProjectsPage, setArchivedProjectsPage] = useState(1);
+  const [archivedProjectsPageSize, setArchivedProjectsPageSize] = useState(6);
+  const [dragOverOrgId, setDragOverOrgId] = useState<string | null>(null);
+  const [isMovingProject, setIsMovingProject] = useState(false);
+  const [selectedProjectIds, setSelectedProjectIds] = useState<Set<string>>(new Set());

@@ -300,6 +300,34 @@ projectsRouter.get("/", projectListConcurrencyLimit, cacheMiddleware({ ttl: 60, 
   });
 });
 
+projectsRouter.get("/:id", async (req, res) => {
+  const userId = req.user?.id;
+  if (!userId) {
+    return res.status(401).json({ error: "Unauthorized" });
+  }
+
+  const projectId = req.params.id;
+  const accessibleProject = await getAccessibleProjectForUser(projectId, userId);
+  
+  if (!accessibleProject) {
+    return res.status(404).json({ error: "Project not found" });
+  }
+
+  const project = await prisma.project.findUnique({
+    where: { id: projectId },
+    select: projectSelect
+  });
+
+  if (!project) {
+    return res.status(404).json({ error: "Project not found" });
+  }
+
+  return res.json({ 
+    project: serializeProject(project),
+    availableAiModels: supportedAiModels
+  });
+});
+
 projectsRouter.post("/", async (req, res) => {
   const userId = req.user?.id;
   const { name, orgId, aiModel, githubRepoId } = req.body as {

@@ -355,42 +355,44 @@ export default function RepoAnalysisPage() {
   return (
     <main className="tf-page tf-dashboard-page">
       <div className="tf-dashboard">
-        <header className="relative z-20 mt-2 flex flex-wrap items-center justify-between gap-4 animate-stagger-fade-up">
-          <div className="tf-section-header">
-            <p className="tf-kicker">GitHub</p>
-            <div className="mt-2">
-              <h1 className="font-display text-2xl font-semibold text-text-primary">
-                Repo <span className="whitespace-nowrap">Analysis<PageDescriptionPopover>
-                  AI-powered codebase analysis for your linked repositories.
-                  <br /><br />
-                  Generate a structured AI report for each linked GitHub repository, including
-                  summary, architecture, tech stack, runtime flow, key modules, and onboarding notes.
-                  <br /><br />
-                  Each analysis uses {analysisCost} AI credits on Free and Team plans. Pro remains
-                  unlimited.
-                </PageDescriptionPopover></span>
-              </h1>
-            </div>
+        <header className="flex flex-wrap items-center justify-between gap-4 mb-6">
+          <div className="flex items-center gap-2">
+            <h1 className="text-xl font-bold text-text-primary tracking-tight">Repo Analysis</h1>
+            <PageDescriptionPopover>
+              AI-powered codebase analysis for your linked repositories.
+              <br /><br />
+              Generate a structured AI report for each linked GitHub repository, including
+              summary, architecture, tech stack, runtime flow, key modules, and onboarding notes.
+              <br /><br />
+              Each analysis uses {analysisCost} AI credits on Free and Team plans. Pro remains
+              unlimited.
+            </PageDescriptionPopover>
           </div>
-          <label className="flex items-center gap-2 rounded-full border border-border bg-card/90 px-4 py-2.5 text-xs font-semibold text-text-secondary shadow-sm backdrop-blur transition hover:border-primary/20 hover:shadow-md">
-            <svg aria-hidden="true" className="h-3.5 w-3.5 text-text-secondary" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><circle cx="9" cy="8" r="3" /><circle cx="17" cy="10" r="2.5" /><path d="M4 19a5 5 0 0 1 10 0" /><path d="M14.5 19a4 4 0 0 1 7 0" /></svg>
-            <select
-              className="bg-transparent text-xs font-semibold text-text-primary outline-none cursor-pointer"
-              value={selectedOrgId}
-              onChange={(event) => setSelectedOrgId(event.target.value)}
-              aria-label="Select organization scope"
-            >
-              <option value="">Personal</option>
-              {orgs.map((org) => (
-                <option key={org.id} value={org.id}>
-                  {org.name}
-                </option>
-              ))}
-            </select>
-          </label>
         </header>
 
-        <div className="my-8" />
+        <section className="flex flex-col xl:flex-row xl:flex-wrap items-start xl:items-center gap-3 mb-6">
+          <div 
+            className="flex flex-1 items-center gap-2 overflow-x-auto scroll-smooth [&::-webkit-scrollbar]:hidden mask-image-fade py-1"
+            style={{ scrollbarWidth: 'none', WebkitMaskImage: 'linear-gradient(to right, black 95%, transparent)' }}
+          >
+            {[{ id: "", name: "Personal", role: "OWNER" }, ...orgs].map((org) => {
+              const isSelected = selectedOrgId === org.id;
+              return (
+                <button
+                  key={org.id}
+                  className={`shrink-0 whitespace-nowrap rounded-sm px-3 py-1.5 text-[11px] font-semibold transition-all ${
+                    isSelected
+                      ? "bg-text-primary text-background shadow-sm"
+                      : "text-text-secondary hover:bg-secondary/40 hover:text-text-primary"
+                  }`}
+                  onClick={() => setSelectedOrgId(org.id)}
+                >
+                  {org.name}
+                </button>
+              );
+            })}
+          </div>
+        </section>
 
         {loading ? (
           <div className="relative z-0 grid gap-4 xl:grid-cols-2">
@@ -422,13 +424,12 @@ export default function RepoAnalysisPage() {
           </div>
         ) : (
           <>
-            <div className="relative z-0 grid gap-5 xl:grid-cols-2">
+            <div className="relative z-0 grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
               {paginatedProjects.map((project, index) => {
                 const status = project.githubRepoAnalysis?.status || "PENDING";
                 const statusStyles = statusMeta[status];
-                const accentClass = status === "READY" ? "tf-accent-strip-success" : status === "PROCESSING" ? "tf-accent-strip-warning" : status === "FAILED" ? "tf-accent-strip-danger" : "tf-accent-strip-info";
                 return (
-                  <div key={project.id} className={`tf-metric-card ${accentClass} flex h-full flex-col p-5 animate-stagger-fade-up`} style={{ animationDelay: `${index * 80}ms` }}>
+                  <div key={project.id} className="group flex min-w-0 flex-col p-6 sm:p-8 transition-all duration-500 ease-out rounded-[24px] border border-border/40 bg-gradient-to-b from-card to-card/90 shadow-[0_4px_20px_-4px_rgba(0,0,0,0.05)] hover:border-border/80 hover:shadow-[0_12px_32px_-8px_rgba(0,0,0,0.15)] hover:-translate-y-[2px] animate-stagger-fade-up" style={{ animationDelay: `${index * 70}ms` }}>
                     <div className="flex flex-wrap items-start justify-between gap-3">
                       <div className="min-w-0">
                         <div className="flex flex-wrap items-center gap-2">
@@ -440,7 +441,7 @@ export default function RepoAnalysisPage() {
                             {selectedOrgId ? orgs.find((org) => org.id === selectedOrgId)?.name || "Organization" : "Personal"}
                           </span>
                         </div>
-                        <h2 className="mt-3 text-lg font-semibold text-text-primary">{project.name}</h2>
+                        <h2 className="text-[17px] font-semibold text-text-primary truncate tracking-tight">{project.name}</h2>
                         <p className="mt-1 flex items-center gap-1.5 break-all text-sm text-text-secondary">
                           <svg aria-hidden="true" className="h-3.5 w-3.5 shrink-0 text-text-secondary" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22" /></svg>
                           {project.githubRepoName}
@@ -448,11 +449,11 @@ export default function RepoAnalysisPage() {
                       </div>
                     </div>
 
-                    <div className="mt-4 flex-1 rounded-xl border border-border/60 bg-secondary/15 px-4 py-4">
-                      <p className="tf-metric-label">
-                        Latest summary
-                      </p>
-                      <p className="mt-2 text-sm leading-6 text-text-secondary">
+                    <div className="mt-6 pt-6 border-t border-border/40 flex-1">
+                      <div className="flex items-center justify-between text-[11px] font-bold text-text-secondary/70 uppercase tracking-[0.15em] mb-3">
+                        <span>Latest summary</span>
+                      </div>
+                      <p className="text-sm leading-6 text-text-secondary">
                         {project.githubRepoAnalysis?.summary ||
                           (project.githubRepoAnalysis?.status === "PROCESSING"
                             ? "The repository report is currently being generated in the background."
@@ -462,7 +463,7 @@ export default function RepoAnalysisPage() {
                       </p>
                     </div>
 
-                    <div className="mt-3 flex flex-wrap items-center gap-2 text-[11px] text-text-secondary">
+                    <div className="mt-4 flex flex-wrap items-center gap-2 text-[11px] font-medium text-text-secondary/60">
                       <span className="tf-pill">
                         <svg aria-hidden="true" className="mr-1 h-3 w-3" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"><circle cx="8" cy="8" r="6" /><path d="M8 5v3l2 1.5" /></svg>
                         {project.githubRepoAnalysis?.generatedAt
@@ -477,12 +478,19 @@ export default function RepoAnalysisPage() {
                       </div>
                     ) : null}
 
-                    <div className="mt-4 flex flex-col gap-1.5 w-full max-w-sm">
+                    <div className="mt-6 pt-4 border-t border-border/40 flex flex-col gap-1.5 w-full">
                       <label className="text-[11px] font-semibold uppercase tracking-wider text-text-secondary">
                         AI Model
                       </label>
                       <select
-                        className="tf-input w-full bg-card"
+                        className="w-full appearance-none rounded-sm border border-border bg-secondary/20 px-4 py-2 pr-10 text-sm text-text-primary shadow-sm outline-none transition focus:border-primary/50 focus:bg-card focus:ring-2 focus:ring-primary/20 disabled:opacity-50"
+                        style={{
+                          backgroundImage:
+                            "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 20 20' fill='none'%3E%3Cpath d='M5 7l5 5 5-5' stroke='%239CA3AF' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E\")",
+                          backgroundRepeat: "no-repeat",
+                          backgroundPosition: "right 12px center",
+                          backgroundSize: "12px 12px"
+                        }}
                         value={project.aiModel}
                         onChange={(event) => updateProjectAiModel(project.id, event.target.value)}
                         disabled={loading || updatingAiModelProjectId === project.id || analyzingProjectId === project.id}
@@ -498,7 +506,7 @@ export default function RepoAnalysisPage() {
                     <div className="mt-4 flex flex-wrap items-center gap-2">
                       <button
                         type="button"
-                        className="tf-button px-4 py-2 text-sm"
+                        className="flex-1 rounded-sm bg-primary hover:bg-primary-hover disabled:opacity-50 text-primary-foreground font-semibold py-2 px-4 transition-colors text-sm"
                         onClick={() => analyzeProject(project)}
                         disabled={analyzingProjectId === project.id}
                       >
@@ -510,20 +518,20 @@ export default function RepoAnalysisPage() {
                       </button>
                       <button
                         type="button"
-                        className="tf-button-ghost px-4 py-2 text-sm"
+                        className="flex-1 rounded-sm bg-secondary/50 border border-border hover:bg-secondary/80 text-text-primary font-semibold py-2 px-4 transition-colors text-sm"
                         onClick={() => openReport(project)}
                       >
                         View report
                       </button>
                       {project.githubRepoUrl ? (
                         <a
-                          className="tf-pill transition hover:border-primary/30 hover:text-text-primary"
+                          className="w-full flex items-center justify-center gap-1.5 rounded-sm bg-secondary/20 border border-border/40 hover:bg-secondary/40 text-text-primary font-semibold py-2 px-4 transition-colors text-sm mt-1"
                           href={project.githubRepoUrl}
                           target="_blank"
                           rel="noreferrer"
                         >
-                          <svg aria-hidden="true" className="mr-1 h-3 w-3" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"><path d="M6 3H3v10h10v-3" /><path d="M9 2h5v5" /><path d="M14 2L7 9" /></svg>
-                          Open repo
+                          <svg aria-hidden="true" className="h-3 w-3" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"><path d="M6 3H3v10h10v-3" /><path d="M9 2h5v5" /><path d="M14 2L7 9" /></svg>
+                          Open in GitHub
                         </a>
                       ) : null}
                     </div>

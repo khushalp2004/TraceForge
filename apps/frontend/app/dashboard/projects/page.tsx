@@ -1,8 +1,10 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+
+import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { GripVertical, Archive, Trash2, X } from "lucide-react";
+import { GripVertical, Archive, Trash2, X, ArrowUpRight } from "lucide-react";
 import { LoadingButtonContent } from "../../../components/ui/loading-button-content";
 import { DashboardPagination } from "../components/DashboardPagination";
 import { PageDescriptionPopover } from "@/components/ui/page-description-popover";
@@ -82,6 +84,7 @@ const getProjectStatusMeta = (project: Project) =>
       };
 
 export default function ProjectSettingsPage() {
+  const router = useRouter();
   const orgPrefsHydratedRef = useRef(false);
   const pagePrefsHydratedRef = useRef(false);
   const [projects, setProjects] = useState<Project[]>([]);
@@ -721,88 +724,18 @@ export default function ProjectSettingsPage() {
   return (
     <main className="tf-page tf-dashboard-page">
       <div className="tf-dashboard">
-        <header className="mt-2 flex flex-col gap-4">
-          <div>
-            <p className="tf-kicker">Projects</p>
-            <div className="mt-2 flex items-center">
-              <h1 className="font-display text-2xl font-semibold text-text-primary">
-                Manage Projects
-              </h1>
-              <PageDescriptionPopover>
-                Rotate keys and archive projects you no longer need.
-                <br /><br />
-                Projects stay configured while recent setup or telemetry signals are still being received.
-              </PageDescriptionPopover>
-            </div>
+        <header className="flex flex-wrap items-center justify-between gap-4 mb-6">
+          <div className="flex items-center gap-2">
+            <h1 className="text-xl font-bold text-text-primary tracking-tight">Manage Projects</h1>
+            <PageDescriptionPopover>
+              Rotate keys and archive projects you no longer need.
+              <br /><br />
+              Projects stay configured while recent setup or telemetry signals are still being received.
+            </PageDescriptionPopover>
           </div>
-          <div className="flex w-full min-w-0 items-center gap-2 sm:gap-3">
-            <div 
-              className="flex flex-1 flex-nowrap items-center gap-2 overflow-x-auto scroll-smooth [&::-webkit-scrollbar]:hidden relative min-w-0 mask-image-fade"
-              style={{ scrollbarWidth: 'none', WebkitMaskImage: 'linear-gradient(to right, black 95%, transparent)' }}
-              onDragOver={(e) => {
-                const container = e.currentTarget;
-                const scrollSensitivity = 60;
-                const scrollSpeed = 20;
-                const rect = container.getBoundingClientRect();
-                
-                if (e.clientX - rect.left < scrollSensitivity) {
-                  container.scrollLeft -= scrollSpeed;
-                } else if (rect.right - e.clientX < scrollSensitivity) {
-                  container.scrollLeft += scrollSpeed;
-                }
-              }}
-            >
-              {[{ id: "", name: "Personal" }, ...orgs].map((org) => {
-                const isSelected = selectedOrgId === org.id;
-                const isDragOver = dragOverOrgId === org.id;
-                
-                return (
-                  <button
-                    key={org.id}
-                    className={`shrink-0 whitespace-nowrap rounded-full px-4 py-1.5 text-[13px] font-semibold transition-all border ${
-                      isSelected
-                        ? "bg-primary text-primary-foreground border-primary shadow-sm"
-                        : "bg-card text-text-secondary border-border hover:bg-secondary/70 hover:text-text-primary"
-                    } ${
-                      isDragOver
-                        ? "border-primary border-dashed bg-primary/10 shadow-[0_0_15px_rgba(var(--primary-rgb),0.3)] scale-105"
-                        : ""
-                    }`}
-                    onClick={() => setSelectedOrgId(org.id)}
-                    onDragOver={(e) => {
-                      e.preventDefault();
-                      setDragOverOrgId(org.id);
-                    }}
-                    onDragLeave={() => setDragOverOrgId(null)}
-                    onDrop={(e) => {
-                      e.preventDefault();
-                      setDragOverOrgId(null);
-                      const projectId = e.dataTransfer.getData("projectId");
-                      const sourceOrgId = e.dataTransfer.getData("sourceOrgId");
-                      if (projectId && sourceOrgId !== org.id) {
-                        void moveProject(projectId, org.id || null);
-                      }
-                    }}
-                  >
-                    {org.name}
-                  </button>
-                );
-              })}
-            </div>
+          <div className="flex flex-wrap items-center gap-3">
             <button
-              type="button"
-              className={`inline-flex shrink-0 items-center justify-center whitespace-nowrap rounded-full border px-3.5 py-2 text-sm font-semibold transition max-[639px]:text-[12px] max-[639px]:leading-none ${
-                showArchived
-                  ? "border-primary/40 bg-accent-soft text-text-primary"
-                  : "border-border text-text-secondary hover:bg-secondary/70"
-              }`}
-              onClick={() => setShowArchived((value) => !value)}
-            >
-              <span className="hidden sm:inline">{showArchived ? "Hide archived" : "Show archived"}</span>
-              <span className="sm:hidden">{showArchived ? "Hide archi..." : "Show archi..."}</span>
-            </button>
-            <button
-              className="tf-button inline-flex shrink-0 items-center justify-center whitespace-nowrap rounded-full px-4 py-2 text-sm font-semibold max-[639px]:text-[12px] max-[639px]:leading-none"
+              className="rounded-sm bg-card px-3 py-1.5 text-xs font-semibold text-text-secondary border border-border/40 hover:text-text-primary hover:border-border transition shadow-sm"
               onClick={() => setShowCreateModal(true)}
             >
               Create project
@@ -810,7 +743,68 @@ export default function ProjectSettingsPage() {
           </div>
         </header>
 
-        <div className="tf-divider my-6" />
+        <section className="flex flex-col xl:flex-row xl:flex-wrap items-start xl:items-center gap-3 mb-6">
+          <div className="flex items-center rounded-sm bg-secondary/30 p-1 shrink-0">
+            <button
+              className={`rounded-sm px-3 py-1.5 text-[11px] font-semibold transition-all ${
+                !showArchived ? "bg-card text-text-primary shadow-sm" : "text-text-secondary hover:text-text-primary"
+              }`}
+              onClick={() => setShowArchived(false)}
+            >
+              Active projects
+            </button>
+            <button
+              className={`rounded-sm px-3 py-1.5 text-[11px] font-semibold transition-all ${
+                showArchived ? "bg-card text-text-primary shadow-sm" : "text-text-secondary hover:text-text-primary"
+              }`}
+              onClick={() => setShowArchived(true)}
+            >
+              Archived projects
+            </button>
+          </div>
+
+          <div 
+            className="flex flex-1 items-center gap-2 overflow-x-auto scroll-smooth [&::-webkit-scrollbar]:hidden mask-image-fade py-1"
+            style={{ scrollbarWidth: 'none', WebkitMaskImage: 'linear-gradient(to right, black 95%, transparent)' }}
+          >
+            {[{ id: "", name: "Personal" }, ...orgs].map((org) => {
+              const isSelected = selectedOrgId === org.id;
+              const isDragOver = dragOverOrgId === org.id;
+              
+              return (
+                <button
+                  key={org.id}
+                  className={`shrink-0 whitespace-nowrap rounded-sm px-3 py-1.5 text-[11px] font-semibold transition-all ${
+                    isSelected
+                      ? "bg-text-primary text-background shadow-sm"
+                      : "text-text-secondary hover:bg-secondary/40 hover:text-text-primary"
+                  } ${
+                    isDragOver
+                      ? "bg-primary/20 text-primary scale-105"
+                      : ""
+                  }`}
+                  onClick={() => setSelectedOrgId(org.id)}
+                  onDragOver={(e) => {
+                    e.preventDefault();
+                    setDragOverOrgId(org.id);
+                  }}
+                  onDragLeave={() => setDragOverOrgId(null)}
+                  onDrop={(e) => {
+                    e.preventDefault();
+                    setDragOverOrgId(null);
+                    const projectId = e.dataTransfer.getData("projectId");
+                    const sourceOrgId = e.dataTransfer.getData("sourceOrgId");
+                    if (projectId && sourceOrgId !== org.id) {
+                      void moveProject(projectId, org.id || null);
+                    }
+                  }}
+                >
+                  {org.name}
+                </button>
+              );
+            })}
+          </div>
+        </section>
 
         {loading && <p className="text-sm text-text-secondary">Working...</p>}
 
@@ -818,183 +812,116 @@ export default function ProjectSettingsPage() {
           {paginatedActiveProjects.map((project) => {
             const isSelected = selectedProjectIds.has(project.id);
             return (
-            <div
-              key={project.id}
-              className={`tf-card group flex min-w-0 flex-col p-5 transition-all hover:border-primary/20 bg-card border rounded-xl shadow-sm ${
-                isSelected ? "border-primary bg-primary/5" : "border-border"
-              }`}
-              draggable={true}
-              onDragStart={(e) => {
-                e.dataTransfer.setData("projectId", project.id);
-                e.dataTransfer.setData("sourceOrgId", project.orgId || "");
-                e.dataTransfer.effectAllowed = "move";
-                
-                // Create custom ghost drag image
-                const dragGhost = document.createElement("div");
-                dragGhost.className = "fixed top-[-1000px] left-[-1000px] z-[9999] bg-card border border-border text-text-primary px-3 py-1.5 rounded-lg shadow-xl text-xs font-semibold whitespace-nowrap flex items-center gap-2";
-                dragGhost.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="opacity-50"><circle cx="9" cy="12" r="1"/><circle cx="9" cy="5" r="1"/><circle cx="9" cy="19" r="1"/><circle cx="15" cy="12" r="1"/><circle cx="15" cy="5" r="1"/><circle cx="15" cy="19" r="1"/></svg> ${project.name}`;
-                document.body.appendChild(dragGhost);
-                e.dataTransfer.setDragImage(dragGhost, 0, 0);
-                setTimeout(() => {
-                  if (document.body.contains(dragGhost)) document.body.removeChild(dragGhost);
-                }, 0);
-              }}
-            >
-              {/* Header */}
-              <div className="flex items-start justify-between mb-4">
-                <div className="flex items-start gap-3">
-                  <label className="relative flex cursor-pointer items-center p-1 -ml-1 hover:bg-secondary/50 group/checkbox mt-0.5 rounded-md">
-                    <input
-                      type="checkbox"
-                      className="peer sr-only"
-                      checked={isSelected}
-                      onChange={() => toggleProjectSelection(project.id)}
-                    />
-                    <div className={`h-[18px] w-[18px] rounded-[4px] border-2 transition-all flex items-center justify-center ${
-                      isSelected 
-                        ? "border-primary bg-primary" 
-                        : "border-text-secondary/50 bg-transparent group-hover/checkbox:border-text-secondary/80"
-                    }`}>
-                      {isSelected && (
-                        <svg className="h-3 w-3 text-primary-foreground" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round">
-                          <polyline points="20 6 9 17 4 12" />
-                        </svg>
-                      )}
+              <div
+                key={project.id}
+                className={`group flex min-w-0 flex-col p-6 sm:p-8 transition-all duration-500 ease-out rounded-[24px] border ${
+                  isSelected 
+                    ? "border-primary/50 bg-primary/5 shadow-lg" 
+                    : "border-border/40 bg-gradient-to-b from-card to-card/90 shadow-[0_4px_20px_-4px_rgba(0,0,0,0.05)] hover:border-border/80 hover:shadow-[0_12px_32px_-8px_rgba(0,0,0,0.15)] hover:-translate-y-[2px]"
+                }`}
+                draggable={true}
+                onDragStart={(e) => {
+                  e.dataTransfer.setData("projectId", project.id);
+                  e.dataTransfer.setData("sourceOrgId", project.orgId || "");
+                  e.dataTransfer.effectAllowed = "move";
+                  
+                  // Create custom ghost drag image
+                  const dragGhost = document.createElement("div");
+                  dragGhost.className = "fixed top-[-1000px] left-[-1000px] z-[9999] bg-card border border-border/40 text-text-primary px-3 py-1.5 rounded-md shadow-xl text-[12px] font-medium whitespace-nowrap flex items-center gap-2";
+                  dragGhost.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="opacity-50"><circle cx="9" cy="12" r="1"/><circle cx="9" cy="5" r="1"/><circle cx="9" cy="19" r="1"/><circle cx="15" cy="12" r="1"/><circle cx="15" cy="5" r="1"/><circle cx="15" cy="19" r="1"/></svg> ${project.name}`;
+                  document.body.appendChild(dragGhost);
+                  e.dataTransfer.setDragImage(dragGhost, 0, 0);
+                  setTimeout(() => {
+                    if (document.body.contains(dragGhost)) document.body.removeChild(dragGhost);
+                  }, 0);
+                }}
+              >
+                {/* Top Section */}
+                <div className="flex flex-col gap-6">
+                  {/* Header */}
+                  <div className="flex items-center justify-between gap-4 relative">
+                    <div className="flex items-center gap-3 min-w-0">
+                      <div className="flex items-center gap-2 shrink-0">
+                        <label className="relative flex cursor-pointer items-center group/checkbox">
+                          <input
+                            type="checkbox"
+                            className="peer sr-only"
+                            checked={isSelected}
+                            onChange={() => toggleProjectSelection(project.id)}
+                          />
+                          <div className={`h-[18px] w-[18px] rounded-full border transition-all flex items-center justify-center ${
+                            isSelected 
+                              ? "border-primary bg-primary text-primary-foreground" 
+                              : "border-text-secondary/40 hover:border-text-secondary/80 bg-secondary/20 text-transparent"
+                          }`}>
+                            <svg className="h-2.5 w-2.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                              <polyline points="20 6 9 17 4 12" />
+                            </svg>
+                          </div>
+                        </label>
+                        <div className="cursor-grab text-border hover:text-text-secondary transition-colors active:cursor-grabbing">
+                          <GripVertical className="h-4 w-4" />
+                        </div>
+                      </div>
+                      <h2 className="text-[17px] font-semibold text-text-primary truncate tracking-tight">{project.name}</h2>
+                      {(() => {
+                        const status = getProjectStatusMeta(project);
+                        return (
+                          <span
+                            className={`shrink-0 inline-flex items-center rounded-md px-2 py-0.5 text-[11px] font-medium tracking-wide ${status.className}`}
+                          >
+                            <span className="w-1.5 h-1.5 rounded-full mr-1.5 bg-current opacity-70"></span>
+                            {status.label}
+                          </span>
+                        );
+                      })()}
                     </div>
-                  </label>
-                  <div className="cursor-grab text-text-secondary/40 hover:text-text-primary active:cursor-grabbing mt-0.5">
-                    <GripVertical className="h-4 w-4" />
-                  </div>
-                  <div>
-                    <h2 className="text-sm font-semibold text-text-primary leading-tight">{project.name}</h2>
-                    <p className="text-[11px] text-text-secondary mt-0.5">
-                      Created {new Date(project.createdAt).toLocaleDateString()}
-                    </p>
-                  </div>
-                </div>
-                {(() => {
-                  const status = getProjectStatusMeta(project);
-                  return (
-                    <span
-                      className={`inline-flex rounded border px-2 py-0.5 text-[10px] font-medium tracking-wide ${status.className}`}
+                    
+                    <button
+                      onClick={(e) => { e.stopPropagation(); router.push(`/dashboard/projects/${project.id}`); }}
+                      className="p-2.5 rounded-full bg-secondary/20 hover:bg-secondary/60 text-text-secondary hover:text-text-primary transition-all duration-300 cursor-pointer shadow-sm border border-border/30 hover:border-border/60 hover:scale-105 shrink-0"
+                      title="View Details"
                     >
-                      {status.label}
-                    </span>
-                  );
-                })()}
-              </div>
+                      <ArrowUpRight className="h-4 w-4" />
+                    </button>
+                  </div>
 
-              {/* Body */}
-              <div className="flex min-w-0 flex-1 flex-col gap-4">
-                {/* Stats & API Key row */}
-                <div className="flex min-w-0 items-center justify-between rounded-lg border border-border bg-secondary/10 p-3 text-xs">
-                  <div className="mr-3 flex min-w-0 flex-1 flex-col">
-                     <span className="text-text-secondary text-[10px] uppercase font-semibold">API Key</span>
-                     <span className="font-mono text-text-primary mt-1 truncate">
+                  {/* API Key */}
+                  <div className="flex flex-col gap-3" onClick={(e) => e.stopPropagation()}>
+                    <div className="flex items-center justify-between text-[11px] font-bold text-text-secondary/70 uppercase tracking-[0.15em]">
+                      <span>API Key</span>
+                      <div className="flex items-center gap-4">
+                        <button
+                          className="hover:text-text-primary transition-colors flex items-center gap-1.5"
+                          onClick={(e) => { e.stopPropagation(); void toggleRevealProjectKey(project); }}
+                        >
+                          {revealedProjectId === project.id ? "Hide" : "Reveal"}
+                        </button>
+                        <button
+                          className="hover:text-text-primary transition-colors flex items-center gap-1.5"
+                          onClick={(e) => { e.stopPropagation(); void copyApiKey(project); }}
+                        >
+                          Copy
+                        </button>
+                      </div>
+                    </div>
+                    <div className="font-mono text-[14px] font-medium text-text-primary/90 truncate bg-secondary/10 px-4 py-3 rounded-[16px] border border-border/40 shadow-inner">
                       {revealedProjectId === project.id
                         ? (project.apiKey ?? "Loading…")
                         : project.apiKey
                           ? project.apiKey.replace(/.(?=.{6})/g, "•")
                           : "Reveal to load"}
-                     </span>
-                  </div>
-                  <div className="flex items-center gap-3 shrink-0 border-l border-border/50 pl-3">
-                    <button
-                      className="text-[11px] font-medium text-text-secondary hover:text-text-primary transition-colors"
-                      onClick={() => void toggleRevealProjectKey(project)}
-                    >
-                      {revealedProjectId === project.id ? "Hide" : "Reveal"}
-                    </button>
-                    <button
-                      className="text-[11px] font-medium text-text-secondary hover:text-text-primary transition-colors"
-                      onClick={() => void copyApiKey(project)}
-                    >
-                      Copy
-                    </button>
+                    </div>
                   </div>
                 </div>
 
-                {/* Settings Grid */}
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-1">
-                    <label className="block text-[10px] font-semibold text-text-secondary uppercase">
-                      AI Model
-                    </label>
-                    <select
-                      className="w-full bg-transparent border-b border-border/50 pb-1 text-xs text-text-primary outline-none focus:border-primary transition-colors cursor-pointer"
-                      value={project.aiModel}
-                      onChange={(event) => updateProjectAiModel(project.id, event.target.value)}
-                      disabled={loading || updatingAiModelProjectId === project.id}
-                    >
-                      {availableAiModels.map((model) => (
-                        <option key={model.id} value={model.id}>
-                          {model.label}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                  <div className="space-y-1">
-                    <label className="block text-[10px] font-semibold text-text-secondary uppercase">
-                      GitHub Repo
-                    </label>
-                    <select
-                      className="w-full bg-transparent border-b border-border/50 pb-1 text-xs text-text-primary outline-none focus:border-primary transition-colors cursor-pointer"
-                      value={project.githubRepoId || ""}
-                      onChange={(event) => updateProjectGithubRepo(project.id, event.target.value)}
-                      disabled={
-                        loading ||
-                        updatingGithubRepoProjectId === project.id ||
-                        !githubConfigured ||
-                        !githubConnected
-                      }
-                    >
-                      <option value="">
-                        {githubConnected ? "No repo" : "Connect GitHub"}
-                      </option>
-                      {availableGithubRepos.map((repo) => (
-                        <option key={repo.id} value={repo.id}>
-                          {repo.fullName.split('/')[1] || repo.fullName}
-                        </option>
-                      ))}
-                    </select>
+                {/* Footer */}
+                <div className="mt-6 pt-4 border-t border-border/40 flex items-center justify-between">
+                  <div className="text-[12px] font-medium text-text-secondary/60">
+                    Created {new Date(project.createdAt).toLocaleDateString()}
                   </div>
                 </div>
               </div>
-
-              {/* Footer Actions */}
-              <div className="flex items-center justify-between mt-5 pt-4 border-t border-border/50">
-                <div className="flex items-center gap-4">
-                  <button
-                    className="text-[11px] font-medium text-text-secondary hover:text-text-primary transition-colors"
-                    onClick={() => {
-                      setError(null);
-                      setRenameTarget(project);
-                      setRenameInput(project.name);
-                    }}
-                  >
-                    Rename
-                  </button>
-                  <button
-                    className="text-[11px] font-medium text-text-secondary hover:text-text-primary transition-colors"
-                    onClick={() => rotateKey(project.id)}
-                    disabled={loading}
-                  >
-                    Rotate Key
-                  </button>
-                </div>
-                <button
-                  className="text-[11px] font-medium text-destructive hover:text-destructive/80 transition-colors"
-                  onClick={() => {
-                    setError(null);
-                    setDeleteTarget(project);
-                    setDeleteInput("");
-                  }}
-                  disabled={loading}
-                >
-                  Archive
-                </button>
-              </div>
-            </div>
             );
           })}
           {!activeProjects.length && !loading && (
@@ -1030,52 +957,36 @@ export default function ProjectSettingsPage() {
               <>
                 <div className="grid gap-3 sm:grid-cols-2">
                   {paginatedArchivedProjects.map((project) => (
-                  <div key={project.id} className="tf-card p-5">
-                    <div className="flex items-start justify-between gap-3">
-                      <div>
-                        <h2 className="text-base font-semibold text-text-primary">
-                          {project.name}
-                        </h2>
-                        <p className="text-xs text-text-secondary">
-                          Archived{" "}
-                          {project.archivedAt
-                            ? new Date(project.archivedAt).toLocaleDateString()
-                            : ""}
-                        </p>
+                    <div
+                      key={project.id}
+                      className="group flex min-w-0 flex-col p-6 sm:p-8 transition-all duration-500 ease-out rounded-[24px] border border-border/40 hover:border-border/80 hover:shadow-[0_12px_32px_-8px_rgba(0,0,0,0.15)] hover:-translate-y-[2px] bg-gradient-to-b from-card to-card/90 shadow-[0_4px_20px_-4px_rgba(0,0,0,0.05)] opacity-80 hover:opacity-100"
+                    >
+                      <div className="flex flex-col gap-6">
+                        <div className="flex items-center justify-between gap-4">
+                          <div className="min-w-0 flex items-center gap-3">
+                            <h2 className="text-[17px] font-semibold text-text-primary truncate tracking-tight">
+                              {project.name}
+                            </h2>
+                            <span className="shrink-0 inline-flex items-center rounded-md px-2 py-0.5 text-[11px] font-medium tracking-wide bg-secondary/50 text-text-secondary">
+                              Archived
+                            </span>
+                          </div>
+                          <button
+                            onClick={() => router.push(`/dashboard/projects/${project.id}`)}
+                            className="p-2.5 rounded-full bg-secondary/20 hover:bg-secondary/60 text-text-secondary hover:text-text-primary transition-all duration-300 cursor-pointer shadow-sm border border-border/30 hover:border-border/60 hover:scale-105 shrink-0"
+                            title="View Details"
+                          >
+                            <ArrowUpRight className="h-4 w-4" />
+                          </button>
+                        </div>
                       </div>
-                      <div className="flex flex-wrap items-center justify-end gap-2">
-                        <button
-                          className="rounded-full border border-border px-3 py-1 text-[11px] font-semibold text-text-secondary transition hover:bg-secondary/70"
-                          onClick={() => {
-                            setError(null);
-                            setRenameTarget(project);
-                            setRenameInput(project.name);
-                          }}
-                          disabled={loading}
-                        >
-                          Rename
-                        </button>
-                        <button
-                          className="rounded-full border border-border px-3 py-1 text-[11px] font-semibold text-text-secondary transition hover:bg-secondary/70"
-                          onClick={() => restoreProject(project.id)}
-                          disabled={loading}
-                        >
-                          Restore
-                        </button>
-                        <button
-                          className="tf-danger-button rounded-full border px-3 py-1 text-[11px] font-semibold transition"
-                          onClick={() => {
-                            setError(null);
-                            setPermanentDeleteTarget(project);
-                            setPermanentDeleteInput("");
-                          }}
-                          disabled={loading}
-                        >
-                          Delete
-                        </button>
+
+                      <div className="mt-6 pt-4 border-t border-border/40 flex items-center justify-between">
+                        <div className="text-[12px] font-medium text-text-secondary/60">
+                          Archived {project.archivedAt ? new Date(project.archivedAt).toLocaleDateString() : ""}
+                        </div>
                       </div>
                     </div>
-                  </div>
                   ))}
                 </div>
                 {archivedProjects.length > 5 && (
@@ -1099,7 +1010,7 @@ export default function ProjectSettingsPage() {
 
       {showCreateModal && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 px-4">
-          <div className="w-full max-w-lg max-h-[70vh] sm:max-h-[90vh] rounded-xl border border-border bg-card shadow-xl flex flex-col overflow-hidden">
+          <div className="w-full max-w-lg max-h-[70vh] sm:max-h-[90vh] rounded-md border border-border/40 bg-card shadow-xl flex flex-col overflow-hidden">
             <div className="flex items-center justify-between p-4 border-b border-border/50 shrink-0">
               <h3 className="text-sm font-semibold text-text-primary">Create Project</h3>
               <button onClick={() => setShowCreateModal(false)} className="text-text-secondary hover:text-text-primary transition-colors">
@@ -1115,7 +1026,7 @@ export default function ProjectSettingsPage() {
                      Project name
                    </label>
                    <input
-                     className="w-full rounded-xl border border-border bg-secondary/20 px-4 py-3 text-sm text-text-primary shadow-sm outline-none transition focus:border-primary/50 focus:bg-card focus:ring-2 focus:ring-primary/20"
+                     className="w-full rounded-sm border border-border bg-secondary/20 px-4 py-3 text-sm text-text-primary shadow-sm outline-none transition focus:border-primary/50 focus:bg-card focus:ring-2 focus:ring-primary/20"
                      placeholder="e.g. Frontend App"
                      value={newProjectName}
                      onChange={(event) => setNewProjectName(event.target.value)}
@@ -1128,7 +1039,7 @@ export default function ProjectSettingsPage() {
                      AI model
                    </label>
                    <select
-                     className="w-full appearance-none rounded-xl border border-border bg-secondary/20 px-4 py-3 pr-10 text-sm text-text-primary shadow-sm outline-none transition focus:border-primary/50 focus:bg-card focus:ring-2 focus:ring-primary/20"
+                     className="w-full appearance-none rounded-sm border border-border bg-secondary/20 px-4 py-3 pr-10 text-sm text-text-primary shadow-sm outline-none transition focus:border-primary/50 focus:bg-card focus:ring-2 focus:ring-primary/20"
                      style={{
                        backgroundImage:
                          "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 20 20' fill='none'%3E%3Cpath d='M5 7l5 5 5-5' stroke='%239CA3AF' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E\")",
@@ -1152,7 +1063,7 @@ export default function ProjectSettingsPage() {
                      GitHub repo
                    </label>
                    <select
-                     className="w-full appearance-none rounded-xl border border-border bg-secondary/20 px-4 py-3 pr-10 text-sm text-text-primary shadow-sm outline-none transition focus:border-primary/50 focus:bg-card focus:ring-2 focus:ring-primary/20 disabled:opacity-50 disabled:cursor-not-allowed"
+                     className="w-full appearance-none rounded-sm border border-border bg-secondary/20 px-4 py-3 pr-10 text-sm text-text-primary shadow-sm outline-none transition focus:border-primary/50 focus:bg-card focus:ring-2 focus:ring-primary/20 disabled:opacity-50 disabled:cursor-not-allowed"
                      style={{
                        backgroundImage:
                          "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 20 20' fill='none'%3E%3Cpath d='M5 7l5 5 5-5' stroke='%239CA3AF' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E\")",
@@ -1181,14 +1092,14 @@ export default function ProjectSettingsPage() {
                <button 
                  onClick={createProject} 
                  disabled={loading || !newProjectName.trim()}
-                 className="flex-1 bg-primary hover:bg-primary-hover disabled:opacity-50 text-primary-foreground font-semibold py-2 px-4 rounded-lg transition-colors flex items-center justify-center"
+                 className="flex-1 bg-primary hover:bg-primary-hover disabled:opacity-50 text-primary-foreground font-semibold py-2 px-4 rounded-sm transition-colors flex items-center justify-center"
                >
                  <LoadingButtonContent loading={loading} loadingLabel="Creating..." idleLabel="Create Project" />
                </button>
                <button 
                  onClick={() => setShowCreateModal(false)} 
                  disabled={loading}
-                 className="flex-1 bg-secondary/50 border border-border hover:bg-secondary/80 text-text-primary font-semibold py-2 px-4 rounded-lg transition-colors flex items-center justify-center"
+                 className="flex-1 bg-secondary/50 border border-border hover:bg-secondary/80 text-text-primary font-semibold py-2 px-4 rounded-sm transition-colors flex items-center justify-center"
                >
                  Cancel
                </button>
@@ -1199,7 +1110,7 @@ export default function ProjectSettingsPage() {
 
       {renameTarget && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 px-4">
-          <div className="w-full max-w-lg rounded-xl border border-border bg-card shadow-xl flex flex-col overflow-hidden">
+          <div className="w-full max-w-lg rounded-md border border-border bg-card shadow-xl flex flex-col overflow-hidden">
             <div className="flex items-center justify-between p-4 border-b border-border/50">
               <h3 className="text-sm font-semibold text-text-primary">Rename Project</h3>
               <button onClick={() => {
@@ -1216,7 +1127,7 @@ export default function ProjectSettingsPage() {
                  Project name
                </label>
                <input
-                 className="w-full rounded-lg border border-border bg-background px-4 py-2 text-sm text-text-primary outline-none transition focus:border-primary/30 focus:ring-2 focus:ring-primary/10"
+                 className="w-full rounded-sm border border-border/40 bg-background px-4 py-2 text-sm text-text-primary outline-none transition focus:border-primary/30 focus:ring-2 focus:ring-primary/10"
                  placeholder="Project name"
                  value={renameInput}
                  onChange={(event) => setRenameInput(event.target.value)}
@@ -1228,7 +1139,7 @@ export default function ProjectSettingsPage() {
                <button 
                  onClick={renameProject} 
                  disabled={loading || !renameInput.trim()}
-                 className="flex-1 bg-primary hover:bg-primary-hover disabled:opacity-50 text-primary-foreground font-semibold py-2 px-4 rounded-lg transition-colors flex items-center justify-center"
+                 className="flex-1 bg-primary hover:bg-primary-hover disabled:opacity-50 text-primary-foreground font-semibold py-2 px-4 rounded-sm transition-colors flex items-center justify-center"
                >
                  <LoadingButtonContent loading={loading} loadingLabel="Saving..." idleLabel="Save name" />
                </button>
@@ -1238,7 +1149,7 @@ export default function ProjectSettingsPage() {
                    setRenameInput("");
                  }} 
                  disabled={loading}
-                 className="flex-1 bg-secondary/50 border border-border hover:bg-secondary/80 text-text-primary font-semibold py-2 px-4 rounded-lg transition-colors flex items-center justify-center"
+                 className="flex-1 bg-secondary/50 border border-border hover:bg-secondary/80 text-text-primary font-semibold py-2 px-4 rounded-sm transition-colors flex items-center justify-center"
                >
                  Cancel
                </button>
@@ -1249,7 +1160,7 @@ export default function ProjectSettingsPage() {
 
         {deleteTarget && (
           <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 px-4">
-            <div className="w-full max-w-lg rounded-xl border border-border bg-card shadow-xl flex flex-col overflow-hidden">
+            <div className="w-full max-w-lg rounded-md border border-border/40 bg-card shadow-xl flex flex-col overflow-hidden">
               <div className="flex items-center justify-between p-4 border-b border-border/50">
                 <h3 className="text-sm font-semibold text-text-primary">Archive Project</h3>
                 <button onClick={() => setDeleteTarget(null)} className="text-text-secondary hover:text-text-primary transition-colors">
@@ -1263,7 +1174,7 @@ export default function ProjectSettingsPage() {
                    Archived projects are hidden and stop ingesting new data. You can restore it later. Type <span className="font-semibold">{deleteTarget.name}</span> to confirm.
                  </p>
                  <input
-                   className="mt-4 w-full rounded-lg border border-border bg-background px-4 py-2 text-sm text-text-primary outline-none transition focus:border-primary/30 focus:ring-2 focus:ring-primary/10"
+                   className="mt-4 w-full rounded-sm border border-border/40 bg-background px-4 py-2 text-sm text-text-primary outline-none transition focus:border-primary/30 focus:ring-2 focus:ring-primary/10"
                    placeholder={deleteTarget.name}
                    value={deleteInput}
                    onChange={(e) => setDeleteInput(e.target.value)}
@@ -1275,14 +1186,14 @@ export default function ProjectSettingsPage() {
                  <button 
                    onClick={() => archiveProject(deleteTarget.id)} 
                    disabled={loading || deleteInput !== deleteTarget.name}
-                   className="flex-1 bg-destructive/15 text-destructive border border-destructive/30 hover:bg-destructive/25 backdrop-blur-md disabled:opacity-50 font-semibold py-2 px-4 rounded-lg transition-all duration-300 flex items-center justify-center shadow-[0_8px_16px_-6px_rgba(var(--destructive-rgb),0.1)]"
+                   className="flex-1 bg-destructive/15 text-destructive border border-destructive/30 hover:bg-destructive/25 backdrop-blur-md disabled:opacity-50 font-semibold py-2 px-4 rounded-sm transition-all duration-300 flex items-center justify-center shadow-[0_8px_16px_-6px_rgba(var(--destructive-rgb),0.1)]"
                  >
                    Archive
                  </button>
                  <button 
                    onClick={() => setDeleteTarget(null)} 
                    disabled={loading}
-                   className="flex-1 bg-secondary/50 border border-border hover:bg-secondary/80 text-text-primary font-semibold py-2 px-4 rounded-lg transition-colors flex items-center justify-center"
+                   className="flex-1 bg-secondary/30 border border-border/40 hover:bg-secondary/50 text-text-primary font-semibold py-2 px-4 rounded-sm transition-colors flex items-center justify-center"
                  >
                    Cancel
                  </button>
@@ -1293,7 +1204,7 @@ export default function ProjectSettingsPage() {
 
       {permanentDeleteTarget && (
           <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 px-4">
-            <div className="w-full max-w-lg rounded-xl border border-border bg-card shadow-xl flex flex-col overflow-hidden">
+            <div className="w-full max-w-lg rounded-md border border-border/40 bg-card shadow-xl flex flex-col overflow-hidden">
               <div className="flex items-center justify-between p-4 border-b border-border/50">
                 <h3 className="text-sm font-semibold text-text-primary">Delete Project</h3>
                 <button onClick={() => {
@@ -1310,7 +1221,7 @@ export default function ProjectSettingsPage() {
                    This action is permanent and cannot be undone. Type <span className="font-semibold">{permanentDeleteTarget.name}</span> to confirm.
                  </p>
                  <input
-                   className="mt-4 w-full rounded-lg border border-border bg-background px-4 py-2 text-sm text-text-primary outline-none transition focus:border-primary/30 focus:ring-2 focus:ring-primary/10"
+                   className="mt-4 w-full rounded-sm border border-border/40 bg-background px-4 py-2 text-sm text-text-primary outline-none transition focus:border-primary/30 focus:ring-2 focus:ring-primary/10"
                    placeholder={permanentDeleteTarget.name}
                    value={permanentDeleteInput}
                    onChange={(e) => setPermanentDeleteInput(e.target.value)}
@@ -1322,7 +1233,7 @@ export default function ProjectSettingsPage() {
                  <button 
                    onClick={deleteProjectPermanently} 
                    disabled={loading || permanentDeleteInput !== permanentDeleteTarget.name}
-                   className="flex-1 bg-destructive/15 text-destructive border border-destructive/30 hover:bg-destructive/25 backdrop-blur-md disabled:opacity-50 font-semibold py-2 px-4 rounded-lg transition-all duration-300 flex items-center justify-center shadow-[0_8px_16px_-6px_rgba(var(--destructive-rgb),0.1)]"
+                   className="flex-1 bg-destructive/15 text-destructive border border-destructive/30 hover:bg-destructive/25 backdrop-blur-md disabled:opacity-50 font-semibold py-2 px-4 rounded-sm transition-all duration-300 flex items-center justify-center shadow-[0_8px_16px_-6px_rgba(var(--destructive-rgb),0.1)]"
                  >
                    Delete
                  </button>
@@ -1332,7 +1243,7 @@ export default function ProjectSettingsPage() {
                      setPermanentDeleteInput("");
                    }} 
                    disabled={loading}
-                   className="flex-1 bg-secondary/50 border border-border hover:bg-secondary/80 text-text-primary font-semibold py-2 px-4 rounded-lg transition-colors flex items-center justify-center"
+                   className="flex-1 bg-secondary/30 border border-border/40 hover:bg-secondary/50 text-text-primary font-semibold py-2 px-4 rounded-sm transition-colors flex items-center justify-center"
                  >
                    Cancel
                  </button>
@@ -1370,7 +1281,7 @@ export default function ProjectSettingsPage() {
 
       {showBulkArchiveModal && (
         <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/40 px-4">
-          <div className="w-full max-w-lg rounded-xl border border-border bg-card shadow-xl flex flex-col overflow-hidden">
+          <div className="w-full max-w-lg rounded-md border border-border/40 bg-card shadow-xl flex flex-col overflow-hidden">
             <div className="flex items-center justify-between p-4 border-b border-border/50">
               <h3 className="text-sm font-semibold text-text-primary">Archive Projects</h3>
               <button onClick={() => setShowBulkArchiveModal(false)} className="text-text-secondary hover:text-text-primary transition-colors">
@@ -1384,7 +1295,7 @@ export default function ProjectSettingsPage() {
                  You can still view archived projects. Type <span className="font-semibold">Archive projects</span> to confirm.
                </p>
                <input
-                 className="mt-4 w-full rounded-lg border border-border bg-background px-4 py-2 text-sm text-text-primary outline-none transition focus:border-primary/30 focus:ring-2 focus:ring-primary/10"
+                 className="mt-4 w-full rounded-sm border border-border bg-background px-4 py-2 text-sm text-text-primary outline-none transition focus:border-primary/30 focus:ring-2 focus:ring-primary/10"
                  placeholder="Archive projects"
                  value={bulkActionInput}
                  onChange={(e) => setBulkActionInput(e.target.value)}
@@ -1396,14 +1307,14 @@ export default function ProjectSettingsPage() {
                <button 
                  onClick={handleBulkArchiveProjects} 
                  disabled={loading || bulkActionInput !== "Archive projects"}
-                 className="flex-1 bg-destructive/15 text-destructive border border-destructive/30 hover:bg-destructive/25 backdrop-blur-md disabled:opacity-50 font-semibold py-2 px-4 rounded-lg transition-all duration-300 flex items-center justify-center shadow-[0_8px_16px_-6px_rgba(var(--destructive-rgb),0.1)]"
+                 className="flex-1 bg-destructive/15 text-destructive border border-destructive/30 hover:bg-destructive/25 backdrop-blur-md disabled:opacity-50 font-semibold py-2 px-4 rounded-sm transition-all duration-300 flex items-center justify-center shadow-[0_8px_16px_-6px_rgba(var(--destructive-rgb),0.1)]"
                >
                  Archive
                </button>
                <button 
                  onClick={() => setShowBulkArchiveModal(false)} 
                  disabled={loading}
-                 className="flex-1 bg-secondary/50 border border-border hover:bg-secondary/80 text-text-primary font-semibold py-2 px-4 rounded-lg transition-colors flex items-center justify-center"
+                 className="flex-1 bg-secondary/50 border border-border hover:bg-secondary/80 text-text-primary font-semibold py-2 px-4 rounded-sm transition-colors flex items-center justify-center"
                >
                  Cancel
                </button>

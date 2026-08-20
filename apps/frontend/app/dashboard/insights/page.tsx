@@ -113,10 +113,10 @@ function useInsightsPagination(totalItems: number) {
 
 function ChartSkeleton({ className = "" }: { className?: string }) {
   return (
-    <div className={`animate-pulse rounded-2xl border border-border bg-card/90 p-6 ${className}`}>
+    <div className={`animate-pulse rounded-md border border-border/40 bg-card p-6 shadow-sm ${className}`}>
       <div className="h-4 w-36 rounded-full bg-secondary/90" />
       <div className="mt-2 h-3 w-52 rounded-full bg-secondary/70" />
-      <div className="mt-6 h-56 rounded-2xl bg-secondary/70" />
+      <div className="mt-6 h-56 rounded-md bg-secondary/70" />
     </div>
   );
 }
@@ -148,7 +148,7 @@ function InsightLineCard({
   }
 
   return (
-    <div className="rounded-2xl border border-border bg-card/90 p-6">
+    <div className="rounded-md border border-border/40 bg-card p-6 shadow-sm">
       <div className="flex items-start justify-between gap-4">
         <div>
           <h2 className="text-base font-semibold text-text-primary">{title}</h2>
@@ -169,7 +169,7 @@ function InsightLineCard({
         </div>
       </div>
 
-      <div className="mt-6 rounded-2xl border border-border bg-secondary/20 p-5">
+      <div className="mt-6 rounded-md border border-border/40 bg-secondary/10 p-5">
         <SparkAreaChart
           data={data}
           tone={tone}
@@ -196,7 +196,7 @@ function EmptyChartCard({
   description: string;
 }) {
   return (
-    <div className="rounded-2xl border border-border bg-card/90 p-6">
+    <div className="rounded-md border border-border/40 bg-card p-6 shadow-sm">
       <div className="flex items-start justify-between gap-4">
         <div>
           <h2 className="text-base font-semibold text-text-primary">{title}</h2>
@@ -207,8 +207,8 @@ function EmptyChartCard({
         </span>
       </div>
 
-      <div className="mt-6 rounded-2xl border border-dashed border-border bg-secondary/30 p-5">
-        <div className="flex h-56 items-center justify-center rounded-2xl bg-card/70">
+      <div className="mt-6 rounded-md border border-dashed border-border/40 bg-secondary/10 p-5">
+        <div className="flex h-56 items-center justify-center rounded-md bg-card/70">
           <div className="text-center">
             <p className="text-sm font-semibold text-text-primary">No data available yet</p>
             <p className="mt-2 max-w-sm text-sm text-text-secondary">
@@ -237,13 +237,13 @@ function BreakdownCard<T extends BreakdownItem>({
   const topCount = Math.max(1, ...items.map((item) => item.count));
 
   return (
-    <div className="h-fit min-w-0 rounded-2xl border border-border bg-card/90 p-6">
+    <div className="h-fit min-w-0 rounded-md border border-border/40 bg-card p-6 shadow-sm">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div className="min-w-0">
           <h2 className="text-base font-semibold text-text-primary">{title}</h2>
           <p className="mt-1 text-sm text-text-secondary">{description}</p>
         </div>
-        <span className="w-fit whitespace-nowrap rounded-full border border-border bg-card px-3 py-1 text-xs font-semibold text-text-secondary">
+        <span className="w-fit whitespace-nowrap rounded-[4px] border border-border/40 bg-secondary/10 px-2 py-0.5 text-[10px] font-semibold text-text-secondary uppercase tracking-widest">
           {items.length} groups
         </span>
       </div>
@@ -254,23 +254,23 @@ function BreakdownCard<T extends BreakdownItem>({
             const href = getItemHref?.(item) || "";
             const content = (
               <>
-                <div className="flex min-w-0 flex-col gap-2 sm:flex-row sm:items-center sm:justify-between sm:gap-3">
-                  <p className="min-w-0 break-words text-sm font-semibold text-text-primary sm:truncate">
+                <div className="flex min-w-0 flex-col gap-2 sm:flex-row sm:items-center sm:justify-between sm:gap-3 relative z-10">
+                  <p className="min-w-0 truncate text-sm font-medium text-text-primary group-hover:text-primary transition-colors">
                     {item.label}
                   </p>
-                  <div className="flex items-center justify-between gap-2 sm:justify-end">
-                    <span className="text-sm font-semibold text-text-primary">{item.count}</span>
+                  <div className="flex items-center justify-between gap-3 sm:justify-end">
+                    <span className="text-sm font-bold text-text-primary">{item.count}</span>
                     {href && (
-                      <span className="shrink-0 whitespace-nowrap rounded-full border border-border bg-card px-2.5 py-1 text-[11px] font-semibold text-text-secondary">
+                      <span className="shrink-0 whitespace-nowrap rounded-[4px] border border-border/40 bg-card px-2 py-0.5 text-[10px] font-semibold text-text-secondary opacity-0 group-hover:opacity-100 transition-opacity">
                         {itemActionLabel}
                       </span>
                     )}
                   </div>
                 </div>
-                <div className="mt-2 h-2 overflow-hidden rounded-full bg-card/70">
+                <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-secondary/20 relative z-10">
                   <div
-                    className="h-full rounded-full bg-primary/80"
-                    style={{ width: `${Math.max(12, (item.count / topCount) * 100)}%` }}
+                    className="h-full rounded-full bg-primary/60 transition-all duration-1000 ease-out"
+                    style={{ width: `${Math.max(2, (item.count / topCount) * 100)}%` }}
                   />
                 </div>
               </>
@@ -280,19 +280,20 @@ function BreakdownCard<T extends BreakdownItem>({
               <Link
                 key={item.label}
                 href={href}
-                className="block rounded-2xl border border-border bg-secondary/20 px-4 py-3 transition hover:border-primary/25 hover:bg-secondary/25"
+                className="group relative block overflow-hidden rounded-md border border-border/40 bg-card px-4 py-3 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md hover:border-primary/20"
               >
+                <div className="absolute -right-8 -top-8 h-24 w-24 rounded-full bg-primary/5 blur-2xl transition-opacity group-hover:bg-primary/10" />
                 {content}
               </Link>
             ) : (
-              <div key={item.label} className="rounded-2xl border border-border bg-secondary/20 px-4 py-3">
+              <div key={item.label} className="group relative overflow-hidden rounded-md border border-border/40 bg-card px-4 py-3 shadow-sm">
                 {content}
               </div>
             );
           })}
         </div>
       ) : (
-        <div className="mt-6 rounded-2xl border border-dashed border-border bg-secondary/25 px-4 py-5 text-sm text-text-secondary">
+        <div className="mt-6 rounded-md border border-dashed border-border/40 bg-secondary/10 px-4 py-5 text-sm text-text-secondary text-center">
           No grouped data yet for this scope.
         </div>
       )}
@@ -315,58 +316,86 @@ function SeverityInsightsCard({
   };
 
   return (
-    <div className="min-w-0 rounded-2xl border border-border bg-card/90 p-6">
-      <div className="flex items-start justify-between gap-4">
+    <div className="min-w-0 rounded-md border border-border/40 bg-card p-6 shadow-sm">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <h2 className="text-base font-semibold text-text-primary">Severity mix</h2>
           <p className="mt-1 text-sm text-text-secondary">
             Error volume split by severity across the selected scope.
           </p>
         </div>
-        <span className="whitespace-nowrap rounded-full border border-border bg-card px-3 py-1 text-xs font-semibold text-text-secondary">
+        <span className="w-fit whitespace-nowrap rounded-[4px] border border-border/40 bg-secondary/10 px-2 py-0.5 text-[10px] font-semibold text-text-secondary uppercase tracking-widest">
           {total} total hits
         </span>
       </div>
 
-      <div className="mt-6 grid gap-3 md:grid-cols-3">
+      {total > 0 && (
+        <div className="mt-8 flex h-2 w-full overflow-hidden rounded-full bg-secondary/20">
+          {items.map((item) => {
+            const share = (item.count / total) * 100;
+            if (share === 0) return null;
+            const bgClass =
+              item.tone === "critical"
+                ? "bg-red-500"
+                : item.tone === "warning"
+                ? "bg-amber-500"
+                : "bg-blue-500";
+            return (
+              <div
+                key={item.tone}
+                style={{ width: `${share}%` }}
+                className={`${bgClass} transition-all duration-1000 ease-out`}
+                title={`${item.label}: ${item.count}`}
+              />
+            );
+          })}
+        </div>
+      )}
+
+      <div className="mt-6 grid gap-4 md:grid-cols-3">
         {items.map((item) => {
           const share = total > 0 ? Math.round((item.count / total) * 100) : 0;
           const href = getSeverityHref?.(item.tone) || "";
 
           const content = (
-            <>
+            <div className="relative z-10 flex h-full flex-col">
               <div className="flex items-center justify-between gap-3">
-                <span className={`whitespace-nowrap rounded-full border px-2.5 py-1 text-xs font-semibold ${toneClasses[item.tone]}`}>
+                <span className={`whitespace-nowrap rounded-[4px] border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider ${toneClasses[item.tone]}`}>
                   {item.label}
                 </span>
                 <span className="text-xs font-semibold text-text-secondary">{share}%</span>
               </div>
-              <p className="mt-4 text-2xl font-semibold text-text-primary">{item.count}</p>
-              <p className="mt-1 text-xs text-text-secondary">
-                {item.tone === "critical"
-                  ? "Highest-priority failures"
-                  : item.tone === "warning"
-                  ? "Operational instability signals"
-                  : "Lower-severity noise"}
-              </p>
-              {href && (
-                <span className="mt-3 inline-flex whitespace-nowrap rounded-full border border-border bg-card px-2.5 py-1 text-[11px] font-semibold text-text-secondary">
-                  Drill down
-                </span>
-              )}
-            </>
+              <div className="mt-auto pt-6">
+                <p className="text-3xl font-bold text-text-primary">{item.count}</p>
+                <p className="mt-1 text-[11px] text-text-secondary line-clamp-1">
+                  {item.tone === "critical"
+                    ? "Highest-priority failures"
+                    : item.tone === "warning"
+                    ? "Operational instability signals"
+                    : "Lower-severity noise"}
+                </p>
+                {href && (
+                  <div className="mt-4 opacity-0 transition-opacity group-hover:opacity-100">
+                    <span className="inline-flex items-center whitespace-nowrap text-[11px] font-semibold text-primary">
+                      Drill down <span className="ml-1 text-lg leading-none">&rarr;</span>
+                    </span>
+                  </div>
+                )}
+              </div>
+            </div>
           );
 
           return href ? (
             <Link
               key={item.label}
               href={href}
-              className="block rounded-2xl border border-border bg-secondary/20 px-4 py-4 transition hover:border-primary/25 hover:bg-secondary/25"
+              className="group relative block overflow-hidden rounded-md border border-border/40 bg-card p-5 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md hover:border-primary/20"
             >
+              <div className="absolute -right-6 -top-6 h-24 w-24 rounded-full bg-primary/5 blur-2xl transition-opacity group-hover:bg-primary/10" />
               {content}
             </Link>
           ) : (
-            <div key={item.label} className="rounded-2xl border border-border bg-secondary/20 px-4 py-4">
+            <div key={item.label} className="group relative overflow-hidden rounded-md border border-border/40 bg-card p-5 shadow-sm">
               {content}
             </div>
           );
@@ -385,7 +414,7 @@ function TopIssuesCard({ items }: { items: TopIssue[] }) {
   );
 
   return (
-    <div className="min-w-0 rounded-2xl border border-border bg-card/90 p-6">
+    <div className="min-w-0 rounded-md border border-border/40 bg-card p-6 shadow-sm">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div className="min-w-0">
           <h2 className="text-base font-semibold text-text-primary">Top recurring issues</h2>
@@ -393,7 +422,7 @@ function TopIssuesCard({ items }: { items: TopIssue[] }) {
             The noisiest issues across your tracked projects.
           </p>
         </div>
-        <span className="w-fit whitespace-nowrap rounded-full border border-border bg-card px-3 py-1 text-xs font-semibold text-text-secondary">
+        <span className="w-fit whitespace-nowrap rounded-[4px] border border-border/40 bg-secondary/10 px-2 py-0.5 text-[10px] font-semibold text-text-secondary uppercase tracking-widest">
           {items.length} issues
         </span>
       </div>
@@ -401,36 +430,38 @@ function TopIssuesCard({ items }: { items: TopIssue[] }) {
       <div className="mt-6 space-y-3">
         {items.length ? (
           paginatedItems.map((item) => (
-            <div
+            <Link
               key={item.id}
-              className="rounded-2xl border border-border bg-secondary/25 px-4 py-4"
+              href={`/dashboard/errors/${item.id}`}
+              className="group relative block overflow-hidden rounded-md border border-border/40 bg-card p-5 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md hover:border-primary/20"
             >
-              <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+              <div className="absolute -left-6 -top-6 h-24 w-24 rounded-full bg-primary/5 blur-2xl transition-opacity group-hover:bg-primary/10" />
+              <div className="relative z-10 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <div className="min-w-0 flex-1">
-                  <p className="break-words text-sm font-semibold text-text-primary sm:truncate">
+                  <p className="truncate text-sm font-semibold text-text-primary group-hover:text-primary transition-colors">
                     {item.message}
                   </p>
-                  <p className="mt-1 text-xs text-text-secondary">
-                    {item.projectName} · Last seen {new Date(item.lastSeen).toLocaleString()}
+                  <p className="mt-1 text-[11px] text-text-secondary">
+                    {item.projectName} &middot; Last seen {new Date(item.lastSeen).toLocaleString()}
                   </p>
                 </div>
-                <span className="w-fit shrink-0 whitespace-nowrap rounded-full border border-border bg-card px-2.5 py-1 text-xs font-semibold text-text-secondary">
-                  {item.count}
-                </span>
+                <div className="flex items-center gap-4 shrink-0 mt-2 sm:mt-0">
+                  <div className="text-right">
+                    <p className="text-sm font-bold text-text-primary">{item.count}</p>
+                    <p className="text-[10px] uppercase tracking-wider text-text-secondary/70">events</p>
+                  </div>
+                  <div className="opacity-0 transition-opacity group-hover:opacity-100 hidden sm:block">
+                    <span className="inline-flex items-center whitespace-nowrap text-[11px] font-semibold text-primary">
+                      Open <span className="ml-1 text-lg leading-none">&rarr;</span>
+                    </span>
+                  </div>
+                </div>
               </div>
-              <div className="mt-3">
-                <Link
-                  href={`/dashboard/errors/${item.id}`}
-                  className="inline-flex w-full justify-center whitespace-nowrap rounded-full border border-border px-3 py-1.5 text-xs font-semibold text-text-secondary transition hover:bg-secondary/70 hover:text-text-primary sm:w-auto"
-                >
-                  Open issue
-                </Link>
-              </div>
-            </div>
+            </Link>
           ))
         ) : (
           <div
-            className="rounded-2xl border border-dashed border-border bg-secondary/25 px-4 py-4"
+            className="rounded-md border border-dashed border-border/40 bg-secondary/10 px-4 py-5 text-center"
           >
             <p className="text-sm font-semibold text-text-primary">No issue data yet</p>
             <p className="mt-1 text-sm text-text-secondary">
@@ -441,17 +472,19 @@ function TopIssuesCard({ items }: { items: TopIssue[] }) {
       </div>
 
       {showPagination && (
-        <DashboardPagination
-          page={page}
-          totalPages={totalPages}
-          pageSize={pageSize}
-          pageSizeOptions={INSIGHTS_PAGE_SIZE_OPTIONS}
-          onPageChange={setPage}
-          onPageSizeChange={(nextSize) => {
-            setPage(1);
-            setPageSize(nextSize);
-          }}
-        />
+        <div className="mt-6 border-t border-border/40 pt-4">
+          <DashboardPagination
+            page={page}
+            totalPages={totalPages}
+            pageSize={pageSize}
+            pageSizeOptions={INSIGHTS_PAGE_SIZE_OPTIONS}
+            onPageChange={setPage}
+            onPageSizeChange={(nextSize) => {
+              setPage(1);
+              setPageSize(nextSize);
+            }}
+          />
+        </div>
       )}
     </div>
   );
@@ -477,7 +510,7 @@ function ReleaseImpactCard({
   };
 
   return (
-    <div className="min-w-0 rounded-2xl border border-border bg-card/90 p-6">
+    <div className="min-w-0 rounded-md border border-border/40 bg-card p-6 shadow-sm">
       <div className="flex items-start justify-between gap-4">
         <div>
           <h2 className="text-base font-semibold text-text-primary">Release impact</h2>
@@ -499,7 +532,7 @@ function ReleaseImpactCard({
             <Link
               key={item.id}
               href={getReleaseHref?.(item) || "/dashboard/releases"}
-              className="block rounded-2xl border border-border bg-secondary/20 px-4 py-4 transition hover:border-primary/25 hover:bg-secondary/25"
+              className="block rounded-md border border-border/40 bg-secondary/10 px-4 py-4 transition hover:border-primary/25 hover:bg-secondary/25"
             >
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div className="min-w-0">
@@ -529,7 +562,7 @@ function ReleaseImpactCard({
             </Link>
           ))
         ) : (
-          <div className="rounded-2xl border border-dashed border-border bg-secondary/25 px-4 py-4">
+          <div className="rounded-md border border-dashed border-border/40 bg-secondary/10 px-4 py-4">
             <p className="text-sm font-semibold text-text-primary">No release-linked activity yet</p>
             <p className="mt-1 text-sm text-text-secondary">
               Send events with a release value to understand which releases are driving issues.
@@ -539,17 +572,19 @@ function ReleaseImpactCard({
       </div>
 
       {showPagination && (
-        <DashboardPagination
-          page={page}
-          totalPages={totalPages}
-          pageSize={pageSize}
-          pageSizeOptions={INSIGHTS_PAGE_SIZE_OPTIONS}
-          onPageChange={setPage}
-          onPageSizeChange={(nextSize) => {
-            setPage(1);
-            setPageSize(nextSize);
-          }}
-        />
+        <div className="mt-6 border-t border-border/40 pt-4">
+          <DashboardPagination
+            page={page}
+            totalPages={totalPages}
+            pageSize={pageSize}
+            pageSizeOptions={INSIGHTS_PAGE_SIZE_OPTIONS}
+            onPageChange={setPage}
+            onPageSizeChange={(nextSize) => {
+              setPage(1);
+              setPageSize(nextSize);
+            }}
+          />
+        </div>
       )}
     </div>
   );
@@ -575,8 +610,8 @@ function AlertCorrelationCard({
   };
 
   return (
-    <div className="min-w-0 rounded-2xl border border-border bg-card/90 p-6">
-      <div className="flex items-start justify-between gap-4">
+    <div className="min-w-0 rounded-md border border-border/40 bg-card p-6 shadow-sm">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <h2 className="text-base font-semibold text-text-primary">Alert correlation</h2>
           <p className="mt-1 text-sm text-text-secondary">
@@ -585,54 +620,63 @@ function AlertCorrelationCard({
         </div>
         <Link
           href="/dashboard/alerts"
-          className="inline-flex whitespace-nowrap rounded-full border border-border px-3 py-1.5 text-xs font-semibold text-text-secondary transition hover:bg-secondary/70 hover:text-text-primary"
+          className="inline-flex whitespace-nowrap rounded-md border border-border/40 bg-secondary/10 px-3 py-1.5 text-xs font-semibold text-text-secondary transition hover:bg-secondary/20 hover:text-text-primary shadow-sm"
         >
-          Open alerts
+          Open alerts &rarr;
         </Link>
       </div>
 
       <div className="mt-6 space-y-3">
         {items.length ? (
           paginatedItems.map((item) => (
-            <div key={item.errorId} className="rounded-2xl border border-border bg-secondary/20 px-4 py-4">
-              <div className="flex flex-wrap items-start justify-between gap-3">
-                <div className="min-w-0">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <p className="truncate text-sm font-semibold text-text-primary">{item.message}</p>
-                    <span className={`whitespace-nowrap rounded-full border px-2.5 py-1 text-xs font-semibold ${severityTone[item.severity]}`}>
-                      {item.severity}
-                    </span>
+            <div key={item.errorId} className="group relative overflow-hidden rounded-md border border-border/40 bg-card p-5 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md hover:border-primary/20">
+              <div className="absolute -right-6 -bottom-6 h-32 w-32 rounded-full bg-red-500/5 blur-3xl transition-opacity group-hover:bg-red-500/10" />
+              <div className="relative z-10 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+                <div className="min-w-0 flex-1 space-y-3">
+                  <div>
+                    <div className="flex flex-wrap items-center gap-2 mb-1">
+                      <span className={`whitespace-nowrap rounded-[4px] border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider ${severityTone[item.severity]}`}>
+                        {item.severity}
+                      </span>
+                      <p className="text-[11px] text-text-secondary">
+                        {item.projectName} &middot; {new Date(item.lastTriggeredAt).toLocaleString()}
+                      </p>
+                    </div>
+                    <p className="line-clamp-2 text-sm font-semibold text-text-primary">{item.message}</p>
                   </div>
-                  <p className="mt-1 text-xs text-text-secondary">
-                    {item.projectName} · Last alerted {new Date(item.lastTriggeredAt).toLocaleString()}
-                  </p>
-                  <p className="mt-2 text-xs text-text-secondary">
-                    Rules: {item.ruleNames.join(", ")}
-                  </p>
+                  
+                  <div className="flex items-center gap-2 text-[11px] text-text-secondary">
+                    <span className="font-semibold uppercase tracking-widest text-text-secondary/60">Rules</span>
+                    <span className="truncate">{item.ruleNames.join(", ")}</span>
+                  </div>
+                  
+                  <div className="flex flex-wrap gap-2 pt-2">
+                    <Link
+                      href={`/dashboard/errors/${item.errorId}`}
+                      className="inline-flex items-center whitespace-nowrap rounded-[4px] border border-border/40 bg-secondary/10 px-2.5 py-1 text-[11px] font-semibold text-text-secondary transition hover:bg-secondary/20 hover:text-text-primary"
+                    >
+                      View issue
+                    </Link>
+                    <Link
+                      href={getAlertsHref?.(item) || "/dashboard/alerts"}
+                      className="inline-flex items-center whitespace-nowrap rounded-[4px] border border-border/40 bg-secondary/10 px-2.5 py-1 text-[11px] font-semibold text-text-secondary transition hover:bg-secondary/20 hover:text-text-primary"
+                    >
+                      View alerts
+                    </Link>
+                  </div>
                 </div>
-                <div className="shrink-0 rounded-2xl border border-border bg-card/80 px-3 py-2 text-center sm:min-w-[96px]">
-                  <p className="text-xl font-semibold text-text-primary">{item.alertCount}</p>
-                  <p className="text-xs text-text-secondary">alert triggers</p>
+                
+                <div className="shrink-0 flex items-center justify-between sm:flex-col sm:items-end gap-2 border-t border-border/40 sm:border-t-0 sm:border-l sm:pl-5 pt-4 sm:pt-0">
+                  <div className="text-left sm:text-right">
+                    <p className="text-2xl font-bold text-text-primary">{item.alertCount}</p>
+                    <p className="text-[10px] uppercase tracking-wider text-text-secondary/70">Triggers</p>
+                  </div>
                 </div>
-              </div>
-              <div className="mt-3 flex flex-wrap gap-2">
-                <Link
-                  href={`/dashboard/errors/${item.errorId}`}
-                  className="inline-flex whitespace-nowrap rounded-full border border-border px-2.5 py-1 text-[11px] font-semibold text-text-secondary transition hover:bg-secondary/70 hover:text-text-primary"
-                >
-                  Open issue
-                </Link>
-                <Link
-                  href={getAlertsHref?.(item) || "/dashboard/alerts"}
-                  className="inline-flex whitespace-nowrap rounded-full border border-border px-2.5 py-1 text-[11px] font-semibold text-text-secondary transition hover:bg-secondary/70 hover:text-text-primary"
-                >
-                  Open alerts
-                </Link>
               </div>
             </div>
           ))
         ) : (
-          <div className="rounded-2xl border border-dashed border-border bg-secondary/25 px-4 py-4">
+          <div className="rounded-md border border-dashed border-border/40 bg-secondary/10 px-4 py-6 text-center">
             <p className="text-sm font-semibold text-text-primary">No alert-linked issues yet</p>
             <p className="mt-1 text-sm text-text-secondary">
               Once alert rules start firing, correlated issues will show up here.
@@ -642,17 +686,19 @@ function AlertCorrelationCard({
       </div>
 
       {showPagination && (
-        <DashboardPagination
-          page={page}
-          totalPages={totalPages}
-          pageSize={pageSize}
-          pageSizeOptions={INSIGHTS_PAGE_SIZE_OPTIONS}
-          onPageChange={setPage}
-          onPageSizeChange={(nextSize) => {
-            setPage(1);
-            setPageSize(nextSize);
-          }}
-        />
+        <div className="mt-6 border-t border-border/40 pt-4">
+          <DashboardPagination
+            page={page}
+            totalPages={totalPages}
+            pageSize={pageSize}
+            pageSizeOptions={INSIGHTS_PAGE_SIZE_OPTIONS}
+            onPageChange={setPage}
+            onPageSizeChange={(nextSize) => {
+              setPage(1);
+              setPageSize(nextSize);
+            }}
+          />
+        </div>
       )}
     </div>
   );
@@ -690,36 +736,39 @@ function ComparisonCard({
       : "tf-muted-tag";
 
   return (
-    <div className="rounded-2xl border border-border bg-card/90 px-4 py-4 shadow-sm">
-      <div className="flex items-start justify-between gap-3">
+    <div className="group relative overflow-hidden rounded-md border border-border/40 bg-card p-5 shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md hover:border-primary/20">
+      <div className="absolute -right-4 -top-4 h-24 w-24 rounded-full bg-primary/5 blur-2xl transition-opacity group-hover:bg-primary/10" />
+      
+      <div className="relative z-10 flex items-start justify-between gap-3">
         <div>
           <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-text-secondary">
             {title}
           </p>
-          <p className="mt-1 text-sm text-text-secondary">{description}</p>
+          <p className="mt-1 text-[11px] text-text-secondary/70 line-clamp-1">{description}</p>
         </div>
-        <div className="flex flex-wrap items-center justify-end gap-2">
-          <span className={`whitespace-nowrap rounded-full border px-2.5 py-1 text-xs font-semibold ${deltaTone}`}>
+        <div className="flex flex-wrap items-center justify-end gap-2 shrink-0">
+          <span className={`whitespace-nowrap rounded-[4px] border px-2 py-0.5 text-[10px] font-semibold ${deltaTone}`}>
             {formatDelta(metric)}
           </span>
           {href && (
             <Link
               href={href}
-              className="inline-flex whitespace-nowrap rounded-full border border-border bg-card px-2.5 py-1 text-xs font-semibold text-text-secondary transition hover:bg-secondary/70 hover:text-text-primary"
+              className="inline-flex whitespace-nowrap rounded-[4px] border border-border/40 bg-card px-2 py-0.5 text-[10px] font-semibold text-text-secondary transition hover:bg-secondary/70 hover:text-text-primary"
             >
               {hrefLabel}
             </Link>
           )}
         </div>
       </div>
-      <div className="mt-4 flex items-end justify-between gap-4">
+      
+      <div className="relative z-10 mt-4 flex items-end justify-between gap-4">
         <div>
-          <p className="text-2xl font-semibold text-text-primary">{metric.current}</p>
-          <p className="mt-1 text-xs text-text-secondary">
+          <p className="text-2xl font-bold text-text-primary sm:text-3xl">{metric.current}</p>
+          <p className="mt-1 text-[11px] text-text-secondary/70">
             vs {metric.previous} in previous {windowLabel}
           </p>
         </div>
-        <p className="text-right text-xs font-medium text-text-secondary">
+        <p className="text-right text-[10px] font-medium text-text-secondary/60">
           {metric.direction === "flat"
             ? "Holding steady"
             : metric.direction === "up"
@@ -775,7 +824,7 @@ function HighlightsCard({
   };
 
   return (
-    <div className="rounded-2xl border border-border bg-card/90 p-6">
+    <div className="rounded-md border border-border/40 bg-card p-6 shadow-sm">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <h2 className="text-base font-semibold text-text-primary">Highlights</h2>
@@ -807,7 +856,7 @@ function HighlightsCard({
       </div>
 
       <div className="mt-5 grid gap-3 lg:grid-cols-2">
-        <div className="rounded-2xl border border-border bg-secondary/20 px-4 py-4">
+        <div className="rounded-md border border-border/40 bg-secondary/10 px-4 py-4">
           <p className="text-sm font-semibold text-text-primary">Trend</p>
           <ul className="mt-3 space-y-2 text-sm text-text-secondary">
             <li>{metricSentence("Event volume", comparison.events)}</li>
@@ -816,7 +865,7 @@ function HighlightsCard({
           </ul>
         </div>
 
-        <div className="rounded-2xl border border-border bg-secondary/20 px-4 py-4">
+        <div className="rounded-md border border-border/40 bg-secondary/10 px-4 py-4">
           <p className="text-sm font-semibold text-text-primary">Drivers</p>
           <ul className="mt-3 space-y-2 text-sm text-text-secondary">
             <li>
@@ -1236,25 +1285,21 @@ export default function InsightsPage() {
   return (
     <main className="tf-page tf-dashboard-page">
       <div className="tf-dashboard">
-        <header className="flex flex-wrap items-start justify-between gap-4">
-          <div>
-            <p className="tf-kicker">Insights</p>
-            <div className="mt-3 flex items-center">
-              <h1 className="tf-title text-3xl">Operational insights</h1>
-              <PageDescriptionPopover>
-                Start with overall trends across the account, then narrow to a single
-                project when you want a focused view.
-              </PageDescriptionPopover>
-            </div>
+        <header className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="flex items-center gap-2">
+            <h1 className="text-xl font-bold text-text-primary tracking-tight">Operational insights</h1>
+            <PageDescriptionPopover>
+              Start with overall trends across the account, then narrow to a single
+              project when you want a focused view.
+            </PageDescriptionPopover>
           </div>
         </header>
 
-        <section className="tf-filter-panel mt-6">
-          <div className="tf-filter-grid sm:grid-cols-[minmax(0,1fr)_140px_minmax(0,210px)_132px]">
-            <label className="tf-filter-field">
-              <span className="tf-filter-label">Scope</span>
+        <div className="mt-8 flex flex-wrap items-center gap-3">
+          <div className="flex flex-1 flex-col sm:flex-row sm:flex-wrap items-stretch sm:items-center gap-3">
+            <div className="grid grid-cols-2 sm:flex sm:flex-wrap items-center gap-2 sm:gap-3 flex-1">
               <select
-                className="tf-select tf-filter-control w-full"
+                className="tf-select !h-9 !bg-secondary/40 !border-transparent hover:!border-border/50 focus:!bg-card focus:!border-primary/30 transition text-xs w-full sm:w-auto"
                 value={selectedProjectId}
                 onChange={(event) => setSelectedProjectId(event.target.value)}
               >
@@ -1265,11 +1310,8 @@ export default function InsightsPage() {
                   </option>
                 ))}
               </select>
-            </label>
-            <label className="tf-filter-field">
-              <span className="tf-filter-label">Window</span>
               <select
-                className="tf-select tf-filter-control w-full"
+                className="tf-select !h-9 !bg-secondary/40 !border-transparent hover:!border-border/50 focus:!bg-card focus:!border-primary/30 transition text-xs w-full sm:w-auto"
                 value={days}
                 onChange={(event) => setDays(Number(event.target.value))}
               >
@@ -1277,49 +1319,45 @@ export default function InsightsPage() {
                 <option value={14}>14 days</option>
                 <option value={30}>30 days</option>
               </select>
-            </label>
-            <div className="tf-filter-field">
-              <span className="tf-filter-label">Chart</span>
-              <div className="flex items-center rounded-full border border-border bg-card/90 p-1 text-xs font-semibold text-text-secondary shadow-sm">
+              
+              <div className="flex items-center rounded-sm border border-border/40 bg-secondary/40 p-1 text-[11px] font-semibold text-text-secondary h-9 w-full sm:w-auto shrink-0 mt-2 sm:mt-0 col-span-2 sm:col-span-1">
                 <button
                   type="button"
-                  className={`whitespace-nowrap rounded-full px-3 py-1 transition ${
+                  className={`whitespace-nowrap rounded-[2px] px-3 py-1 flex-1 sm:flex-none transition ${
                     chartVariant === "area"
-                      ? "bg-accent-soft text-text-primary"
-                      : "hover:bg-secondary/70 hover:text-text-primary"
+                      ? "bg-card text-text-primary shadow-sm"
+                      : "hover:bg-card/50 hover:text-text-primary"
                   }`}
                   onClick={() => setChartVariant("area")}
                 >
-                  Line
+                  Line chart
                 </button>
                 <button
                   type="button"
-                  className={`whitespace-nowrap rounded-full px-3 py-1 transition ${
+                  className={`whitespace-nowrap rounded-[2px] px-3 py-1 flex-1 sm:flex-none transition ${
                     chartVariant === "bar"
-                      ? "bg-accent-soft text-text-primary"
-                      : "hover:bg-secondary/70 hover:text-text-primary"
+                      ? "bg-card text-text-primary shadow-sm"
+                      : "hover:bg-card/50 hover:text-text-primary"
                   }`}
                   onClick={() => setChartVariant("bar")}
                 >
-                  Bar
+                  Bar chart
                 </button>
               </div>
             </div>
-            <div className="flex items-end">
-              <button
-                type="button"
-                className="tf-filter-reset w-full"
-                onClick={() => {
-                  setSelectedProjectId("");
-                  setDays(30);
-                  setChartVariant("area");
-                }}
-              >
-                Reset
-              </button>
-            </div>
+            
+            <button
+              className="text-[11px] font-semibold text-text-secondary hover:text-text-primary transition self-start sm:self-auto mt-1 sm:mt-0"
+              onClick={() => {
+                setSelectedProjectId("");
+                setDays(30);
+                setChartVariant("area");
+              }}
+            >
+              Clear filters
+            </button>
           </div>
-        </section>
+        </div>
 
         {!loading && (
           <div className="mt-6 flex flex-wrap items-center gap-3">
