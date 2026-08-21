@@ -6,6 +6,8 @@ import Link from "next/link";
 import { Search, Check, Copy, ChevronDown, Terminal, Code2, Globe, Server, Braces, Sparkles, Database, Coffee, FileCode2 } from "lucide-react";
 
 // Existing JS/TS Snippets
+const cliInstallSnippet = `npx usetraceforge-cli init`;
+
 const installSnippet = `npm install usetraceforge`;
 
 const nextEnvSnippet = `NEXT_PUBLIC_TRACEFORGE_INGEST_URL=http://localhost:3001/ingest
@@ -53,6 +55,26 @@ TraceForge.init({
   release: import.meta.env.VITE_TRACEFORGE_RELEASE
 });`;
 
+const vueEnvSnippet = `VITE_TRACEFORGE_INGEST_URL=http://localhost:3001/ingest
+VITE_TRACEFORGE_API_KEY=YOUR_PROJECT_API_KEY
+VITE_TRACEFORGE_ENV=production
+VITE_TRACEFORGE_RELEASE=web@1.0.0`;
+
+const vueSetupSnippet = `import { createApp } from 'vue'
+import App from './App.vue'
+import TraceForge from "usetraceforge";
+
+TraceForge.init({
+  apiKey: import.meta.env.VITE_TRACEFORGE_API_KEY,
+  endpoint: import.meta.env.VITE_TRACEFORGE_INGEST_URL,
+  autoCapture: true,
+  environment: import.meta.env.VITE_TRACEFORGE_ENV,
+  release: import.meta.env.VITE_TRACEFORGE_RELEASE
+});
+
+const app = createApp(App)
+app.mount('#app')`;
+
 const nodeEnvSnippet = `TRACEFORGE_INGEST_URL=http://localhost:3001/ingest
 TRACEFORGE_API_KEY=YOUR_PROJECT_API_KEY
 TRACEFORGE_ENV=production
@@ -79,39 +101,33 @@ app.use(async (error: unknown, req: Request, _res: Response, next: NextFunction)
   next(error);
 });`;
 
-const pythonInstallSnippet = `pip install python-dotenv traceforge`;
+const pythonInstallSnippet = `pip install usetraceforge python-dotenv`;
 
-const pythonSetupSnippet = `import os
+const pythonSetupSnippet = `import traceforge
 from dotenv import load_dotenv
-import traceforge
 
 load_dotenv()
 
-traceforge.init(
-    api_key=os.getenv("YOUR_TRACEFORGE_PROJECT_KEY", ""),
-    environment="production",
-    endpoint=os.getenv("TRACEFORGE_API_URL", "http://localhost:3001/ingest")
-)
+# Automatically reads TRACEFORGE_API_KEY from the environment
+traceforge.init()
 
 # Usage in your exception handler:
-# traceforge.capture_exception(exc, context={"path": request.url.path})`;
+# traceforge.capture_exception(exc)`;
 
-const goInstallSnippet = `go get github.com/khushalp2004/TraceForge/packages/sdk-go`;
+const goInstallSnippet = `go get github.com/khushalp2004/TraceForge/packages/sdk-go@v1.0.2`;
 
-const goSetupSnippet = `import "github.com/khushalp2004/TraceForge/packages/sdk-go"
+const goSetupSnippet = `import (
+    "github.com/joho/godotenv"
+    "github.com/khushalp2004/TraceForge/packages/sdk-go"
+)
 
 func main() {
-    traceforge.InitWithConfig(traceforge.Config{
-        APIKey:   "YOUR_TRACEFORGE_GO_KEY",
-        Endpoint: "http://localhost:3001/ingest",
-    })
+    _ = godotenv.Load()
     
-    // Usage inside panic recovery middleware:
-    // defer func() {
-    //     if err := recover(); err != nil {
-    //         traceforge.CapturePanic(err, debug.Stack())
-    //     }
-    // }()
+    // Automatically reads from environment variables
+    traceforge.Init()
+    
+    // Use native middleware (Gin, Echo, etc.) or capture manually
 }`;
 
 const javaInstallSnippet = `<!-- Add to pom.xml -->
@@ -128,8 +144,8 @@ const javaInstallSnippet = `<!-- Add to pom.xml -->
     <version>dacb764e3e</version>
 </dependency>`;
 
-const javaSetupSnippet = `import io.traceforge.TraceForge;
-import io.traceforge.Config;
+const javaSetupSnippet = `import com.usetraceforge.TraceForge;
+import com.usetraceforge.Config;
 
 // Initialize in main
 Config config = new Config();
@@ -144,18 +160,22 @@ public ResponseEntity<Map<String, Object>> handleAllExceptions(Exception ex) {
     // Return standard 500 response...
 }`;
 
-const phpInstallSnippet = `composer require traceforge/traceforge-php:dev-main`;
+const phpInstallSnippet = `composer require khushalp2004/traceforge-php`;
 
-const phpSetupSnippet = `require_once __DIR__ . '/../vendor/autoload.php';
+const phpSetupSnippet = `// For Laravel: Zero-Touch setup!
+// Just add TRACEFORGE_API_KEY to your .env file.
 
-\\TraceForge\\Client::init([
-    'apiKey' => 'YOUR_TRACEFORGE_PHP_KEY',
-    'environment' => 'production',
-    'endpoint' => 'http://localhost:3001/ingest'
-]);
+// For Vanilla PHP:
+require_once __DIR__ . '/vendor/autoload.php';
 
-// Usage in global ErrorHandler:
-// \\TraceForge\\Client::captureException($exception);`;
+use TraceForge\\TraceForgeClient;
+$client = new TraceForgeClient();
+
+try {
+    // Code
+} catch (\\Throwable $e) {
+    $client->captureException($e, ['type' => 'manual_exception']);
+}`;
 
 const rustInstallSnippet = `# Add to Cargo.toml
 [dependencies]
@@ -163,10 +183,8 @@ traceforge = { git = "https://github.com/khushalp2004/TraceForge.git", branch = 
 
 const rustSetupSnippet = `// Initialize in main
 tokio::task::spawn_blocking(|| {
-    let mut config = traceforge::Config::default();
-    config.api_key = "YOUR_TRACEFORGE_RUST_KEY".to_string();
-    config.endpoint = "http://localhost:3001/ingest".to_string();
-    traceforge::init_with_config(config);
+    // Automatically reads TRACEFORGE_API_KEY from .env
+    traceforge::init();
 }).await.unwrap();
 
 // Usage in handlers:
@@ -175,51 +193,15 @@ tokio::task::spawn_blocking(|| {
 //     panic!("Intentional panic");
 // }).await;`;
 
-const csharpSetupSnippet = `using System;
-using System.Net.Http;
-using System.Text;
-using System.Text.Json;
-using System.Threading.Tasks;
-
-public static class TraceForge
-{
-    private static readonly HttpClient client = new HttpClient();
-
-    public static async Task CaptureException(Exception ex)
-    {
-        var payload = new
-        {
-            message = ex.Message,
-            stackTrace = ex.StackTrace,
-            environment = "production",
-            release = "api@1.0.0"
-        };
-
-        var json = JsonSerializer.Serialize(payload);
-        var content = new StringContent(json, Encoding.UTF8, "application/json");
-        
-        var request = new HttpRequestMessage(HttpMethod.Post, "http://localhost:3001/ingest");
-        request.Content = content;
-        request.Headers.Add("X-Traceforge-Key", "YOUR_PROJECT_API_KEY");
-
-        try
-        {
-            await client.SendAsync(request);
-        }
-        catch { /* Silently ignore logging failures */ }
-    }
-}`;
-
 const rubyInstallSnippet = `# Add to Gemfile
 gem 'traceforge', git: 'https://github.com/khushalp2004/TraceForge.git', branch: 'main', glob: 'packages/sdk-ruby/traceforge.gemspec'`;
 
 const rubySetupSnippet = `require 'traceforge'
 
-TraceForge.init(
-  api_key: 'YOUR_TRACEFORGE_RUBY_KEY',
-  environment: 'production',
-  endpoint: 'http://localhost:3001/ingest'
-)
+TraceForge.configure do |config|
+  config.api_key = 'YOUR_TRACEFORGE_RUBY_KEY'
+  config.ingest_url = 'http://localhost:3001/ingest'
+end
 
 # Usage in Sinatra error block:
 # error do
@@ -242,7 +224,7 @@ Content-Type: application/json
   }
 }`;
 
-type TechStack = "nextjs" | "react" | "nodejs" | "python" | "go" | "java" | "php" | "rust" | "csharp" | "ruby" | "rest";
+type TechStack = "nextjs" | "react" | "vue" | "nodejs" | "python" | "go" | "java" | "php" | "rust" | "ruby" | "rest";
 
 type Toast = {
   message: string;
@@ -267,7 +249,7 @@ function SnippetBlock({
   };
 
   return (
-    <div className="group relative min-w-0 overflow-hidden rounded-2xl border border-border/50 bg-[#0C0C0E] shadow-2xl transition-all duration-300 hover:border-border/80">
+    <div className="group relative min-w-0 overflow-hidden rounded-[16px] border border-border/40 bg-[#0C0C0E] shadow-sm transition-all duration-300 hover:border-border/60">
       {/* Mac window header */}
       <div className="flex items-center justify-between border-b border-white/[0.04] bg-[#141416] px-4 py-3 gap-3">
         <div className="flex items-center gap-2 min-w-0">
@@ -280,7 +262,7 @@ function SnippetBlock({
         </div>
         <button
           onClick={handleCopy}
-          className="flex shrink-0 items-center gap-1.5 rounded-lg bg-white/5 px-2.5 py-1.5 text-xs font-medium text-white/70 opacity-100 sm:opacity-0 transition-all hover:bg-white/10 hover:text-white sm:group-hover:opacity-100"
+          className="flex shrink-0 items-center gap-1.5 rounded-sm bg-white/5 px-2.5 py-1.5 text-xs font-medium text-white/70 opacity-100 sm:opacity-0 transition-all hover:bg-white/10 hover:text-white sm:group-hover:opacity-100"
         >
           {copied ? <Check className="h-3.5 w-3.5 text-emerald-400" /> : <Copy className="h-3.5 w-3.5" />}
           {copied ? "Copied!" : "Copy"}
@@ -289,9 +271,9 @@ function SnippetBlock({
       
       {/* Code Area */}
       <div className="relative">
-        <div className="absolute -left-20 top-0 h-40 w-40 rounded-full bg-primary/5 blur-[80px]"></div>
+        <div className="absolute -left-20 top-0 h-40 w-40 rounded-full bg-primary/10 blur-[80px] pointer-events-none"></div>
         
-        <pre className="relative overflow-x-auto p-5 text-[13px] leading-relaxed text-white/90 font-mono max-h-[400px]">
+        <pre className="relative overflow-x-auto p-5 text-[14px] leading-relaxed text-white/90 font-mono max-h-[400px] custom-scrollbar selection:bg-primary/30">
           <code className="block w-max min-w-full whitespace-pre">{code}</code>
         </pre>
       </div>
@@ -322,13 +304,13 @@ export default function DocsPage() {
   const tabs: { id: TechStack; label: string; icon: React.ReactNode; hint?: string }[] = [
     { id: "nextjs", label: "Next.js", icon: <Globe className="w-4 h-4" />, hint: "Full-stack web apps" },
     { id: "react", label: "React / Vite", icon: <Code2 className="w-4 h-4" />, hint: "Frontend UI components" },
+    { id: "vue", label: "Vue.js", icon: <Code2 className="w-4 h-4" />, hint: "Frontend UI components" },
     { id: "nodejs", label: "Node.js", icon: <Server className="w-4 h-4" />, hint: "JavaScript backend" },
     { id: "python", label: "Python", icon: <Terminal className="w-4 h-4" />, hint: "Backend + AI apps" },
     { id: "java", label: "Java", icon: <Coffee className="w-4 h-4" />, hint: "Enterprise systems" },
     { id: "php", label: "PHP", icon: <Globe className="w-4 h-4" />, hint: "Websites & CMS" },
     { id: "go", label: "Go", icon: <Terminal className="w-4 h-4" />, hint: "High-performance backend" },
     { id: "rust", label: "Rust", icon: <Database className="w-4 h-4" />, hint: "Ultra-fast secure systems" },
-    { id: "csharp", label: "C#", icon: <FileCode2 className="w-4 h-4" />, hint: "Enterprise & Microsoft stack" },
     { id: "ruby", label: "Ruby", icon: <FileCode2 className="w-4 h-4" />, hint: "Fast MVP/startups" },
     { id: "rest", label: "REST API", icon: <Braces className="w-4 h-4" /> },
   ];
@@ -337,17 +319,26 @@ export default function DocsPage() {
   
   const frameworkSteps: Record<string, WizardStep[]> = {
     nextjs: [
-      { title: "Install the SDK", description: "Install the official TraceForge package.", codeSnippet: installSnippet, codeTitle: "Terminal" },
+      { title: "1-Click Install", description: "Use our CLI wizard to automatically install and configure TraceForge!", codeSnippet: cliInstallSnippet, codeTitle: "Terminal" },
+      { title: "Manual Install", description: "Or install the package manually.", codeSnippet: installSnippet, codeTitle: "Terminal" },
       { title: "Configure Environment", description: "Add your project keys to `.env`.", codeSnippet: nextEnvSnippet, codeTitle: ".env" },
       { title: "Initialize", description: "Create a client component to initialize the SDK globally.", codeSnippet: nextSetupSnippet, codeTitle: "components/TraceForgeInit.tsx" }
     ],
     react: [
-      { title: "Install the SDK", description: "Install the official TraceForge package.", codeSnippet: installSnippet, codeTitle: "Terminal" },
+      { title: "1-Click Install", description: "Use our CLI wizard to automatically install and configure TraceForge!", codeSnippet: cliInstallSnippet, codeTitle: "Terminal" },
+      { title: "Manual Install", description: "Or install the package manually.", codeSnippet: installSnippet, codeTitle: "Terminal" },
       { title: "Configure Environment", description: "Add your project keys to `.env`.", codeSnippet: reactEnvSnippet, codeTitle: ".env" },
       { title: "Initialize", description: "Call `init` as early as possible (e.g. `main.tsx` or `index.tsx`).", codeSnippet: reactSetupSnippet, codeTitle: "src/main.tsx" }
     ],
+    vue: [
+      { title: "1-Click Install", description: "Use our CLI wizard to automatically install and configure TraceForge!", codeSnippet: cliInstallSnippet, codeTitle: "Terminal" },
+      { title: "Manual Install", description: "Or install the package manually.", codeSnippet: installSnippet, codeTitle: "Terminal" },
+      { title: "Configure Environment", description: "Add your project keys to `.env`.", codeSnippet: vueEnvSnippet, codeTitle: ".env" },
+      { title: "Initialize", description: "Call `init` before mounting your Vue app.", codeSnippet: vueSetupSnippet, codeTitle: "src/main.ts" }
+    ],
     nodejs: [
-      { title: "Install the SDK", description: "Install the official TraceForge package.", codeSnippet: installSnippet, codeTitle: "Terminal" },
+      { title: "1-Click Install", description: "Use our CLI wizard to automatically install and configure TraceForge!", codeSnippet: cliInstallSnippet, codeTitle: "Terminal" },
+      { title: "Manual Install", description: "Or install the package manually.", codeSnippet: installSnippet, codeTitle: "Terminal" },
       { title: "Configure Environment", description: "Add your project keys to `.env`.", codeSnippet: nodeEnvSnippet, codeTitle: ".env" },
       { title: "Add Express Middleware", description: "Place the error handler *before* your final catch-all error middleware.", codeSnippet: nodeSetupSnippet, codeTitle: "server.ts" }
     ],
@@ -371,9 +362,6 @@ export default function DocsPage() {
       { title: "Install the SDK", description: "Add the TraceForge crate to your `Cargo.toml` dependencies.", codeSnippet: rustInstallSnippet, codeTitle: "Cargo.toml" },
       { title: "Initialize & Capture", description: "Initialize the SDK and capture panics in your Axum handlers.", codeSnippet: rustSetupSnippet, codeTitle: "src/main.rs" }
     ],
-    csharp: [
-      { title: "Send via HttpClient", description: "Integrate TraceForge seamlessly into your .NET Enterprise apps using `System.Net.Http`.", codeSnippet: csharpSetupSnippet, codeTitle: "TraceForge.cs" }
-    ],
     ruby: [
       { title: "Install the SDK", description: "Add the TraceForge gem to your `Gemfile`.", codeSnippet: rubyInstallSnippet, codeTitle: "Gemfile" },
       { title: "Initialize & Capture", description: "Initialize the SDK and catch exceptions in your Sinatra routes.", codeSnippet: rubySetupSnippet, codeTitle: "app.rb" }
@@ -386,13 +374,13 @@ export default function DocsPage() {
   const demoRepoLinks: Record<string, string> = {
     nextjs: "https://github.com/khushalp2004/Testing-apps-for-traceforge/tree/main/nextjs-project",
     react: "https://github.com/khushalp2004/Testing-apps-for-traceforge/tree/main/react-vite-project",
+    vue: "https://github.com/khushalp2004/Testing-apps-for-traceforge/tree/main/vue-project",
     nodejs: "https://github.com/khushalp2004/Testing-apps-for-traceforge/tree/main/nodejs-project",
     python: "https://github.com/khushalp2004/Testing-apps-for-traceforge/tree/main/python-project",
     java: "https://github.com/khushalp2004/Testing-apps-for-traceforge/tree/main/java-project",
     php: "https://github.com/khushalp2004/Testing-apps-for-traceforge/tree/main/php-project",
     go: "https://github.com/khushalp2004/Testing-apps-for-traceforge/tree/main/go-project",
     rust: "https://github.com/khushalp2004/Testing-apps-for-traceforge/tree/main/rust-project",
-    csharp: "https://github.com/khushalp2004/Testing-apps-for-traceforge/tree/main/csharp-project",
     ruby: "https://github.com/khushalp2004/Testing-apps-for-traceforge/tree/main/ruby-project",
     rest: "PLACE_YOUR_REST_LINK_HERE"
   };
@@ -444,9 +432,10 @@ export default function DocsPage() {
           w-full max-w-4xl h-[600px] ensures it NEVER resizes width or height.
           min-w-0 ensures flex children cannot expand it.
         */}
-        <div className="w-full max-w-4xl h-[550px] sm:h-[600px] min-w-0 bg-card/60 backdrop-blur-xl border border-border/50 shadow-2xl rounded-[28px] sm:rounded-[32px] p-5 sm:p-10 relative overflow-hidden flex flex-col">
+        <div className="w-full max-w-4xl h-[600px] sm:h-[650px] min-w-0 bg-card/60 backdrop-blur-2xl border border-white/5 shadow-[0_8px_40px_rgba(0,0,0,0.08)] rounded-sm p-6 sm:p-10 relative overflow-hidden flex flex-col ring-1 ring-white/10">
           
-          <div className="absolute -top-40 -right-40 w-80 h-80 bg-primary/10 rounded-full blur-[100px] pointer-events-none" />
+          <div className="absolute -top-40 -right-40 w-96 h-96 bg-primary/10 rounded-full blur-[120px] pointer-events-none" />
+          <div className="absolute -bottom-40 -left-40 w-96 h-96 bg-blue-500/10 rounded-full blur-[120px] pointer-events-none" />
 
           {/* Progress Bar (Fixed Height Top Area) */}
           <div className="mb-6 sm:mb-10 flex-shrink-0 relative z-10 w-full">
@@ -510,72 +499,53 @@ export default function DocsPage() {
                       <p className="text-sm sm:text-base text-text-secondary mt-1 sm:mt-2">Search and select the primary language for your application.</p>
                     </div>
                     
-                    {/* Combobox Wrapper */}
-                    <div className="relative mt-4 sm:mt-8">
-                      <div className="relative group">
-                        <div className="absolute inset-y-0 left-3 sm:left-4 flex items-center pointer-events-none text-text-secondary group-focus-within:text-primary transition-colors">
-                          <Search className="w-4 h-4 sm:w-5 sm:h-5" />
+                    {/* Search & Grid Wrapper */}
+                    <div className="mt-4 sm:mt-8 flex flex-col h-full">
+                      <div className="relative group mb-6">
+                        <div className="absolute inset-y-0 left-4 flex items-center pointer-events-none text-text-secondary group-focus-within:text-primary transition-colors">
+                          <Search className="w-5 h-5" />
                         </div>
                         <input
                           type="text"
                           placeholder="Search frameworks (e.g. Next.js, Python)..."
-                          value={isDropdownOpen ? searchQuery : (selectedTabLabel || searchQuery)}
-                          onFocus={() => {
-                            setIsDropdownOpen(true);
-                            setSearchQuery("");
-                          }}
-                          onChange={(e) => {
-                            setSearchQuery(e.target.value);
-                            setIsDropdownOpen(true);
-                            setActiveTab("");
-                          }}
-                          onKeyDown={(e) => {
-                            if (e.key === "Enter" && isDropdownOpen && filteredTabs.length > 0) {
-                              setActiveTab(filteredTabs[0].id);
-                              setSearchQuery("");
-                              setIsDropdownOpen(false);
-                            }
-                          }}
-                          className="w-full bg-secondary/30 border border-border/50 text-text-primary placeholder:text-text-secondary/50 rounded-xl sm:rounded-2xl py-3 sm:py-4 pl-10 sm:pl-12 pr-10 sm:pr-12 text-base sm:text-lg focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary/50 transition-all shadow-inner"
+                          value={searchQuery}
+                          onChange={(e) => setSearchQuery(e.target.value)}
+                          className="w-full appearance-none bg-background/50 border border-border/50 text-text-primary placeholder:text-text-secondary/50 rounded-sm py-3.5 pl-12 pr-6 text-[15px] focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary/50 transition-all shadow-sm backdrop-blur-md"
                         />
-                        {activeTab && !isDropdownOpen && (
-                          <div className="absolute inset-y-0 right-4 flex items-center pointer-events-none text-emerald-500">
-                            <Check className="w-5 h-5" />
-                          </div>
-                        )}
                       </div>
 
-                      {/* Dropdown Suggestions */}
-                      {isDropdownOpen && (
-                        <div className="absolute top-full left-0 w-full mt-2 bg-card border border-border/80 shadow-2xl rounded-2xl overflow-hidden z-50 max-h-60 overflow-y-auto custom-scrollbar">
-                          {filteredTabs.length === 0 ? (
-                            <div className="p-4 text-center text-text-secondary">
-                              No frameworks found matching "{searchQuery}"
-                            </div>
-                          ) : (
-                            <div className="flex flex-col">
-                              {filteredTabs.map((tab) => (
-                                <button
-                                  key={tab.id}
-                                  onClick={() => {
-                                    setActiveTab(tab.id);
-                                    setSearchQuery("");
-                                    setIsDropdownOpen(false);
-                                  }}
-                                  className="flex items-center gap-3 px-4 py-3 hover:bg-secondary/40 transition-colors text-left border-b border-border/20 last:border-0"
-                                >
-                                  <span className="text-primary">{tab.icon}</span>
-                                  <div className="flex flex-col flex-1">
-                                    <span className="font-medium text-text-primary">{tab.label}</span>
-                                    {tab.hint && <span className="text-xs text-text-secondary">{tab.hint}</span>}
-                                  </div>
-                                  <span className="shrink-0 rounded-md bg-emerald-500/10 px-2 py-1 text-[10px] font-medium uppercase tracking-wider text-emerald-500 border border-emerald-500/20">Supported</span>
-                                </button>
-                              ))}
-                            </div>
-                          )}
-                        </div>
-                      )}
+                      {/* Framework Grid */}
+                      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 sm:gap-4 pb-10">
+                        {filteredTabs.length === 0 ? (
+                          <div className="col-span-full py-10 text-center text-text-secondary">
+                            No frameworks found matching "{searchQuery}"
+                          </div>
+                        ) : (
+                          filteredTabs.map((tab) => (
+                            <button
+                              key={tab.id}
+                              onClick={() => {
+                                setActiveTab(tab.id);
+                                setCurrentStep(1); // Advance immediately for a seamless UX
+                              }}
+                              className={`relative group flex flex-col items-center justify-center p-5 rounded-sm border transition-all duration-300 overflow-hidden
+                                ${activeTab === tab.id 
+                                  ? "bg-primary/10 border-primary/50 shadow-[0_0_20px_rgba(var(--primary-rgb),0.15)] ring-1 ring-primary/20" 
+                                  : "bg-secondary/20 border-border/30 hover:bg-secondary/40 hover:border-primary/30 hover:shadow-lg hover:-translate-y-0.5"
+                                }
+                              `}
+                            >
+                              <div className="absolute inset-0 bg-gradient-to-br from-white/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
+                              <div className={`p-3 rounded-sm mb-3 transition-colors duration-300 ${activeTab === tab.id ? "bg-primary text-white shadow-md shadow-primary/20" : "bg-card text-text-secondary group-hover:text-primary group-hover:bg-primary/10"}`}>
+                                {tab.icon}
+                              </div>
+                              <span className={`text-[14px] font-semibold transition-colors ${activeTab === tab.id ? "text-primary" : "text-text-primary"}`}>
+                                {tab.label}
+                              </span>
+                            </button>
+                          ))
+                        )}
+                      </div>
                     </div>
                   </div>
                 )}
@@ -608,7 +578,7 @@ export default function DocsPage() {
                     <div className="flex flex-col sm:flex-row items-center justify-center gap-4 w-full mt-4">
                       <Link 
                         href="/dashboard" 
-                        className="w-full sm:w-auto px-6 py-3 bg-primary text-white rounded-xl font-medium text-sm sm:text-base hover:bg-primary/90 transition-all duration-300 shadow-[0_0_20px_rgba(var(--primary-rgb),0.3)] hover:shadow-[0_0_30px_rgba(var(--primary-rgb),0.5)] hover:-translate-y-0.5 flex justify-center"
+                        className="w-full sm:w-auto px-6 py-3 rounded-sm bg-primary hover:bg-primary-hover font-semibold text-[15px] text-primary-foreground shadow-sm transition-colors flex justify-center"
                       >
                         Go to Dashboard
                       </Link>
@@ -618,12 +588,11 @@ export default function DocsPage() {
                           href={demoRepoLinks[activeTab]}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="group w-full sm:w-auto relative inline-flex items-center justify-center gap-2.5 px-6 py-3 rounded-xl border border-border/50 bg-secondary/30 backdrop-blur-md text-sm sm:text-base font-medium text-text-secondary transition-all duration-300 hover:bg-secondary/60 hover:border-border/80 hover:text-text-primary hover:-translate-y-0.5 overflow-hidden"
+                          className="group w-full sm:w-auto relative inline-flex items-center justify-center gap-2.5 px-6 py-3 rounded-sm border border-border/40 bg-secondary/30 font-semibold text-[15px] text-text-secondary transition-colors hover:bg-secondary/50 hover:text-text-primary overflow-hidden shadow-sm"
                         >
-                          <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-primary/0 via-primary/5 to-primary/0 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
                           <Globe className="w-4 h-4 text-primary/80 group-hover:text-primary transition-colors relative z-10" />
                           <span className="relative z-10">Explore {tabs.find(t => t.id === activeTab)?.label} Demo</span>
-                          <span className="relative z-10 ml-0.5 opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-300">→</span>
+                          <span className="relative z-10 ml-0.5 opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all">→</span>
                         </a>
                       )}
                     </div>
@@ -634,25 +603,23 @@ export default function DocsPage() {
           </div>
 
           {/* Navigation Buttons (Fixed Height Bottom Area) */}
-          <div className="mt-4 pt-4 sm:pt-6 border-t border-border/50 flex justify-between items-center relative z-10 flex-shrink-0 w-full">
-            <button
-              onClick={() => setCurrentStep(prev => Math.max(0, prev - 1))}
-              disabled={currentStep === 0}
-              className={`px-4 py-2 sm:px-5 sm:py-2.5 rounded-xl font-medium text-sm sm:text-base transition-all duration-300 ${currentStep === 0 ? "opacity-0 pointer-events-none" : "bg-secondary text-text-primary hover:bg-secondary/80"}`}
-            >
-              ← Back
-            </button>
+          <div className="flex items-center justify-between mt-6 sm:mt-10 pt-6 border-t border-border/40 shrink-0">
+          <button
+            onClick={() => setCurrentStep(prev => Math.max(0, prev - 1))}
+            disabled={currentStep === 0}
+            className={`px-5 py-2.5 rounded-sm font-medium text-[14px] transition-all ${currentStep === 0 ? "opacity-0 pointer-events-none" : "text-text-secondary hover:text-text-primary hover:bg-secondary/50"}`}
+          >
+            Back
+          </button>
 
-            {!isComplete && (
-              <button
-                onClick={handleNextStep}
-                className="px-5 py-2 sm:px-6 sm:py-2.5 rounded-xl font-semibold text-sm sm:text-base bg-primary text-white hover:bg-primary/90 transition-all duration-300 shadow-lg shadow-primary/20 flex items-center gap-1 sm:gap-2"
-              >
-                {currentStep === 0 ? "Continue to Setup" : currentStep === totalWizardSteps ? "Finish Setup" : "Next Step"}
-                <span className="text-base sm:text-lg leading-none">→</span>
-              </button>
-            )}
-          </div>
+          <button
+            onClick={handleNextStep}
+            disabled={isComplete}
+            className={`px-6 py-2.5 rounded-sm font-semibold text-[14px] transition-all shadow-sm ${isComplete ? "opacity-0 pointer-events-none" : "bg-primary hover:bg-primary-hover hover:scale-[1.02] hover:shadow-[0_0_15px_rgba(var(--primary-rgb),0.3)] text-primary-foreground"}`}
+          >
+            {currentStep === totalWizardSteps ? "Finish" : "Next Step"}
+          </button>
+        </div>
         </div>
       </div>
 
@@ -664,33 +631,33 @@ export default function DocsPage() {
         </div>
 
         <div className="grid gap-6 sm:grid-cols-2">
-          <div className="rounded-[24px] border border-border/50 bg-card/40 p-6 shadow-sm backdrop-blur-md">
-            <h3 className="text-lg font-semibold text-text-primary mb-3">Operational Checklist</h3>
+          <div className="rounded-sm border border-border/40 bg-card p-6 shadow-sm">
+            <h3 className="text-[17px] font-bold text-text-primary mb-3">Operational Checklist</h3>
             <div className="space-y-3">
               <div className="flex items-start gap-2">
-                <Check className="w-3.5 h-3.5 text-emerald-500 shrink-0 mt-0.5" />
-                <p className="text-xs text-text-secondary leading-relaxed">Keep environment tags consistent (production, staging, development).</p>
+                <Check className="w-4 h-4 text-primary shrink-0 mt-0.5" />
+                <p className="text-[14px] text-text-secondary leading-relaxed">Keep environment tags consistent (production, staging, development).</p>
               </div>
               <div className="flex items-start gap-2">
-                <Check className="w-3.5 h-3.5 text-emerald-500 shrink-0 mt-0.5" />
-                <p className="text-xs text-text-secondary leading-relaxed">Send a stable release like `api@2.8.0` to correlate deploys with spikes.</p>
+                <Check className="w-4 h-4 text-primary shrink-0 mt-0.5" />
+                <p className="text-[14px] text-text-secondary leading-relaxed">Send a stable release like `api@2.8.0` to correlate deploys with spikes.</p>
               </div>
             </div>
           </div>
 
-          <div className="rounded-[24px] border border-border/50 bg-card/40 p-6 shadow-sm backdrop-blur-md">
-            <h3 className="text-lg font-semibold text-text-primary mb-3">Troubleshooting</h3>
+          <div className="rounded-sm border border-border/40 bg-card p-6 shadow-sm">
+            <h3 className="text-[17px] font-bold text-text-primary mb-3">Troubleshooting</h3>
             <ul className="space-y-2">
-              <li className="flex items-start gap-2 text-xs text-text-secondary leading-relaxed">
-                <span className="w-1.5 h-1.5 rounded-full bg-primary/50 shrink-0 mt-1"></span>
+              <li className="flex items-start gap-2 text-[14px] text-text-secondary leading-relaxed">
+                <span className="w-1.5 h-1.5 rounded-full bg-primary shrink-0 mt-1.5"></span>
                 Check that the project API key matches the project.
               </li>
-              <li className="flex items-start gap-2 text-xs text-text-secondary leading-relaxed">
-                <span className="w-1.5 h-1.5 rounded-full bg-primary/50 shrink-0 mt-1"></span>
+              <li className="flex items-start gap-2 text-[14px] text-text-secondary leading-relaxed">
+                <span className="w-1.5 h-1.5 rounded-full bg-primary shrink-0 mt-1.5"></span>
                 Verify the ingest endpoint is reachable from your service.
               </li>
-              <li className="flex items-start gap-2 text-xs text-text-secondary leading-relaxed">
-                <span className="w-1.5 h-1.5 rounded-full bg-primary/50 shrink-0 mt-1"></span>
+              <li className="flex items-start gap-2 text-[14px] text-text-secondary leading-relaxed">
+                <span className="w-1.5 h-1.5 rounded-full bg-primary shrink-0 mt-1.5"></span>
                 Browser-originated ingest requires CORS. Backend events avoid this.
               </li>
             </ul>
@@ -700,8 +667,10 @@ export default function DocsPage() {
 
       {toast && (
         <div
-          className={`fixed bottom-6 right-6 z-50 rounded-full px-5 py-2.5 text-sm font-semibold text-white shadow-xl animate-in slide-in-from-bottom-4 ${
-            toast.tone === "success" ? "bg-emerald-500" : "bg-red-500"
+          className={`tf-dashboard-toast animate-fade-up ${
+            toast.tone === "success"
+              ? "bg-[hsl(var(--success))] text-white"
+              : "bg-[hsl(var(--destructive))] text-white"
           }`}
         >
           {toast.message}
