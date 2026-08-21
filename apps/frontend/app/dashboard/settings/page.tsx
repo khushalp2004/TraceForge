@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Check } from "lucide-react";
+import { Check, ChevronDown } from "lucide-react";
 import { LoadingButtonContent } from "../../../components/ui/loading-button-content";
 import { PageDescriptionPopover } from "@/components/ui/page-description-popover";
 
@@ -96,24 +96,23 @@ type JiraIntegrationState = {
   selectedProjectName?: string;
 };
 
-const settingsCardClass = "min-w-0 overflow-hidden rounded-2xl border border-border bg-card/95 p-5 shadow-sm";
-const subtlePanelClass = "min-w-0 overflow-hidden rounded-xl border border-border bg-secondary/20 p-4";
-const compactPanelClass = "min-w-0 overflow-hidden rounded-xl border border-border bg-secondary/20 p-4";
+const settingsCardClass = "min-w-0 overflow-hidden rounded-[24px] border border-border/40 bg-card p-6 shadow-sm";
+const subtlePanelClass = "min-w-0 overflow-hidden rounded-[16px] border border-border/40 bg-secondary/10 p-5 shadow-inner";
+const compactPanelClass = "min-w-0 overflow-hidden rounded-[16px] border border-border/40 bg-secondary/10 p-5 shadow-inner";
 const setupStateClass =
-  "mt-5 min-w-0 overflow-hidden rounded-xl border border-border bg-secondary/20 px-4 py-4 text-sm text-text-secondary";
-const settingsSelectClass = "tf-select tf-filter-control w-full";
+  "mt-6 py-10 px-4 text-center text-[15px] font-semibold text-text-primary border-t border-border/40 animate-fade-up";
 
 const integrationStatusMeta = (connected: boolean) =>
   connected
     ? {
         label: "Connected",
         className:
-          "inline-flex w-fit max-w-full items-center rounded-full border border-emerald-500/20 bg-emerald-500/10 px-2.5 py-1 text-xs font-semibold text-emerald-300"
+          "inline-flex w-fit max-w-full items-center rounded-[4px] border border-emerald-500/20 bg-emerald-500/10 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-emerald-500"
       }
     : {
         label: "Not connected",
         className:
-          "inline-flex w-fit max-w-full items-center rounded-full border border-border bg-secondary/30 px-2.5 py-1 text-xs font-semibold text-text-secondary"
+          "inline-flex w-fit max-w-full items-center rounded-[4px] border border-border/50 bg-secondary/20 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-text-secondary"
       };
 
 const integrationTone = (connected: boolean) =>
@@ -550,7 +549,7 @@ export default function SettingsPage() {
           <div className="min-w-0">
             <p className="tf-kicker">Settings</p>
             <div className="mt-2 flex items-center">
-              <h1 className="font-display text-2xl font-semibold text-text-primary">
+              <h1 className="text-3xl font-bold text-text-primary">
                 Workspace Integrations
               </h1>
               <PageDescriptionPopover>
@@ -560,12 +559,12 @@ export default function SettingsPage() {
           </div>
           
           <div className="flex shrink-0 flex-col sm:items-end">
-            <label className="mb-2 block text-[11px] font-semibold uppercase tracking-[0.16em] text-text-secondary">
+            <label className="mb-2 block text-[11px] font-bold uppercase tracking-wider text-text-secondary">
               Settings Scope
             </label>
-            <div className="flex items-center gap-2 rounded-xl border border-border bg-card/90 px-3 py-2 shadow-sm min-w-[200px]">
+            <div className="relative min-w-[240px]">
               <select
-                className="bg-transparent text-sm font-semibold text-text-primary outline-none w-full"
+                className="w-full appearance-none rounded-sm bg-card border border-border/40 text-[14px] font-medium px-4 py-2.5 text-text-primary outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary/50 shadow-sm transition-all cursor-pointer"
                 value={selectedOrgId}
                 onChange={(event) => setSelectedOrgId(event.target.value)}
                 disabled={orgsLoading}
@@ -577,10 +576,13 @@ export default function SettingsPage() {
                   </option>
                 ))}
               </select>
+              <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-text-secondary">
+                <ChevronDown className="h-4 w-4" />
+              </div>
             </div>
             <div className="mt-2 flex items-center justify-end h-4">
               {selectedOrg && (
-                <span className="tf-muted-tag text-[10px] py-0.5 px-2">
+                <span className="rounded-[4px] bg-secondary/30 border border-border/50 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-text-secondary">
                   Role: {selectedOrg.role === "OWNER" ? "Owner" : "Member"}
                 </span>
               )}
@@ -595,9 +597,9 @@ export default function SettingsPage() {
             <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
               <div className="min-w-0">
                 <div className="flex flex-wrap items-center gap-2">
-                  <h2 className="text-lg font-semibold text-text-primary">GitHub</h2>
+                  <h2 className="text-xl font-bold text-text-primary">GitHub</h2>
                 </div>
-                <p className="mt-1 text-sm text-text-secondary">
+                <p className="mt-1.5 text-[14px] text-text-secondary">
                   Connect one personal GitHub account, then keep the repos you care about selected.
                 </p>
               </div>
@@ -611,17 +613,17 @@ export default function SettingsPage() {
                 Add GitHub OAuth env values first, then connect your account here.
               </div>
             ) : !github?.connected ? (
-              <div className="mt-5 rounded-xl border border-border bg-secondary/20 p-5">
-                <div className="flex flex-col gap-4 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
+              <div className="mt-6 rounded-[16px] border border-border/40 bg-secondary/10 p-6 shadow-inner">
+                <div className="flex flex-col gap-5 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
                   <div className="max-w-2xl">
-                    <p className="text-sm font-semibold text-text-primary">Connect your GitHub account</p>
-                    <p className="mt-1 text-sm text-text-secondary">
+                    <p className="text-[15px] font-bold text-text-primary">Connect your GitHub account</p>
+                    <p className="mt-1.5 text-[14px] leading-relaxed text-text-secondary">
                       We’ll import your repositories after OAuth, then you can choose which ones TraceForge should keep for release context.
                     </p>
                   </div>
                   <button
                     type="button"
-                    className="tf-button w-full px-4 py-2 text-sm sm:w-auto"
+                    className="rounded-sm bg-primary hover:bg-primary-hover w-full sm:w-auto px-5 py-2.5 text-sm font-semibold text-primary-foreground shadow-sm transition-colors"
                     onClick={() => void redirectToOAuth("/auth/github/integration/start", "github-connect")}
                     disabled={loadingAction === "github-connect"}
                   >
@@ -638,48 +640,48 @@ export default function SettingsPage() {
                 </div>
               </div>
             ) : (
-              <div className="mt-5 space-y-4">
-                <div className="rounded-xl border border-border bg-secondary/20 p-5">
+              <div className="mt-6 space-y-5">
+                <div className="rounded-[16px] border border-border/40 bg-secondary/10 p-6 shadow-inner">
                   <div className="flex flex-col gap-4 sm:flex-row sm:flex-wrap sm:items-start sm:justify-between">
                     <div className="min-w-0">
-                      <p className="text-sm font-semibold text-text-primary">
+                      <p className="text-[15px] font-bold text-text-primary">
                         {github.account?.name || "GitHub account"}
                       </p>
-                      <p className="mt-1 break-all text-sm text-text-secondary">
+                      <p className="mt-1.5 break-all text-[14px] text-text-secondary">
                         {github.account?.login ? `Connected as @${github.account.login}` : "Connected"}
                       </p>
                     </div>
                     <div className="flex flex-wrap items-center gap-2">
-                      <span className="text-sm font-medium text-text-secondary">{selectedRepoIds.length} selected</span>
-                      {github.error ? <span className="tf-warning-tag">Needs attention</span> : null}
+                      <span className="text-[13px] font-semibold text-text-secondary">{selectedRepoIds.length} selected</span>
+                      {github.error ? <span className="rounded-[4px] bg-red-500/10 border border-red-500/20 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-red-500">Needs attention</span> : null}
                     </div>
                   </div>
 
-                  <div className="mt-4 grid gap-3 sm:grid-cols-3">
+                  <div className="mt-6 grid gap-4 sm:grid-cols-3">
                     <div className={compactPanelClass}>
-                      <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-text-secondary">
+                      <p className="text-[11px] font-bold uppercase tracking-wider text-text-secondary">
                         Repositories
                       </p>
-                      <p className="mt-2 text-lg font-semibold text-text-primary">{github.repos?.length || 0}</p>
+                      <p className="mt-2 text-2xl font-bold text-text-primary tracking-tight">{github.repos?.length || 0}</p>
                     </div>
                     <div className={compactPanelClass}>
-                      <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-text-secondary">
+                      <p className="text-[11px] font-bold uppercase tracking-wider text-text-secondary">
                         Selected
                       </p>
-                      <p className="mt-2 text-lg font-semibold text-text-primary">{selectedRepoIds.length}</p>
+                      <p className="mt-2 text-2xl font-bold text-text-primary tracking-tight">{selectedRepoIds.length}</p>
                     </div>
                     <div className={compactPanelClass}>
-                      <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-text-secondary">
+                      <p className="text-[11px] font-bold uppercase tracking-wider text-text-secondary">
                         Scope
                       </p>
-                      <p className="mt-2 text-lg font-semibold text-text-primary">Personal</p>
+                      <p className="mt-2 text-2xl font-bold text-text-primary tracking-tight">Personal</p>
                     </div>
                   </div>
 
-                  <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-end">
+                  <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-end">
                     <button
                       type="button"
-                      className="tf-button-ghost w-full px-4 py-2 text-sm sm:w-auto"
+                      className="rounded-sm bg-secondary/30 hover:bg-secondary/50 w-full sm:w-auto px-5 py-2.5 text-sm font-semibold text-text-primary shadow-sm transition-colors"
                       onClick={() => void disconnectGithub()}
                       disabled={loadingAction === "github-disconnect"}
                     >
@@ -695,7 +697,7 @@ export default function SettingsPage() {
                     </button>
                     <button
                       type="button"
-                      className="tf-button w-full px-4 py-2 text-sm sm:w-auto"
+                      className="rounded-sm bg-primary hover:bg-primary-hover w-full sm:w-auto px-5 py-2.5 text-sm font-semibold text-primary-foreground shadow-sm transition-colors"
                       onClick={() => void saveGithubRepos()}
                       disabled={loadingAction === "github-save"}
                     >
@@ -712,24 +714,24 @@ export default function SettingsPage() {
                   </div>
                 </div>
 
-                <div className="rounded-xl border border-border bg-secondary/20 p-4">
+                <div className="rounded-[16px] border border-border/40 bg-secondary/10 p-6 shadow-inner">
                   <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
                     <div>
-                      <p className="text-sm font-semibold text-text-primary">Choose repositories</p>
-                      <p className="mt-1 text-sm text-text-secondary">
+                      <p className="text-[15px] font-bold text-text-primary">Choose repositories</p>
+                      <p className="mt-1 text-[14px] text-text-secondary">
                         Keep only the repos you want TraceForge to use for release context and ownership.
                       </p>
                     </div>
-                    <span className="text-sm font-medium text-text-secondary">{selectedRepoIds.length} selected</span>
+                    <span className="text-[13px] font-semibold text-text-secondary">{selectedRepoIds.length} selected</span>
                   </div>
 
-                  <div className="mt-4 max-h-80 space-y-2 overflow-y-auto pr-1">
+                  <div className="mt-5 max-h-80 space-y-2 overflow-y-auto pr-1">
                     {(github.repos || []).map((repo) => {
                       const checked = selectedRepoIds.includes(repo.id);
                       return (
                         <label
                           key={repo.id}
-                          className="flex cursor-pointer items-center gap-3 rounded-xl border border-border bg-secondary/20 px-3 py-3 text-sm text-text-primary transition hover:bg-card group/repo"
+                          className="flex cursor-pointer items-center gap-3 rounded-[12px] border border-border/40 bg-background/50 px-4 py-3 text-[14px] text-text-primary transition-colors hover:border-border/80 shadow-sm group/repo"
                         >
                           <div className="relative flex items-center p-1 -ml-1">
                             <input
@@ -744,12 +746,12 @@ export default function SettingsPage() {
                                 );
                               }}
                             />
-                            <div className={`h-4 w-4 rounded-[4px] border transition-all flex items-center justify-center ${checked ? "border-brand-primary bg-brand-primary text-white" : "border-text-secondary/50 bg-transparent group-hover/repo:border-text-secondary/80"}`}>
+                            <div className={`h-4 w-4 rounded-sm border transition-all flex items-center justify-center ${checked ? "border-brand-primary bg-brand-primary text-white" : "border-text-secondary/50 bg-transparent group-hover/repo:border-text-secondary/80"}`}>
                               {checked && <Check className="h-3 w-3 stroke-[3]" />}
                             </div>
                           </div>
                           <div className="min-w-0 flex-1">
-                            <p className="break-all font-medium sm:truncate">{repo.fullName}</p>
+                            <p className="break-all font-semibold sm:truncate text-text-primary">{repo.fullName}</p>
                             <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-text-secondary">
                               <span>{repo.private ? "Private" : "Public"}</span>
                             </div>
@@ -768,13 +770,13 @@ export default function SettingsPage() {
               <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
                 <div className="min-w-0">
                   <div className="flex flex-wrap items-center gap-2">
-                    <h2 className="text-lg font-semibold text-text-primary">Slack</h2>
-                    <span className="rounded-full border border-border bg-card/50 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-text-secondary">Workspace</span>
+                    <h2 className="text-xl font-bold text-text-primary">Slack</h2>
+                    <span className="rounded-[4px] border border-border/50 bg-secondary/20 px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-text-secondary shadow-sm">Workspace</span>
                     <span className={integrationStatusMeta(Boolean(slack?.connected)).className}>
                       {integrationStatusMeta(Boolean(slack?.connected)).label}
                     </span>
                   </div>
-                  <p className="mt-1 break-words text-sm text-text-secondary">
+                  <p className="mt-1.5 break-words text-[14px] text-text-secondary">
                     Route workspace alerts into one default Slack channel.
                   </p>
                 </div>
@@ -789,28 +791,28 @@ export default function SettingsPage() {
                   Add Slack OAuth env values first, then connect this workspace.
                 </div>
               ) : user?.plan === "FREE" && selectedOrg.plan !== "TEAM" ? (
-                <div className="mt-5 flex flex-col gap-4 rounded-xl border border-border bg-secondary/20 px-4 py-4 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
+                <div className="mt-6 flex flex-col gap-4 rounded-[16px] border border-border/40 bg-secondary/10 px-6 py-6 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between shadow-inner">
                   <div className="max-w-xl">
-                    <p className="text-sm font-semibold text-text-primary">Upgrade to connect Slack</p>
-                    <p className="mt-1 break-words text-sm text-text-secondary">
+                    <p className="text-[15px] font-bold text-text-primary">Upgrade to connect Slack</p>
+                    <p className="mt-1.5 break-words text-[14px] text-text-secondary leading-relaxed">
                       Slack integration is only available on paid plans. Upgrade to Pro or Team to enable alert delivery to Slack.
                     </p>
                   </div>
                   <Link
                     href="/dashboard/billing"
-                    className="tf-button w-full px-4 py-2 text-sm sm:w-auto text-center"
+                    className="rounded-sm bg-primary hover:bg-primary-hover w-full sm:w-auto px-5 py-2.5 text-sm font-semibold text-primary-foreground shadow-sm transition-colors text-center"
                   >
                     View Plans
                   </Link>
                 </div>
               ) : !slack?.connected ? (
-                <div className="mt-5 flex flex-col gap-4 rounded-xl border border-border bg-secondary/20 px-4 py-4 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
-                  <p className="max-w-xl break-words text-sm text-text-secondary">
+                <div className="mt-6 flex flex-col gap-5 rounded-[16px] border border-border/40 bg-secondary/10 px-6 py-6 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between shadow-inner">
+                  <p className="max-w-xl break-words text-[14px] text-text-secondary leading-relaxed">
                     Connect Slack once for this organization, then choose the default channel used for alert delivery.
                   </p>
                   <button
                     type="button"
-                    className="tf-button w-full px-4 py-2 text-sm sm:w-auto"
+                    className="rounded-sm bg-primary hover:bg-primary-hover w-full sm:w-auto px-5 py-2.5 text-sm font-semibold text-primary-foreground shadow-sm transition-colors"
                     onClick={() =>
                       void redirectToOAuth("/integrations/slack/start", "slack-connect", {
                         orgId: selectedOrgId
@@ -830,18 +832,18 @@ export default function SettingsPage() {
                   </button>
                 </div>
               ) : (
-                <div className="mt-5 flex flex-col gap-4 flex-1">
+                <div className="mt-6 flex flex-col gap-5 flex-1">
                   <div className={subtlePanelClass}>
-                    <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
+                    <div className="flex flex-col gap-4 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
                       <div>
-                        <p className="text-sm font-semibold text-text-primary">Current setup</p>
-                        <p className="mt-1 break-words text-sm text-text-secondary">
+                        <p className="text-[15px] font-bold text-text-primary">Current setup</p>
+                        <p className="mt-1.5 break-words text-[14px] text-text-secondary">
                           {slack.selectedChannelName
                             ? "Slack is ready to deliver alerts into your selected channel."
                             : "Choose a default channel for alert delivery."}
                         </p>
                       </div>
-                      <span className="text-sm font-medium text-text-secondary max-w-full break-words text-right">
+                      <span className="text-[13px] font-semibold text-text-secondary max-w-full break-words text-right">
                         {slack.workspace?.name || "Workspace"}
                       </span>
                     </div>
@@ -849,42 +851,47 @@ export default function SettingsPage() {
 
                   <div className="grid gap-4 sm:grid-cols-2">
                     <div className={compactPanelClass}>
-                      <label className="mb-2 block text-[11px] font-semibold uppercase tracking-[0.16em] text-text-secondary">
+                      <label className="mb-2 block text-[11px] font-bold uppercase tracking-wider text-text-secondary">
                         Slack workspace
                       </label>
-                      <p className="text-sm font-semibold text-text-primary">
+                      <p className="text-[15px] font-bold text-text-primary">
                         {slack.workspace?.name || "Slack workspace"}
                       </p>
-                      <p className="mt-1 break-words text-sm text-text-secondary">
+                      <p className="mt-1.5 break-words text-[13px] text-text-secondary">
                         Connected for {selectedOrg.name}.
                       </p>
                     </div>
 
                     <div className={compactPanelClass}>
-                      <label className="mb-2 block text-[11px] font-semibold uppercase tracking-[0.16em] text-text-secondary">
+                      <label className="mb-2 block text-[11px] font-bold uppercase tracking-wider text-text-secondary">
                         Default channel
                       </label>
-                      <select
-                        value={selectedSlackChannelId}
-                        onChange={(event) => setSelectedSlackChannelId(event.target.value)}
-                        className={settingsSelectClass}
-                        disabled={selectedOrg.role !== "OWNER"}
-                      >
-                        <option value="">Choose a channel</option>
-                        {(slack.channels || []).map((channel) => (
-                          <option key={channel.id} value={channel.id}>
-                            {channel.isPrivate ? "🔒 " : "#"}
-                            {channel.name}
-                          </option>
-                        ))}
-                      </select>
+                      <div className="relative">
+                        <select
+                          value={selectedSlackChannelId}
+                          onChange={(event) => setSelectedSlackChannelId(event.target.value)}
+                          className="w-full appearance-none rounded-sm bg-card border border-border/40 text-[14px] font-medium px-4 py-2.5 text-text-primary outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary/50 shadow-sm transition-all cursor-pointer"
+                          disabled={selectedOrg.role !== "OWNER"}
+                        >
+                          <option value="">Choose a channel</option>
+                          {(slack.channels || []).map((channel) => (
+                            <option key={channel.id} value={channel.id}>
+                              {channel.isPrivate ? "🔒 " : "#"}
+                              {channel.name}
+                            </option>
+                          ))}
+                        </select>
+                        <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-text-secondary">
+                          <ChevronDown className="h-4 w-4" />
+                        </div>
+                      </div>
                     </div>
                   </div>
 
                   <div className="mt-auto pt-2 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-end">
                     <button
                       type="button"
-                      className="tf-button-ghost w-full px-4 py-2 text-sm sm:w-auto"
+                      className="rounded-sm bg-secondary/30 hover:bg-secondary/50 w-full sm:w-auto px-5 py-2.5 text-sm font-semibold text-text-primary shadow-sm transition-colors"
                       onClick={() => void disconnectSlack()}
                       disabled={selectedOrg.role !== "OWNER" || loadingAction === "slack-disconnect"}
                     >
@@ -900,7 +907,7 @@ export default function SettingsPage() {
                     </button>
                     <button
                       type="button"
-                      className="tf-button-ghost w-full px-4 py-2 text-sm sm:w-auto"
+                      className="rounded-sm bg-secondary/30 hover:bg-secondary/50 w-full sm:w-auto px-5 py-2.5 text-sm font-semibold text-text-primary shadow-sm transition-colors"
                       onClick={() => void sendSlackTest()}
                       disabled={selectedOrg.role !== "OWNER" || loadingAction === "slack-test"}
                     >
@@ -916,7 +923,7 @@ export default function SettingsPage() {
                     </button>
                     <button
                       type="button"
-                      className="tf-button w-full px-4 py-2 text-sm sm:w-auto"
+                      className="rounded-sm bg-primary hover:bg-primary-hover w-full sm:w-auto px-5 py-2.5 text-sm font-semibold text-primary-foreground shadow-sm transition-colors"
                       onClick={() => void saveSlackChannel()}
                       disabled={
                         selectedOrg.role !== "OWNER" ||
@@ -943,13 +950,13 @@ export default function SettingsPage() {
               <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
                 <div className="min-w-0">
                   <div className="flex flex-wrap items-center gap-2">
-                    <h2 className="text-lg font-semibold text-text-primary">Jira</h2>
-                    <span className="rounded-full border border-border bg-card/50 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-text-secondary">Workspace</span>
+                    <h2 className="text-xl font-bold text-text-primary">Jira</h2>
+                    <span className="rounded-[4px] border border-border/50 bg-secondary/20 px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-text-secondary shadow-sm">Workspace</span>
                     <span className={integrationStatusMeta(Boolean(jira?.connected)).className}>
                       {integrationStatusMeta(Boolean(jira?.connected)).label}
                     </span>
                   </div>
-                  <p className="mt-1 break-words text-sm text-text-secondary">
+                  <p className="mt-1.5 break-words text-[14px] text-text-secondary">
                     Connect Jira once, then pick the site and default project used by this workspace.
                   </p>
                 </div>
@@ -964,28 +971,28 @@ export default function SettingsPage() {
                   Add Jira OAuth env values first, then connect this workspace.
                 </div>
               ) : user?.plan === "FREE" && selectedOrg.plan !== "TEAM" ? (
-                <div className="mt-5 flex flex-col gap-4 rounded-xl border border-border bg-secondary/20 px-4 py-4 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
+                <div className="mt-6 flex flex-col gap-4 rounded-[16px] border border-border/40 bg-secondary/10 px-6 py-6 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between shadow-inner">
                   <div className="max-w-xl">
-                    <p className="text-sm font-semibold text-text-primary">Upgrade to connect Jira</p>
-                    <p className="mt-1 break-words text-sm text-text-secondary">
+                    <p className="text-[15px] font-bold text-text-primary">Upgrade to connect Jira</p>
+                    <p className="mt-1.5 break-words text-[14px] text-text-secondary leading-relaxed">
                       Jira integration is only available on paid plans. Upgrade to Pro or Team to enable issue creation in Jira.
                     </p>
                   </div>
                   <Link
                     href="/dashboard/billing"
-                    className="tf-button w-full px-4 py-2 text-sm sm:w-auto text-center"
+                    className="rounded-sm bg-primary hover:bg-primary-hover w-full sm:w-auto px-5 py-2.5 text-sm font-semibold text-primary-foreground shadow-sm transition-colors text-center"
                   >
                     View Plans
                   </Link>
                 </div>
               ) : !jira?.connected ? (
-                <div className="mt-5 flex flex-col gap-4 rounded-xl border border-border bg-secondary/20 px-4 py-4 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
-                  <p className="max-w-xl break-words text-sm text-text-secondary">
+                <div className="mt-6 flex flex-col gap-5 rounded-[16px] border border-border/40 bg-secondary/10 px-6 py-6 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between shadow-inner">
+                  <p className="max-w-xl break-words text-[14px] text-text-secondary leading-relaxed">
                     Connect Jira for this organization, then choose the site and default project TraceForge should use.
                   </p>
                   <button
                     type="button"
-                    className="tf-button w-full px-4 py-2 text-sm sm:w-auto"
+                    className="rounded-sm bg-primary hover:bg-primary-hover w-full sm:w-auto px-5 py-2.5 text-sm font-semibold text-primary-foreground shadow-sm transition-colors"
                     onClick={() =>
                       void redirectToOAuth("/integrations/jira/start", "jira-connect", {
                         orgId: selectedOrgId
@@ -1005,18 +1012,18 @@ export default function SettingsPage() {
                   </button>
                 </div>
               ) : (
-                <div className="mt-5 flex flex-col gap-4 flex-1">
+                <div className="mt-6 flex flex-col gap-5 flex-1">
                   <div className={subtlePanelClass}>
-                    <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
+                    <div className="flex flex-col gap-4 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
                       <div>
-                        <p className="text-sm font-semibold text-text-primary">Current setup</p>
-                        <p className="mt-1 break-words text-sm text-text-secondary">
+                        <p className="text-[15px] font-bold text-text-primary">Current setup</p>
+                        <p className="mt-1.5 break-words text-[14px] text-text-secondary">
                           {jira.selectedProjectName
                             ? "Jira is ready to create issues in your selected project."
                             : "Choose a site and default project for Jira issue creation."}
                         </p>
                       </div>
-                      <span className="text-sm font-medium text-text-secondary max-w-full break-words text-right">
+                      <span className="text-[13px] font-semibold text-text-secondary max-w-full break-words text-right">
                         {selectedJiraSite?.name || "No site selected"}
                       </span>
                     </div>
@@ -1024,49 +1031,59 @@ export default function SettingsPage() {
 
                   <div className="grid gap-4 sm:grid-cols-2">
                     <div className={compactPanelClass}>
-                      <label className="mb-2 block text-[11px] font-semibold uppercase tracking-[0.16em] text-text-secondary">
+                      <label className="mb-2 block text-[11px] font-bold uppercase tracking-wider text-text-secondary">
                         Jira site
                       </label>
-                      <select
-                        value={selectedJiraSiteId}
-                        onChange={(event) => {
-                          const nextSiteId = event.target.value;
-                          setSelectedJiraSiteId(nextSiteId);
-                          setSelectedJiraProjectId("");
-                          if (selectedOrgId) {
-                            void loadJira(selectedOrgId, nextSiteId);
-                          }
-                        }}
-                        className={settingsSelectClass}
-                        disabled={selectedOrg.role !== "OWNER"}
-                      >
-                        <option value="">Choose a site</option>
-                        {(jira.sites || []).map((site) => (
-                          <option key={site.id} value={site.id}>
-                            {site.name}
-                          </option>
-                        ))}
-                      </select>
+                      <div className="relative">
+                        <select
+                          value={selectedJiraSiteId}
+                          onChange={(event) => {
+                            const nextSiteId = event.target.value;
+                            setSelectedJiraSiteId(nextSiteId);
+                            setSelectedJiraProjectId("");
+                            if (selectedOrgId) {
+                              void loadJira(selectedOrgId, nextSiteId);
+                            }
+                          }}
+                          className="w-full appearance-none rounded-sm bg-card border border-border/40 text-[14px] font-medium px-4 py-2.5 text-text-primary outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary/50 shadow-sm transition-all cursor-pointer"
+                          disabled={selectedOrg.role !== "OWNER"}
+                        >
+                          <option value="">Choose a site</option>
+                          {(jira.sites || []).map((site) => (
+                            <option key={site.id} value={site.id}>
+                              {site.name}
+                            </option>
+                          ))}
+                        </select>
+                        <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-text-secondary">
+                          <ChevronDown className="h-4 w-4" />
+                        </div>
+                      </div>
                     </div>
 
                     <div className={compactPanelClass}>
-                      <label className="mb-2 block text-[11px] font-semibold uppercase tracking-[0.16em] text-text-secondary">
+                      <label className="mb-2 block text-[11px] font-bold uppercase tracking-wider text-text-secondary">
                         Default project
                       </label>
-                      <select
-                        value={selectedJiraProjectId}
-                        onChange={(event) => setSelectedJiraProjectId(event.target.value)}
-                        className={settingsSelectClass}
-                        disabled={selectedOrg.role !== "OWNER"}
-                      >
-                        <option value="">Choose a project</option>
-                        {(jira.projects || []).map((project) => (
-                          <option key={project.id} value={project.id}>
-                            {project.key} · {project.name}
-                          </option>
-                        ))}
-                      </select>
-                      <p className="mt-2 break-words text-sm text-text-secondary">
+                      <div className="relative">
+                        <select
+                          value={selectedJiraProjectId}
+                          onChange={(event) => setSelectedJiraProjectId(event.target.value)}
+                          className="w-full appearance-none rounded-sm bg-card border border-border/40 text-[14px] font-medium px-4 py-2.5 text-text-primary outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary/50 shadow-sm transition-all cursor-pointer"
+                          disabled={selectedOrg.role !== "OWNER"}
+                        >
+                          <option value="">Choose a project</option>
+                          {(jira.projects || []).map((project) => (
+                            <option key={project.id} value={project.id}>
+                              {project.key} · {project.name}
+                            </option>
+                          ))}
+                        </select>
+                        <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-text-secondary">
+                          <ChevronDown className="h-4 w-4" />
+                        </div>
+                      </div>
+                      <p className="mt-3 break-words text-[13px] font-semibold text-text-secondary">
                         {jira.selectedProjectName
                           ? `${jira.selectedProjectKey} · ${jira.selectedProjectName}`
                           : "No default project selected yet"}
@@ -1077,7 +1094,7 @@ export default function SettingsPage() {
                   <div className="mt-auto pt-2 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-end">
                     <button
                       type="button"
-                      className="tf-button-ghost w-full px-4 py-2 text-sm sm:w-auto"
+                      className="rounded-sm bg-secondary/30 hover:bg-secondary/50 w-full sm:w-auto px-5 py-2.5 text-sm font-semibold text-text-primary shadow-sm transition-colors"
                       onClick={() => void disconnectJira()}
                       disabled={selectedOrg.role !== "OWNER" || loadingAction === "jira-disconnect"}
                     >
@@ -1093,7 +1110,7 @@ export default function SettingsPage() {
                     </button>
                     <button
                       type="button"
-                      className="tf-button-ghost w-full px-4 py-2 text-sm sm:w-auto"
+                      className="rounded-sm bg-secondary/30 hover:bg-secondary/50 w-full sm:w-auto px-5 py-2.5 text-sm font-semibold text-text-primary shadow-sm transition-colors"
                       onClick={() => void sendJiraTest()}
                       disabled={selectedOrg.role !== "OWNER" || loadingAction === "jira-test"}
                     >
@@ -1109,7 +1126,7 @@ export default function SettingsPage() {
                     </button>
                     <button
                       type="button"
-                      className="tf-button w-full px-4 py-2 text-sm sm:w-auto"
+                      className="rounded-sm bg-primary hover:bg-primary-hover w-full sm:w-auto px-5 py-2.5 text-sm font-semibold text-primary-foreground shadow-sm transition-colors"
                       onClick={() => void saveJiraConfig()}
                       disabled={
                         selectedOrg.role !== "OWNER" ||
@@ -1137,12 +1154,12 @@ export default function SettingsPage() {
           <section className={settingsCardClass}>
             <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
               <div className="min-w-0">
-                <h2 className="text-lg font-semibold text-text-primary">Coming next</h2>
-                <p className="mt-1 text-sm text-text-secondary">
+                <h2 className="text-xl font-bold text-text-primary">Coming next</h2>
+                <p className="mt-1.5 text-[14px] text-text-secondary">
                   PagerDuty stays next in line after GitHub, Slack, and Jira are fully exercised with real accounts.
                 </p>
               </div>
-              <span className="tf-muted-tag">Next up</span>
+              <span className="rounded-[4px] bg-secondary/30 border border-border/50 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-text-secondary">Next up</span>
             </div>
           </section>
         </div>

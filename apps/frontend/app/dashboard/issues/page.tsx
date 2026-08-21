@@ -929,13 +929,13 @@ function IssuesPageInner() {
             )}
 
             {!loading && !issues.length && (
-              <div className="py-12 text-center">
-                <p className="text-sm font-semibold text-text-primary">No issues found</p>
-                <div className="mt-4 flex flex-wrap justify-center gap-3">
+              <div className="py-12 text-center animate-fade-up">
+                <p className="text-[15px] font-semibold text-text-primary">No issues found</p>
+                <div className="mt-6 flex flex-wrap justify-center gap-3">
                   {viewMode === "active" && (
                     <button
                       type="button"
-                      className="rounded-sm bg-card px-3 py-1.5 text-xs font-semibold text-text-secondary border border-border/40 hover:text-text-primary hover:border-border transition shadow-sm"
+                      className="rounded-sm bg-primary hover:bg-primary-hover px-4 py-2 text-sm font-semibold text-primary-foreground shadow-sm transition-colors"
                       onClick={() => {
                         setError(null);
                         setShowCreateModal(true);
@@ -945,7 +945,7 @@ function IssuesPageInner() {
                     </button>
                   )}
                   <button
-                    className="rounded-sm bg-secondary/30 px-3 py-1.5 text-xs font-semibold text-text-secondary hover:text-text-primary transition"
+                    className="rounded-sm bg-secondary/30 hover:bg-secondary/50 px-4 py-2 text-sm font-semibold text-text-primary transition-colors"
                     onClick={() => {
                       setSearch("");
                       setSelectedProjectId("");

@@ -409,16 +409,16 @@ export default function RepoAnalysisPage() {
             ))}
           </div>
         ) : !mappedProjects.length ? (
-          <div className="tf-empty-state">
-            <div className="tf-empty-state-icon">
+          <div className="rounded-[24px] border border-border/40 bg-gradient-to-b from-card to-card/90 p-12 text-center shadow-[0_4px_20px_-4px_rgba(0,0,0,0.05)] max-w-2xl mx-auto flex flex-col items-center justify-center animate-fade-up">
+            <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-secondary/30 text-text-secondary border border-border/40 shadow-sm">
               <svg aria-hidden="true" className="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"><path d="M8 7.5h8M8 12h6M8 16.5h4" /><path d="M5.5 4.5h13A1.5 1.5 0 0 1 20 6v12a1.5 1.5 0 0 1-1.5 1.5h-13A1.5 1.5 0 0 1 4 18V6a1.5 1.5 0 0 1 1.5-1.5Z" strokeLinejoin="round" /></svg>
             </div>
-            <p className="tf-empty-state-title">No linked repositories found</p>
-            <p className="tf-empty-state-desc">
+            <p className="text-lg font-semibold text-text-primary">No linked repositories found</p>
+            <p className="mt-2 text-[14px] text-text-secondary max-w-md mx-auto leading-relaxed">
               Link a GitHub repository to a project first, then come back here to generate a full
               repo report.
             </p>
-            <Link className="mt-6 inline-flex tf-button px-5 py-2.5 text-sm" href="/dashboard/projects">
+            <Link className="mt-6 inline-flex rounded-sm bg-primary hover:bg-primary-hover px-5 py-2.5 text-sm font-semibold text-primary-foreground shadow-sm transition-colors" href="/dashboard/projects">
               Open projects
             </Link>
           </div>
@@ -621,12 +621,12 @@ export default function RepoAnalysisPage() {
                   ))}
                 </div>
               ) : !report?.analysis ? (
-                <div className="tf-empty-state py-10">
-                  <div className="tf-empty-state-icon">
+                <div className="rounded-[24px] border border-border/40 bg-card p-10 text-center shadow-sm max-w-lg mx-auto mt-4">
+                  <div className="mb-4 mx-auto flex h-12 w-12 items-center justify-center rounded-xl bg-secondary/30 text-text-secondary border border-border/40 shadow-sm">
                     <svg aria-hidden="true" className="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"><path d="M8 7.5h8M8 12h6M8 16.5h4" /><path d="M5.5 4.5h13A1.5 1.5 0 0 1 20 6v12a1.5 1.5 0 0 1-1.5 1.5h-13A1.5 1.5 0 0 1 4 18V6a1.5 1.5 0 0 1 1.5-1.5Z" strokeLinejoin="round" /></svg>
                   </div>
-                  <p className="tf-empty-state-title">No analysis available yet</p>
-                  <p className="tf-empty-state-desc">Run the first repo analysis to generate a report.</p>
+                  <p className="text-[15px] font-semibold text-text-primary">No analysis available yet</p>
+                  <p className="mt-2 text-sm text-text-secondary">Run the first repo analysis to generate a report.</p>
                 </div>
               ) : activeTab === "summary" && isAnalysisInFlight(report.analysis.status) ? (
                 <div className="tf-metric-card tf-accent-strip-warning">
@@ -709,12 +709,12 @@ export default function RepoAnalysisPage() {
                   {activeTab === "graph" ? (
                     <div className="animate-fade-up">
                       {report.analysis.graphStatus === "UNINITIALIZED" || !report.analysis.graphStatus ? (
-                        <div className="tf-empty-state py-10">
-                          <p className="tf-empty-state-title">File Graph Not Generated</p>
-                          <p className="tf-empty-state-desc mb-4">Generate the file graph to view the repository structure.</p>
+                        <div className="rounded-[24px] border border-border/40 bg-card p-10 text-center shadow-sm max-w-lg mx-auto mt-4">
+                          <p className="text-[15px] font-semibold text-text-primary">File Graph Not Generated</p>
+                          <p className="mt-2 mb-6 text-sm text-text-secondary">Generate the file graph to view the repository structure.</p>
                           <button
                             type="button"
-                            className="tf-button px-4 py-2 text-sm"
+                            className="rounded-sm bg-primary hover:bg-primary-hover disabled:opacity-50 text-primary-foreground font-semibold py-2 px-4 transition-colors text-sm"
                             onClick={() => analyzeProject(reportTarget, "graph")}
                             disabled={analyzingProjectId === reportTarget.id}
                           >
@@ -729,12 +729,12 @@ export default function RepoAnalysisPage() {
                            </div>
                          </div>
                       ) : report.analysis.graphStatus === "FAILED" ? (
-                        <div className="tf-empty-state py-10">
-                          <p className="tf-empty-state-title text-[hsl(var(--destructive))]">Generation Failed</p>
-                          <p className="tf-empty-state-desc mb-4">An error occurred while generating the file graph. Please try again.</p>
+                        <div className="rounded-[24px] border border-destructive/20 bg-destructive/5 p-10 text-center shadow-sm max-w-lg mx-auto mt-4">
+                          <p className="text-[15px] font-semibold text-destructive">Generation Failed</p>
+                          <p className="mt-2 mb-6 text-sm text-text-secondary">An error occurred while generating the file graph. Please try again.</p>
                           <button
                             type="button"
-                            className="tf-button px-4 py-2 text-sm"
+                            className="rounded-sm border border-border bg-secondary/50 hover:bg-secondary/80 disabled:opacity-50 text-text-primary font-semibold py-2 px-4 transition-colors text-sm"
                             onClick={() => analyzeProject(reportTarget, "graph")}
                             disabled={analyzingProjectId === reportTarget.id}
                           >
@@ -750,12 +750,12 @@ export default function RepoAnalysisPage() {
                   {activeTab === "system-design" ? (
                     <div className="animate-fade-up">
                       {report.analysis.systemDesignStatus === "UNINITIALIZED" || !report.analysis.systemDesignStatus ? (
-                        <div className="tf-empty-state py-10">
-                          <p className="tf-empty-state-title">System Design Not Generated</p>
-                          <p className="tf-empty-state-desc mb-4">Generate the system design using AI to view architecture components.</p>
+                        <div className="rounded-[24px] border border-border/40 bg-card p-10 text-center shadow-sm max-w-lg mx-auto mt-4">
+                          <p className="text-[15px] font-semibold text-text-primary">System Design Not Generated</p>
+                          <p className="mt-2 mb-6 text-sm text-text-secondary">Generate the system design using AI to view architecture components.</p>
                           <button
                             type="button"
-                            className="tf-button px-4 py-2 text-sm"
+                            className="rounded-sm bg-primary hover:bg-primary-hover disabled:opacity-50 text-primary-foreground font-semibold py-2 px-4 transition-colors text-sm"
                             onClick={() => analyzeProject(reportTarget, "system-design")}
                             disabled={analyzingProjectId === reportTarget.id}
                           >
@@ -770,12 +770,12 @@ export default function RepoAnalysisPage() {
                            </div>
                          </div>
                       ) : report.analysis.systemDesignStatus === "FAILED" ? (
-                        <div className="tf-empty-state py-10">
-                          <p className="tf-empty-state-title text-[hsl(var(--destructive))]">Generation Failed</p>
-                          <p className="tf-empty-state-desc mb-4">An error occurred while generating the system design. Please try again.</p>
+                        <div className="rounded-[24px] border border-destructive/20 bg-destructive/5 p-10 text-center shadow-sm max-w-lg mx-auto mt-4">
+                          <p className="text-[15px] font-semibold text-destructive">Generation Failed</p>
+                          <p className="mt-2 mb-6 text-sm text-text-secondary">An error occurred while generating the system design. Please try again.</p>
                           <button
                             type="button"
-                            className="tf-button px-4 py-2 text-sm"
+                            className="rounded-sm border border-border bg-secondary/50 hover:bg-secondary/80 disabled:opacity-50 text-text-primary font-semibold py-2 px-4 transition-colors text-sm"
                             onClick={() => analyzeProject(reportTarget, "system-design")}
                             disabled={analyzingProjectId === reportTarget.id}
                           >

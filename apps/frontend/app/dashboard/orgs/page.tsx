@@ -98,7 +98,8 @@ export default function OrgsPage() {
 
     try {
       const res = await fetch(`${API_URL}/orgs`, {
-        headers: { Authorization: `Bearer ${token}` }
+        headers: { Authorization: `Bearer ${token}` },
+        cache: "no-store"
       });
 
       const data = await res.json();

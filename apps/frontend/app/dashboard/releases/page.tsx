@@ -439,21 +439,24 @@ function ReleasesPageInner() {
           )}
 
           {!loading && !releases.length && (
-            <div className="rounded-2xl border border-border bg-card/90 p-6 text-center">
-              <p className="text-sm font-semibold text-text-primary">No releases yet</p>
-              <p className="mt-2 text-sm text-text-secondary">
+            <div className="py-12 text-center animate-fade-up">
+              <p className="text-[15px] font-semibold text-text-primary">No releases yet</p>
+              <p className="mt-2 text-[14px] text-text-secondary max-w-md mx-auto leading-relaxed">
                 Add one manually here, or send release tags in ingestion payloads to build a
                 real deploy timeline automatically.
               </p>
-              <div className="mt-4 flex flex-wrap justify-center gap-3">
+              <div className="mt-6 flex flex-wrap justify-center gap-3">
                 <button
                   type="button"
-                  className="tf-button px-4 py-2 text-sm"
+                  className="rounded-sm bg-primary hover:bg-primary-hover px-4 py-2 text-sm font-semibold text-primary-foreground shadow-sm transition-colors"
                   onClick={() => setShowCreateModal(true)}
                 >
                   Add release
                 </button>
-                <Link className="tf-button-ghost px-4 py-2 text-sm" href="/docs">
+                <Link 
+                  className="rounded-sm bg-secondary/30 hover:bg-secondary/50 px-4 py-2 text-sm font-semibold text-text-primary transition-colors" 
+                  href="/docs"
+                >
                   View tagging docs
                 </Link>
               </div>

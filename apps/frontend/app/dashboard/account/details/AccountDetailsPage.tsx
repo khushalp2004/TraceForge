@@ -299,7 +299,7 @@ export default function AccountDetailsPage() {
         <header>
           <p className="tf-kicker">Account Details</p>
           <div className="mt-3 flex items-center">
-            <h1 className="tf-title text-3xl">Personal account and security</h1>
+            <h1 className="text-3xl font-bold text-text-primary">Personal account and security</h1>
             <PageDescriptionPopover>
               Manage your personal profile, authentication controls, organization membership, and permanent account actions.
             </PageDescriptionPopover>
@@ -308,30 +308,30 @@ export default function AccountDetailsPage() {
 
         <div className="mt-6 grid gap-6 xl:min-h-0 xl:flex-1 xl:grid-cols-[minmax(0,1.2fr)_minmax(320px,0.8fr)]">
           <div className="space-y-3 xl:min-h-0 xl:self-start xl:overflow-hidden">
-            <section className="rounded-2xl border border-border bg-card/90 p-4 shadow-sm md:p-5">
-              <h2 className="text-lg font-semibold text-text-primary">Edit profile</h2>
-              <p className="mt-1 text-sm text-text-secondary">
+            <section className="rounded-[24px] border border-border/40 bg-card p-6 shadow-sm">
+              <h2 className="text-xl font-bold text-text-primary">Edit profile</h2>
+              <p className="mt-1.5 text-[14px] text-text-secondary">
                 Update the personal details used across your workspace and recovery flows.
               </p>
 
-              <div className="mt-4 grid gap-3 sm:grid-cols-2">
+              <div className="mt-6 grid gap-4 sm:grid-cols-2">
                 <div>
-                  <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-text-secondary">
+                  <p className="mb-2 text-[11px] font-bold uppercase tracking-wider text-text-secondary">
                     Email
                   </p>
                   <input
-                    className="tf-input mt-2 w-full bg-secondary/25 text-text-secondary"
+                    className="w-full appearance-none rounded-sm bg-secondary/10 border border-border/40 text-[14px] font-medium px-4 py-2.5 text-text-secondary cursor-not-allowed outline-none shadow-sm transition-all"
                     type="email"
                     value={user?.email || ""}
                     readOnly
                   />
                 </div>
                 <div>
-                  <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-text-secondary">
+                  <p className="mb-2 text-[11px] font-bold uppercase tracking-wider text-text-secondary">
                     Full name
                   </p>
                   <input
-                    className="tf-input mt-2 w-full"
+                    className="w-full appearance-none rounded-sm bg-card border border-border/40 text-[14px] font-medium px-4 py-2.5 text-text-primary outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary/50 shadow-sm transition-all"
                     type="text"
                     placeholder="Full name"
                     value={profileName}
@@ -339,11 +339,11 @@ export default function AccountDetailsPage() {
                   />
                 </div>
                 <div className="sm:col-span-2">
-                  <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-text-secondary">
+                  <p className="mb-2 text-[11px] font-bold uppercase tracking-wider text-text-secondary">
                     Address
                   </p>
                   <textarea
-                    className="mt-2 min-h-[80px] w-full rounded-[24px] border border-border bg-card px-4 py-3 text-sm text-text-primary outline-none transition focus:border-accent focus:ring-2 focus:ring-accent/20"
+                    className="w-full min-h-[80px] appearance-none rounded-[16px] bg-card border border-border/40 text-[14px] font-medium px-4 py-3 text-text-primary outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary/50 shadow-sm transition-all resize-y"
                     placeholder="Address"
                     value={profileAddress}
                     onChange={(event) => setProfileAddress(event.target.value)}
@@ -351,10 +351,10 @@ export default function AccountDetailsPage() {
                 </div>
               </div>
 
-              <div className="mt-4 flex justify-end">
+              <div className="mt-6 flex justify-end">
                 <button
                   type="button"
-                  className="tf-button px-4 py-2 text-sm"
+                  className="rounded-sm bg-primary hover:bg-primary-hover px-5 py-2.5 text-sm font-semibold text-primary-foreground shadow-sm transition-colors w-full sm:w-auto"
                   onClick={saveProfile}
                   disabled={busyAction === "profile"}
                 >
@@ -367,16 +367,16 @@ export default function AccountDetailsPage() {
               </div>
             </section>
 
-            <section className="rounded-2xl border border-border bg-card/90 p-4 shadow-sm md:p-5">
-              <h2 className="text-lg font-semibold text-text-primary">Change password</h2>
-              <p className="mt-1 text-sm text-text-secondary">
+            <section className="rounded-[24px] border border-border/40 bg-card p-6 shadow-sm">
+              <h2 className="text-xl font-bold text-text-primary">Change password</h2>
+              <p className="mt-1.5 text-[14px] text-text-secondary">
                 Update your password here without leaving the dashboard.
               </p>
 
-              <div className="mt-4 grid gap-3 md:grid-cols-2">
+              <div className="mt-6 grid gap-4 md:grid-cols-2">
                 <div className="relative md:col-span-2">
                   <input
-                    className="tf-input w-full pr-12"
+                    className="w-full appearance-none rounded-sm bg-card border border-border/40 text-[14px] font-medium px-4 py-2.5 text-text-primary outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary/50 shadow-sm transition-all pr-12"
                     type={showCurrentPassword ? "text" : "password"}
                     placeholder="Current password"
                     value={currentPassword}
@@ -384,7 +384,7 @@ export default function AccountDetailsPage() {
                   />
                   <button
                     type="button"
-                    className="absolute right-3 top-1/2 inline-flex -translate-y-1/2 items-center justify-center rounded-full p-1.5 text-text-secondary transition hover:bg-secondary/70 hover:text-text-primary"
+                    className="absolute right-3 top-1/2 inline-flex -translate-y-1/2 items-center justify-center rounded-sm p-1.5 text-text-secondary transition hover:bg-secondary/20 hover:text-text-primary"
                     onClick={() => setShowCurrentPassword((current) => !current)}
                     aria-label={showCurrentPassword ? "Hide current password" : "Show current password"}
                   >
@@ -393,7 +393,7 @@ export default function AccountDetailsPage() {
                 </div>
                 <div className="relative">
                   <input
-                    className="tf-input w-full pr-12"
+                    className="w-full appearance-none rounded-sm bg-card border border-border/40 text-[14px] font-medium px-4 py-2.5 text-text-primary outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary/50 shadow-sm transition-all pr-12"
                     type={showNewPassword ? "text" : "password"}
                     placeholder="New password"
                     value={newPassword}
@@ -401,7 +401,7 @@ export default function AccountDetailsPage() {
                   />
                   <button
                     type="button"
-                    className="absolute right-3 top-1/2 inline-flex -translate-y-1/2 items-center justify-center rounded-full p-1.5 text-text-secondary transition hover:bg-secondary/70 hover:text-text-primary"
+                    className="absolute right-3 top-1/2 inline-flex -translate-y-1/2 items-center justify-center rounded-sm p-1.5 text-text-secondary transition hover:bg-secondary/20 hover:text-text-primary"
                     onClick={() => setShowNewPassword((current) => !current)}
                     aria-label={showNewPassword ? "Hide new password" : "Show new password"}
                   >
@@ -410,7 +410,7 @@ export default function AccountDetailsPage() {
                 </div>
                 <div className="relative">
                   <input
-                    className="tf-input w-full pr-12"
+                    className="w-full appearance-none rounded-sm bg-card border border-border/40 text-[14px] font-medium px-4 py-2.5 text-text-primary outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary/50 shadow-sm transition-all pr-12"
                     type={showConfirmPassword ? "text" : "password"}
                     placeholder="Confirm new password"
                     value={confirmPassword}
@@ -418,7 +418,7 @@ export default function AccountDetailsPage() {
                   />
                   <button
                     type="button"
-                    className="absolute right-3 top-1/2 inline-flex -translate-y-1/2 items-center justify-center rounded-full p-1.5 text-text-secondary transition hover:bg-secondary/70 hover:text-text-primary"
+                    className="absolute right-3 top-1/2 inline-flex -translate-y-1/2 items-center justify-center rounded-sm p-1.5 text-text-secondary transition hover:bg-secondary/20 hover:text-text-primary"
                     onClick={() => setShowConfirmPassword((current) => !current)}
                     aria-label={showConfirmPassword ? "Hide confirm new password" : "Show confirm new password"}
                   >
@@ -427,10 +427,10 @@ export default function AccountDetailsPage() {
                 </div>
               </div>
 
-              <div className="mt-4 flex justify-end">
+              <div className="mt-6 flex justify-end">
                 <button
                   type="button"
-                  className="tf-button px-4 py-2 text-sm"
+                  className="rounded-sm bg-primary hover:bg-primary-hover px-5 py-2.5 text-sm font-semibold text-primary-foreground shadow-sm transition-colors w-full sm:w-auto"
                   onClick={changePassword}
                   disabled={busyAction === "change-password"}
                 >
@@ -451,7 +451,7 @@ export default function AccountDetailsPage() {
             {rightRailScrollable && (
               <div className="pointer-events-none sticky top-0 z-10 -mb-1 hidden xl:block">
                 <div
-                  className={`flex items-center justify-between rounded-2xl border border-border/80 bg-card/92 px-4 py-2 shadow-sm backdrop-blur transition ${
+                  className={`flex items-center justify-between rounded-[24px] border border-border/80 bg-card/92 px-4 py-2 shadow-sm backdrop-blur transition ${
                     rightRailScrolled ? "translate-y-0 opacity-100" : "translate-y-0 opacity-95"
                   }`}
                 >
@@ -473,9 +473,9 @@ export default function AccountDetailsPage() {
               </div>
             )}
 
-            <section className="rounded-2xl border border-border bg-card/90 p-5 shadow-sm 2xl:p-6">
-              <h2 className="text-lg font-semibold text-text-primary">Appearance</h2>
-              <p className="mt-1 text-sm text-text-secondary">
+            <section className="rounded-[24px] border border-border/40 bg-card p-6 shadow-sm">
+              <h2 className="text-xl font-bold text-text-primary">Appearance</h2>
+              <p className="mt-1.5 text-[14px] text-text-secondary">
                 Choose a theme and layout that best fits how you monitor production.
               </p>
 
@@ -488,24 +488,24 @@ export default function AccountDetailsPage() {
                       key={option.id}
                       type="button"
                       onClick={() => updateThemePreference(option.id)}
-                      className={`rounded-2xl border px-4 py-4 text-left transition ${
+                      className={`rounded-[16px] border px-4 py-4 text-left transition-colors ${
                         isActive
-                          ? "border-primary/35 bg-accent-soft shadow-sm"
-                          : "border-border bg-secondary/25 hover:border-primary/20 hover:bg-card"
+                          ? "border-primary/50 bg-primary/5 shadow-sm"
+                          : "border-border/40 bg-secondary/10 hover:border-primary/30 hover:bg-secondary/20"
                       }`}
                     >
                       <div className="flex items-start justify-between gap-3">
                         <div className="min-w-0">
                           <div className="flex items-center gap-2">
-                            <p className="text-sm font-semibold text-text-primary">{option.name}</p>
-                            <span className="rounded-full border border-border bg-card px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-text-secondary">
+                            <p className="text-[15px] font-bold text-text-primary">{option.name}</p>
+                            <span className="rounded-[4px] border border-border/50 bg-card px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-text-secondary shadow-sm">
                               {option.mode}
                             </span>
                           </div>
-                          <p className="mt-1 text-sm text-text-secondary">{option.description}</p>
+                          <p className="mt-1 text-[14px] text-text-secondary leading-relaxed">{option.description}</p>
                         </div>
                         {isActive && (
-                          <span className="rounded-full bg-primary px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-primary-foreground">
+                          <span className="rounded-[4px] bg-primary px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-primary-foreground shadow-sm">
                             Active
                           </span>
                         )}
@@ -525,9 +525,9 @@ export default function AccountDetailsPage() {
                 })}
               </div>
 
-              <div className="mt-6 border-t border-border/70 pt-6">
-                <p className="text-sm font-semibold text-text-primary">Layout</p>
-                <p className="mt-1 text-sm text-text-secondary">
+              <div className="mt-6 border-t border-border/40 pt-6">
+                <p className="text-[15px] font-bold text-text-primary">Layout</p>
+                <p className="mt-1.5 text-[14px] text-text-secondary">
                   Switch between three workspace layouts. Layout changes apply on desktop screens; mobile stays consistent.
                 </p>
 
@@ -539,19 +539,19 @@ export default function AccountDetailsPage() {
                         key={option.id}
                         type="button"
                         onClick={() => updateLayoutPreference(option.id)}
-                        className={`rounded-2xl border px-4 py-4 text-left transition ${
+                        className={`rounded-[16px] border px-4 py-4 text-left transition-colors ${
                           isActive
-                            ? "border-primary/35 bg-accent-soft shadow-sm"
-                            : "border-border bg-secondary/25 hover:border-primary/20 hover:bg-card"
+                            ? "border-primary/50 bg-primary/5 shadow-sm"
+                            : "border-border/40 bg-secondary/10 hover:border-primary/30 hover:bg-secondary/20"
                         }`}
                       >
                         <div className="flex items-start justify-between gap-3">
                           <div className="min-w-0">
-                            <p className="text-sm font-semibold text-text-primary">{option.name}</p>
-                            <p className="mt-1 text-sm text-text-secondary">{option.description}</p>
+                            <p className="text-[15px] font-bold text-text-primary">{option.name}</p>
+                            <p className="mt-1.5 text-[14px] text-text-secondary leading-relaxed">{option.description}</p>
                           </div>
                           {isActive && (
-                            <span className="rounded-full bg-primary px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-primary-foreground">
+                            <span className="rounded-[4px] bg-primary px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-primary-foreground shadow-sm">
                               Active
                             </span>
                           )}
@@ -563,21 +563,21 @@ export default function AccountDetailsPage() {
               </div>
             </section>
 
-            <section className="rounded-2xl border border-border bg-card/90 p-5 shadow-sm 2xl:p-6">
-              <h2 className="text-lg font-semibold text-text-primary">Recovery</h2>
-              <p className="mt-1 text-sm text-text-secondary">
+            <section className="rounded-[24px] border border-border/40 bg-card p-6 shadow-sm">
+              <h2 className="text-xl font-bold text-text-primary">Recovery</h2>
+              <p className="mt-1.5 text-[14px] text-text-secondary">
                 Send a password reset link or review the rules applied to your account.
               </p>
 
-              <div className="mt-4 space-y-3">
-                <div className="rounded-2xl border border-border bg-secondary/25 px-4 py-4">
-                  <p className="text-sm font-semibold text-text-primary">Password reset link</p>
-                  <p className="mt-1 text-sm text-text-secondary">
+              <div className="mt-6 space-y-4">
+                <div className="rounded-[16px] border border-border/40 bg-secondary/10 px-5 py-5 shadow-inner">
+                  <p className="text-[15px] font-bold text-text-primary">Password reset link</p>
+                  <p className="mt-1.5 text-[14px] text-text-secondary">
                     Reset links expire after 1 hour and are sent to your account email.
                   </p>
                   <button
                     type="button"
-                    className="mt-4 rounded-full border border-border bg-card px-4 py-2 text-sm font-semibold text-text-secondary transition hover:bg-secondary/70 hover:text-text-primary"
+                    className="mt-5 rounded-sm bg-secondary/30 hover:bg-secondary/50 px-5 py-2 text-sm font-semibold text-text-primary shadow-sm transition-colors w-full sm:w-auto"
                     onClick={requestPasswordReset}
                     disabled={busyAction === "reset"}
                   >
@@ -588,38 +588,39 @@ export default function AccountDetailsPage() {
                     />
                   </button>
                 </div>
-                <div className="rounded-2xl border border-border bg-secondary/25 px-4 py-4">
-                  <p className="text-sm font-semibold text-text-primary">Retention policy</p>
-                  <p className="mt-1 text-sm text-text-secondary">
+                <div className="rounded-[16px] border border-border/40 bg-secondary/10 px-5 py-5 shadow-inner">
+                  <p className="text-[15px] font-bold text-text-primary">Retention policy</p>
+                  <p className="mt-1.5 text-[14px] text-text-secondary">
                     Archived issues, alerts, and projects are permanently removed after 15 days.
                   </p>
                 </div>
               </div>
             </section>
 
-            <section className="rounded-2xl border border-primary/20 bg-primary/10 p-5 shadow-sm 2xl:p-6">
-              <h2 className="text-lg font-semibold text-text-primary">Organization membership</h2>
-              <p className="mt-1 text-sm text-text-secondary">
+            <section className="rounded-[24px] border border-primary/20 bg-primary/5 p-6 shadow-sm">
+              <h2 className="text-xl font-bold text-text-primary">Organization membership</h2>
+              <p className="mt-1.5 text-[14px] text-text-secondary">
                 Leave every organization you belong to in one action.
               </p>
               <button
                 type="button"
-                className="mt-5 rounded-full border border-primary/20 bg-card px-4 py-2 text-sm font-semibold text-text-primary transition hover:bg-primary/10"
+                className="mt-5 rounded-sm bg-secondary/30 border border-primary/20 hover:bg-primary/10 px-5 py-2.5 text-sm font-semibold text-text-primary shadow-sm transition-colors w-full sm:w-auto"
                 onClick={() => setShowLeaveConfirm(true)}
               >
                 Leave all organizations
               </button>
             </section>
 
-            <section className="rounded-2xl border border-[hsl(var(--destructive)/0.28)] bg-[hsl(var(--destructive)/0.08)] p-5 shadow-sm 2xl:p-6">
-              <h2 className="text-lg font-semibold text-text-primary">Danger zone</h2>
-              <p className="mt-1 text-sm text-text-secondary">
+            <section className="rounded-[24px] border border-[hsl(var(--destructive)/0.2)] bg-[hsl(var(--destructive)/0.05)] p-6 shadow-sm relative overflow-hidden">
+              <div className="absolute top-0 right-0 w-32 h-32 bg-[hsl(var(--destructive)/0.1)] blur-3xl rounded-full -translate-y-1/2 translate-x-1/2 pointer-events-none" />
+              <h2 className="text-xl font-bold text-text-primary">Danger zone</h2>
+              <p className="mt-1.5 text-[14px] text-text-secondary">
                 Permanently delete your account after confirming your email and password.
               </p>
 
-              <div className="mt-5 grid gap-3">
+              <div className="mt-6 grid gap-4">
                 <input
-                  className="tf-input w-full bg-card"
+                  className="w-full appearance-none rounded-sm bg-card border border-border/40 text-[14px] font-medium px-4 py-2.5 text-text-primary outline-none focus:ring-2 focus:ring-[hsl(var(--destructive)/0.2)] focus:border-[hsl(var(--destructive)/0.5)] shadow-sm transition-all"
                   type="email"
                   placeholder="Confirm your email"
                   value={deleteEmail}
@@ -627,7 +628,7 @@ export default function AccountDetailsPage() {
                 />
                 <div className="relative">
                   <input
-                    className="tf-input w-full bg-card pr-12"
+                    className="w-full appearance-none rounded-sm bg-card border border-border/40 text-[14px] font-medium px-4 py-2.5 text-text-primary outline-none focus:ring-2 focus:ring-[hsl(var(--destructive)/0.2)] focus:border-[hsl(var(--destructive)/0.5)] shadow-sm transition-all pr-12"
                     type={showDeletePassword ? "text" : "password"}
                     placeholder="Confirm your password"
                     value={deletePassword}
@@ -635,7 +636,7 @@ export default function AccountDetailsPage() {
                   />
                   <button
                     type="button"
-                    className="absolute right-3 top-1/2 inline-flex -translate-y-1/2 items-center justify-center rounded-full p-1.5 text-text-secondary transition hover:bg-secondary/70 hover:text-text-primary"
+                    className="absolute right-3 top-1/2 inline-flex -translate-y-1/2 items-center justify-center rounded-sm p-1.5 text-text-secondary transition hover:bg-secondary/20 hover:text-text-primary"
                     onClick={() => setShowDeletePassword((current) => !current)}
                     aria-label={showDeletePassword ? "Hide confirm your password" : "Show confirm your password"}
                   >
@@ -644,10 +645,10 @@ export default function AccountDetailsPage() {
                 </div>
               </div>
 
-              <div className="mt-5 flex justify-end">
+              <div className="mt-6 flex justify-end relative z-10">
                 <button
                   type="button"
-                  className="rounded-full border border-[hsl(var(--destructive)/0.3)] bg-[hsl(var(--destructive)/0.12)] px-4 py-2 text-sm font-semibold text-[hsl(var(--destructive))] transition hover:bg-[hsl(var(--destructive)/0.18)]"
+                  className="rounded-sm bg-destructive/10 border border-destructive/20 hover:bg-destructive/20 px-5 py-2.5 text-sm font-semibold text-destructive shadow-sm transition-colors w-full sm:w-auto"
                   onClick={() => setShowDeleteConfirm(true)}
                   disabled={!deleteEmail || !deletePassword}
                 >
@@ -666,34 +667,34 @@ export default function AccountDetailsPage() {
       </div>
 
       {showLeaveConfirm && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 px-4">
-          <div className="w-full max-w-lg rounded-xl border border-border bg-card shadow-xl flex flex-col overflow-hidden">
-            <div className="flex items-center justify-between p-4 border-b border-border/50">
-              <h3 className="text-sm font-semibold text-text-primary">Leave Organizations</h3>
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 px-4 backdrop-blur-sm animate-fade-in">
+          <div className="w-full max-w-lg rounded-[24px] border border-border/40 bg-card shadow-2xl flex flex-col overflow-hidden animate-zoom-in">
+            <div className="flex items-center justify-between p-6 pb-2">
+              <h3 className="text-[15px] font-bold text-text-primary">Leave Organizations</h3>
               <button onClick={() => {
                   setShowLeaveConfirm(false);
                   setLeaveBlockers([]);
-                }} className="text-text-secondary hover:text-text-primary transition-colors">
+                }} className="rounded-full p-1.5 text-text-secondary hover:bg-secondary/20 hover:text-text-primary transition-colors">
                 <X className="h-4 w-4" />
               </button>
             </div>
             
-            <div className="p-6">
-               <h4 className="text-lg sm:text-xl font-bold text-text-primary mb-2">Leave all organizations</h4>
-               <p className="text-sm text-text-secondary mb-4">
+            <div className="p-6 pt-2">
+               <h4 className="text-xl font-bold text-text-primary mb-2">Leave all organizations</h4>
+               <p className="text-[14px] text-text-secondary mb-4">
                  This removes your membership from every organization you belong to, unless you are the only owner in one of them.
                </p>
 
                {!!leaveBlockers.length && (
-                 <div className="rounded-2xl border border-[hsl(var(--destructive)/0.25)] bg-[hsl(var(--destructive)/0.08)] px-4 py-4">
-                   <p className="text-sm font-medium text-[hsl(var(--destructive))]">
+                 <div className="rounded-[16px] border border-destructive/20 bg-destructive/5 px-4 py-4">
+                   <p className="text-[14px] font-bold text-destructive">
                      These organizations still need another owner before you can leave:
                    </p>
                    <div className="mt-3 flex flex-wrap gap-2">
                      {leaveBlockers.map((name) => (
                        <span
                          key={name}
-                         className="rounded-full border border-[hsl(var(--destructive)/0.24)] bg-card px-3 py-1 text-xs font-semibold text-[hsl(var(--destructive))]"
+                         className="rounded-[4px] border border-destructive/20 bg-card px-2 py-0.5 text-[11px] font-bold uppercase tracking-wider text-destructive shadow-sm"
                        >
                          {name}
                        </span>
@@ -707,7 +708,7 @@ export default function AccountDetailsPage() {
                <button 
                  onClick={leaveAllOrganizations} 
                  disabled={busyAction === "leave-organizations"}
-                 className="flex-1 bg-primary hover:bg-primary-hover disabled:opacity-50 text-primary-foreground font-semibold py-2 px-4 rounded-lg transition-colors flex items-center justify-center"
+                 className="rounded-sm bg-primary hover:bg-primary-hover disabled:opacity-50 text-primary-foreground font-semibold py-2.5 px-5 transition-colors flex items-center justify-center text-sm flex-1 shadow-sm"
                >
                  <LoadingButtonContent
                    loading={busyAction === "leave-organizations"}
@@ -721,7 +722,7 @@ export default function AccountDetailsPage() {
                    setLeaveBlockers([]);
                  }} 
                  disabled={busyAction === "leave-organizations"}
-                 className="flex-1 bg-secondary/50 border border-border hover:bg-secondary/80 text-text-primary font-semibold py-2 px-4 rounded-lg transition-colors flex items-center justify-center"
+                 className="rounded-sm bg-secondary/30 hover:bg-secondary/50 disabled:opacity-50 text-text-primary font-semibold py-2.5 px-5 transition-colors flex items-center justify-center text-sm flex-1 shadow-sm"
                >
                  Cancel
                </button>
@@ -731,32 +732,32 @@ export default function AccountDetailsPage() {
       )}
 
       {showDeleteConfirm && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 px-4">
-          <div className="w-full max-w-lg rounded-xl border border-border bg-card shadow-xl flex flex-col overflow-hidden">
-            <div className="flex items-center justify-between p-4 border-b border-border/50">
-              <h3 className="text-sm font-semibold text-text-primary">Delete Account</h3>
-              <button onClick={() => setShowDeleteConfirm(false)} className="text-text-secondary hover:text-text-primary transition-colors">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 px-4 backdrop-blur-sm animate-fade-in">
+          <div className="w-full max-w-lg rounded-[24px] border border-destructive/20 bg-card shadow-2xl flex flex-col overflow-hidden animate-zoom-in">
+            <div className="flex items-center justify-between p-6 pb-2">
+              <h3 className="text-[15px] font-bold text-text-primary">Delete Account</h3>
+              <button onClick={() => setShowDeleteConfirm(false)} className="rounded-full p-1.5 text-text-secondary hover:bg-secondary/20 hover:text-text-primary transition-colors">
                 <X className="h-4 w-4" />
               </button>
             </div>
             
-            <div className="p-6">
-               <h4 className="text-lg sm:text-xl font-bold text-text-primary mb-2">Are you sure you want to delete your account?</h4>
-               <p className="text-sm text-text-secondary">This action is permanent and cannot be undone.</p>
+            <div className="p-6 pt-2">
+               <h4 className="text-xl font-bold text-text-primary mb-2">Are you sure you want to delete your account?</h4>
+               <p className="text-[14px] text-text-secondary">This action is permanent and cannot be undone.</p>
             </div>
             
             <div className="flex flex-row-reverse items-center gap-3 p-6 pt-0">
                <button 
                  onClick={continueDeleteAccount} 
                  disabled={busyAction === "delete-account"}
-                 className="flex-1 bg-destructive/15 text-destructive border border-destructive/30 hover:bg-destructive/25 backdrop-blur-md font-semibold py-2 px-4 rounded-lg transition-all duration-300 flex items-center justify-center shadow-[0_8px_16px_-6px_rgba(var(--destructive-rgb),0.1)]"
+                 className="rounded-sm bg-destructive/15 text-destructive border border-destructive/30 hover:bg-destructive/25 disabled:opacity-50 font-semibold py-2.5 px-5 transition-all flex items-center justify-center text-sm flex-1 shadow-[0_8px_16px_-6px_rgba(var(--destructive-rgb),0.1)]"
                >
                  {user?.plan === "PRO" ? "Continue" : "Delete"}
                </button>
                <button 
                  onClick={() => setShowDeleteConfirm(false)} 
                  disabled={busyAction === "delete-account"}
-                 className="flex-1 bg-secondary/50 border border-border hover:bg-secondary/80 text-text-primary font-semibold py-2 px-4 rounded-lg transition-colors flex items-center justify-center"
+                 className="rounded-sm bg-secondary/30 hover:bg-secondary/50 disabled:opacity-50 text-text-primary font-semibold py-2.5 px-5 transition-colors flex items-center justify-center text-sm flex-1 shadow-sm"
                >
                  Cancel
                </button>
@@ -766,32 +767,32 @@ export default function AccountDetailsPage() {
       )}
 
       {showProDeleteConfirm && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 px-4">
-          <div className="w-full max-w-lg rounded-xl border border-border bg-card shadow-xl flex flex-col overflow-hidden">
-            <div className="flex items-center justify-between p-4 border-b border-border/50">
-              <h3 className="text-sm font-semibold text-text-primary">Delete Pro Account</h3>
-              <button onClick={() => setShowProDeleteConfirm(false)} className="text-text-secondary hover:text-text-primary transition-colors">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 px-4 backdrop-blur-sm animate-fade-in">
+          <div className="w-full max-w-lg rounded-[24px] border border-destructive/20 bg-card shadow-2xl flex flex-col overflow-hidden animate-zoom-in">
+            <div className="flex items-center justify-between p-6 pb-2">
+              <h3 className="text-[15px] font-bold text-text-primary">Delete Pro Account</h3>
+              <button onClick={() => setShowProDeleteConfirm(false)} className="rounded-full p-1.5 text-text-secondary hover:bg-secondary/20 hover:text-text-primary transition-colors">
                 <X className="h-4 w-4" />
               </button>
             </div>
             
-            <div className="p-6">
-               <h4 className="text-lg sm:text-xl font-bold text-text-primary mb-2">Are you sure you want to delete your Pro account?</h4>
-               <p className="text-sm text-text-secondary">Your Pro plan will be immediately disabled without refund. This action is permanent and cannot be undone.</p>
+            <div className="p-6 pt-2">
+               <h4 className="text-xl font-bold text-text-primary mb-2">Are you sure you want to delete your Pro account?</h4>
+               <p className="text-[14px] text-text-secondary">Your Pro plan will be immediately disabled without refund. This action is permanent and cannot be undone.</p>
             </div>
             
             <div className="flex flex-row-reverse items-center gap-3 p-6 pt-0">
                <button 
                  onClick={deleteAccount} 
                  disabled={busyAction === "delete-account"}
-                 className="flex-1 bg-destructive/15 text-destructive border border-destructive/30 hover:bg-destructive/25 backdrop-blur-md font-semibold py-2 px-4 rounded-lg transition-all duration-300 flex items-center justify-center shadow-[0_8px_16px_-6px_rgba(var(--destructive-rgb),0.1)]"
+                 className="rounded-sm bg-destructive/15 text-destructive border border-destructive/30 hover:bg-destructive/25 disabled:opacity-50 font-semibold py-2.5 px-5 transition-all flex items-center justify-center text-sm flex-1 shadow-[0_8px_16px_-6px_rgba(var(--destructive-rgb),0.1)]"
                >
                  Delete
                </button>
                <button 
                  onClick={() => setShowProDeleteConfirm(false)} 
                  disabled={busyAction === "delete-account"}
-                 className="flex-1 bg-secondary/50 border border-border hover:bg-secondary/80 text-text-primary font-semibold py-2 px-4 rounded-lg transition-colors flex items-center justify-center"
+                 className="rounded-sm bg-secondary/30 hover:bg-secondary/50 disabled:opacity-50 text-text-primary font-semibold py-2.5 px-5 transition-colors flex items-center justify-center text-sm flex-1 shadow-sm"
                >
                  Cancel
                </button>
@@ -802,8 +803,10 @@ export default function AccountDetailsPage() {
 
       {toast && (
         <div
-          className={`tf-dashboard-toast ${
-            toast.tone === "success" ? "bg-emerald-600" : "bg-red-600"
+          className={`tf-dashboard-toast animate-fade-up ${
+            toast.tone === "success"
+              ? "bg-[hsl(var(--success))] text-white"
+              : "bg-[hsl(var(--destructive))] text-white"
           }`}
         >
           {toast.message}
