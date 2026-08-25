@@ -47,14 +47,14 @@ export function AdvancedCharts({ severityBreakdown, environmentHealth }: Advance
   const CustomTooltip = ({ active, payload }: any) => {
     if (active && payload && payload.length) {
       return (
-        <div className="rounded-xl border border-white/10 bg-black/60 p-4 shadow-2xl backdrop-blur-xl">
-          <p className="mb-1 text-sm font-bold text-white">{payload[0].name || payload[0].payload.label}</p>
+        <div className="rounded-xl border border-border/40 bg-card/90 p-4 shadow-2xl backdrop-blur-xl">
+          <p className="mb-1 text-sm font-bold text-text-primary">{payload[0].name || payload[0].payload.label}</p>
           <div className="flex items-center gap-2">
             <div 
               className="h-2 w-2 rounded-full" 
               style={{ background: payload[0].payload.stroke || "#8b5cf6" }} 
             />
-            <p className="text-xs font-medium text-white/80">{payload[0].value} occurrences</p>
+            <p className="text-xs font-medium text-text-secondary">{payload[0].value} occurrences</p>
           </div>
         </div>
       );
@@ -65,10 +65,10 @@ export function AdvancedCharts({ severityBreakdown, environmentHealth }: Advance
   return (
     <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-2 animate-in fade-in slide-in-from-bottom-4 duration-700 ease-out fill-mode-both">
       {/* Premium Severity Breakdown Donut */}
-      <div className="group relative flex flex-col overflow-hidden rounded-md border border-white/5 bg-gradient-to-b from-card/80 to-background/40 p-6 shadow-xl backdrop-blur-md transition-all hover:border-white/10 hover:shadow-2xl hover:shadow-primary/5">
+      <div className="group relative flex flex-col overflow-hidden rounded-md border border-border/40 bg-gradient-to-b from-card/80 to-background/40 p-6 shadow-xl backdrop-blur-md transition-all hover:border-primary/20 hover:shadow-2xl hover:shadow-primary/5">
         <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-transparent opacity-0 transition-opacity duration-500 group-hover:opacity-100" />
-        <h3 className="relative z-10 text-lg font-bold tracking-tight text-white">Severity Breakdown</h3>
-        <p className="relative z-10 mb-6 text-sm font-medium text-white/50">Distribution of errors by severity level.</p>
+        <h3 className="relative z-10 text-lg font-bold tracking-tight text-text-primary">Severity Breakdown</h3>
+        <p className="relative z-10 mb-6 text-sm font-medium text-text-secondary">Distribution of errors by severity level.</p>
         
         <div className="relative z-10 h-72 w-full">
           {severityData.length > 0 ? (
@@ -96,7 +96,7 @@ export function AdvancedCharts({ severityBreakdown, environmentHealth }: Advance
                   outerRadius={105}
                   paddingAngle={8}
                   dataKey="count"
-                  stroke="rgba(255,255,255,0.05)"
+                  stroke="transparent"
                   strokeWidth={2}
                   cornerRadius={6}
                 >
@@ -109,12 +109,13 @@ export function AdvancedCharts({ severityBreakdown, environmentHealth }: Advance
                   verticalAlign="bottom" 
                   height={36} 
                   iconType="circle"
-                  wrapperStyle={{ fontSize: '12px', fontWeight: 500, color: 'rgba(255,255,255,0.7)' }}
+                  wrapperStyle={{ fontSize: '12px', fontWeight: 500 }}
+                  className="!text-text-secondary"
                 />
               </PieChart>
             </ResponsiveContainer>
           ) : (
-            <div className="flex h-full items-center justify-center text-sm font-medium text-white/40">
+            <div className="flex h-full items-center justify-center text-sm font-medium text-text-secondary/50">
               No severity data available.
             </div>
           )}
@@ -122,10 +123,10 @@ export function AdvancedCharts({ severityBreakdown, environmentHealth }: Advance
       </div>
 
       {/* Premium Environment Health Bar Chart */}
-      <div className="group relative flex flex-col overflow-hidden rounded-md border border-white/5 bg-gradient-to-b from-card/80 to-background/40 p-6 shadow-xl backdrop-blur-md transition-all hover:border-white/10 hover:shadow-2xl hover:shadow-primary/5 delay-75">
+      <div className="group relative flex flex-col overflow-hidden rounded-md border border-border/40 bg-gradient-to-b from-card/80 to-background/40 p-6 shadow-xl backdrop-blur-md transition-all hover:border-primary/20 hover:shadow-2xl hover:shadow-primary/5 delay-75">
         <div className="absolute inset-0 bg-gradient-to-bl from-primary/5 via-transparent to-transparent opacity-0 transition-opacity duration-500 group-hover:opacity-100" />
-        <h3 className="relative z-10 text-lg font-bold tracking-tight text-white">Environment Health</h3>
-        <p className="relative z-10 mb-6 text-sm font-medium text-white/50">Error frequency across different environments.</p>
+        <h3 className="relative z-10 text-lg font-bold tracking-tight text-text-primary">Environment Health</h3>
+        <p className="relative z-10 mb-6 text-sm font-medium text-text-secondary">Error frequency across different environments.</p>
         
         <div className="relative z-10 h-72 w-full">
           {environmentHealth.length > 0 ? (
@@ -137,10 +138,11 @@ export function AdvancedCharts({ severityBreakdown, environmentHealth }: Advance
                     <stop offset="100%" stopColor="#6d28d9" stopOpacity={0.6}/>
                   </linearGradient>
                 </defs>
-                <CartesianGrid strokeDasharray="4 4" stroke="rgba(255,255,255,0.05)" vertical={false} />
+                <CartesianGrid strokeDasharray="4 4" stroke="hsl(var(--border) / 0.4)" vertical={false} />
                 <XAxis 
                   dataKey="label" 
-                  stroke="rgba(255,255,255,0.4)" 
+                  stroke="currentColor" 
+                  className="text-text-secondary"
                   fontSize={12} 
                   fontWeight={500}
                   tickLine={false}
@@ -148,7 +150,8 @@ export function AdvancedCharts({ severityBreakdown, environmentHealth }: Advance
                   dy={10}
                 />
                 <YAxis 
-                  stroke="rgba(255,255,255,0.4)" 
+                  stroke="currentColor" 
+                  className="text-text-secondary"
                   fontSize={12} 
                   fontWeight={500}
                   tickLine={false}
@@ -156,7 +159,7 @@ export function AdvancedCharts({ severityBreakdown, environmentHealth }: Advance
                   allowDecimals={false}
                   dx={-10}
                 />
-                <Tooltip content={<CustomTooltip />} cursor={{ fill: "rgba(255,255,255,0.03)" }} />
+                <Tooltip content={<CustomTooltip />} cursor={{ fill: "hsl(var(--secondary) / 0.5)" }} />
                 <Bar 
                   dataKey="count" 
                   fill="url(#colorBar)" 
@@ -167,7 +170,7 @@ export function AdvancedCharts({ severityBreakdown, environmentHealth }: Advance
               </BarChart>
             </ResponsiveContainer>
           ) : (
-            <div className="flex h-full items-center justify-center text-sm font-medium text-white/40">
+            <div className="flex h-full items-center justify-center text-sm font-medium text-text-secondary/50">
               No environment data available.
             </div>
           )}

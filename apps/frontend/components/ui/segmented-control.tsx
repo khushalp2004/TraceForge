@@ -39,14 +39,14 @@ export function SegmentedControl<T extends string>({
             key={option.value}
             type="button"
             className={`relative ${buttonShape} ${buttonSize} font-semibold transition-colors duration-300 outline-none flex-1 ${
-              isActive ? "text-primary-foreground" : "text-text-secondary hover:bg-secondary/80 hover:text-text-primary"
+              isActive ? "text-text-primary drop-shadow-sm" : "text-text-secondary hover:bg-secondary/80 hover:text-text-primary"
             }`}
             onClick={() => onChange(option.value)}
           >
             {isActive && (
               <motion.div
                 layoutId={`segmented-control-bg-${name}`}
-                className={`absolute inset-0 z-0 ${buttonShape} bg-primary shadow-sm`}
+                className={`absolute inset-0 z-0 ${buttonShape} bg-card shadow-sm border border-border/50`}
                 transition={{ type: "spring", bounce: 0.15, duration: 0.4 }}
               />
             )}
