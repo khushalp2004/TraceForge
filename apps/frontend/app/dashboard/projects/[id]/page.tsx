@@ -66,9 +66,8 @@ export default function ProjectDetailsPage({ params }: { params: { id: string } 
   const [renameInput, setRenameInput] = useState("");
   const [isRenaming, setIsRenaming] = useState(false);
   const [isRotatingKey, setIsRotatingKey] = useState(false);
+  const [archiveInput, setArchiveInput] = useState("");
   const [isArchiving, setIsArchiving] = useState(false);
-  const [deleteInput, setDeleteInput] = useState("");
-  const [isDeleting, setIsDeleting] = useState(false);
 
   useEffect(() => {
     if (toast) {
@@ -226,15 +225,18 @@ export default function ProjectDetailsPage({ params }: { params: { id: string } 
   };
 
   const handleArchive = async () => {
-    if (!project) return;
-    if (!window.confirm("Are you sure you want to archive this project?")) return;
+    if (!project || archiveInput !== project.name) return;
     
     setIsArchiving(true);
     try {
       const token = window.localStorage.getItem(tokenKey);
       const res = await fetch(`${API_URL}/projects/${project.id}`, {
         method: "DELETE",
-        headers: { Authorization: `Bearer ${token}` }
+        headers: { 
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({ name: archiveInput })
       });
       if (!res.ok) throw new Error("Failed to archive project");
       setToast({ message: "Project archived", tone: "success" });
@@ -242,24 +244,6 @@ export default function ProjectDetailsPage({ params }: { params: { id: string } 
     } catch (err: any) {
       setToast({ message: err.message, tone: "error" });
       setIsArchiving(false);
-    }
-  };
-
-  const handleDelete = async () => {
-    if (!project || deleteInput !== project.name) return;
-    setIsDeleting(true);
-    try {
-      const token = window.localStorage.getItem(tokenKey);
-      const res = await fetch(`${API_URL}/projects/${project.id}/permanent`, {
-        method: "DELETE",
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      if (!res.ok) throw new Error("Failed to delete project");
-      setToast({ message: "Project permanently deleted", tone: "success" });
-      router.push("/dashboard/projects");
-    } catch (err: any) {
-      setToast({ message: err.message, tone: "error" });
-      setIsDeleting(false);
     }
   };
 
@@ -423,39 +407,24 @@ export default function ProjectDetailsPage({ params }: { params: { id: string } 
             </div>
 
             {/* Archive */}
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 py-4 border-b border-border/10">
-              <div className="flex flex-col gap-1">
-                <span className="text-[14px] font-medium text-text-primary">Archive Project</span>
-                <span className="text-[12px] text-text-secondary">Hide this project from the active list. It can be restored later.</span>
-              </div>
-              <button
-                className="rounded-md border border-destructive/20 text-destructive hover:bg-destructive/10 px-4 py-2 text-sm font-medium transition-colors"
-                onClick={handleArchive}
-                disabled={isArchiving}
-              >
-                <LoadingButtonContent loading={isArchiving} loadingLabel="Archiving..." idleLabel="Archive" />
-              </button>
-            </div>
-
-            {/* Delete */}
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pt-4">
               <div className="flex flex-col gap-1 max-w-sm">
-                <span className="text-[14px] font-medium text-destructive">Delete Project</span>
-                <span className="text-[12px] text-text-secondary">Permanently delete this project and all its data. Type <strong className="text-text-primary">{project.name}</strong> to confirm.</span>
+                <span className="text-[14px] font-medium text-destructive">Archive Project</span>
+                <span className="text-[12px] text-text-secondary">Hide this project from the active list. It can be restored later. Type <strong className="text-text-primary">{project.name}</strong> to confirm.</span>
               </div>
               <div className="flex items-center gap-3">
                 <input
                   className="rounded-md border border-destructive/30 bg-card px-3 py-2 text-sm text-text-primary outline-none focus:border-destructive focus:ring-2 focus:ring-destructive/20 w-48"
-                  value={deleteInput}
-                  onChange={(e) => setDeleteInput(e.target.value)}
+                  value={archiveInput}
+                  onChange={(e) => setArchiveInput(e.target.value)}
                   placeholder={project.name}
                 />
                 <button
                   className="rounded-md bg-destructive text-destructive-foreground hover:bg-destructive/90 px-4 py-2 text-sm font-medium transition-colors disabled:opacity-50"
-                  onClick={handleDelete}
-                  disabled={isDeleting || deleteInput !== project.name}
+                  onClick={handleArchive}
+                  disabled={isArchiving || archiveInput !== project.name}
                 >
-                  <LoadingButtonContent loading={isDeleting} loadingLabel="Deleting..." idleLabel="Delete" />
+                  <LoadingButtonContent loading={isArchiving} loadingLabel="Archiving..." idleLabel="Archive" />
                 </button>
               </div>
             </div>

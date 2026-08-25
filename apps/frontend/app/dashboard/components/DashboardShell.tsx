@@ -3,8 +3,6 @@
 import { Suspense, useEffect, useMemo, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useAuth } from "../../../context/AuthContext";
-import { useLayout } from "../../../context/LayoutContext";
-import { useMediaQuery } from "../../hooks/useMediaQuery";
 import DashboardMobileNav from "./DashboardMobileNav";
 import DashboardSidebar from "./DashboardSidebar";
 import DashboardTopNav from "./DashboardTopNav";
@@ -52,9 +50,6 @@ type ShellToast = {
 
 function DashboardShellInner({ children }: { children: React.ReactNode }) {
   const { token, isReady } = useAuth();
-  const { layout } = useLayout();
-  const isDesktop = useMediaQuery("(min-width: 1024px)");
-  const effectiveLayout = isDesktop ? layout : "classic";
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -87,10 +82,6 @@ function DashboardShellInner({ children }: { children: React.ReactNode }) {
       router.prefetch(href);
     });
   }, [router, token]);
-
-  useEffect(() => {
-    setCollapsed(effectiveLayout === "compact");
-  }, [effectiveLayout]);
 
   const removeShellToast = (id: string) => {
     setNotificationToasts((prev) => prev.filter((toast) => toast.id !== id));
@@ -193,16 +184,12 @@ function DashboardShellInner({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="flex min-h-screen overflow-x-hidden bg-background">
-      {effectiveLayout === "topbar" ? null : (
-        <DashboardSidebar collapsed={collapsed} onToggle={() => setCollapsed(!collapsed)} />
-      )}
+      <DashboardSidebar collapsed={collapsed} onToggle={() => setCollapsed(!collapsed)} />
       <div
         className={`flex min-h-screen min-w-0 flex-1 flex-col overflow-x-hidden ${
-          effectiveLayout === "topbar" ? "" : collapsed ? "lg:pl-[85px]" : "lg:pl-64"
+          collapsed ? "lg:pl-[85px]" : "lg:pl-64"
         }`}
       >
-        {effectiveLayout === "topbar" ? <DashboardTopNav /> : null}
-        {effectiveLayout === "topbar" ? <div className="hidden h-[72px] lg:block" /> : null}
         <DashboardMobileNav />
         <div className="h-[73px] lg:hidden" />
         <main className="min-w-0 flex-1 overflow-x-hidden pb-24 lg:pb-0">{children}</main>

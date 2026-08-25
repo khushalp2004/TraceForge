@@ -972,11 +972,14 @@ export default function ProjectSettingsPage() {
                             </span>
                           </div>
                           <button
-                            onClick={() => router.push(`/dashboard/projects/${project.id}`)}
-                            className="p-2.5 rounded-full bg-secondary/20 hover:bg-secondary/60 text-text-secondary hover:text-text-primary transition-all duration-300 cursor-pointer shadow-sm border border-border/30 hover:border-border/60 hover:scale-105 shrink-0"
-                            title="View Details"
+                            onClick={() => {
+                              setPermanentDeleteTarget(project);
+                              setPermanentDeleteInput("");
+                            }}
+                            className="p-2.5 rounded-full bg-destructive/10 hover:bg-destructive/20 text-destructive/80 hover:text-destructive transition-all duration-300 cursor-pointer shadow-sm border border-destructive/20 hover:border-destructive/40 hover:scale-105 shrink-0"
+                            title="Delete Permanently"
                           >
-                            <ArrowUpRight className="h-4 w-4" />
+                            <Trash2 className="h-4 w-4" />
                           </button>
                         </div>
                       </div>

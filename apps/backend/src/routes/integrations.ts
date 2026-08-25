@@ -823,7 +823,7 @@ integrationsRouter.post("/jira/start", async (req, res) => {
   const url = new URL("https://auth.atlassian.com/authorize");
   url.searchParams.set("audience", "api.atlassian.com");
   url.searchParams.set("client_id", jiraClientId);
-  url.searchParams.set("scope", "offline_access read:jira-user read:jira-work write:jira-work");
+  url.searchParams.set("scope", "offline_access read:jira-work write:jira-work read:me");
   url.searchParams.set("redirect_uri", jiraRedirectUri);
   url.searchParams.set("state", state);
   url.searchParams.set("response_type", "code");

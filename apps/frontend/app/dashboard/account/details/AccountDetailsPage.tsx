@@ -5,9 +5,7 @@ import { useRouter } from "next/navigation";
 import { ChevronDown, Eye, EyeOff, Trash2, X } from "lucide-react";
 import { LoadingButtonContent } from "../../../../components/ui/loading-button-content";
 import { THEMES } from "../../../../app/theme";
-import { LAYOUTS } from "../../../../app/layoutPreference";
 import { useAuth } from "../../../../context/AuthContext";
-import { useLayout } from "../../../../context/LayoutContext";
 import { useTheme } from "../../../../context/ThemeContext";
 import { PageDescriptionPopover } from "@/components/ui/page-description-popover";
 
@@ -22,7 +20,6 @@ export default function AccountDetailsPage() {
   const router = useRouter();
   const { token, user, login, logout } = useAuth();
   const { theme, setTheme } = useTheme();
-  const { layout, setLayout } = useLayout();
   const [toast, setToast] = useState<Toast | null>(null);
   const [busyAction, setBusyAction] = useState<string | null>(null);
   const [profileName, setProfileName] = useState(user?.fullName || "");
@@ -124,12 +121,6 @@ export default function AccountDetailsPage() {
     setTheme(value);
     const activeTheme = THEMES.find((item) => item.id === value);
     showToast(`${activeTheme?.name || "Theme"} applied`, "success");
-  };
-
-  const updateLayoutPreference = (value: (typeof LAYOUTS)[number]["id"]) => {
-    setLayout(value);
-    const active = LAYOUTS.find((item) => item.id === value);
-    showToast(`${active?.name || "Layout"} applied`, "success");
   };
 
   const requestPasswordReset = async () => {
@@ -525,42 +516,7 @@ export default function AccountDetailsPage() {
                 })}
               </div>
 
-              <div className="mt-6 border-t border-border/40 pt-6">
-                <p className="text-[15px] font-bold text-text-primary">Layout</p>
-                <p className="mt-1.5 text-[14px] text-text-secondary">
-                  Switch between three workspace layouts. Layout changes apply on desktop screens; mobile stays consistent.
-                </p>
 
-                <div className="mt-4 grid gap-3">
-                  {LAYOUTS.map((option) => {
-                    const isActive = layout === option.id;
-                    return (
-                      <button
-                        key={option.id}
-                        type="button"
-                        onClick={() => updateLayoutPreference(option.id)}
-                        className={`rounded-[16px] border px-4 py-4 text-left transition-colors ${
-                          isActive
-                            ? "border-primary/50 bg-primary/5 shadow-sm"
-                            : "border-border/40 bg-secondary/10 hover:border-primary/30 hover:bg-secondary/20"
-                        }`}
-                      >
-                        <div className="flex items-start justify-between gap-3">
-                          <div className="min-w-0">
-                            <p className="text-[15px] font-bold text-text-primary">{option.name}</p>
-                            <p className="mt-1.5 text-[14px] text-text-secondary leading-relaxed">{option.description}</p>
-                          </div>
-                          {isActive && (
-                            <span className="rounded-[4px] bg-primary px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-primary-foreground shadow-sm">
-                              Active
-                            </span>
-                          )}
-                        </div>
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
             </section>
 
             <section className="rounded-[24px] border border-border/40 bg-card p-6 shadow-sm">

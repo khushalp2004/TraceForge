@@ -27,6 +27,7 @@ type SeverityBreakdownItem = BreakdownItem & {
 type AdvancedChartsProps = {
   severityBreakdown: SeverityBreakdownItem[];
   environmentHealth: BreakdownItem[];
+  stacked?: boolean;
 };
 
 // Premium gradient colors
@@ -36,7 +37,7 @@ const TONE_COLORS = {
   info: "url(#colorInfo)"
 };
 
-export function AdvancedCharts({ severityBreakdown, environmentHealth }: AdvancedChartsProps) {
+export function AdvancedCharts({ severityBreakdown, environmentHealth, stacked }: AdvancedChartsProps) {
   const severityData = severityBreakdown.map((item) => ({
     ...item,
     fill: TONE_COLORS[item.tone] || TONE_COLORS.info,
@@ -63,7 +64,7 @@ export function AdvancedCharts({ severityBreakdown, environmentHealth }: Advance
   };
 
   return (
-    <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-2 animate-in fade-in slide-in-from-bottom-4 duration-700 ease-out fill-mode-both">
+    <div className={`mt-6 grid grid-cols-1 gap-6 ${stacked ? "" : "lg:grid-cols-2"} animate-in fade-in slide-in-from-bottom-4 duration-700 ease-out fill-mode-both`}>
       {/* Premium Severity Breakdown Donut */}
       <div className="group relative flex flex-col overflow-hidden rounded-md border border-border/40 bg-gradient-to-b from-card/80 to-background/40 p-6 shadow-xl backdrop-blur-md transition-all hover:border-primary/20 hover:shadow-2xl hover:shadow-primary/5">
         <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-transparent opacity-0 transition-opacity duration-500 group-hover:opacity-100" />

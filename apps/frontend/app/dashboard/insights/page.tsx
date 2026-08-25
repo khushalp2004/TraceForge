@@ -736,7 +736,7 @@ function ComparisonCard({
       : "tf-muted-tag";
 
   return (
-    <div className="group relative overflow-hidden rounded-md border border-border/40 bg-card p-5 shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md hover:border-primary/20">
+    <div className="group relative overflow-hidden rounded-md border border-border/40 bg-card p-6 shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-md hover:border-primary/20">
       <div className="absolute -right-4 -top-4 h-24 w-24 rounded-full bg-primary/5 blur-2xl transition-opacity group-hover:bg-primary/10" />
       
       <div className="relative z-10 flex items-start justify-between gap-3">
@@ -934,8 +934,6 @@ export default function InsightsPage() {
     productionEvents: { current: 0, previous: 0, change: 0, direction: "flat", percentChange: 0 }
   });
   const loading = projectsLoading || insightsLoading;
-  const isTopbarLayout = effectiveLayout === "topbar";
-  const isCompactLayout = effectiveLayout === "compact";
   const showToast = (message: string, tone: Toast["tone"]) => {
     setToast({ message, tone });
     window.setTimeout(() => setToast(null), 2400);
@@ -1154,11 +1152,7 @@ export default function InsightsPage() {
   };
 
   const comparisonGrid = (
-    <div
-      className={`grid gap-4 ${
-        isCompactLayout ? "sm:grid-cols-2 xl:grid-cols-3" : "md:grid-cols-3"
-      }`}
-    >
+    <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-3">
       <ComparisonCard
         title="Event Volume"
         description={`Events captured in the last ${days} days.`}
@@ -1200,7 +1194,7 @@ export default function InsightsPage() {
   );
 
   const trendGrid = (
-    <div className={`grid gap-4 ${isCompactLayout ? "xl:grid-cols-2" : "lg:grid-cols-2"}`}>
+    <div className="grid gap-4 lg:grid-cols-2">
       <InsightLineCard
         title="Issue volume trend"
         description="Track how issue traffic changes over time across environments."
@@ -1379,50 +1373,6 @@ export default function InsightsPage() {
 
             <section className="mt-6">
               <ChartSkeleton />
-            </section>
-          </>
-        ) : isTopbarLayout ? (
-          <section className="mt-6 grid gap-6 xl:grid-cols-[minmax(0,1.25fr)_minmax(360px,0.75fr)] xl:items-start">
-            <div className="min-w-0 space-y-6">
-              {comparisonGrid}
-              {trendGrid}
-              <div className="grid gap-4 sm:grid-cols-2">
-                {environmentHealthCard}
-                {projectPerformanceCard}
-              </div>
-              {topIssuesCard}
-              {alertCorrelationCard}
-            </div>
-            <div className="min-w-0 space-y-6 xl:sticky xl:top-24 xl:self-start">
-              {highlightsCard}
-              <AdvancedCharts severityBreakdown={severityBreakdown} environmentHealth={environmentHealth} />
-              {severityCard}
-              {releaseImpactCard}
-            </div>
-          </section>
-        ) : isCompactLayout ? (
-          <>
-            <section className="mt-6 grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(360px,0.85fr)] lg:items-start">
-              <div className="min-w-0 space-y-6">{comparisonGrid}</div>
-              <div className="lg:sticky lg:top-24 lg:self-start">
-                {highlightsCard}
-                <AdvancedCharts severityBreakdown={severityBreakdown} environmentHealth={environmentHealth} />
-              </div>
-            </section>
-            <section className="mt-6">{severityCard}</section>
-            <section className="mt-6">{trendGrid}</section>
-            <section className="mt-6 grid gap-4 xl:grid-cols-2 xl:items-start">
-              <div className="min-w-0 space-y-6">
-                <div className="grid gap-4 sm:grid-cols-2">
-                  {environmentHealthCard}
-                  {projectPerformanceCard}
-                </div>
-                {topIssuesCard}
-              </div>
-              <div className="min-w-0 space-y-6">
-                {releaseImpactCard}
-                {alertCorrelationCard}
-              </div>
             </section>
           </>
         ) : (

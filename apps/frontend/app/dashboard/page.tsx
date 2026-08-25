@@ -7,7 +7,6 @@ import { Dices } from "lucide-react";
 import { LoadingButtonContent } from "../../components/ui/loading-button-content";
 import { useDebouncedValue } from "../hooks/useDebouncedValue";
 import { useAuth } from "../../context/AuthContext";
-import { useLayout } from "../../context/LayoutContext";
 import { useTheme } from "../../context/ThemeContext";
 import { useMediaQuery } from "../hooks/useMediaQuery";
 import { SparkAreaChart } from "./components/SparkAreaChart";
@@ -198,10 +197,8 @@ export default function DashboardPage() {
 
 function DashboardPageInner() {
   const { logout, user: authUser, token, isReady } = useAuth();
-  const { layout, setLayout } = useLayout();
   const { theme, setTheme } = useTheme();
   const isDesktop = useMediaQuery("(min-width: 1024px)");
-  const effectiveLayout = isDesktop ? layout : "classic";
   const router = useRouter();
   const searchParams = useSearchParams();
   const [orgs, setOrgs] = useState<Org[]>([]);
@@ -322,15 +319,11 @@ function DashboardPageInner() {
     diceTimerRef.current = window.setTimeout(() => setDiceRolling(false), 720);
 
     const availableThemes = THEMES.map((item) => item.id).filter((id) => id !== theme);
-    const availableLayouts = LAYOUTS.map((item) => item.id).filter((id) => id !== layout);
 
     const nextTheme =
       availableThemes[Math.floor(Math.random() * Math.max(availableThemes.length, 1))] || theme;
-    const nextLayout =
-      availableLayouts[Math.floor(Math.random() * Math.max(availableLayouts.length, 1))] || layout;
 
     setTheme(nextTheme);
-    setLayout(nextLayout);
   };
 
   useEffect(() => {
@@ -1219,8 +1212,7 @@ function DashboardPageInner() {
 
   const totalErrors = recentErrorsPagination.total;
   const isInitialLoading = dashboardLoading && !projects.length && !errors.length;
-  const isTopbarLayout = effectiveLayout === "topbar";
-  const isCompactLayout = effectiveLayout === "compact";
+
   const frequencyTotal = frequency.reduce((sum, item) => sum + item.count, 0);
   const frequencyPeak = Math.max(0, ...frequency.map((item) => item.count));
   const frequencyAvg = Math.round(frequencyTotal / Math.max(1, frequency.length));
@@ -1658,15 +1650,7 @@ function DashboardPageInner() {
             )}
           </div>
 
-          <div
-            className={`min-w-0 ${
-              isTopbarLayout
-                ? "grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(420px,0.9fr)] lg:items-start"
-                : isCompactLayout
-                ? "grid gap-6 lg:grid-cols-2 lg:items-start"
-                : "space-y-6"
-            }`}
-          >
+          <div className="min-w-0 space-y-6">
             <div className="tf-card overflow-hidden p-6 flex flex-col gap-6">
               <div className="flex flex-wrap items-center justify-between gap-4">
                 <h2 className="text-lg font-semibold text-text-primary tracking-tight">Analytics</h2>
@@ -1772,22 +1756,14 @@ function DashboardPageInner() {
               </div>
             </div>
 
-            <div
-              className={`tf-card p-6 min-w-0 overflow-hidden ${
-                isTopbarLayout ? "lg:sticky lg:top-24 lg:self-start" : ""
-              }`}
-            >
+            <div className="tf-card p-6 min-w-0 overflow-hidden">
               <div className="flex flex-wrap items-center justify-between gap-4">
                 <h2 className="text-lg font-semibold text-text-primary">Recent Errors</h2>
               </div>
 
               {dashboardLoading && <p className="mt-4 text-sm text-text-secondary">Loading...</p>}
 
-              <div
-                className={`mt-6 space-y-4 ${
-                  isTopbarLayout ? "max-h-[60vh] overflow-auto pr-1 tf-scroll-rail" : ""
-                }`}
-              >
+              <div className="mt-6 space-y-4">
                 {errors.map((item) => {
                   const severity = severityForMessage(item.message);
                   const isExpanded = expandedErrorId === item.id;
