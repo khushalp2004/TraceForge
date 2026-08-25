@@ -372,7 +372,7 @@ export default function RepoAnalysisPage() {
 
         <section className="flex flex-col xl:flex-row xl:flex-wrap items-start xl:items-center gap-3 mb-6">
           <div 
-            className="flex flex-1 items-center gap-2 overflow-x-auto scroll-smooth [&::-webkit-scrollbar]:hidden mask-image-fade py-1"
+            className="flex flex-1 w-full min-w-0 items-center gap-2 overflow-x-auto scroll-smooth [&::-webkit-scrollbar]:hidden mask-image-fade py-1"
             style={{ scrollbarWidth: 'none', WebkitMaskImage: 'linear-gradient(to right, black 95%, transparent)' }}
           >
             {[{ id: "", name: "Personal", role: "OWNER" }, ...orgs].map((org) => {

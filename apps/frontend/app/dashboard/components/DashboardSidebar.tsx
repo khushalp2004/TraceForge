@@ -72,7 +72,7 @@ const isActiveRoute = (pathname: string, href: string) => {
 };
 
 const baseLink =
-  "flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-semibold transition";
+  "flex items-center gap-2 rounded-sm px-3 py-2 text-sm font-semibold transition";
 const activeLink = "bg-card text-text-primary shadow-sm";
 const inactiveLink =
   "text-text-secondary hover:bg-secondary/70 hover:text-text-primary";
@@ -329,7 +329,7 @@ export default function DashboardSidebar({
       </button>
       <div className="flex min-h-0 flex-1 flex-col gap-5">
         <div
-          className={`rounded-2xl border border-border bg-card shadow-sm transition-all duration-200 ${
+          className={`rounded-sm border border-border bg-card shadow-sm transition-all duration-200 ${
             collapsed ? "px-2 py-2 group-hover/nav:px-3 group-hover/nav:py-3" : "px-3 py-3"
           }`}
         >
@@ -353,7 +353,7 @@ export default function DashboardSidebar({
         </div>
 
         <button
-          className={`flex items-center gap-2 rounded-2xl border border-border bg-card px-3 py-2 text-xs font-semibold text-text-secondary shadow-sm transition-all duration-200 hover:border-primary/40 hover:text-text-primary ${
+          className={`flex items-center gap-2 rounded-sm border border-border bg-card px-3 py-2 text-xs font-semibold text-text-secondary shadow-sm transition-all duration-200 hover:border-primary/40 hover:text-text-primary ${
             collapsed ? "justify-center px-2 group-hover/nav:justify-start group-hover/nav:px-3" : ""
           }`}
           type="button"
@@ -418,7 +418,7 @@ export default function DashboardSidebar({
       </div>
 
       {usage ? (
-        <div className={`group/usage relative mt-5 rounded-2xl transition-all duration-200 ${
+        <div className={`group/usage relative mt-5 rounded-sm transition-all duration-200 ${
           collapsed 
             ? "border border-transparent bg-transparent shadow-none p-2 group-hover/nav:border-border group-hover/nav:bg-card group-hover/nav:px-3 group-hover/nav:py-3 group-hover/nav:shadow-sm" 
             : "border border-border bg-card px-3 py-3 shadow-sm"
@@ -443,7 +443,7 @@ export default function DashboardSidebar({
           </div>
           
           {collapsed && (
-            <div className="pointer-events-none absolute left-[calc(100%+0.5rem)] top-1/2 z-50 hidden w-64 -translate-y-1/2 rounded-[24px] border border-border/50 bg-card/90 p-4 shadow-[0_20px_40px_-15px_rgba(0,0,0,0.1)] backdrop-blur-xl group-hover/usage:block group-focus-within/usage:block group-hover/nav:hidden">
+            <div className="pointer-events-none absolute left-[calc(100%+0.5rem)] top-1/2 z-50 hidden w-64 -translate-y-1/2 rounded-sm border border-border/50 bg-card/90 p-4 shadow-[0_20px_40px_-15px_rgba(0,0,0,0.1)] backdrop-blur-xl group-hover/usage:block group-focus-within/usage:block group-hover/nav:hidden">
               <div className="absolute top-1/2 -left-[5px] h-2.5 w-2.5 -translate-y-1/2 rotate-45 border-b border-l border-border/50 bg-card"></div>
               
               <div className="relative z-10 flex items-center justify-between mb-2">
@@ -491,14 +491,14 @@ export default function DashboardSidebar({
         <button
           type="button"
           onClick={() => setProfileOpen((open) => !open)}
-          className={`flex w-full items-center gap-3 rounded-2xl text-left transition-all duration-200 hover:border-primary/30 hover:bg-secondary/50 ${
+          className={`flex w-full items-center gap-3 rounded-sm text-left transition-all duration-200 hover:border-primary/30 hover:bg-secondary/50 ${
             collapsed 
               ? "border border-transparent bg-transparent p-2 shadow-none justify-center group-hover/nav:border-border group-hover/nav:bg-card group-hover/nav:px-3 group-hover/nav:py-3 group-hover/nav:shadow-sm group-hover/nav:justify-start" 
               : "border border-border bg-card px-3 py-3 shadow-sm"
           }`}
           aria-label="Open profile menu"
         >
-          <span className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-primary/15 text-sm font-bold text-text-primary">
+          <span className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-sm bg-primary/15 text-sm font-bold text-text-primary">
             {initials}
           </span>
           <div className={`min-w-0 flex-1 ${collapsed ? "hidden tf-reveal-block" : "block"}`}>
@@ -515,12 +515,12 @@ export default function DashboardSidebar({
 
         {profileOpen && (
           <div
-            className={`absolute bottom-[calc(100%+0.75rem)] z-50 w-64 rounded-3xl border border-border bg-card/95 p-3 shadow-2xl backdrop-blur transition-all duration-200 ${
+            className={`absolute bottom-[calc(100%+0.75rem)] z-50 w-64 rounded-sm border border-border bg-card/95 p-3 shadow-2xl backdrop-blur transition-all duration-200 ${
               collapsed ? "left-full ml-3 group-hover/nav:left-0 group-hover/nav:right-0 group-hover/nav:ml-0" : "left-0 right-0"
             }`}
           >
-            <div className="flex items-center gap-3 rounded-2xl bg-secondary/35 px-3 py-3">
-              <span className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-primary/15 text-base font-bold text-text-primary">
+            <div className="flex items-center gap-3 rounded-sm bg-secondary/35 px-3 py-3">
+              <span className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-sm bg-primary/15 text-base font-bold text-text-primary">
                 {initials}
               </span>
               <div className="min-w-0">
@@ -532,7 +532,7 @@ export default function DashboardSidebar({
             <div className="mt-3 space-y-2">
               <button
                 type="button"
-                className="flex w-full items-center gap-3 rounded-2xl px-3 py-3 text-sm font-semibold text-text-primary transition hover:bg-secondary/60"
+                className="flex w-full items-center gap-3 rounded-sm px-3 py-3 text-sm font-semibold text-text-primary transition hover:bg-secondary/60"
                 onClick={openSettings}
               >
                 <UserCircle className="h-[18px] w-[18px] text-text-secondary" strokeWidth={2} />
@@ -541,7 +541,7 @@ export default function DashboardSidebar({
 
               <button
                 type="button"
-                className="group flex w-full items-center gap-3 rounded-2xl border border-transparent bg-transparent px-3 py-3 text-sm font-semibold text-text-primary transition hover:border-[hsl(var(--destructive-border))] hover:bg-[hsl(var(--destructive-soft))] hover:text-[hsl(var(--destructive))]"
+                className="group flex w-full items-center gap-3 rounded-sm border border-transparent bg-transparent px-3 py-3 text-sm font-semibold text-text-primary transition hover:border-[hsl(var(--destructive-border))] hover:bg-[hsl(var(--destructive-soft))] hover:text-[hsl(var(--destructive))]"
                 onClick={handleSignOut}
               >
                 <LogOut className="h-[18px] w-[18px] text-text-secondary transition group-hover:text-[hsl(var(--destructive))]" strokeWidth={2} />

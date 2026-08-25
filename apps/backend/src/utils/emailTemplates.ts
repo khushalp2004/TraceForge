@@ -14,14 +14,14 @@ const renderParagraphs = (paragraphs: string[]) =>
   paragraphs
     .map(
       (paragraph) =>
-        `<p style="margin: 0 0 14px; font-size: 15px; line-height: 26px; color: #475569;">${escapeHtml(paragraph)}</p>`
+        `<p style="margin: 0 0 16px; font-size: 15px; line-height: 24px; color: #374151;">${escapeHtml(paragraph)}</p>`
     )
     .join("");
 
 const renderFooter = () => `
-  <p style="margin: 0; font-size: 12px; line-height: 20px; color: #94a3b8;">
+  <p style="margin: 0; font-size: 13px; line-height: 20px; color: #9ca3af; text-align: center;">
     This email was sent by ${productName}. If you need help, reply to this email or contact
-    <a href="mailto:${escapeHtml(supportEmail)}" style="color: #ea580c; text-decoration: none;">${escapeHtml(supportEmail)}</a>.
+    <a href="mailto:${escapeHtml(supportEmail)}" style="color: #6b7280; text-decoration: underline;">${escapeHtml(supportEmail)}</a>.
   </p>
 `;
 
@@ -42,59 +42,51 @@ const renderLayout = ({ preheader, eyebrow, title, intro, body, note }: BaseTemp
       <meta name="viewport" content="width=device-width, initial-scale=1.0" />
       <title>${escapeHtml(title)}</title>
     </head>
-    <body style="margin: 0; padding: 0; background: #f8fafc; font-family: Inter, Arial, sans-serif;">
+    <body style="margin: 0; padding: 0; background: #f9fafb; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;">
       <div style="display:none; max-height:0; overflow:hidden; opacity:0; mso-hide:all;">${escapeHtml(preheader)}</div>
-      <table role="presentation" width="100%" cellPadding="0" cellSpacing="0" style="background: #f8fafc; padding: 24px 0;">
+      <table role="presentation" width="100%" cellPadding="0" cellSpacing="0" style="background: #f9fafb; padding: 40px 0;">
         <tr>
           <td align="center">
-            <table role="presentation" width="100%" cellPadding="0" cellSpacing="0" style="max-width: 640px; margin: 0 auto;">
+            <table role="presentation" width="100%" cellPadding="0" cellSpacing="0" style="max-width: 560px; margin: 0 auto;">
               <tr>
-                <td style="padding: 0 20px 20px;">
-                  <a href="${escapeHtml(webBaseUrl)}" style="text-decoration: none; color: #0f172a; font-size: 20px; font-weight: 700;">
+                <td align="center" style="padding: 0 0 32px 0;">
+                  <a href="${escapeHtml(webBaseUrl)}" style="text-decoration: none; color: #111827; font-size: 24px; font-weight: 800; letter-spacing: -0.05em;">
                     ${productName}
                   </a>
                 </td>
               </tr>
               <tr>
-                <td style="padding: 0 20px;">
-                  <table role="presentation" width="100%" cellPadding="0" cellSpacing="0" style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 24px; overflow: hidden; box-shadow: 0 18px 50px rgba(15, 23, 42, 0.08);">
+                <td style="padding: 0 16px;">
+                  <table role="presentation" width="100%" cellPadding="0" cellSpacing="0" style="background: #ffffff; border: 1px solid #e5e7eb; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);">
                     <tr>
-                      <td style="padding: 28px 28px 12px;">
-                        <p style="margin: 0 0 10px; font-size: 12px; font-weight: 700; letter-spacing: 0.16em; text-transform: uppercase; color: #f97316;">
+                      <td style="padding: 40px 40px 32px;">
+                        <p style="margin: 0 0 8px; font-size: 12px; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; color: #6b7280;">
                           ${escapeHtml(eyebrow)}
                         </p>
-                        <h1 style="margin: 0; font-size: 30px; line-height: 38px; color: #0f172a; font-weight: 700;">
+                        <h1 style="margin: 0 0 24px; font-size: 24px; line-height: 32px; color: #111827; font-weight: 700; letter-spacing: -0.02em;">
                           ${escapeHtml(title)}
                         </h1>
-                      </td>
-                    </tr>
-                    <tr>
-                      <td style="padding: 12px 28px 0;">
                         ${renderParagraphs(intro)}
-                      </td>
-                    </tr>
-                    <tr>
-                      <td style="padding: 18px 28px 0;">
                         ${body}
                       </td>
                     </tr>
                     ${
                       note
                         ? `<tr>
-                            <td style="padding: 18px 28px 0;">
-                              <div style="border-radius: 18px; border: 1px solid #fed7aa; background: #fff7ed; padding: 16px 18px;">
-                                <p style="margin: 0; font-size: 13px; line-height: 22px; color: #9a3412;">${escapeHtml(note)}</p>
+                            <td style="padding: 0 40px 32px;">
+                              <div style="border-radius: 8px; border: 1px solid #e5e7eb; background: #f9fafb; padding: 16px 20px;">
+                                <p style="margin: 0; font-size: 14px; line-height: 22px; color: #4b5563;">${escapeHtml(note)}</p>
                               </div>
                             </td>
                           </tr>`
                         : ""
                     }
-                    <tr>
-                      <td style="padding: 24px 28px 28px;">
-                        ${renderFooter()}
-                      </td>
-                    </tr>
                   </table>
+                </td>
+              </tr>
+              <tr>
+                <td style="padding: 32px 20px;">
+                  ${renderFooter()}
                 </td>
               </tr>
             </table>
@@ -135,14 +127,14 @@ export const buildVerificationCodeEmail = ({
       "Use the verification code below to confirm your email and continue into your TraceForge workspace."
     ],
     body: `
-      <div style="border-radius: 20px; border: 1px solid #fed7aa; background: linear-gradient(180deg, #fff7ed 0%, #fffbeb 100%); padding: 20px 22px; text-align: center;">
-        <p style="margin: 0 0 8px; font-size: 12px; font-weight: 700; letter-spacing: 0.16em; text-transform: uppercase; color: #c2410c;">
+      <div style="border-radius: 8px; border: 1px solid #e5e7eb; background: #f9fafb; padding: 24px; text-align: center; margin: 32px 0;">
+        <p style="margin: 0 0 12px; font-size: 11px; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; color: #6b7280;">
           Verification code
         </p>
-        <div style="font-size: 34px; line-height: 40px; font-weight: 800; letter-spacing: 0.28em; color: #9a3412;">
+        <div style="font-size: 36px; line-height: 42px; font-weight: 700; letter-spacing: 0.25em; color: #111827; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;">
           ${escapeHtml(code)}
         </div>
-        <p style="margin: 12px 0 0; font-size: 13px; line-height: 20px; color: #9a3412;">
+        <p style="margin: 12px 0 0; font-size: 13px; line-height: 20px; color: #6b7280;">
           Expires in ${expiresInMinutes} minutes
         </p>
       </div>
@@ -180,15 +172,16 @@ export const buildPasswordResetEmail = ({
       "We received a request to reset your TraceForge password. Use the secure link below to choose a new one."
     ],
     body: `
-      <div style="border-radius: 20px; border: 1px solid #e2e8f0; background: #f8fafc; padding: 22px;">
+      <div style="margin: 32px 0;">
         <a
           href="${escapeHtml(resetUrl)}"
-          style="display: inline-block; border-radius: 16px; background: #f97316; color: #ffffff; text-decoration: none; font-size: 15px; font-weight: 700; padding: 14px 20px;"
+          style="display: inline-block; border-radius: 6px; background: #111827; color: #ffffff; text-decoration: none; font-size: 14px; font-weight: 600; padding: 12px 24px;"
         >
           Reset password
         </a>
-        <p style="margin: 16px 0 0; font-size: 13px; line-height: 22px; color: #64748b; word-break: break-all;">
-          ${escapeHtml(resetUrl)}
+        <p style="margin: 16px 0 0; font-size: 13px; line-height: 20px; color: #6b7280; word-break: break-all;">
+          Or copy and paste this link: <br/>
+          <a href="${escapeHtml(resetUrl)}" style="color: #4b5563;">${escapeHtml(resetUrl)}</a>
         </p>
       </div>
     `,
@@ -229,24 +222,22 @@ export const buildHelpRequestEmail = ({
       "Use the details below to understand the issue and reply directly to the sender."
     ],
     body: `
-      <div style="display: grid; gap: 14px;">
-        <div style="border-radius: 18px; border: 1px solid #e2e8f0; background: #f8fafc; padding: 16px 18px;">
-          <p style="margin: 0 0 6px; font-size: 12px; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; color: #64748b;">Sender</p>
-          <p style="margin: 0; font-size: 15px; line-height: 24px; color: #0f172a;">${escapeHtml(fromEmail)}</p>
+      <div style="margin: 24px 0; border-top: 1px solid #e5e7eb; padding-top: 24px; display: grid; gap: 16px;">
+        <div>
+          <p style="margin: 0 0 4px; font-size: 12px; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; color: #6b7280;">Sender</p>
+          <p style="margin: 0; font-size: 15px; line-height: 24px; color: #111827;">${escapeHtml(fromEmail)}</p>
         </div>
-        <div style="display: grid; gap: 14px; grid-template-columns: repeat(2, minmax(0, 1fr));">
-          <div style="border-radius: 18px; border: 1px solid #e2e8f0; background: #f8fafc; padding: 16px 18px;">
-            <p style="margin: 0 0 6px; font-size: 12px; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; color: #64748b;">IP</p>
-            <p style="margin: 0; font-size: 15px; line-height: 24px; color: #0f172a;">${escapeHtml(ip)}</p>
-          </div>
-          <div style="border-radius: 18px; border: 1px solid #e2e8f0; background: #f8fafc; padding: 16px 18px;">
-            <p style="margin: 0 0 6px; font-size: 12px; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; color: #64748b;">Product URL</p>
-            <p style="margin: 0; font-size: 15px; line-height: 24px; color: #0f172a;">${escapeHtml(productUrl)}</p>
-          </div>
+        <div>
+          <p style="margin: 0 0 4px; font-size: 12px; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; color: #6b7280;">IP</p>
+          <p style="margin: 0; font-size: 15px; line-height: 24px; color: #111827;">${escapeHtml(ip)}</p>
         </div>
-        <div style="border-radius: 20px; border: 1px solid #fed7aa; background: linear-gradient(180deg, #fff7ed 0%, #fffbeb 100%); padding: 18px 20px;">
-          <p style="margin: 0 0 10px; font-size: 12px; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; color: #c2410c;">Problem description</p>
-          <p style="margin: 0; white-space: pre-wrap; font-size: 15px; line-height: 26px; color: #7c2d12;">${escapeHtml(problem)}</p>
+        <div>
+          <p style="margin: 0 0 4px; font-size: 12px; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; color: #6b7280;">Product URL</p>
+          <p style="margin: 0; font-size: 15px; line-height: 24px; color: #111827;">${escapeHtml(productUrl)}</p>
+        </div>
+        <div style="border-radius: 8px; border: 1px solid #e5e7eb; background: #f9fafb; padding: 20px; margin-top: 8px;">
+          <p style="margin: 0 0 8px; font-size: 12px; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; color: #6b7280;">Problem description</p>
+          <p style="margin: 0; white-space: pre-wrap; font-size: 15px; line-height: 24px; color: #111827;">${escapeHtml(problem)}</p>
         </div>
       </div>
     `,
@@ -287,24 +278,24 @@ export const buildSuperAdminAccessRequestEmail = ({
       "Review the request below before deciding whether to add the sender to the super admin allowlist."
     ],
     body: `
-      <div style="display: grid; gap: 14px;">
-        <div style="display: grid; gap: 14px; grid-template-columns: repeat(2, minmax(0, 1fr));">
-          <div style="border-radius: 18px; border: 1px solid #e2e8f0; background: #f8fafc; padding: 16px 18px;">
-            <p style="margin: 0 0 6px; font-size: 12px; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; color: #64748b;">Requester</p>
-            <p style="margin: 0; font-size: 15px; line-height: 24px; color: #0f172a;">${escapeHtml(requesterName?.trim() || "Unknown user")}</p>
+      <div style="margin: 24px 0; border-top: 1px solid #e5e7eb; padding-top: 24px; display: grid; gap: 16px;">
+        <div style="display: grid; gap: 16px; grid-template-columns: repeat(2, minmax(0, 1fr));">
+          <div>
+            <p style="margin: 0 0 4px; font-size: 12px; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; color: #6b7280;">Requester</p>
+            <p style="margin: 0; font-size: 15px; line-height: 24px; color: #111827;">${escapeHtml(requesterName?.trim() || "Unknown user")}</p>
           </div>
-          <div style="border-radius: 18px; border: 1px solid #e2e8f0; background: #f8fafc; padding: 16px 18px;">
-            <p style="margin: 0 0 6px; font-size: 12px; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; color: #64748b;">Email</p>
-            <p style="margin: 0; font-size: 15px; line-height: 24px; color: #0f172a;">${escapeHtml(requesterEmail)}</p>
+          <div>
+            <p style="margin: 0 0 4px; font-size: 12px; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; color: #6b7280;">Email</p>
+            <p style="margin: 0; font-size: 15px; line-height: 24px; color: #111827;">${escapeHtml(requesterEmail)}</p>
           </div>
         </div>
-        <div style="border-radius: 18px; border: 1px solid #e2e8f0; background: #f8fafc; padding: 16px 18px;">
-          <p style="margin: 0 0 6px; font-size: 12px; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; color: #64748b;">Workspace</p>
-          <p style="margin: 0; font-size: 15px; line-height: 24px; color: #0f172a;">${escapeHtml(productUrl)}</p>
+        <div>
+          <p style="margin: 0 0 4px; font-size: 12px; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; color: #6b7280;">Workspace</p>
+          <p style="margin: 0; font-size: 15px; line-height: 24px; color: #111827;">${escapeHtml(productUrl)}</p>
         </div>
-        <div style="border-radius: 20px; border: 1px solid #fed7aa; background: linear-gradient(180deg, #fff7ed 0%, #fffbeb 100%); padding: 18px 20px;">
-          <p style="margin: 0 0 10px; font-size: 12px; font-weight: 700; letter-spacing: 0.14em; text-transform: uppercase; color: #c2410c;">Reason</p>
-          <p style="margin: 0; white-space: pre-wrap; font-size: 15px; line-height: 26px; color: #7c2d12;">${escapeHtml(reason?.trim() || "No additional reason provided.")}</p>
+        <div style="border-radius: 8px; border: 1px solid #e5e7eb; background: #f9fafb; padding: 20px; margin-top: 8px;">
+          <p style="margin: 0 0 8px; font-size: 12px; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; color: #6b7280;">Reason</p>
+          <p style="margin: 0; white-space: pre-wrap; font-size: 15px; line-height: 24px; color: #111827;">${escapeHtml(reason?.trim() || "No additional reason provided.")}</p>
         </div>
       </div>
     `,
@@ -339,20 +330,20 @@ export const buildMarketingAnnouncementEmail = ({
       "We’re sharing this with subscribers who asked to hear about product updates and launch offers."
     ],
     body: `
-      <div style="display: grid; gap: 12px;">
+      <div style="display: grid; gap: 12px; margin-top: 24px;">
         ${paragraphs
           .map(
             (paragraph) => `
-              <div style="border-radius: 18px; border: 1px solid #e2e8f0; background: #f8fafc; padding: 16px 18px;">
-                <p style="margin: 0; white-space: pre-wrap; font-size: 15px; line-height: 26px; color: #334155;">${escapeHtml(paragraph)}</p>
+              <div style="border-radius: 8px; border: 1px solid #e5e7eb; background: #f9fafb; padding: 16px 20px;">
+                <p style="margin: 0; white-space: pre-wrap; font-size: 15px; line-height: 24px; color: #374151;">${escapeHtml(paragraph)}</p>
               </div>
             `
           )
           .join("")}
-        <div style="padding-top: 4px;">
+        <div style="padding-top: 12px;">
           <a
             href="${escapeHtml(webBaseUrl)}"
-            style="display: inline-block; border-radius: 999px; background: #0f172a; color: #ffffff; text-decoration: none; font-size: 14px; font-weight: 700; padding: 12px 18px;"
+            style="display: inline-block; border-radius: 6px; background: #111827; color: #ffffff; text-decoration: none; font-size: 14px; font-weight: 600; padding: 12px 24px;"
           >
             Open TraceForge
           </a>

@@ -1317,7 +1317,7 @@ export default function InsightsPage() {
               <div className="flex items-center rounded-sm border border-border/40 bg-secondary/40 p-1 text-[11px] font-semibold text-text-secondary h-9 w-full sm:w-auto shrink-0 mt-2 sm:mt-0 col-span-2 sm:col-span-1">
                 <button
                   type="button"
-                  className={`whitespace-nowrap rounded-[2px] px-3 py-1 flex-1 sm:flex-none transition ${
+                  className={`whitespace-nowrap rounded-sm px-3 py-1 flex-1 sm:flex-none transition ${
                     chartVariant === "area"
                       ? "bg-card text-text-primary shadow-sm"
                       : "hover:bg-card/50 hover:text-text-primary"
@@ -1328,7 +1328,7 @@ export default function InsightsPage() {
                 </button>
                 <button
                   type="button"
-                  className={`whitespace-nowrap rounded-[2px] px-3 py-1 flex-1 sm:flex-none transition ${
+                  className={`whitespace-nowrap rounded-sm px-3 py-1 flex-1 sm:flex-none transition ${
                     chartVariant === "bar"
                       ? "bg-card text-text-primary shadow-sm"
                       : "hover:bg-card/50 hover:text-text-primary"

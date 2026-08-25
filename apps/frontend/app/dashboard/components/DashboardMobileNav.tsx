@@ -438,7 +438,7 @@ export default function DashboardMobileNav() {
                       logout();
                       router.push("/signin");
                     }}
-                    className="flex items-center gap-4 rounded-[20px] px-3 py-3.5 text-[hsl(var(--destructive))] transition-colors hover:bg-[hsl(var(--destructive)/0.1)]"
+                    className="flex items-center gap-4 rounded-sm px-3 py-3.5 text-[hsl(var(--destructive))] transition-colors hover:bg-[hsl(var(--destructive)/0.1)]"
                   >
                     <span className="inline-flex h-8 w-8 items-center justify-center">
                       <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5"/><path d="M21 12H9"/></svg>
@@ -453,7 +453,7 @@ export default function DashboardMobileNav() {
       </AnimatePresence>
 
       <div
-        className="fixed inset-x-3 bottom-3 z-40 rounded-[24px] border border-border bg-background/95 px-2 pb-[calc(env(safe-area-inset-bottom)+0.45rem)] pt-2 shadow-xl backdrop-blur lg:hidden"
+        className="fixed inset-x-3 bottom-3 z-40 rounded-sm border border-border bg-background/95 px-2 pb-[calc(env(safe-area-inset-bottom)+0.45rem)] pt-2 shadow-xl backdrop-blur lg:hidden"
         role="navigation"
         aria-label="Mobile dashboard navigation"
       >
@@ -465,7 +465,7 @@ export default function DashboardMobileNav() {
               <Link
                 key={item.href}
                 href={item.href}
-                className={`relative flex min-w-0 flex-col items-center justify-center rounded-[20px] border border-transparent px-2 py-1.5 text-[10px] sm:text-[11px] font-semibold transition ${
+                className={`relative flex min-w-0 flex-col items-center justify-center rounded-sm border border-transparent px-2 py-1.5 text-[10px] sm:text-[11px] font-semibold transition ${
                   isActive
                     ? "text-primary"
                     : "text-text-secondary hover:bg-secondary/30 hover:text-text-primary"
@@ -474,7 +474,7 @@ export default function DashboardMobileNav() {
                 {isActive && (
                   <motion.div
                     layoutId="mobile-nav-active-bg"
-                    className="absolute inset-0 z-0 rounded-[20px] bg-secondary/40"
+                    className="absolute inset-0 z-0 rounded-sm bg-secondary/40"
                     transition={{ type: "spring", bounce: 0.15, duration: 0.4 }}
                   />
                 )}
@@ -488,7 +488,7 @@ export default function DashboardMobileNav() {
 
           <button
             type="button"
-            className={`relative flex min-w-0 flex-col items-center justify-center rounded-[20px] border border-transparent px-2 py-1.5 text-[10px] sm:text-[11px] font-semibold transition ${
+            className={`relative flex min-w-0 flex-col items-center justify-center rounded-sm border border-transparent px-2 py-1.5 text-[10px] sm:text-[11px] font-semibold transition ${
               menuOpen || activeOverflowItem
                 ? "text-primary"
                 : "text-text-secondary hover:bg-secondary/30 hover:text-text-primary"
@@ -501,7 +501,7 @@ export default function DashboardMobileNav() {
             {(menuOpen || activeOverflowItem) && (
               <motion.div
                 layoutId="mobile-nav-active-bg"
-                className="absolute inset-0 z-0 rounded-[20px] bg-secondary/40"
+                className="absolute inset-0 z-0 rounded-sm bg-secondary/40"
                 transition={{ type: "spring", bounce: 0.15, duration: 0.4 }}
               />
             )}

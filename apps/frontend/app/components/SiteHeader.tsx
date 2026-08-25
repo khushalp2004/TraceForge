@@ -137,9 +137,9 @@ export default function SiteHeader() {
               <circle cx="11" cy="11" r="8" />
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-4.35-4.35" />
             </svg>
-            <span className="flex h-10 w-full items-center rounded-2xl border border-border/70 bg-card/70 pl-11 pr-4 text-left text-sm text-text-secondary shadow-sm transition-all duration-200 hover:border-primary/30 hover:bg-card">
+            <span className="flex h-9 w-full items-center rounded-sm border border-border/70 bg-card/70 pl-11 pr-4 text-left text-sm text-text-secondary shadow-sm transition-all duration-200 hover:border-primary/30 hover:bg-card">
               Search TraceForge
-              <span className="ml-auto rounded-md border border-border bg-secondary/60 px-2 py-0.5 text-[10px] font-semibold text-text-secondary">
+              <span className="ml-auto rounded-sm border border-border bg-secondary/60 px-2 py-0.5 text-[10px] font-semibold text-text-secondary">
                 /
               </span>
             </span>
@@ -147,7 +147,7 @@ export default function SiteHeader() {
           <button
             type="button"
             onClick={() => openSearch()}
-            className="inline-flex h-10 w-10 items-center justify-center rounded-full border border-border bg-card text-text-secondary shadow-sm transition-all duration-200 hover:border-primary/30 hover:text-text-primary xl:hidden"
+            className="inline-flex h-9 w-9 items-center justify-center rounded-sm border border-border bg-card text-text-secondary shadow-sm transition-all duration-200 hover:border-primary/30 hover:text-text-primary xl:hidden"
             aria-label="Open global search"
           >
             <svg
@@ -161,7 +161,7 @@ export default function SiteHeader() {
             </svg>
           </button>
           {isLoggedIn ? (
-            <Link className="tf-button inline-flex items-center px-4 py-1.5 text-sm" href="/dashboard">
+            <Link className="tf-button inline-flex h-8 items-center justify-center px-4 py-0 text-[13px]" href="/dashboard">
               Dashboard
               <svg className="ml-2 h-3 w-3" viewBox="0 0 10 10" aria-hidden="true">
                 <path d="M3 2 L8 5 L3 8 Z" fill="currentColor" />
@@ -169,10 +169,10 @@ export default function SiteHeader() {
             </Link>
           ) : (
             <>
-              <Link className="tf-navlink" href="/signin">
+              <Link className="tf-navlink text-[13px]" href="/signin">
                 Login
               </Link>
-              <Link className="tf-button px-4 py-1.5 text-sm" href="/signup">
+              <Link className="tf-button inline-flex h-8 items-center justify-center px-4 py-0 text-[13px]" href="/signup">
                 Get Started
               </Link>
             </>
@@ -183,7 +183,7 @@ export default function SiteHeader() {
           <button
             type="button"
             onClick={() => openSearch()}
-            className="inline-flex items-center justify-center rounded-full border border-border bg-card px-3 py-2 text-text-secondary shadow-sm transition-all duration-200 hover:text-text-primary"
+            className="inline-flex h-9 w-9 items-center justify-center rounded-sm border border-border bg-card text-text-secondary shadow-sm transition-all duration-200 hover:text-text-primary"
             aria-label="Open global search"
           >
             <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor">
@@ -196,7 +196,7 @@ export default function SiteHeader() {
             aria-label="Toggle navigation"
             aria-expanded={open}
             onClick={() => setOpen((prev) => !prev)}
-            className="inline-flex items-center justify-center rounded-full border border-border bg-card px-3 py-2 text-text-secondary shadow-sm transition-all duration-200 hover:text-text-primary"
+            className="inline-flex h-9 w-9 items-center justify-center rounded-sm border border-border bg-card text-text-secondary shadow-sm transition-all duration-200 hover:text-text-primary"
           >
             <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor">
               <path
@@ -239,7 +239,7 @@ export default function SiteHeader() {
             <div className="mt-4 grid gap-3">
               {isLoggedIn ? (
                 <Link
-                  className="tf-button inline-flex w-full items-center justify-center px-4 py-2 text-sm"
+                  className="tf-button inline-flex h-9 w-full items-center justify-center px-4 py-0 text-sm"
                   href="/dashboard"
                   onClick={() => setOpen(false)}
                 >
@@ -251,14 +251,14 @@ export default function SiteHeader() {
               ) : (
                 <>
                   <Link
-                    className="tf-button w-full justify-center px-6 py-2 text-sm"
+                    className="tf-button inline-flex h-9 w-full items-center justify-center px-6 py-0 text-sm"
                     href="/signup"
                     onClick={() => setOpen(false)}
                   >
                     Get Started
                   </Link>
                   <Link
-                    className="tf-button-ghost w-full justify-center px-6 py-2 text-sm"
+                    className="tf-button-ghost inline-flex h-9 w-full items-center justify-center px-6 py-0 text-sm"
                     href="/signin"
                     onClick={() => setOpen(false)}
                   >
