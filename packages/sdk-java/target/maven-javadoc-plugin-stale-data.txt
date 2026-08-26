@@ -19,11 +19,11 @@
 -docencoding
 'UTF-8'
 -doctitle
-'TraceForge Java SDK 1.0.0 API'
+'TraceForge Java SDK 1.0.1 API'
 -use
 -version
 -windowtitle
-'TraceForge Java SDK 1.0.0 API'
+'TraceForge Java SDK 1.0.1 API'
 com.usetraceforge
 com.usetraceforge.spring
 /Users/khushalpatil/.m2/repository/org/springframework/boot/spring-boot-autoconfigure/3.2.3/spring-boot-autoconfigure-3.2.3.jar = 1708632195000
@@ -61,19 +61,19 @@ com.usetraceforge.spring
 /Users/khushalpatil/.m2/repository/org/springframework/spring-aop/6.1.4/spring-aop-6.1.4.jar = 1707994971000
 /Users/khushalpatil/.m2/repository/org/springframework/spring-expression/6.1.4/spring-expression-6.1.4.jar = 1707994977000
 /Users/khushalpatil/.m2/repository/io/github/cdimascio/dotenv-java/3.0.0/dotenv-java-3.0.0.jar = 1682892308000
-/Users/khushalpatil/Desktop/usetraceforge.com/packages/sdk-java/src/main/java = 1786691041000
-/Users/khushalpatil/Desktop/usetraceforge.com/packages/sdk-java/target/generated-sources/annotations = 1786691810504
-/Users/khushalpatil/Desktop/usetraceforge.com/packages/sdk-java/target/apidocs/tag-search-index.js = 1786691813800
-/Users/khushalpatil/Desktop/usetraceforge.com/packages/sdk-java/target/apidocs/overview-tree.html = 1786691813794
-/Users/khushalpatil/Desktop/usetraceforge.com/packages/sdk-java/target/apidocs/module-search-index.js = 1786691813800
-/Users/khushalpatil/Desktop/usetraceforge.com/packages/sdk-java/target/apidocs/index.html = 1786691813795
-/Users/khushalpatil/Desktop/usetraceforge.com/packages/sdk-java/target/apidocs/package-search-index.js = 1786691813800
-/Users/khushalpatil/Desktop/usetraceforge.com/packages/sdk-java/target/apidocs/index-all.html = 1786691813804
-/Users/khushalpatil/Desktop/usetraceforge.com/packages/sdk-java/target/apidocs/allpackages-index.html = 1786691813800
-/Users/khushalpatil/Desktop/usetraceforge.com/packages/sdk-java/target/apidocs/member-search-index.js = 1786691813800
-/Users/khushalpatil/Desktop/usetraceforge.com/packages/sdk-java/target/apidocs/overview-summary.html = 1786691813805
-/Users/khushalpatil/Desktop/usetraceforge.com/packages/sdk-java/target/apidocs/help-doc.html = 1786691813806
-/Users/khushalpatil/Desktop/usetraceforge.com/packages/sdk-java/target/apidocs/element-list = 1786691813777
-/Users/khushalpatil/Desktop/usetraceforge.com/packages/sdk-java/target/apidocs/search.html = 1786691813805
-/Users/khushalpatil/Desktop/usetraceforge.com/packages/sdk-java/target/apidocs/allclasses-index.html = 1786691813799
-/Users/khushalpatil/Desktop/usetraceforge.com/packages/sdk-java/target/apidocs/type-search-index.js = 1786691813800
+/Users/khushalpatil/Desktop/usetraceforge.com/packages/sdk-java/src/main/java = 1787747384000
+/Users/khushalpatil/Desktop/usetraceforge.com/packages/sdk-java/target/generated-sources/annotations = 1787763498840
+/Users/khushalpatil/Desktop/usetraceforge.com/packages/sdk-java/target/apidocs/tag-search-index.js = 1787763500337
+/Users/khushalpatil/Desktop/usetraceforge.com/packages/sdk-java/target/apidocs/overview-tree.html = 1787763500331
+/Users/khushalpatil/Desktop/usetraceforge.com/packages/sdk-java/target/apidocs/module-search-index.js = 1787763500336
+/Users/khushalpatil/Desktop/usetraceforge.com/packages/sdk-java/target/apidocs/index.html = 1787763500332
+/Users/khushalpatil/Desktop/usetraceforge.com/packages/sdk-java/target/apidocs/package-search-index.js = 1787763500336
+/Users/khushalpatil/Desktop/usetraceforge.com/packages/sdk-java/target/apidocs/index-all.html = 1787763500341
+/Users/khushalpatil/Desktop/usetraceforge.com/packages/sdk-java/target/apidocs/allpackages-index.html = 1787763500336
+/Users/khushalpatil/Desktop/usetraceforge.com/packages/sdk-java/target/apidocs/member-search-index.js = 1787763500336
+/Users/khushalpatil/Desktop/usetraceforge.com/packages/sdk-java/target/apidocs/overview-summary.html = 1787763500342
+/Users/khushalpatil/Desktop/usetraceforge.com/packages/sdk-java/target/apidocs/help-doc.html = 1787763500343
+/Users/khushalpatil/Desktop/usetraceforge.com/packages/sdk-java/target/apidocs/element-list = 1787763500316
+/Users/khushalpatil/Desktop/usetraceforge.com/packages/sdk-java/target/apidocs/search.html = 1787763500341
+/Users/khushalpatil/Desktop/usetraceforge.com/packages/sdk-java/target/apidocs/allclasses-index.html = 1787763500335
+/Users/khushalpatil/Desktop/usetraceforge.com/packages/sdk-java/target/apidocs/type-search-index.js = 1787763500336
