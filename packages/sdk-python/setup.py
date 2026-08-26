@@ -6,7 +6,7 @@ with open(os.path.join(os.path.dirname(__file__), 'README.md'), encoding='utf-8'
 
 setup(
     name="usetraceforge",
-    version="1.0.2",
+    version="1.0.3",
     packages=find_packages(),
     install_requires=[
         "requests>=2.31.0"

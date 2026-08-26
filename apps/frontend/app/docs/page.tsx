@@ -10,7 +10,7 @@ const cliInstallSnippet = `npx usetraceforge-cli init`;
 
 const installSnippet = `npm install usetraceforge`;
 
-const nextEnvSnippet = `NEXT_PUBLIC_TRACEFORGE_INGEST_URL=http://localhost:3001/ingest
+const nextEnvSnippet = `NEXT_PUBLIC_TRACEFORGE_INGEST_URL=https://usetraceforge.com/ingest
 NEXT_PUBLIC_TRACEFORGE_API_KEY=YOUR_PROJECT_API_KEY
 NEXT_PUBLIC_TRACEFORGE_ENV=production
 NEXT_PUBLIC_TRACEFORGE_RELEASE=web@1.0.0`;
@@ -40,7 +40,7 @@ export function TraceForgeInit() {
   return null;
 }`;
 
-const reactEnvSnippet = `VITE_TRACEFORGE_INGEST_URL=http://localhost:3001/ingest
+const reactEnvSnippet = `VITE_TRACEFORGE_INGEST_URL=https://usetraceforge.com/ingest
 VITE_TRACEFORGE_API_KEY=YOUR_PROJECT_API_KEY
 VITE_TRACEFORGE_ENV=production
 VITE_TRACEFORGE_RELEASE=web@1.0.0`;
@@ -55,7 +55,7 @@ TraceForge.init({
   release: import.meta.env.VITE_TRACEFORGE_RELEASE
 });`;
 
-const vueEnvSnippet = `VITE_TRACEFORGE_INGEST_URL=http://localhost:3001/ingest
+const vueEnvSnippet = `VITE_TRACEFORGE_INGEST_URL=https://usetraceforge.com/ingest
 VITE_TRACEFORGE_API_KEY=YOUR_PROJECT_API_KEY
 VITE_TRACEFORGE_ENV=production
 VITE_TRACEFORGE_RELEASE=web@1.0.0`;
@@ -75,7 +75,7 @@ TraceForge.init({
 const app = createApp(App)
 app.mount('#app')`;
 
-const nodeEnvSnippet = `TRACEFORGE_INGEST_URL=http://localhost:3001/ingest
+const nodeEnvSnippet = `TRACEFORGE_INGEST_URL=https://usetraceforge.com/ingest
 TRACEFORGE_API_KEY=YOUR_PROJECT_API_KEY
 TRACEFORGE_ENV=production
 TRACEFORGE_RELEASE=api@1.0.0`;
@@ -150,7 +150,7 @@ import com.usetraceforge.Config;
 // Initialize in main
 Config config = new Config();
 config.setApiKey("YOUR_TRACEFORGE_JAVA_KEY");
-config.setEndpoint("http://localhost:3001/ingest");
+config.setEndpoint("https://usetraceforge.com/ingest");
 TraceForge.initWithConfig(config);
 
 // Usage in @ControllerAdvice
@@ -200,7 +200,7 @@ const rubySetupSnippet = `require 'traceforge'
 
 TraceForge.configure do |config|
   config.api_key = 'YOUR_TRACEFORGE_RUBY_KEY'
-  config.ingest_url = 'http://localhost:3001/ingest'
+  config.ingest_url = 'https://usetraceforge.com/ingest'
 end
 
 # Usage in Sinatra error block:

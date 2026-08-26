@@ -36,6 +36,8 @@ export const createApp = () => {
   const allowedOrigins = [
     process.env.FRONTEND_URL,
     process.env.APP_PUBLIC_URL,
+    "https://usetraceforge.com",
+    "https://www.usetraceforge.com",
     "http://localhost:3000",
     "http://127.0.0.1:3000",
     "http://localhost:80",

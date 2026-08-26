@@ -1,6 +1,6 @@
 {
   "name": "usetraceforge",
-  "version": "0.1.29",
+  "version": "0.1.30",
   "private": false,
   "description": "TraceForge JavaScript SDK for sending errors to a TraceForge ingest endpoint.",
   "type": "module",

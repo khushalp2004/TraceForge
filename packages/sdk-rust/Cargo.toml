@@ -1,6 +1,6 @@
 [package]
 name = "usetraceforge"
-version = "1.0.2"
+version = "1.0.3"
 edition = "2021"
 description = "TraceForge Rust SDK for unhandled panic logging"
 license = "MIT"

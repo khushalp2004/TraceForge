@@ -3,12 +3,12 @@
 import Link from "next/link";
 import { useState } from "react";
 
-const backendEnvSnippet = `TRACEFORGE_INGEST_URL=http://localhost:3001/ingest
+const backendEnvSnippet = `TRACEFORGE_INGEST_URL=https://usetraceforge.com/ingest
 TRACEFORGE_API_KEY=YOUR_PROJECT_API_KEY
 TRACEFORGE_ENV=production
 TRACEFORGE_RELEASE=api@1.0.0`;
 
-const frontendEnvSnippet = `VITE_TRACEFORGE_INGEST_URL=http://localhost:3001/ingest
+const frontendEnvSnippet = `VITE_TRACEFORGE_INGEST_URL=https://usetraceforge.com/ingest
 VITE_TRACEFORGE_API_KEY=YOUR_PROJECT_API_KEY
 VITE_TRACEFORGE_ENV=production
 VITE_TRACEFORGE_RELEASE=web@1.0.0`;
@@ -70,7 +70,7 @@ app.use((error, _req, res, _next) => {
 const frontendBrowserSnippet = `import TraceForge from "usetraceforge";
 
 const TRACEFORGE_INGEST_URL =
-  import.meta.env.VITE_TRACEFORGE_INGEST_URL || "http://localhost:3001/ingest";
+  import.meta.env.VITE_TRACEFORGE_INGEST_URL || "https://usetraceforge.com/ingest";
 
 const TRACEFORGE_API_KEY = import.meta.env.VITE_TRACEFORGE_API_KEY || "";
 const TRACEFORGE_ENV = import.meta.env.VITE_TRACEFORGE_ENV || "local";

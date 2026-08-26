@@ -36,8 +36,8 @@ async function main() {
 
   const endpoint = await text({
     message: "What is your TraceForge Ingest Endpoint URL?",
-    placeholder: "http://localhost:80/ingest",
-    defaultValue: "http://localhost:80/ingest",
+    placeholder: "https://usetraceforge.com/ingest",
+    defaultValue: "https://usetraceforge.com/ingest",
   });
 
   const framework = await select({

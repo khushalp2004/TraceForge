@@ -17,7 +17,7 @@ You can use TraceForge in any standard Go application. TraceForge automatically 
 First, ensure you have your variables set (e.g., via a `.env` file loaded using `godotenv`):
 ```env
 TRACEFORGE_API_KEY="your_api_key_here"
-TRACEFORGE_INGEST_URL="http://localhost:80/ingest" # Your TraceForge backend URL
+TRACEFORGE_INGEST_URL="https://usetraceforge.com/ingest" # Your TraceForge backend URL
 ```
 
 Then, initialize the SDK as early as possible in your `main.go`:

@@ -9,7 +9,7 @@ _setup_handshake_sent = False
 
 def init(api_key: str = None, endpoint: str = None, auto_capture: bool = True):
     api_key = api_key or os.environ.get("TRACEFORGE_API_KEY")
-    endpoint = endpoint or os.environ.get("TRACEFORGE_INGEST_URL", "http://localhost:3001/ingest")
+    endpoint = endpoint or os.environ.get("TRACEFORGE_INGEST_URL", "https://usetraceforge.com/ingest")
 
     if not api_key:
         raise ValueError("TraceForge.init() failed: Missing API Key. Set TRACEFORGE_API_KEY environment variable or pass it to init().")

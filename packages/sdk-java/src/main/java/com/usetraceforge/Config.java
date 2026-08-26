@@ -5,7 +5,7 @@ import java.util.Map;
 
 public class Config {
     private String apiKey;
-    private String endpoint = "http://localhost:3001/ingest";
+    private String endpoint = "https://usetraceforge.com/ingest";
     private String environment = "";
     private String release = "";
     private Map<String, String> tags = new HashMap<>();

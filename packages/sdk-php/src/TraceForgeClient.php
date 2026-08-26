@@ -8,13 +8,13 @@ use GuzzleHttp\Exception\GuzzleException;
 class TraceForgeClient
 {
     private ?string $apiKey = null;
-    private string $ingestUrl = 'http://localhost:3001/ingest';
+    private string $ingestUrl = 'https://usetraceforge.com/ingest';
     private Client $httpClient;
 
     public function __construct()
     {
         $this->apiKey = $_ENV['TRACEFORGE_API_KEY'] ?? getenv('TRACEFORGE_API_KEY') ?: null;
-        $this->ingestUrl = $_ENV['TRACEFORGE_INGEST_URL'] ?? getenv('TRACEFORGE_INGEST_URL') ?: 'http://localhost:3001/ingest';
+        $this->ingestUrl = $_ENV['TRACEFORGE_INGEST_URL'] ?? getenv('TRACEFORGE_INGEST_URL') ?: 'https://usetraceforge.com/ingest';
         
         $this->httpClient = new Client([
             'timeout' => 1.0,

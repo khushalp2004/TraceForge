@@ -5,7 +5,7 @@ namespace TraceForge;
 class Client {
     private static $config = [];
     private static $isSetup = false;
-    private static $defaultEndpoint = "http://localhost:3001/ingest";
+    private static $defaultEndpoint = "https://usetraceforge.com/ingest";
 
     public static function init(array $options) {
         self::$config = array_merge([

@@ -30,7 +30,7 @@ var (
 	isSetup   bool
 )
 
-const defaultEndpoint = "http://localhost:80/ingest"
+const defaultEndpoint = "https://usetraceforge.com/ingest"
 
 // Init initializes the TraceForge SDK. It automatically reads TRACEFORGE_API_KEY and TRACEFORGE_INGEST_URL from the environment if no config is provided.
 func Init() {

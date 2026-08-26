@@ -17,7 +17,7 @@ You can use TraceForge in any standard Python script. It automatically hooks int
 First, create a `.env` file in the root of your project:
 ```env
 TRACEFORGE_API_KEY="your_api_key_here"
-TRACEFORGE_INGEST_URL="http://localhost:3001/ingest" # Your TraceForge backend URL
+TRACEFORGE_INGEST_URL="https://usetraceforge.com/ingest" # Your TraceForge backend URL
 ```
 
 Then, initialize the SDK as early as possible in your application lifecycle:

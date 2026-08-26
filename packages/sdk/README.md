@@ -40,7 +40,7 @@ import TraceForge from "usetraceforge";
 
 TraceForge.init({
   apiKey: "YOUR_PROJECT_API_KEY",
-  endpoint: "http://localhost:3001/ingest",
+  endpoint: "https://usetraceforge.com/ingest",
   autoCapture: true,
   environment: "production",
   release: "web@1.0.0"
@@ -80,7 +80,7 @@ app.use((error: unknown, _req, res, _next) => {
 
 ## Environment variables
 ```env
-TRACEFORGE_INGEST_URL=http://localhost:3001/ingest
+TRACEFORGE_INGEST_URL=https://usetraceforge.com/ingest
 TRACEFORGE_API_KEY=YOUR_PROJECT_API_KEY
 TRACEFORGE_ENV=production
 TRACEFORGE_RELEASE=web@1.0.0

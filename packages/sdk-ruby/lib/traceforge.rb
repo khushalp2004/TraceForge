@@ -18,7 +18,7 @@ module TraceForge
 
     def initialize
       @api_key = ENV['TRACEFORGE_API_KEY']
-      @ingest_url = ENV['TRACEFORGE_INGEST_URL'] || 'http://localhost:3001/ingest'
+      @ingest_url = ENV['TRACEFORGE_INGEST_URL'] || 'https://usetraceforge.com/ingest'
     end
   end
 end

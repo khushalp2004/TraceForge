@@ -20,7 +20,7 @@ impl Default for Config {
     fn default() -> Self {
         Self {
             api_key: "".to_string(),
-            endpoint: "http://localhost:80/ingest".to_string(),
+            endpoint: "https://usetraceforge.com/ingest".to_string(),
         }
     }
 }

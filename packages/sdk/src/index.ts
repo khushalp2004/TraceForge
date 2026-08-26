@@ -29,7 +29,7 @@ let config: TraceForgeConfig | null = null;
 let autoCaptureInitialized = false;
 let setupHandshakeSent = false;
 
-const defaultEndpoint = "http://localhost:3001/ingest";
+const defaultEndpoint = "https://usetraceforge.com/ingest";
 
 const getIngestEndpoint = () => config?.endpoint || defaultEndpoint;
 

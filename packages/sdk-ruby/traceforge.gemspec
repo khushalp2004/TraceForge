@@ -3,7 +3,7 @@ $LOAD_PATH.unshift(lib) unless $LOAD_PATH.include?(lib)
 
 Gem::Specification.new do |spec|
   spec.name          = "traceforge"
-  spec.version       = "1.0.8"
+  spec.version       = "1.0.9"
   spec.authors       = ["Khushal Patil"]
   spec.email         = ["patilkhushal54321@gmail.com"]
 

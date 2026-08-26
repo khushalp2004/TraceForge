@@ -18,7 +18,7 @@ You only need to add your API Key and Ingest URL to your `.env` file:
 
 ```env
 TRACEFORGE_API_KEY="your_api_key_here"
-TRACEFORGE_INGEST_URL="http://localhost:3001/ingest"
+TRACEFORGE_INGEST_URL="https://usetraceforge.com/ingest"
 ```
 
 **That's it!** TraceForge will automatically intercept all handled and unhandled exceptions in your Laravel application by seamlessly hooking into Laravel's core logging system.
