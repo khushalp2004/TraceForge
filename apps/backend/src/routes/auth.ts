@@ -29,6 +29,7 @@ import {
 } from "../utils/emailVerification.js";
 import { clearAuthCookie, setAuthCookie } from "../utils/authCookies.js";
 import { subscribeMarketingEmail } from "../utils/marketingSubscribers.js";
+import { sendSecurityAlertEmail } from "../utils/securityAlert.js";
 
 export const authRouter = Router();
 
@@ -511,7 +512,7 @@ const resolveSocialSignupRedirect = async ({
   };
 };
 
-authRouter.get("/me", requireAuth, cacheMiddleware({ ttl: 60, keyPrefix: "auth:me" }), async (req, res) => {
+authRouter.get("/me", requireAuth, cacheMiddleware({ ttl: 60, keyPrefix: "auth:me", useUserId: true }), async (req, res) => {
   const userId = req.user?.id;
 
   if (!userId) {
@@ -541,7 +542,7 @@ authRouter.get("/me", requireAuth, cacheMiddleware({ ttl: 60, keyPrefix: "auth:m
   return res.json({ user: serializeAuthUser(user) });
 });
 
-authRouter.get("/usage", requireAuth, usageSummaryConcurrencyLimit, cacheMiddleware({ ttl: 120, keyPrefix: "auth:usage" }), async (req, res) => {
+authRouter.get("/usage", requireAuth, usageSummaryConcurrencyLimit, cacheMiddleware({ ttl: 120, keyPrefix: "auth:usage", useUserId: true }), async (req, res) => {
   const userId = req.user?.id;
 
   if (!userId) {
@@ -786,6 +787,16 @@ authRouter.post("/login", loginRateLimit, async (req, res) => {
   }
 
   const normalizedEmail = normalizeEmail(email);
+
+  // Check login lockout
+  const lockoutKey = `login_lock:${normalizedEmail}`;
+  const attemptsStr = await redis.get(lockoutKey);
+  const attempts = attemptsStr ? parseInt(attemptsStr, 10) : 0;
+
+  if (attempts > 5) {
+    return res.status(429).json({ error: "Try again after 4 hrs" });
+  }
+
   const user = await prisma.user.findUnique({ where: { email: normalizedEmail } });
   if (!user) {
     return res.status(401).json({ error: "Invalid credentials" });
@@ -797,7 +808,29 @@ authRouter.post("/login", loginRateLimit, async (req, res) => {
 
   const isValid = await bcrypt.compare(password, user.passwordHash);
   if (!isValid) {
+    const newAttempts = attempts + 1;
+    // Set expiry to 4 hours (14400 seconds)
+    await redis.set(lockoutKey, newAttempts.toString(), { EX: 14400 });
+
+    if (newAttempts === 5) {
+      const ip = (req.headers["x-forwarded-for"] as string) || req.socket.remoteAddress || "Unknown";
+      await sendSecurityAlertEmail({
+        email: user.email,
+        fullName: user.fullName,
+        ip
+      }).catch((e) => console.error("Failed to send security alert", e));
+    }
+
+    if (newAttempts > 5) {
+      return res.status(429).json({ error: "Try again after 4 hrs" });
+    }
+    
     return res.status(401).json({ error: "Invalid credentials" });
+  }
+
+  // Clear lockout on successful login
+  if (attempts > 0) {
+    await redis.del(lockoutKey);
   }
 
   if (!user.emailVerifiedAt) {
@@ -1254,6 +1287,21 @@ authRouter.post("/verify-email/resend", resendVerificationRateLimit, async (req,
     return res.json({ status: "ok" });
   }
 
+  // Check cooldown and max attempts
+  const cooldownKey = `verify_cooldown:${user.id}`;
+  const attemptsKey = `verify_attempts:${user.id}`;
+
+  const isCoolingDown = await redis.get(cooldownKey);
+  if (isCoolingDown) {
+    return res.status(429).json({ error: "Please wait 1 minute before requesting a new code" });
+  }
+
+  const resendAttemptsStr = await redis.get(attemptsKey);
+  const resendAttempts = resendAttemptsStr ? parseInt(resendAttemptsStr, 10) : 0;
+  if (resendAttempts >= 5) {
+    return res.status(429).json({ error: "Something went wrong. Please try again later." });
+  }
+
   if (user.disabledAt) {
     return res.status(403).json({ error: "This account has been suspended. Contact support for help." });
   }
@@ -1267,6 +1315,10 @@ authRouter.post("/verify-email/resend", resendVerificationRateLimit, async (req,
     email: user.email,
     fullName: user.fullName
   });
+
+  // Set 1 minute cooldown and increment 24h attempts counter
+  await redis.set(cooldownKey, "1", { EX: 60 });
+  await redis.set(attemptsKey, (resendAttempts + 1).toString(), { EX: 86400 });
 
   return res.json({ status: "ok" });
 });

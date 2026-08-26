@@ -247,6 +247,57 @@ export const buildHelpRequestEmail = ({
   return { text, html };
 };
 
+export const buildSecurityAlertEmail = ({
+  fullName,
+  ip
+}: {
+  fullName?: string | null;
+  ip?: string | null;
+}) => {
+  const greeting = fullName?.trim() ? `Hi ${fullName.trim()},` : "Hi,";
+  const text = [
+    greeting,
+    "",
+    "We noticed multiple failed login attempts to your TraceForge account.",
+    "",
+    "As a security precaution, we have temporarily blocked further login attempts for your account for 4 hours.",
+    "",
+    `Detected IP address: ${ip || "Unknown"}`,
+    "",
+    "If this was you, you can try logging in again after 4 hours. If this was not you, someone may be trying to access your account. Please consider resetting your password."
+  ].join("\n");
+
+  const html = renderLayout({
+    preheader: "Important security alert regarding your TraceForge account.",
+    eyebrow: "Security Alert",
+    title: "Multiple failed login attempts detected",
+    intro: [
+      greeting,
+      "We noticed multiple failed login attempts to your TraceForge account.",
+      "As a security precaution, we have temporarily blocked further login attempts for your account for 4 hours."
+    ],
+    body: `
+      <div style="border-radius: 8px; border: 1px solid #fee2e2; background: #fef2f2; padding: 24px; text-align: left; margin: 32px 0;">
+        <p style="margin: 0 0 12px; font-size: 11px; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; color: #b91c1c;">
+          Security Details
+        </p>
+        <p style="margin: 0; font-size: 14px; line-height: 20px; color: #991b1b;">
+          <strong>Detected IP:</strong> ${escapeHtml(ip || "Unknown")}
+        </p>
+      </div>
+      <p style="margin: 0 0 16px; font-size: 15px; line-height: 24px; color: #374151;">
+        If this was you, you can try logging in again after 4 hours.
+      </p>
+      <p style="margin: 0; font-size: 15px; line-height: 24px; color: #374151;">
+        If this was not you, someone may be trying to access your account. We strongly recommend resetting your password immediately.
+      </p>
+    `,
+    note: "If you need immediate assistance, please reply to this email to contact our support team."
+  });
+
+  return { text, html };
+};
+
 export const buildSuperAdminAccessRequestEmail = ({
   requesterEmail,
   requesterName,

@@ -262,7 +262,11 @@ export default function ProjectSettingsPage() {
       setDefaultAiModel(projectsData.defaultAiModel || "groq/compound");
       setNewProjectAiModel(projectsData.defaultAiModel || "groq/compound");
       if (orgsRes.ok) {
-        setOrgs(orgsData.orgs || []);
+        const fetchedOrgs = orgsData.orgs || [];
+        setOrgs(fetchedOrgs);
+        if (selectedOrgId && !fetchedOrgs.some((o: Org) => o.id === selectedOrgId)) {
+          setSelectedOrgId("");
+        }
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Unexpected error");

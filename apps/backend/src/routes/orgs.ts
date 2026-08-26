@@ -76,13 +76,16 @@ const canAddMoreOrgMembers = async (orgId: string, actingUserId: string) => {
   return { allowed: true as const, memberCount, limit: FREE_ORG_MEMBER_LIMIT };
 };
 
-const findOrganizationWithSameName = async (name: string, excludeOrgId?: string) =>
+const findOrganizationWithSameName = async (name: string, userId: string, excludeOrgId?: string) =>
   prisma.organization.findFirst({
     where: {
       id: excludeOrgId ? { not: excludeOrgId } : undefined,
       name: {
         equals: name,
         mode: "insensitive"
+      },
+      members: {
+        some: { userId }
       }
     },
     select: { id: true }
@@ -424,7 +427,7 @@ orgsRouter.post("/", async (req, res) => {
     return res.status(400).json({ error: "Organization name is required" });
   }
 
-  const existingOrganization = await findOrganizationWithSameName(normalizedName);
+  const existingOrganization = await findOrganizationWithSameName(normalizedName, userId);
 
   if (existingOrganization) {
     return res.status(409).json({ error: "An organization with that name already exists." });
@@ -493,7 +496,7 @@ orgsRouter.patch("/:id", async (req, res) => {
     return res.status(403).json({ error: "Only owners can rename organizations" });
   }
 
-  const existingOrganization = await findOrganizationWithSameName(normalizedName, orgId);
+  const existingOrganization = await findOrganizationWithSameName(normalizedName, userId, orgId);
 
   if (existingOrganization) {
     return res.status(409).json({ error: "An organization with that name already exists." });

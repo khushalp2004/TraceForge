@@ -12,7 +12,7 @@ import {
 
 export const notificationsRouter = Router();
 
-notificationsRouter.get("/dismissals", requireAuth, cacheMiddleware({ ttl: 30, keyPrefix: "notifications:dismissals" }), async (req, res) => {
+notificationsRouter.get("/dismissals", requireAuth, cacheMiddleware({ ttl: 30, keyPrefix: "notifications:dismissals", useUserId: true }), async (req, res) => {
   const userId = req.user?.id;
 
   if (!userId) {

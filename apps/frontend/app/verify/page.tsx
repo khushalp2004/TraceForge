@@ -35,6 +35,7 @@ function VerifyEmailPageInner() {
     message: string;
     tone: "error" | "success" | "info";
   } | null>(null);
+  const [resendCountdown, setResendCountdown] = useState(0);
   const codeInputRef = useRef<HTMLInputElement | null>(null);
 
   const next = searchParams.get("next") || "/dashboard";
@@ -46,6 +47,14 @@ function VerifyEmailPageInner() {
     const timeout = window.setTimeout(() => setToast(null), 2800);
     return () => window.clearTimeout(timeout);
   }, [toast]);
+
+  useEffect(() => {
+    if (resendCountdown <= 0) return;
+    const timer = window.setInterval(() => {
+      setResendCountdown((prev) => prev - 1);
+    }, 1000);
+    return () => window.clearInterval(timer);
+  }, [resendCountdown]);
 
   useEffect(() => {
     if (!isReady) return;
@@ -141,9 +150,13 @@ function VerifyEmailPageInner() {
 
       const data = await res.json();
       if (!res.ok) {
+        if (res.status === 429 && data.error?.includes("1 minute")) {
+           setResendCountdown(60);
+        }
         throw new Error(data.error || "Could not resend verification code");
       }
 
+      setResendCountdown(60);
       setToast({
         message: `A new verification code was sent to ${email.trim()}.`,
         tone: "success"
@@ -282,9 +295,9 @@ function VerifyEmailPageInner() {
                     type="button"
                     className="text-text-secondary hover:text-text-primary transition-colors disabled:opacity-50"
                     onClick={handleResend}
-                    disabled={resending}
+                    disabled={resending || resendCountdown > 0}
                   >
-                    {resending ? "Sending..." : "Resend code"}
+                    {resending ? "Sending..." : resendCountdown > 0 ? `Resend code in ${resendCountdown}s` : "Resend code"}
                   </button>
                   <Link className="text-text-secondary hover:text-text-primary transition-colors" href="/signin">
                     Back to login

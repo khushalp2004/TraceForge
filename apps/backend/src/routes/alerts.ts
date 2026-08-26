@@ -248,7 +248,7 @@ alertsRouter.get("/rules", async (req, res) => {
   return res.json({ rules });
 });
 
-alertsRouter.get("/projects", cacheMiddleware({ ttl: 60, keyPrefix: "alerts:projects" }), async (req, res) => {
+alertsRouter.get("/projects", cacheMiddleware({ ttl: 60, keyPrefix: "alerts:projects", useUserId: true }), async (req, res) => {
   const userId = req.user?.id;
   if (!userId) {
     return res.status(401).json({ error: "Unauthorized" });
