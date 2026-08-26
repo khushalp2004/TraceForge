@@ -969,7 +969,7 @@ function IssuesPageInner() {
                   return (
                     <div
                       key={issue.id}
-                      className="group relative flex flex-col lg:flex-row lg:items-center justify-between p-5 gap-4 rounded-md bg-card border border-border/40 hover:border-border transition-all duration-200"
+                      className="group relative flex flex-col lg:flex-row lg:items-center justify-between p-5 gap-4 rounded-sm bg-card border border-border/40 hover:border-border transition-all duration-200"
                     >
                       {/* Left: Content Area */}
                       <div className="flex items-start gap-4 flex-1 min-w-0">
@@ -1019,7 +1019,7 @@ function IssuesPageInner() {
                       {/* Right: Actions Container */}
                       <div className="shrink-0 flex items-center gap-2 lg:opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-opacity duration-200 mt-4 lg:mt-0">
                         <Link
-                          className="flex items-center justify-center h-8 px-3 rounded-md text-[11px] font-semibold text-text-secondary hover:text-text-primary hover:bg-secondary/40 transition-colors"
+                          className="flex items-center justify-center h-8 px-3 rounded-sm text-[11px] font-semibold text-text-secondary hover:text-text-primary hover:bg-secondary/40 transition-colors"
                           href={`/dashboard/errors/${issue.id}`}
                         >
                           View
@@ -1029,7 +1029,7 @@ function IssuesPageInner() {
 
                         <button
                           type="button"
-                          className="p-1.5 rounded-md text-text-secondary hover:text-text-primary hover:bg-secondary/40 transition-colors"
+                          className="p-1.5 rounded-sm text-text-secondary hover:text-text-primary hover:bg-secondary/40 transition-colors"
                           onClick={() => copyStackTrace(issue.stackTrace)}
                           title="Copy Stack Trace"
                         >
@@ -1038,7 +1038,7 @@ function IssuesPageInner() {
                         
                         <button
                           type="button"
-                          className="p-1.5 rounded-md text-text-secondary hover:text-text-primary hover:bg-secondary/40 transition-colors disabled:opacity-50"
+                          className="p-1.5 rounded-sm text-text-secondary hover:text-text-primary hover:bg-secondary/40 transition-colors disabled:opacity-50"
                           onClick={() => openGithubIssueModal(issue)}
                           disabled={creatingGithubIssueId === issue.id}
                           title="Create GitHub Issue"
@@ -1049,7 +1049,7 @@ function IssuesPageInner() {
                         {viewMode === "active" && !issue.isManualAlertIssue && (
                           <button
                             type="button"
-                            className="p-1.5 rounded-md text-text-secondary hover:text-text-primary hover:bg-secondary/40 transition-colors disabled:opacity-50"
+                            className="p-1.5 rounded-sm text-text-secondary hover:text-text-primary hover:bg-secondary/40 transition-colors disabled:opacity-50"
                             onClick={() => regenerateIssue(issue.id)}
                             disabled={regeneratingId === issue.id || isAiWorkInFlight(issue)}
                             title="Regenerate AI Analysis"
@@ -1061,7 +1061,7 @@ function IssuesPageInner() {
                         {viewMode === "archived" && (
                           <button
                             type="button"
-                            className="p-1.5 rounded-md text-text-secondary hover:text-text-primary hover:bg-secondary/40 transition-colors disabled:opacity-50"
+                            className="p-1.5 rounded-sm text-text-secondary hover:text-text-primary hover:bg-secondary/40 transition-colors disabled:opacity-50"
                             onClick={() => restoreIssue(issue.id)}
                             disabled={restoringIssueId === issue.id}
                             title="Restore Issue"
@@ -1075,7 +1075,7 @@ function IssuesPageInner() {
                         {viewMode === "active" && (
                           <button
                             type="button"
-                            className="p-1.5 rounded-md text-text-secondary hover:text-text-primary hover:bg-secondary/40 transition-colors"
+                            className="p-1.5 rounded-sm text-text-secondary hover:text-text-primary hover:bg-secondary/40 transition-colors"
                             onClick={() => setArchiveTarget(issue)}
                             title="Archive Issue"
                           >
@@ -1086,7 +1086,7 @@ function IssuesPageInner() {
                         {viewMode === "archived" && (
                           <button
                             type="button"
-                            className="p-1.5 rounded-md text-destructive/80 hover:text-destructive hover:bg-destructive/10 transition-colors disabled:opacity-50"
+                            className="p-1.5 rounded-sm text-destructive/80 hover:text-destructive hover:bg-destructive/10 transition-colors disabled:opacity-50"
                             onClick={() => setDeleteTarget(issue)}
                             disabled={deletingIssueId === issue.id}
                             title="Delete Issue"
@@ -1124,7 +1124,7 @@ function IssuesPageInner() {
 
       {archiveTarget && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 p-4 pt-20 pb-24 sm:p-8 sm:pt-[72px] sm:pb-8">
-          <div className="w-full max-w-lg max-h-full rounded-xl border border-border bg-card shadow-xl flex flex-col overflow-hidden">
+          <div className="w-full max-w-lg max-h-full rounded-sm border border-border bg-card shadow-xl flex flex-col overflow-hidden">
             <div className="flex items-center justify-between p-4 border-b border-border/50">
               <h3 className="text-sm font-semibold text-text-primary">Archive Issue</h3>
               <button onClick={() => setArchiveTarget(null)} className="text-text-secondary hover:text-text-primary transition-colors">
@@ -1141,14 +1141,14 @@ function IssuesPageInner() {
                <button 
                  onClick={archiveIssue} 
                  disabled={archivingIssueId === archiveTarget.id}
-                 className="flex-1 bg-destructive/15 text-destructive border border-destructive/30 hover:bg-destructive/25 backdrop-blur-md font-semibold py-2 px-4 rounded-lg transition-all duration-300 flex items-center justify-center shadow-[0_8px_16px_-6px_rgba(var(--destructive-rgb),0.1)]"
+                 className="flex-1 bg-destructive/15 text-destructive border border-destructive/30 hover:bg-destructive/25 backdrop-blur-md font-semibold py-2 px-4 rounded-sm transition-all duration-300 flex items-center justify-center shadow-[0_8px_16px_-6px_rgba(var(--destructive-rgb),0.1)]"
                >
                  Archive
                </button>
                <button 
                  onClick={() => setArchiveTarget(null)} 
                  disabled={archivingIssueId === archiveTarget.id}
-                 className="flex-1 bg-secondary/50 border border-border hover:bg-secondary/80 text-text-primary font-semibold py-2 px-4 rounded-lg transition-colors flex items-center justify-center"
+                 className="flex-1 bg-secondary/50 border border-border hover:bg-secondary/80 text-text-primary font-semibold py-2 px-4 rounded-sm transition-colors flex items-center justify-center"
                >
                  Cancel
                </button>
@@ -1159,7 +1159,7 @@ function IssuesPageInner() {
 
       {deleteTarget && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 p-4 pt-20 pb-24 sm:p-8 sm:pt-[72px] sm:pb-8">
-          <div className="w-full max-w-lg max-h-full rounded-xl border border-border bg-card shadow-xl flex flex-col overflow-hidden">
+          <div className="w-full max-w-lg max-h-full rounded-sm border border-border bg-card shadow-xl flex flex-col overflow-hidden">
             <div className="flex items-center justify-between p-4 border-b border-border/50">
               <h3 className="text-sm font-semibold text-text-primary">Delete Issue</h3>
               <button onClick={() => setDeleteTarget(null)} className="text-text-secondary hover:text-text-primary transition-colors">
@@ -1176,14 +1176,14 @@ function IssuesPageInner() {
                <button 
                  onClick={deleteIssuePermanently} 
                  disabled={deletingIssueId === deleteTarget.id}
-                 className="flex-1 bg-destructive/15 text-destructive border border-destructive/30 hover:bg-destructive/25 backdrop-blur-md font-semibold py-2 px-4 rounded-lg transition-all duration-300 flex items-center justify-center shadow-[0_8px_16px_-6px_rgba(var(--destructive-rgb),0.1)]"
+                 className="flex-1 bg-destructive/15 text-destructive border border-destructive/30 hover:bg-destructive/25 backdrop-blur-md font-semibold py-2 px-4 rounded-sm transition-all duration-300 flex items-center justify-center shadow-[0_8px_16px_-6px_rgba(var(--destructive-rgb),0.1)]"
                >
                  Delete
                </button>
                <button 
                  onClick={() => setDeleteTarget(null)} 
                  disabled={deletingIssueId === deleteTarget.id}
-                 className="flex-1 bg-secondary/50 border border-border hover:bg-secondary/80 text-text-primary font-semibold py-2 px-4 rounded-lg transition-colors flex items-center justify-center"
+                 className="flex-1 bg-secondary/50 border border-border hover:bg-secondary/80 text-text-primary font-semibold py-2 px-4 rounded-sm transition-colors flex items-center justify-center"
                >
                  Cancel
                </button>
@@ -1194,7 +1194,7 @@ function IssuesPageInner() {
 
       {showCreateModal && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 p-4 pt-20 pb-24 sm:p-8 sm:pt-[72px] sm:pb-8">
-          <div className="w-full max-w-lg max-h-full rounded-xl border border-border bg-card shadow-xl flex flex-col overflow-hidden">
+          <div className="w-full max-w-lg max-h-full rounded-sm border border-border bg-card shadow-xl flex flex-col overflow-hidden">
             <div className="flex items-center justify-between p-4 border-b border-border/50 shrink-0">
               <h3 className="text-sm font-semibold text-text-primary">Create Project</h3>
               <button onClick={() => {
@@ -1216,7 +1216,7 @@ function IssuesPageInner() {
                      Project name
                    </label>
                    <input
-                     className="w-full rounded-xl border border-border bg-secondary/20 px-4 py-3 text-sm text-text-primary shadow-sm outline-none transition focus:border-primary/50 focus:bg-card focus:ring-2 focus:ring-primary/20"
+                     className="w-full rounded-sm border border-border bg-secondary/20 px-4 py-3 text-sm text-text-primary shadow-sm outline-none transition focus:border-primary/50 focus:bg-card focus:ring-2 focus:ring-primary/20"
                      placeholder="e.g. Website Frontend"
                      value={newProjectName}
                      onChange={(event) => setNewProjectName(event.target.value)}
@@ -1229,7 +1229,7 @@ function IssuesPageInner() {
                      AI Analysis Model
                    </label>
                    <select
-                     className="w-full appearance-none rounded-xl border border-border bg-secondary/20 px-4 py-3 pr-10 text-sm text-text-primary shadow-sm outline-none transition focus:border-primary/50 focus:bg-card focus:ring-2 focus:ring-primary/20"
+                     className="w-full appearance-none rounded-sm border border-border bg-secondary/20 px-4 py-3 pr-10 text-sm text-text-primary shadow-sm outline-none transition focus:border-primary/50 focus:bg-card focus:ring-2 focus:ring-primary/20"
                      style={{
                        backgroundImage:
                          "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 20 20' fill='none'%3E%3Cpath d='M5 7l5 5 5-5' stroke='%239CA3AF' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E\")",
@@ -1254,7 +1254,7 @@ function IssuesPageInner() {
                      GitHub Repository (Optional)
                    </label>
                    <select
-                     className="w-full appearance-none rounded-xl border border-border bg-secondary/20 px-4 py-3 pr-10 text-sm text-text-primary shadow-sm outline-none transition focus:border-primary/50 focus:bg-card focus:ring-2 focus:ring-primary/20 disabled:opacity-50 disabled:cursor-not-allowed"
+                     className="w-full appearance-none rounded-sm border border-border bg-secondary/20 px-4 py-3 pr-10 text-sm text-text-primary shadow-sm outline-none transition focus:border-primary/50 focus:bg-card focus:ring-2 focus:ring-primary/20 disabled:opacity-50 disabled:cursor-not-allowed"
                      style={{
                        backgroundImage:
                          "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 20 20' fill='none'%3E%3Cpath d='M5 7l5 5 5-5' stroke='%239CA3AF' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E\")",
@@ -1283,7 +1283,7 @@ function IssuesPageInner() {
                <button 
                  onClick={createProject} 
                  disabled={creatingProject || !newProjectName.trim()}
-                 className="flex-1 bg-primary hover:bg-primary-hover disabled:opacity-50 text-primary-foreground font-semibold py-2 px-4 rounded-lg transition-colors flex items-center justify-center"
+                 className="flex-1 bg-primary hover:bg-primary-hover disabled:opacity-50 text-primary-foreground font-semibold py-2 px-4 rounded-sm transition-colors flex items-center justify-center"
                >
                  <LoadingButtonContent loading={creatingProject} loadingLabel="Creating..." idleLabel="Create project" icon={PlusCircle} />
                </button>
@@ -1295,7 +1295,7 @@ function IssuesPageInner() {
                    setNewProjectGithubRepoId("");
                  }} 
                  disabled={creatingProject}
-                 className="flex-1 bg-secondary/50 border border-border hover:bg-secondary/80 text-text-primary font-semibold py-2 px-4 rounded-lg transition-colors flex items-center justify-center"
+                 className="flex-1 bg-secondary/50 border border-border hover:bg-secondary/80 text-text-primary font-semibold py-2 px-4 rounded-sm transition-colors flex items-center justify-center"
                >
                  Cancel
                </button>
@@ -1306,7 +1306,7 @@ function IssuesPageInner() {
 
       {githubIssueTarget && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 p-4 pt-20 pb-24 sm:p-8 sm:pt-[72px] sm:pb-8">
-          <div className="w-full max-w-lg max-h-full rounded-xl border border-border bg-card shadow-xl flex flex-col overflow-hidden">
+          <div className="w-full max-w-lg max-h-full rounded-sm border border-border bg-card shadow-xl flex flex-col overflow-hidden">
             <div className="flex items-center justify-between p-4 border-b border-border/50 shrink-0">
               <h3 className="text-sm font-semibold text-text-primary">Create GitHub issue</h3>
               <button onClick={() => setGithubIssueTarget(null)} className="text-text-secondary hover:text-text-primary transition-colors">
@@ -1318,7 +1318,7 @@ function IssuesPageInner() {
                <p className="text-sm text-text-secondary mb-6">Send this TraceForge issue to one of your selected repositories without leaving the dashboard.</p>
                
                <div className="space-y-5">
-                 <div className="rounded-xl border border-border bg-secondary/20 p-4">
+                 <div className="rounded-sm border border-border bg-secondary/20 p-4">
                    <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-text-secondary">
                      TraceForge issue
                    </p>
@@ -1328,19 +1328,19 @@ function IssuesPageInner() {
                  </div>
 
                  {githubReposLoading ? (
-                   <div className="rounded-xl border border-border bg-secondary/20 p-4 text-sm text-text-secondary">
+                   <div className="rounded-sm border border-border bg-secondary/20 p-4 text-sm text-text-secondary">
                      Loading GitHub repositories...
                    </div>
                  ) : !githubConfigured ? (
-                   <div className="rounded-xl border border-border bg-secondary/20 p-4 text-sm text-text-secondary">
+                   <div className="rounded-sm border border-border bg-secondary/20 p-4 text-sm text-text-secondary">
                      GitHub integration is not configured for this app yet.
                    </div>
                  ) : !githubConnected ? (
-                   <div className="rounded-xl border border-border bg-secondary/20 p-4 text-sm text-text-secondary">
+                   <div className="rounded-sm border border-border bg-secondary/20 p-4 text-sm text-text-secondary">
                      Connect GitHub in Settings first, then choose one or more repositories to use here.
                    </div>
                  ) : !githubRepos.length ? (
-                   <div className="rounded-xl border border-border bg-secondary/20 p-4 text-sm text-text-secondary">
+                   <div className="rounded-sm border border-border bg-secondary/20 p-4 text-sm text-text-secondary">
                      No selected repositories are available. Choose repositories in Settings first.
                    </div>
                  ) : (
@@ -1348,7 +1348,7 @@ function IssuesPageInner() {
                      <div>
                        <label className="mb-2 block text-xs font-semibold uppercase tracking-[0.14em] text-text-secondary">Repository</label>
                        <select
-                         className="w-full appearance-none rounded-xl border border-border bg-secondary/20 px-4 py-3 pr-10 text-sm text-text-primary shadow-sm outline-none transition focus:border-primary/50 focus:bg-card focus:ring-2 focus:ring-primary/20"
+                         className="w-full appearance-none rounded-sm border border-border bg-secondary/20 px-4 py-3 pr-10 text-sm text-text-primary shadow-sm outline-none transition focus:border-primary/50 focus:bg-card focus:ring-2 focus:ring-primary/20"
                          style={{
                            backgroundImage:
                              "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 20 20' fill='none'%3E%3Cpath d='M5 7l5 5 5-5' stroke='%239CA3AF' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E\")",
@@ -1370,7 +1370,7 @@ function IssuesPageInner() {
                      <div>
                        <label className="mb-2 block text-xs font-semibold uppercase tracking-[0.14em] text-text-secondary">Title</label>
                        <input
-                         className="w-full rounded-xl border border-border bg-secondary/20 px-4 py-3 text-sm text-text-primary shadow-sm outline-none transition focus:border-primary/50 focus:bg-card focus:ring-2 focus:ring-primary/20"
+                         className="w-full rounded-sm border border-border bg-secondary/20 px-4 py-3 text-sm text-text-primary shadow-sm outline-none transition focus:border-primary/50 focus:bg-card focus:ring-2 focus:ring-primary/20"
                          value={githubIssueTitle}
                          onChange={(event) => setGithubIssueTitle(event.target.value)}
                          placeholder="Issue title"
@@ -1380,7 +1380,7 @@ function IssuesPageInner() {
                      <div>
                        <label className="mb-2 block text-xs font-semibold uppercase tracking-[0.14em] text-text-secondary">Description</label>
                        <textarea
-                         className="w-full rounded-xl border border-border bg-secondary/20 px-4 py-3 text-sm text-text-primary shadow-sm outline-none transition focus:border-primary/50 focus:bg-card focus:ring-2 focus:ring-primary/20 min-h-[180px]"
+                         className="w-full rounded-sm border border-border bg-secondary/20 px-4 py-3 text-sm text-text-primary shadow-sm outline-none transition focus:border-primary/50 focus:bg-card focus:ring-2 focus:ring-primary/20 min-h-[180px]"
                          value={githubIssueBody}
                          onChange={(event) => setGithubIssueBody(event.target.value)}
                        />
@@ -1389,7 +1389,7 @@ function IssuesPageInner() {
                  )}
 
                  {githubModalError ? (
-                   <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+                   <div className="rounded-sm border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
                      {githubModalError}
                    </div>
                  ) : null}
@@ -1406,14 +1406,14 @@ function IssuesPageInner() {
                    !githubRepoId ||
                    creatingGithubIssueId === githubIssueTarget.id
                  }
-                 className="flex-1 bg-primary hover:bg-primary-hover disabled:opacity-50 text-primary-foreground font-semibold py-2 px-4 rounded-lg transition-colors flex items-center justify-center"
+                 className="flex-1 bg-primary hover:bg-primary-hover disabled:opacity-50 text-primary-foreground font-semibold py-2 px-4 rounded-sm transition-colors flex items-center justify-center"
                >
                  <LoadingButtonContent loading={creatingGithubIssueId === githubIssueTarget.id} loadingLabel="Creating..." idleLabel="Create issue" icon={Github} />
                </button>
                <button 
                  onClick={() => setGithubIssueTarget(null)} 
                  disabled={creatingGithubIssueId === githubIssueTarget.id}
-                 className="flex-1 bg-secondary/50 border border-border hover:bg-secondary/80 text-text-primary font-semibold py-2 px-4 rounded-lg transition-colors flex items-center justify-center"
+                 className="flex-1 bg-secondary/50 border border-border hover:bg-secondary/80 text-text-primary font-semibold py-2 px-4 rounded-sm transition-colors flex items-center justify-center"
                >
                  Cancel
                </button>

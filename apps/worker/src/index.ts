@@ -1278,6 +1278,29 @@ const start = async () => {
       job.data.projectId,
       error.message || "GitHub repo analysis failed"
     );
+
+    const usageCost = job.data.usageCost || 0;
+    if (job.data.chargeCredits && usageCost > 0) {
+      try {
+        const now = new Date();
+        const monthKey = `${now.getUTCFullYear()}-${String(now.getUTCMonth() + 1).padStart(2, "0")}`;
+        const key = job.data.orgId
+          ? `usage:ai:org:${job.data.orgId}:${monthKey}`
+          : job.data.requesterEmail && !job.data.orgId
+            ? `usage:ai:email:${job.data.requesterEmail.trim().toLowerCase()}:${monthKey}`
+            : `usage:ai:user:${job.data.userId}:${monthKey}`;
+        
+        const currentRedisUsage = Number((await redis.get(key)) || "0");
+        if (currentRedisUsage > 0) {
+          const newUsage = Math.max(0, currentRedisUsage - usageCost);
+          await redis.set(key, newUsage.toString(), {
+            EX: 30 * 24 * 60 * 60
+          });
+        }
+      } catch (err) {
+        console.error("Failed to refund AI usage in worker:", err);
+      }
+    }
   });
 
   const stop = async (signal: string) => {

@@ -39,8 +39,15 @@ const sendWithResend = async ({
   subject,
   text,
   html,
-  replyTo
+  replyTo,
+  unsubscribeUrl
 }: SendEmailInput) => {
+  const headers: Record<string, string> = {};
+  if (unsubscribeUrl) {
+    headers["List-Unsubscribe"] = `<${unsubscribeUrl}>`;
+    headers["List-Unsubscribe-Post"] = "List-Unsubscribe=One-Click";
+  }
+
   const response = await fetch(resendApiUrl, {
     method: "POST",
     headers: {
@@ -53,7 +60,8 @@ const sendWithResend = async ({
       reply_to: replyTo ? [replyTo] : undefined,
       subject,
       text,
-      html
+      html,
+      headers: Object.keys(headers).length > 0 ? headers : undefined
     })
   });
 
@@ -69,11 +77,12 @@ type SendEmailInput = {
   text: string;
   html: string;
   replyTo?: string;
+  unsubscribeUrl?: string;
 };
 
-export const sendEmail = async ({ to, subject, text, html, replyTo }: SendEmailInput) => {
+export const sendEmail = async ({ to, subject, text, html, replyTo, unsubscribeUrl }: SendEmailInput) => {
   if (resendApiKey) {
-    await sendWithResend({ to, subject, text, html, replyTo });
+    await sendWithResend({ to, subject, text, html, replyTo, unsubscribeUrl });
     return;
   }
 
@@ -84,6 +93,12 @@ export const sendEmail = async ({ to, subject, text, html, replyTo }: SendEmailI
     return;
   }
 
+  const headers: Record<string, string> = {};
+  if (unsubscribeUrl) {
+    headers["List-Unsubscribe"] = `<${unsubscribeUrl}>`;
+    headers["List-Unsubscribe-Post"] = "List-Unsubscribe=One-Click";
+  }
+
   const transporter = await getTransporter();
   await transporter.sendMail({
     from: smtpFrom,
@@ -91,6 +106,7 @@ export const sendEmail = async ({ to, subject, text, html, replyTo }: SendEmailI
     replyTo,
     subject,
     text,
-    html
+    html,
+    headers: Object.keys(headers).length > 0 ? headers : undefined
   });
 };

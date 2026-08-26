@@ -452,7 +452,8 @@ adminRouter.post("/announcements/send", async (req, res) => {
             to: subscriber.email,
             subject: payload.subject,
             text,
-            html
+            html,
+            unsubscribeUrl: `${process.env.WEB_BASE_URL || process.env.FRONTEND_URL || "http://localhost:3000"}/unsubscribe?email=${encodeURIComponent(subscriber.email)}`
           })
         )
       );

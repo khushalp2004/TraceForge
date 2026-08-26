@@ -223,3 +223,65 @@ export const getEffectiveAiUsage = async ({
 
   return Math.max(redisUsage, persistedFloor);
 };
+
+export const reserveAiUsage = async ({
+  userId,
+  organizationId,
+  email,
+  amount,
+  now
+}: {
+  userId: string;
+  organizationId?: string | null;
+  email?: string | null;
+  amount: number;
+  now: Date;
+}) => {
+  if (!redis.isOpen || amount <= 0) return;
+
+  const monthKey = currentMonthKey(now);
+  const key = organizationId
+    ? getRedisUsageKey({ userId, organizationId, monthKey })
+    : email
+      ? getFreeEmailUsageRedisKey({ email, monthKey })
+      : getRedisUsageKey({ userId, organizationId, monthKey });
+
+  // Get current effective usage to ensure we increment from the persisted floor if Redis is empty or lower
+  const effectiveUsage = await getEffectiveAiUsage({ userId, organizationId, email, now });
+  
+  // Set the redis key to the max of current redis or persisted floor + the new amount
+  await redis.set(key, (effectiveUsage + amount).toString(), {
+    EX: 30 * 24 * 60 * 60 // Expire in 30 days
+  });
+};
+
+export const refundAiUsage = async ({
+  userId,
+  organizationId,
+  email,
+  amount,
+  now
+}: {
+  userId: string;
+  organizationId?: string | null;
+  email?: string | null;
+  amount: number;
+  now: Date;
+}) => {
+  if (!redis.isOpen || amount <= 0) return;
+
+  const monthKey = currentMonthKey(now);
+  const key = organizationId
+    ? getRedisUsageKey({ userId, organizationId, monthKey })
+    : email
+      ? getFreeEmailUsageRedisKey({ email, monthKey })
+      : getRedisUsageKey({ userId, organizationId, monthKey });
+
+  const currentRedisUsage = Number((await redis.get(key)) || "0");
+  if (currentRedisUsage > 0) {
+    const newUsage = Math.max(0, currentRedisUsage - amount);
+    await redis.set(key, newUsage.toString(), {
+      EX: 30 * 24 * 60 * 60
+    });
+  }
+};

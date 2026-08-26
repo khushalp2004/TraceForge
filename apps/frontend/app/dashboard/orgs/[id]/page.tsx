@@ -402,13 +402,13 @@ function OrganizationDetailPageInner({ params }: { params: { id: string } }) {
           </p>
           <div className="mt-8 flex w-full max-w-sm flex-col gap-3 sm:flex-row">
             <input
-              className="flex-1 rounded-2xl border border-border/50 bg-card px-4 py-3.5 text-[15px] text-text-primary shadow-sm outline-none transition-all placeholder:text-text-secondary/50 focus:border-primary/50 focus:ring-4 focus:ring-primary/10"
+              className="flex-1 rounded-sm border border-border/50 bg-card px-4 py-3.5 text-[15px] text-text-primary shadow-sm outline-none transition-all placeholder:text-text-secondary/50 focus:border-primary/50 focus:ring-4 focus:ring-primary/10"
               placeholder="Paste invite token..."
               value={tokenInput}
               onChange={(event) => setTokenInput(event.target.value)}
             />
             <button
-              className="inline-flex h-[52px] items-center justify-center rounded-2xl bg-primary px-6 font-semibold text-white shadow-sm transition hover:bg-primary/90 disabled:opacity-70"
+              className="inline-flex h-[52px] items-center justify-center rounded-sm bg-primary px-6 font-semibold text-white shadow-sm transition hover:bg-primary/90 disabled:opacity-70"
               onClick={() => handleAcceptInvite()}
               disabled={loading || !tokenInput.trim()}
             >

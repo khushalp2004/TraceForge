@@ -433,7 +433,7 @@ function ReleasesPageInner() {
 
         <section className="mt-6 space-y-4">
           {loading && (
-            <div className="rounded-2xl border border-border bg-card/90 p-6 text-sm text-text-secondary">
+            <div className="rounded-sm border border-border bg-card/90 p-6 text-sm text-text-secondary">
               Loading releases...
             </div>
           )}
@@ -469,7 +469,7 @@ function ReleasesPageInner() {
               <article
                 key={release.id}
                 data-release-id={release.id}
-                className={`group relative flex flex-col p-5 gap-4 rounded-md bg-card border transition-all duration-200 ${
+                className={`group relative flex flex-col p-5 gap-4 rounded-sm bg-card border transition-all duration-200 ${
                   highlightReleaseId && release.id === highlightReleaseId
                     ? "border-primary/40 shadow-[0_0_0_2px_rgba(var(--primary-rgb),0.15)]"
                     : "border-border/40 hover:border-border"
@@ -506,13 +506,13 @@ function ReleasesPageInner() {
                     </p>
 
                     {release.notes && (
-                      <p className="mt-3 rounded-2xl border border-border bg-secondary/20 px-4 py-3 text-sm text-text-secondary">
+                      <p className="mt-3 rounded-sm border border-border bg-secondary/20 px-4 py-3 text-sm text-text-secondary">
                         {release.notes}
                       </p>
                     )}
 
                     <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-3">
-                      <div className="rounded-xl border border-border bg-secondary/10 px-4 py-3 flex flex-col justify-center shadow-sm">
+                      <div className="rounded-sm border border-border bg-secondary/10 px-4 py-3 flex flex-col justify-center shadow-sm">
                         <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-text-secondary">
                           Issue count
                         </p>
@@ -520,7 +520,7 @@ function ReleasesPageInner() {
                           {release.issueCount}
                         </p>
                       </div>
-                      <div className="rounded-xl border border-border bg-secondary/10 px-4 py-3 flex flex-col justify-center shadow-sm">
+                      <div className="rounded-sm border border-border bg-secondary/10 px-4 py-3 flex flex-col justify-center shadow-sm">
                         <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-text-secondary">
                           Error events
                         </p>
@@ -528,7 +528,7 @@ function ReleasesPageInner() {
                           {release.eventCount}
                         </p>
                       </div>
-                      <div className="col-span-2 sm:col-span-1 rounded-xl border border-border bg-secondary/10 px-4 py-3 flex flex-col justify-center shadow-sm">
+                      <div className="col-span-2 sm:col-span-1 rounded-sm border border-border bg-secondary/10 px-4 py-3 flex flex-col justify-center shadow-sm">
                         <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-text-secondary">
                           Last activity
                         </p>
@@ -543,7 +543,7 @@ function ReleasesPageInner() {
                   <div className="flex shrink-0 items-start mt-1 sm:mt-0 lg:opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-opacity duration-200">
                     <button
                       type="button"
-                      className="p-1.5 rounded-md text-destructive/80 hover:text-destructive hover:bg-destructive/10 transition-colors"
+                      className="p-1.5 rounded-sm text-destructive/80 hover:text-destructive hover:bg-destructive/10 transition-colors"
                       onClick={() => setDeleteTarget(release)}
                       title="Delete Release"
                     >
@@ -553,7 +553,7 @@ function ReleasesPageInner() {
                 </div>
 
                 {release.sampleIssues.length > 0 && (
-                  <div className="mt-5 rounded-md border border-border/40 bg-secondary/10 px-4 py-3">
+                  <div className="mt-5 rounded-sm border border-border/40 bg-secondary/10 px-4 py-3">
                     <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-text-secondary">
                       Linked issues
                     </p>
@@ -561,7 +561,7 @@ function ReleasesPageInner() {
                       {release.sampleIssues.map((issue) => (
                         <div
                           key={issue.id}
-                          className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 rounded-md border border-border/40 bg-card px-3 py-2.5 transition-colors hover:border-border/60"
+                          className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 rounded-sm border border-border/40 bg-card px-3 py-2.5 transition-colors hover:border-border/60"
                         >
                           <div className="min-w-0 flex-1">
                             <p className="truncate text-[13px] font-semibold text-text-primary">
@@ -573,7 +573,7 @@ function ReleasesPageInner() {
                           </div>
                           <Link
                             href={`/dashboard/errors/${issue.id}`}
-                            className="flex items-center justify-center h-8 px-3 rounded-md text-[11px] font-semibold text-text-secondary hover:text-text-primary hover:bg-secondary/40 transition-colors border border-border/40 sm:border-transparent shrink-0 w-full sm:w-auto"
+                            className="flex items-center justify-center h-8 px-3 rounded-sm text-[11px] font-semibold text-text-secondary hover:text-text-primary hover:bg-secondary/40 transition-colors border border-border/40 sm:border-transparent shrink-0 w-full sm:w-auto"
                           >
                             View issue
                           </Link>
@@ -604,7 +604,7 @@ function ReleasesPageInner() {
 
       {showCreateModal && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 px-4">
-          <div className="w-full max-w-lg max-h-[70vh] sm:max-h-[90vh] rounded-xl border border-border bg-card shadow-xl flex flex-col overflow-hidden">
+          <div className="w-full max-w-lg max-h-[70vh] sm:max-h-[90vh] rounded-sm border border-border bg-card shadow-xl flex flex-col overflow-hidden">
             <div className="flex items-center justify-between p-4 border-b border-border/50 shrink-0">
               <h3 className="text-sm font-semibold text-text-primary">Add release marker</h3>
               <button onClick={() => {
@@ -626,7 +626,7 @@ function ReleasesPageInner() {
                      Project
                    </label>
                    <select
-                     className="w-full appearance-none rounded-xl border border-border bg-secondary/20 px-4 py-3 pr-10 text-sm text-text-primary shadow-sm outline-none transition focus:border-primary/50 focus:bg-card focus:ring-2 focus:ring-primary/20"
+                     className="w-full appearance-none rounded-sm border border-border bg-secondary/20 px-4 py-3 pr-10 text-sm text-text-primary shadow-sm outline-none transition focus:border-primary/50 focus:bg-card focus:ring-2 focus:ring-primary/20"
                      style={{
                        backgroundImage:
                          "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 20 20' fill='none'%3E%3Cpath d='M5 7l5 5 5-5' stroke='%239CA3AF' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E\")",
@@ -651,7 +651,7 @@ function ReleasesPageInner() {
                      Version
                    </label>
                    <input
-                     className="w-full rounded-xl border border-border bg-secondary/20 px-4 py-3 text-sm text-text-primary shadow-sm outline-none transition focus:border-primary/50 focus:bg-card focus:ring-2 focus:ring-primary/20"
+                     className="w-full rounded-sm border border-border bg-secondary/20 px-4 py-3 text-sm text-text-primary shadow-sm outline-none transition focus:border-primary/50 focus:bg-card focus:ring-2 focus:ring-primary/20"
                      placeholder="e.g. v1.8.2"
                      value={version}
                      onChange={(event) => setVersion(event.target.value)}
@@ -664,7 +664,7 @@ function ReleasesPageInner() {
                        Environment
                      </label>
                      <select
-                       className="w-full appearance-none rounded-xl border border-border bg-secondary/20 px-4 py-3 pr-10 text-sm text-text-primary shadow-sm outline-none transition focus:border-primary/50 focus:bg-card focus:ring-2 focus:ring-primary/20"
+                       className="w-full appearance-none rounded-sm border border-border bg-secondary/20 px-4 py-3 pr-10 text-sm text-text-primary shadow-sm outline-none transition focus:border-primary/50 focus:bg-card focus:ring-2 focus:ring-primary/20"
                        style={{
                          backgroundImage:
                            "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 20 20' fill='none'%3E%3Cpath d='M5 7l5 5 5-5' stroke='%239CA3AF' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E\")",
@@ -686,7 +686,7 @@ function ReleasesPageInner() {
                        Release Date
                      </label>
                      <input
-                       className="w-full rounded-xl border border-border bg-secondary/20 px-4 py-3 text-sm text-text-primary shadow-sm outline-none transition focus:border-primary/50 focus:bg-card focus:ring-2 focus:ring-primary/20 [color-scheme:dark]"
+                       className="w-full rounded-sm border border-border bg-secondary/20 px-4 py-3 text-sm text-text-primary shadow-sm outline-none transition focus:border-primary/50 focus:bg-card focus:ring-2 focus:ring-primary/20 [color-scheme:dark]"
                        type="datetime-local"
                        value={releasedAt}
                        onChange={(event) => setReleasedAt(event.target.value)}
@@ -699,7 +699,7 @@ function ReleasesPageInner() {
                      Release Notes
                    </label>
                    <textarea
-                     className="min-h-[100px] w-full resize-none rounded-xl border border-border bg-secondary/20 px-4 py-3 text-sm text-text-primary shadow-sm outline-none transition focus:border-primary/50 focus:bg-card focus:ring-2 focus:ring-primary/20"
+                     className="min-h-[100px] w-full resize-none rounded-sm border border-border bg-secondary/20 px-4 py-3 text-sm text-text-primary shadow-sm outline-none transition focus:border-primary/50 focus:bg-card focus:ring-2 focus:ring-primary/20"
                      placeholder="Optional notes about what shipped in this version..."
                      value={notes}
                      onChange={(event) => setNotes(event.target.value)}
@@ -712,7 +712,7 @@ function ReleasesPageInner() {
                <button 
                  onClick={createRelease} 
                  disabled={creatingRelease}
-                 className="flex-1 bg-primary hover:bg-primary-hover disabled:opacity-50 text-primary-foreground font-semibold py-2 px-4 rounded-lg transition-colors flex items-center justify-center"
+                 className="flex-1 bg-primary hover:bg-primary-hover disabled:opacity-50 text-primary-foreground font-semibold py-2 px-4 rounded-sm transition-colors flex items-center justify-center"
                >
                  <LoadingButtonContent loading={creatingRelease} loadingLabel="Saving..." idleLabel="Save release" />
                </button>
@@ -724,7 +724,7 @@ function ReleasesPageInner() {
                    setReleasedAt("");
                  }} 
                  disabled={creatingRelease}
-                 className="flex-1 bg-secondary/50 border border-border hover:bg-secondary/80 text-text-primary font-semibold py-2 px-4 rounded-lg transition-colors flex items-center justify-center"
+                 className="flex-1 bg-secondary/50 border border-border hover:bg-secondary/80 text-text-primary font-semibold py-2 px-4 rounded-sm transition-colors flex items-center justify-center"
                >
                  Cancel
                </button>
@@ -735,7 +735,7 @@ function ReleasesPageInner() {
 
       {deleteTarget && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 px-4">
-          <div className="w-full max-w-lg rounded-xl border border-border bg-card shadow-xl flex flex-col overflow-hidden">
+          <div className="w-full max-w-lg rounded-sm border border-border bg-card shadow-xl flex flex-col overflow-hidden">
             <div className="flex items-center justify-between p-4 border-b border-border/50">
               <h3 className="text-sm font-semibold text-text-primary">Delete Release</h3>
               <button onClick={() => setDeleteTarget(null)} className="text-text-secondary hover:text-text-primary transition-colors">
@@ -752,14 +752,14 @@ function ReleasesPageInner() {
                <button 
                  onClick={deleteRelease} 
                  disabled={deletingReleaseId === deleteTarget.id}
-                 className="flex-1 bg-destructive/15 text-destructive border border-destructive/30 hover:bg-destructive/25 backdrop-blur-md font-semibold py-2 px-4 rounded-lg transition-all duration-300 flex items-center justify-center shadow-[0_8px_16px_-6px_rgba(var(--destructive-rgb),0.1)]"
+                 className="flex-1 bg-destructive/15 text-destructive border border-destructive/30 hover:bg-destructive/25 backdrop-blur-md font-semibold py-2 px-4 rounded-sm transition-all duration-300 flex items-center justify-center shadow-[0_8px_16px_-6px_rgba(var(--destructive-rgb),0.1)]"
                >
                  Delete
                </button>
                <button 
                  onClick={() => setDeleteTarget(null)} 
                  disabled={deletingReleaseId === deleteTarget.id}
-                 className="flex-1 bg-secondary/50 border border-border hover:bg-secondary/80 text-text-primary font-semibold py-2 px-4 rounded-lg transition-colors flex items-center justify-center"
+                 className="flex-1 bg-secondary/50 border border-border hover:bg-secondary/80 text-text-primary font-semibold py-2 px-4 rounded-sm transition-colors flex items-center justify-center"
                >
                  Cancel
                </button>

@@ -273,7 +273,7 @@ export default function ProjectDetailsPage({ params }: { params: { id: string } 
     <main className="mx-auto max-w-4xl px-4 py-8 md:py-12 space-y-8">
       {toast && (
         <div
-          className={`fixed bottom-4 right-4 z-50 flex items-center gap-2 rounded-md px-4 py-3 text-sm font-medium shadow-lg transition-all ${
+          className={`fixed bottom-4 right-4 z-50 flex items-center gap-2 rounded-sm px-4 py-3 text-sm font-medium shadow-lg transition-all ${
             toast.tone === "error"
               ? "bg-destructive/10 text-destructive border border-destructive/20"
               : "bg-primary/10 text-primary border border-primary/20"
@@ -316,7 +316,7 @@ export default function ProjectDetailsPage({ params }: { params: { id: string } 
                 AI Model
               </label>
               <select
-                className="w-full rounded-md border border-border bg-secondary/20 px-3 py-2 text-sm text-text-primary outline-none transition focus:border-primary/50 focus:bg-card focus:ring-2 focus:ring-primary/20"
+                className="w-full rounded-sm border border-border bg-secondary/20 px-3 py-2 text-sm text-text-primary outline-none transition focus:border-primary/50 focus:bg-card focus:ring-2 focus:ring-primary/20"
                 value={project.aiModel}
                 onChange={(e) => handleUpdateAiModel(e.target.value)}
                 disabled={updatingAiModel}
@@ -337,7 +337,7 @@ export default function ProjectDetailsPage({ params }: { params: { id: string } 
                 GitHub Repository
               </label>
               <select
-                className="w-full rounded-md border border-border bg-secondary/20 px-3 py-2 text-sm text-text-primary outline-none transition focus:border-primary/50 focus:bg-card focus:ring-2 focus:ring-primary/20"
+                className="w-full rounded-sm border border-border bg-secondary/20 px-3 py-2 text-sm text-text-primary outline-none transition focus:border-primary/50 focus:bg-card focus:ring-2 focus:ring-primary/20"
                 value={project.githubRepoId || ""}
                 onChange={(e) => handleUpdateGithubRepo(e.target.value)}
                 disabled={updatingGithubRepo || !githubConfigured || !githubConnected}
@@ -375,13 +375,13 @@ export default function ProjectDetailsPage({ params }: { params: { id: string } 
               </div>
               <div className="flex items-center gap-3">
                 <input
-                  className="rounded-md border border-border bg-card px-3 py-2 text-sm text-text-primary outline-none focus:border-primary/50 focus:ring-2 focus:ring-primary/20 w-48"
+                  className="rounded-sm border border-border bg-card px-3 py-2 text-sm text-text-primary outline-none focus:border-primary/50 focus:ring-2 focus:ring-primary/20 w-48"
                   value={renameInput}
                   onChange={(e) => setRenameInput(e.target.value)}
                   placeholder="New name"
                 />
                 <button
-                  className="rounded-md bg-secondary/50 hover:bg-secondary/80 px-4 py-2 text-sm font-medium text-text-primary transition-colors disabled:opacity-50"
+                  className="rounded-sm bg-secondary/50 hover:bg-secondary/80 px-4 py-2 text-sm font-medium text-text-primary transition-colors disabled:opacity-50"
                   onClick={handleRename}
                   disabled={isRenaming || !renameInput.trim() || renameInput === project.name}
                 >
@@ -398,7 +398,7 @@ export default function ProjectDetailsPage({ params }: { params: { id: string } 
                 <span className="text-[12px] text-text-secondary">Invalidate the current key and generate a new one.</span>
               </div>
               <button
-                className="rounded-md bg-secondary/50 hover:bg-secondary/80 px-4 py-2 text-sm font-medium text-text-primary transition-colors"
+                className="rounded-sm bg-secondary/50 hover:bg-secondary/80 px-4 py-2 text-sm font-medium text-text-primary transition-colors"
                 onClick={handleRotateKey}
                 disabled={isRotatingKey}
               >
@@ -414,13 +414,13 @@ export default function ProjectDetailsPage({ params }: { params: { id: string } 
               </div>
               <div className="flex items-center gap-3">
                 <input
-                  className="rounded-md border border-destructive/30 bg-card px-3 py-2 text-sm text-text-primary outline-none focus:border-destructive focus:ring-2 focus:ring-destructive/20 w-48"
+                  className="rounded-sm border border-destructive/30 bg-card px-3 py-2 text-sm text-text-primary outline-none focus:border-destructive focus:ring-2 focus:ring-destructive/20 w-48"
                   value={archiveInput}
                   onChange={(e) => setArchiveInput(e.target.value)}
                   placeholder={project.name}
                 />
                 <button
-                  className="rounded-md bg-destructive text-destructive-foreground hover:bg-destructive/90 px-4 py-2 text-sm font-medium transition-colors disabled:opacity-50"
+                  className="rounded-sm bg-destructive text-destructive-foreground hover:bg-destructive/90 px-4 py-2 text-sm font-medium transition-colors disabled:opacity-50"
                   onClick={handleArchive}
                   disabled={isArchiving || archiveInput !== project.name}
                 >

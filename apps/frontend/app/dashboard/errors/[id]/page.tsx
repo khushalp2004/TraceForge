@@ -450,7 +450,7 @@ export default function ErrorDetailPage({ params }: { params: { id: string } }) 
   if (loading) {
     return (
       <main className="mx-auto max-w-5xl px-4 py-8 md:py-12">
-        <div className="rounded-[24px] border border-border/40 bg-card p-6 shadow-sm">
+        <div className="rounded-sm border border-border/40 bg-card p-6 shadow-sm">
           <p className="text-[14px] text-text-secondary animate-pulse">Loading issue details…</p>
         </div>
       </main>
@@ -460,7 +460,7 @@ export default function ErrorDetailPage({ params }: { params: { id: string } }) 
   if (error || !errorDetail) {
     return (
       <main className="mx-auto max-w-5xl px-4 py-8 md:py-12">
-        <div className="rounded-[24px] border border-border/40 bg-card p-6 shadow-sm">
+        <div className="rounded-sm border border-border/40 bg-card p-6 shadow-sm">
           <p className="text-[15px] font-semibold text-text-primary">{error ?? "Not found"}</p>
           <Link
             href="/dashboard/issues"
@@ -512,25 +512,26 @@ export default function ErrorDetailPage({ params }: { params: { id: string } }) 
           </div>
           <div className="flex w-full flex-wrap items-center gap-3">
             <button
-              className="inline-flex h-10 items-center justify-center gap-2 rounded-full border border-border/60 bg-secondary/30 px-5 text-[13px] font-semibold text-text-primary shadow-sm backdrop-blur-md transition-all hover:bg-secondary/60 hover:shadow max-[639px]:w-full sm:w-auto"
+              className="inline-flex h-9 items-center justify-center gap-2 rounded-sm border border-border/60 bg-card/80 px-4 text-[13px] font-medium text-text-primary shadow-sm backdrop-blur-md transition-all hover:bg-secondary/60 hover:border-border hover:shadow max-[639px]:w-full sm:w-auto"
               onClick={handleCopyStack}
             >
-              <Copy className="h-4 w-4" />
+              <Copy className="h-4 w-4 text-text-secondary" />
               {copyStatus ?? "Copy stack"}
             </button>
             <button
-              className="inline-flex h-10 items-center justify-center gap-2 rounded-full border border-border/60 bg-secondary/30 px-5 text-[13px] font-semibold text-text-primary shadow-sm backdrop-blur-md transition-all hover:bg-secondary/60 hover:shadow max-[639px]:w-full sm:w-auto"
+              className="inline-flex h-9 items-center justify-center gap-2 rounded-sm border border-border/60 bg-card/80 px-4 text-[13px] font-medium text-text-primary shadow-sm backdrop-blur-md transition-all hover:bg-secondary/60 hover:border-border hover:shadow max-[639px]:w-full sm:w-auto"
               onClick={openGithubModal}
             >
-              <Github className="h-4 w-4" />
+              <Github className="h-4 w-4 text-text-secondary" />
               GitHub issue
             </button>
             {!errorDetail.isManualAlertIssue && (
               <button
-                className="inline-flex h-10 items-center justify-center gap-2 rounded-full bg-primary px-5 text-[13px] font-semibold text-white shadow-sm transition hover:bg-primary/90 disabled:opacity-70 max-[639px]:w-full sm:w-auto"
+                className="relative inline-flex h-9 items-center justify-center gap-2 rounded-sm bg-primary px-4 text-[13px] font-medium text-primary-foreground shadow-[0_0_15px_rgba(255,255,255,0.1)] transition-all hover:bg-primary-hover hover:shadow-[0_0_20px_rgba(255,255,255,0.15)] disabled:opacity-70 max-[639px]:w-full sm:w-auto"
                 onClick={handleRegenerate}
                 disabled={regenerating || isAiWorkInFlight(errorDetail)}
               >
+                <div className="absolute inset-0 rounded-sm ring-1 ring-inset ring-white/10" />
                 <LoadingButtonContent
                   loading={regenerating}
                   loadingLabel="Generating..."
@@ -546,35 +547,39 @@ export default function ErrorDetailPage({ params }: { params: { id: string } }) 
         </header>
 
         <div className="mb-10 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-            <div className="overflow-hidden rounded-[24px] border border-border/40 bg-card p-5 shadow-sm">
+            <div className="group relative overflow-hidden rounded-sm border border-border/40 bg-card/60 p-5 shadow-sm backdrop-blur-md transition-all hover:-translate-y-0.5 hover:border-border hover:shadow-md hover:bg-card">
+              <div className="absolute inset-0 bg-gradient-to-b from-white/[0.02] to-transparent opacity-0 transition-opacity group-hover:opacity-100" />
               <p className="text-[11px] font-semibold uppercase tracking-[0.15em] text-text-secondary">
                 First seen
               </p>
-              <p className="mt-2 text-[15px] font-semibold text-text-primary">
+              <p className="mt-2 text-[15px] font-medium text-text-primary">
                 {new Date(errorDetail.firstSeen).toLocaleString()}
               </p>
             </div>
-            <div className="overflow-hidden rounded-[24px] border border-border/40 bg-card p-5 shadow-sm">
+            <div className="group relative overflow-hidden rounded-sm border border-border/40 bg-card/60 p-5 shadow-sm backdrop-blur-md transition-all hover:-translate-y-0.5 hover:border-border hover:shadow-md hover:bg-card">
+              <div className="absolute inset-0 bg-gradient-to-b from-white/[0.02] to-transparent opacity-0 transition-opacity group-hover:opacity-100" />
               <p className="text-[11px] font-semibold uppercase tracking-[0.15em] text-text-secondary">
                 Last seen
               </p>
-              <p className="mt-2 text-[15px] font-semibold text-text-primary">
+              <p className="mt-2 text-[15px] font-medium text-text-primary">
                 {new Date(errorDetail.lastSeen).toLocaleString()}
               </p>
             </div>
-            <div className="overflow-hidden rounded-[24px] border border-border/40 bg-card p-5 shadow-sm">
+            <div className="group relative overflow-hidden rounded-sm border border-border/40 bg-card/60 p-5 shadow-sm backdrop-blur-md transition-all hover:-translate-y-0.5 hover:border-border hover:shadow-md hover:bg-card">
+              <div className="absolute inset-0 bg-gradient-to-b from-white/[0.02] to-transparent opacity-0 transition-opacity group-hover:opacity-100" />
               <p className="text-[11px] font-semibold uppercase tracking-[0.15em] text-text-secondary">
                 Occurrences
               </p>
-              <p className="mt-2 text-[15px] font-semibold text-text-primary">
+              <p className="mt-2 text-[15px] font-medium text-text-primary">
                 {errorDetail.count} hits
               </p>
             </div>
-            <div className="overflow-hidden rounded-[24px] border border-border/40 bg-card p-5 shadow-sm">
+            <div className="group relative overflow-hidden rounded-sm border border-border/40 bg-card/60 p-5 shadow-sm backdrop-blur-md transition-all hover:-translate-y-0.5 hover:border-border hover:shadow-md hover:bg-card">
+              <div className="absolute inset-0 bg-gradient-to-b from-white/[0.02] to-transparent opacity-0 transition-opacity group-hover:opacity-100" />
               <p className="text-[11px] font-semibold uppercase tracking-[0.15em] text-text-secondary">
                 Event payloads
               </p>
-              <p className="mt-2 text-[15px] font-semibold text-text-primary">
+              <p className="mt-2 text-[15px] font-medium text-text-primary">
                 {payloadEventCount} with context
               </p>
             </div>
@@ -586,15 +591,15 @@ export default function ErrorDetailPage({ params }: { params: { id: string } }) 
               <h2 className="mb-4 text-sm font-semibold uppercase tracking-[0.15em] text-text-secondary">
                 Stack Trace
               </h2>
-              <div className="overflow-hidden rounded-[24px] border border-border/40 bg-card shadow-sm">
-                <div className="flex flex-col gap-3 border-b border-border/40 bg-secondary/15 p-4 sm:flex-row sm:items-center sm:justify-between">
+              <div className="overflow-hidden rounded-sm border border-border/60 bg-[#0A0A0B] shadow-sm">
+                <div className="flex flex-col gap-3 border-b border-border/40 bg-card/30 p-3 sm:flex-row sm:items-center sm:justify-between">
                   <div className="min-w-0">
-                    <p className="text-[14px] font-medium text-text-primary">
+                    <p className="text-[13px] font-medium text-text-secondary">
                       Grouped frames and source locations
                     </p>
                   </div>
                   <button
-                    className="rounded-full bg-secondary/50 px-4 py-2 text-[13px] font-medium text-text-primary transition-colors hover:bg-secondary/80"
+                    className="rounded-sm border border-border/40 bg-card/50 px-3 py-1.5 text-[12px] font-medium text-text-primary transition-colors hover:bg-card hover:border-border/80"
                     onClick={() => setShowAllFrames((prev) => !prev)}
                   >
                     {showAllFrames ? "Collapse frames" : "Show all frames"}
@@ -631,15 +636,15 @@ export default function ErrorDetailPage({ params }: { params: { id: string } }) 
                 <h2 className="text-sm font-semibold uppercase tracking-[0.15em] text-text-secondary">
                   Recent Events
                 </h2>
-                <span className="rounded-full bg-secondary/50 px-2.5 py-1 text-[11px] font-bold text-text-secondary">
+                <span className="rounded-sm bg-secondary/50 px-2.5 py-1 text-[11px] font-bold text-text-secondary">
                   {filteredEvents.length} {filteredEvents.length === 1 ? "event" : "events"}
                 </span>
               </div>
-              <div className="overflow-hidden rounded-[24px] border border-border/40 bg-card shadow-sm">
+              <div className="overflow-hidden rounded-sm border border-border/60 bg-[#0A0A0B] shadow-sm">
                 
-                <div className="flex flex-col gap-3 border-b border-border/40 bg-secondary/15 p-3 sm:flex-row sm:items-center sm:p-4">
+                <div className="flex flex-col gap-3 border-b border-border/40 bg-card/30 p-3 sm:flex-row sm:items-center sm:p-4">
                   <div className="flex min-w-0 flex-1 items-center gap-3">
-                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
+                    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-sm bg-primary/10 text-primary">
                       <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
                     </div>
                     <input
@@ -652,10 +657,10 @@ export default function ErrorDetailPage({ params }: { params: { id: string } }) 
                   <div className="flex shrink-0 items-center pl-12 sm:pl-0">
                     <button
                       type="button"
-                      className={`inline-flex h-10 items-center justify-center rounded-full px-4 text-[13px] font-medium transition-colors ${
+                      className={`inline-flex h-9 items-center justify-center rounded-sm px-4 text-[13px] font-medium transition-colors ${
                         showPayloads
                           ? "bg-primary/15 text-primary hover:bg-primary/20"
-                          : "bg-secondary/50 text-text-primary hover:bg-secondary/80"
+                          : "bg-secondary/50 text-text-secondary hover:text-text-primary hover:bg-secondary/80"
                       }`}
                       onClick={() => setShowPayloads((current) => !current)}
                     >
@@ -674,12 +679,12 @@ export default function ErrorDetailPage({ params }: { params: { id: string } }) 
                         <p className="break-words text-[14px] font-medium text-text-primary">
                           {new Date(event.timestamp).toLocaleString()}
                         </p>
-                        <span className="w-fit rounded-full bg-secondary/50 px-2.5 py-1 text-[11px] font-medium text-text-secondary">
+                        <span className="w-fit rounded-sm bg-card/50 px-2.5 py-1 text-[11px] font-medium text-text-secondary border border-border/40">
                           {event.environment ?? "unknown"}
                         </span>
                       </div>
                       {showPayloads && event.payload && (
-                        <pre className="mt-4 max-w-full overflow-x-auto rounded-[16px] bg-[#0d1117] border border-white/10 p-4 text-[12px] font-mono text-slate-300">
+                        <pre className="mt-4 max-w-full overflow-x-auto rounded-sm bg-[#050505] border border-white/5 p-4 text-[12px] font-mono text-slate-300">
                           {JSON.stringify(event.payload, null, 2)}
                         </pre>
                       )}
@@ -696,7 +701,7 @@ export default function ErrorDetailPage({ params }: { params: { id: string } }) 
           </div>
 
           <div className="space-y-6">
-            <section className="overflow-hidden rounded-3xl border border-border bg-card/95 p-6 shadow-sm">
+            <section className="overflow-hidden rounded-sm border border-border bg-card/95 p-6 shadow-sm">
               <p className="text-xs font-semibold uppercase tracking-[0.14em] text-text-secondary">
                 AI solution
               </p>
@@ -704,7 +709,7 @@ export default function ErrorDetailPage({ params }: { params: { id: string } }) 
                 Suggested solution and debugging direction
               </h2>
               {errorDetail.isManualAlertIssue ? (
-                <div className="mt-4 rounded-2xl border border-border bg-secondary/20 px-4 py-4">
+                <div className="mt-4 rounded-sm border border-border bg-secondary/20 px-4 py-4">
                   <p className="text-sm font-semibold text-text-primary">
                     AI solution is unavailable
                   </p>
@@ -716,7 +721,7 @@ export default function ErrorDetailPage({ params }: { params: { id: string } }) 
               ) : hasAiResult(errorDetail) && aiAnalysis ? (
                 <>
                   <div className="mt-4 grid gap-4">
-                    <div className="rounded-2xl border border-border bg-secondary/20 px-4 py-4">
+                    <div className="rounded-sm border border-border bg-secondary/20 px-4 py-4">
                       <p className="text-xs font-semibold uppercase tracking-[0.14em] text-text-secondary">
                         Summary
                       </p>
@@ -725,7 +730,7 @@ export default function ErrorDetailPage({ params }: { params: { id: string } }) 
                       </p>
                     </div>
                     {getAiDetail(errorDetail) && (
-                      <div className="rounded-2xl border border-primary/20 bg-accent-soft px-4 py-4">
+                      <div className="rounded-sm border border-primary/20 bg-accent-soft px-4 py-4">
                         <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
                           <div className="min-w-0">
                             <p className="text-xs font-semibold uppercase tracking-[0.14em] text-primary">
@@ -737,7 +742,7 @@ export default function ErrorDetailPage({ params }: { params: { id: string } }) 
                           </div>
                           <button
                             type="button"
-                            className="rounded-full border border-primary/20 bg-card px-3 py-1.5 text-xs font-semibold text-primary transition hover:border-primary/35 hover:bg-card/80 max-[639px]:w-full"
+                            className="rounded-sm border border-primary/20 bg-card px-3 py-1.5 text-xs font-semibold text-primary transition hover:border-primary/35 hover:bg-card/80 max-[639px]:w-full"
                             onClick={() => setShowAiDetail(true)}
                           >
                             View in detail
@@ -748,7 +753,7 @@ export default function ErrorDetailPage({ params }: { params: { id: string } }) 
                   </div>
                 </>
               ) : (
-                <div className="mt-4 rounded-2xl border border-dashed border-border bg-secondary/20 px-4 py-4">
+                <div className="mt-4 rounded-sm border border-dashed border-border bg-secondary/20 px-4 py-4">
                   <p className="text-sm font-semibold text-text-primary">
                     {hasAiRequest(errorDetail) ? "AI solution queued" : "AI solution not generated"}
                   </p>
@@ -761,16 +766,16 @@ export default function ErrorDetailPage({ params }: { params: { id: string } }) 
               )}
 
               {errorDetail.aiStatus === "FAILED" && hasAiRequest(errorDetail) && errorDetail.aiLastError && (
-                <div className="mt-4 rounded-[16px] border tf-danger-surface px-4 py-4">
-                  <p className="text-[11px] font-semibold uppercase tracking-[0.15em] opacity-90">
+                <div className="mt-4 rounded-sm border border-red-900/50 bg-red-950/20 px-4 py-4 backdrop-blur-md">
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.15em] text-red-500 opacity-90">
                     AI generation failed
                   </p>
-                  <p className="mt-2 text-[13px]">An error occurred, try again or switch to different model.</p>
+                  <p className="mt-2 text-[13px] text-red-200">An error occurred, try again or switch to different model.</p>
                 </div>
               )}
             </section>
 
-            <section className="overflow-hidden rounded-3xl border border-border bg-card/95 p-6 shadow-sm">
+            <section className="overflow-hidden rounded-sm border border-border bg-card/95 p-6 shadow-sm">
               <p className="text-xs font-semibold uppercase tracking-[0.14em] text-text-secondary">
                 Quick actions
               </p>
@@ -822,7 +827,7 @@ export default function ErrorDetailPage({ params }: { params: { id: string } }) 
 
       {showAiDetail && getAiDetail(errorDetail) && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 px-4">
-          <div className="w-full max-w-2xl rounded-xl border border-border bg-card shadow-xl flex flex-col overflow-hidden">
+          <div className="w-full max-w-2xl rounded-sm border border-border bg-card shadow-xl flex flex-col overflow-hidden">
             <div className="flex items-center justify-between p-4 border-b border-border/50">
               <h3 className="text-sm font-semibold text-text-primary">Detailed debugging guidance</h3>
               <button onClick={() => setShowAiDetail(false)} className="text-text-secondary hover:text-text-primary transition-colors">
@@ -832,7 +837,7 @@ export default function ErrorDetailPage({ params }: { params: { id: string } }) 
             
             <div className="p-6">
                <p className="text-sm text-text-secondary mb-4">Review the full AI reasoning without expanding the main issue page layout.</p>
-               <div className="tf-scroll-rail max-h-[60vh] overflow-y-auto whitespace-pre-wrap rounded-2xl border border-primary/15 bg-secondary/20 px-4 py-4 text-sm leading-7 text-text-primary">
+               <div className="tf-scroll-rail max-h-[60vh] overflow-y-auto whitespace-pre-wrap rounded-sm border border-primary/15 bg-secondary/20 px-4 py-4 text-sm leading-7 text-text-primary">
                  {getAiDetail(errorDetail)}
                </div>
             </div>
@@ -840,7 +845,7 @@ export default function ErrorDetailPage({ params }: { params: { id: string } }) 
             <div className="flex flex-row-reverse items-center gap-3 p-6 pt-0">
                <button 
                  onClick={() => setShowAiDetail(false)} 
-                 className="flex-1 bg-secondary/50 border border-border hover:bg-secondary/80 text-text-primary font-semibold py-2 px-4 rounded-lg transition-colors flex items-center justify-center"
+                 className="flex-1 bg-secondary/50 border border-border hover:bg-secondary/80 text-text-primary font-semibold py-2 px-4 rounded-sm transition-colors flex items-center justify-center"
                >
                  Close
                </button>
@@ -851,7 +856,7 @@ export default function ErrorDetailPage({ params }: { params: { id: string } }) 
 
       {showGithubModal && (
         <div className="fixed inset-x-0 top-[73px] bottom-[calc(env(safe-area-inset-bottom)+5.75rem)] z-50 flex items-start justify-center overflow-y-auto bg-transparent backdrop-blur-2xl px-3 py-3 sm:inset-0 sm:items-center sm:bg-black/45 sm:backdrop-blur-sm sm:px-6 sm:py-6">
-          <div className="mx-auto flex max-h-full w-full max-w-2xl flex-col overflow-hidden rounded-[28px] border border-border bg-card/95 p-4 shadow-xl backdrop-blur sm:max-h-[min(92vh,48rem)] sm:p-6">
+          <div className="mx-auto flex max-h-full w-full max-w-2xl flex-col overflow-hidden rounded-sm border border-border bg-card/95 p-4 shadow-xl backdrop-blur sm:max-h-[min(92vh,48rem)] sm:p-6">
             <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
               <div className="min-w-0">
                 <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-text-secondary">
@@ -868,7 +873,7 @@ export default function ErrorDetailPage({ params }: { params: { id: string } }) 
             </div>
 
             <div className="tf-scroll-rail mt-5 flex-1 space-y-4 overflow-y-auto pr-1">
-              <div className="rounded-2xl border border-border bg-secondary/20 px-4 py-4">
+              <div className="rounded-sm border border-border bg-secondary/20 px-4 py-4">
                 <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-text-secondary">
                   TraceForge issue
                 </p>
@@ -876,20 +881,20 @@ export default function ErrorDetailPage({ params }: { params: { id: string } }) 
               </div>
 
               {githubReposLoading ? (
-                <div className="rounded-2xl border border-border bg-secondary/20 px-4 py-4 text-sm text-text-secondary">
+                <div className="rounded-sm border border-border bg-secondary/20 px-4 py-4 text-sm text-text-secondary">
                   Loading GitHub repositories...
                 </div>
               ) : !githubConfigured ? (
-                <div className="rounded-2xl border border-border bg-secondary/20 px-4 py-4 text-sm text-text-secondary">
+                <div className="rounded-sm border border-border bg-secondary/20 px-4 py-4 text-sm text-text-secondary">
                   GitHub integration is not configured for this app yet.
                 </div>
               ) : !githubConnected ? (
-                <div className="rounded-2xl border border-border bg-secondary/20 px-4 py-4 text-sm text-text-secondary">
+                <div className="rounded-sm border border-border bg-secondary/20 px-4 py-4 text-sm text-text-secondary">
                   Connect GitHub in Settings first, then choose one or more repositories to use
                   here.
                 </div>
               ) : !githubRepos.length ? (
-                <div className="rounded-2xl border border-border bg-secondary/20 px-4 py-4 text-sm text-text-secondary">
+                <div className="rounded-sm border border-border bg-secondary/20 px-4 py-4 text-sm text-text-secondary">
                   No selected repositories are available. Choose repositories in Settings first.
                 </div>
               ) : (
@@ -930,7 +935,7 @@ export default function ErrorDetailPage({ params }: { params: { id: string } }) 
               )}
 
               {githubModalError ? (
-                <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+                <div className="rounded-sm border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
                   {githubModalError}
                 </div>
               ) : null}

@@ -15,7 +15,11 @@ import {
   supportedAiModels
 } from "../utils/aiModels.js";
 import {
-  getEffectiveAiUsage
+  currentMonthKey,
+  getEffectiveAiUsage,
+  getRedisUsageKey,
+  reserveAiUsage,
+  refundAiUsage
 } from "../utils/aiUsage.js";
 import {
   DEV_MONTHLY_AI_LIMIT,
@@ -876,6 +880,16 @@ projectsRouter.post("/:id/github-analysis/analyze", ...groqRequestRateLimits, as
     }
   });
 
+  if (usageCost > 0 && !proActive) {
+    await reserveAiUsage({
+      userId,
+      organizationId,
+      email: devActive ? null : requester.email,
+      amount: usageCost,
+      now
+    });
+  }
+
   try {
     if (!redis.isOpen) {
       throw new Error("Repo analysis queue is unavailable");
@@ -932,6 +946,16 @@ projectsRouter.post("/:id/github-analysis/analyze", ...groqRequestRateLimits, as
       }
     });
   } catch (error) {
+    if (usageCost > 0 && !proActive) {
+      await refundAiUsage({
+        userId,
+        organizationId,
+        email: devActive ? null : requester.email,
+        amount: usageCost,
+        now
+      }).catch((e) => console.error("Failed to refund AI usage", e));
+    }
+
     const errorUpdateData: any = {
       model: resolveAiModel(project.aiModel),
       lastError: error instanceof Error ? error.message : "Repo analysis failed"

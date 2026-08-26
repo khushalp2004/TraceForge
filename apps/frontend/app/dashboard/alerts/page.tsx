@@ -874,13 +874,13 @@ function AlertsPageInner() {
             <div className="lg:flex lg:min-h-0 lg:flex-1 lg:flex-col lg:overflow-hidden">
               <div className="tf-scroll-rail min-h-0 flex flex-col gap-3 lg:flex-1 lg:overflow-y-auto lg:overscroll-contain lg:pr-2 pb-8">
                 {loading && (
-                  <div className="rounded-md border border-border/40 bg-card p-6 text-sm text-text-secondary">
+                  <div className="rounded-sm border border-border/40 bg-card p-6 text-sm text-text-secondary">
                     Loading alert rules...
                   </div>
                 )}
 
                 {!loading && !filteredRules.length && (
-                  <div className="rounded-md border border-border/40 bg-card p-6">
+                  <div className="rounded-sm border border-border/40 bg-card p-6">
                     <p className="text-sm font-semibold text-text-primary">
                       {view === "archived" ? "No archived alerts" : "No matching alert rules"}
                     </p>
@@ -896,7 +896,7 @@ function AlertsPageInner() {
                   paginatedRules.map((rule) => (
                     <div
                       key={rule.id}
-                      className="group relative flex flex-col lg:flex-row lg:items-center justify-between p-5 gap-4 rounded-md bg-card border border-border/40 hover:border-border transition-all duration-200"
+                      className="group relative flex flex-col lg:flex-row lg:items-center justify-between p-5 gap-4 rounded-sm bg-card border border-border/40 hover:border-border transition-all duration-200"
                     >
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-3 mb-1.5">
@@ -947,7 +947,7 @@ function AlertsPageInner() {
                             <>
                               <button
                                 type="button"
-                                className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-[11px] font-semibold text-text-secondary hover:text-text-primary hover:bg-secondary/40 transition-colors"
+                                className="flex items-center gap-1.5 px-3 py-1.5 rounded-sm text-[11px] font-semibold text-text-secondary hover:text-text-primary hover:bg-secondary/40 transition-colors"
                                 onClick={() => sendAlertNotification(rule.id)}
                                 disabled={notifyingRuleId === rule.id}
                               >
@@ -959,7 +959,7 @@ function AlertsPageInner() {
 
                               <button
                                 type="button"
-                                className="p-1.5 rounded-md text-text-secondary hover:text-text-primary hover:bg-secondary/40 transition-colors"
+                                className="p-1.5 rounded-sm text-text-secondary hover:text-text-primary hover:bg-secondary/40 transition-colors"
                                 onClick={() => void openAppAlertModal(rule)}
                                 title="Send Alert"
                               >
@@ -968,7 +968,7 @@ function AlertsPageInner() {
                               
                               <button
                                 type="button"
-                                className="p-1.5 rounded-md text-text-secondary hover:text-text-primary hover:bg-secondary/40 transition-colors"
+                                className="p-1.5 rounded-sm text-text-secondary hover:text-text-primary hover:bg-secondary/40 transition-colors"
                                 onClick={() =>
                                   updateRule(rule.id, { isActive: !rule.isActive }, rule.isActive ? "Alert paused" : "Alert resumed")
                                 }
@@ -981,7 +981,7 @@ function AlertsPageInner() {
 
                               <button
                                 type="button"
-                                className="p-1.5 rounded-md text-text-secondary hover:text-destructive hover:bg-destructive/10 transition-colors"
+                                className="p-1.5 rounded-sm text-text-secondary hover:text-destructive hover:bg-destructive/10 transition-colors"
                                 onClick={() => setArchiveTarget(rule)}
                                 title="Archive alert"
                               >
@@ -992,7 +992,7 @@ function AlertsPageInner() {
                             <>
                               <button
                                 type="button"
-                                className="flex items-center gap-1.5 px-3 py-1.5 rounded-md text-[11px] font-semibold text-text-secondary hover:text-text-primary hover:bg-secondary/40 transition-colors"
+                                className="flex items-center gap-1.5 px-3 py-1.5 rounded-sm text-[11px] font-semibold text-text-secondary hover:text-text-primary hover:bg-secondary/40 transition-colors"
                                 onClick={() => restoreRule(rule.id)}
                                 disabled={restoringRuleId === rule.id}
                               >
@@ -1004,7 +1004,7 @@ function AlertsPageInner() {
 
                               <button
                                 type="button"
-                                className="p-1.5 rounded-md text-destructive/80 hover:text-destructive hover:bg-destructive/10 transition-colors disabled:opacity-50"
+                                className="p-1.5 rounded-sm text-destructive/80 hover:text-destructive hover:bg-destructive/10 transition-colors disabled:opacity-50"
                                 onClick={() => setDeleteTarget(rule)}
                                 disabled={deletingRuleId === rule.id}
                                 title="Delete alert permanently"
@@ -1052,13 +1052,13 @@ function AlertsPageInner() {
             <div className="lg:flex lg:min-h-0 lg:flex-1 lg:flex-col lg:overflow-hidden">
               <div className="tf-scroll-rail min-h-0 flex flex-col gap-3 lg:flex-1 lg:overflow-y-auto lg:overscroll-contain lg:pr-2 pb-8">
                 {loading && (
-                  <div className="rounded-md border border-border/40 bg-card px-4 py-4 text-sm text-text-secondary">
+                  <div className="rounded-sm border border-border/40 bg-card px-4 py-4 text-sm text-text-secondary">
                     Loading alert history...
                   </div>
                 )}
 
                 {!loading && !filteredEvents.length && (
-                  <div className="rounded-md border border-border/40 bg-card px-4 py-4">
+                  <div className="rounded-sm border border-border/40 bg-card px-4 py-4">
                     <p className="text-sm font-semibold text-text-primary">
                       No matching alert activity
                     </p>
@@ -1072,7 +1072,7 @@ function AlertsPageInner() {
                   paginatedEvents.map((event) => (
                     <div
                       key={event.id}
-                      className="group relative rounded-md border border-border/40 bg-card px-5 py-4 hover:border-border transition-all duration-200"
+                      className="group relative rounded-sm border border-border/40 bg-card px-5 py-4 hover:border-border transition-all duration-200"
                     >
                       <div className="flex items-start justify-between gap-3">
                         <div className="min-w-0">
@@ -1095,7 +1095,7 @@ function AlertsPageInner() {
                         </div>
                         <Link
                           href={`/dashboard/errors/${event.error.id}`}
-                          className="shrink-0 flex items-center justify-center h-7 px-2.5 rounded-md text-[11px] font-semibold text-text-secondary hover:text-text-primary hover:bg-secondary/40 transition-colors lg:opacity-0 group-hover:opacity-100 focus-within:opacity-100"
+                          className="shrink-0 flex items-center justify-center h-7 px-2.5 rounded-sm text-[11px] font-semibold text-text-secondary hover:text-text-primary hover:bg-secondary/40 transition-colors lg:opacity-0 group-hover:opacity-100 focus-within:opacity-100"
                         >
                           View issue
                         </Link>
@@ -1126,7 +1126,7 @@ function AlertsPageInner() {
 
       {appModalRule && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 px-4">
-          <div className="w-full max-w-lg max-h-[70vh] sm:max-h-[90vh] rounded-xl border border-border bg-card shadow-xl flex flex-col overflow-hidden">
+          <div className="w-full max-w-lg max-h-[70vh] sm:max-h-[90vh] rounded-sm border border-border bg-card shadow-xl flex flex-col overflow-hidden">
             <div className="flex items-center justify-between p-4 border-b border-border/50 shrink-0">
               <h3 className="text-sm font-semibold text-text-primary">Send alert</h3>
               <button onClick={closeAppAlertModal} className="text-text-secondary hover:text-text-primary transition-colors">
@@ -1139,7 +1139,7 @@ function AlertsPageInner() {
                 Add an optional message, then choose where this alert should be sent. TraceForge will attach the alert details automatically.
               </p>
 
-              <div className="mt-6 rounded-xl border border-border bg-secondary/20 px-4 py-4">
+              <div className="mt-6 rounded-sm border border-border bg-secondary/20 px-4 py-4">
                 <p className="text-sm font-semibold text-text-primary">{appModalRule.name}</p>
                 <p className="mt-1 text-[11px] font-semibold text-text-secondary uppercase tracking-wider">
                   {appModalRule.project?.name ?? "All projects"} • {appModalRule.environment || "All environments"} • {appModalRule.severity}
@@ -1151,7 +1151,7 @@ function AlertsPageInner() {
                   Message
                 </label>
                 <textarea
-                  className="w-full min-h-[112px] resize-y rounded-xl border border-border bg-secondary/20 px-4 py-3 text-sm text-text-primary shadow-sm outline-none transition focus:border-primary/50 focus:bg-card focus:ring-2 focus:ring-primary/20"
+                  className="w-full min-h-[112px] resize-y rounded-sm border border-border bg-secondary/20 px-4 py-3 text-sm text-text-primary shadow-sm outline-none transition focus:border-primary/50 focus:bg-card focus:ring-2 focus:ring-primary/20"
                   placeholder="Add context for Slack or Jira recipients"
                   value={appAlertMessage}
                   onChange={(event) => setAppAlertMessage(event.target.value)}
@@ -1163,12 +1163,12 @@ function AlertsPageInner() {
                 <p className="block text-xs font-semibold uppercase tracking-[0.14em] text-text-secondary">Destinations</p>
 
                 {loadingAppTargets ? (
-                  <div className="rounded-xl border border-border bg-secondary/20 px-4 py-4 text-sm text-text-secondary">
+                  <div className="rounded-sm border border-border bg-secondary/20 px-4 py-4 text-sm text-text-secondary">
                     Loading connected apps...
                   </div>
                 ) : (
                   <>
-                    <label className="flex items-start gap-3 rounded-xl border border-border bg-card px-4 py-4 transition hover:bg-secondary/20 cursor-pointer">
+                    <label className="flex items-start gap-3 rounded-sm border border-border bg-card px-4 py-4 transition hover:bg-secondary/20 cursor-pointer">
                       <input
                         type="checkbox"
                         className="mt-0.5 h-4 w-4 rounded border-border"
@@ -1188,7 +1188,7 @@ function AlertsPageInner() {
                       </div>
                     </label>
 
-                    <label className="flex items-start gap-3 rounded-xl border border-border bg-card px-4 py-4 transition hover:bg-secondary/20 cursor-pointer">
+                    <label className="flex items-start gap-3 rounded-sm border border-border bg-card px-4 py-4 transition hover:bg-secondary/20 cursor-pointer">
                       <input
                         type="checkbox"
                         className="mt-0.5 h-4 w-4 rounded border-border"
@@ -1215,7 +1215,7 @@ function AlertsPageInner() {
             <div className="flex flex-row-reverse items-center gap-3 p-6 pt-4 border-t border-border/50 shrink-0">
               <button
                 type="button"
-                className="flex-1 bg-primary hover:bg-primary-hover disabled:opacity-50 text-primary-foreground font-semibold py-2 px-4 rounded-lg transition-colors flex items-center justify-center"
+                className="flex-1 bg-primary hover:bg-primary-hover disabled:opacity-50 text-primary-foreground font-semibold py-2 px-4 rounded-sm transition-colors flex items-center justify-center"
                 onClick={sendAppAlert}
                 disabled={loadingAppTargets || sendingAppAlert}
               >
@@ -1228,7 +1228,7 @@ function AlertsPageInner() {
               </button>
               <button
                 type="button"
-                className="flex-1 bg-secondary/50 border border-border hover:bg-secondary/80 text-text-primary font-semibold py-2 px-4 rounded-lg transition-colors flex items-center justify-center"
+                className="flex-1 bg-secondary/50 border border-border hover:bg-secondary/80 text-text-primary font-semibold py-2 px-4 rounded-sm transition-colors flex items-center justify-center"
                 onClick={closeAppAlertModal}
                 disabled={sendingAppAlert}
               >
@@ -1241,7 +1241,7 @@ function AlertsPageInner() {
 
       {archiveTarget && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 px-4">
-          <div className="w-full max-w-lg rounded-xl border border-border bg-card shadow-xl flex flex-col overflow-hidden">
+          <div className="w-full max-w-lg rounded-sm border border-border bg-card shadow-xl flex flex-col overflow-hidden">
             <div className="flex items-center justify-between p-4 border-b border-border/50">
               <h3 className="text-sm font-semibold text-text-primary">Archive Alert</h3>
               <button onClick={() => setArchiveTarget(null)} className="text-text-secondary hover:text-text-primary transition-colors">
@@ -1258,7 +1258,7 @@ function AlertsPageInner() {
                <button 
                  onClick={archiveRule} 
                  disabled={archivingRuleId === archiveTarget.id}
-                 className="flex-1 bg-destructive/15 text-destructive border border-destructive/30 hover:bg-destructive/25 backdrop-blur-md font-semibold py-2 px-3 sm:px-4 rounded-lg transition-all duration-300 flex items-center justify-center shadow-[0_8px_16px_-6px_rgba(var(--destructive-rgb),0.1)] whitespace-nowrap"
+                 className="flex-1 bg-destructive/15 text-destructive border border-destructive/30 hover:bg-destructive/25 backdrop-blur-md font-semibold py-2 px-3 sm:px-4 rounded-sm transition-all duration-300 flex items-center justify-center shadow-[0_8px_16px_-6px_rgba(var(--destructive-rgb),0.1)] whitespace-nowrap"
                >
                  <Archive className="w-4 h-4 mr-1 sm:mr-2 shrink-0" />
                  Archive
@@ -1266,7 +1266,7 @@ function AlertsPageInner() {
                <button 
                  onClick={() => setArchiveTarget(null)} 
                  disabled={archivingRuleId === archiveTarget.id}
-                 className="flex-1 bg-secondary/50 border border-border hover:bg-secondary/80 text-text-primary font-semibold py-2 px-3 sm:px-4 rounded-lg transition-colors flex items-center justify-center whitespace-nowrap"
+                 className="flex-1 bg-secondary/50 border border-border hover:bg-secondary/80 text-text-primary font-semibold py-2 px-3 sm:px-4 rounded-sm transition-colors flex items-center justify-center whitespace-nowrap"
                >
                  Cancel
                </button>
@@ -1277,7 +1277,7 @@ function AlertsPageInner() {
 
       {deleteTarget && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 px-4">
-          <div className="w-full max-w-lg rounded-xl border border-border bg-card shadow-xl flex flex-col overflow-hidden">
+          <div className="w-full max-w-lg rounded-sm border border-border bg-card shadow-xl flex flex-col overflow-hidden">
             <div className="flex items-center justify-between p-4 border-b border-border/50">
               <h3 className="text-sm font-semibold text-text-primary">Delete Alert</h3>
               <button onClick={() => setDeleteTarget(null)} className="text-text-secondary hover:text-text-primary transition-colors">
@@ -1294,7 +1294,7 @@ function AlertsPageInner() {
                <button 
                  onClick={deleteRulePermanently} 
                  disabled={deletingRuleId === deleteTarget.id}
-                 className="flex-1 bg-destructive/15 text-destructive border border-destructive/30 hover:bg-destructive/25 backdrop-blur-md font-semibold py-2 px-3 sm:px-4 rounded-lg transition-all duration-300 flex items-center justify-center shadow-[0_8px_16px_-6px_rgba(var(--destructive-rgb),0.1)] whitespace-nowrap"
+                 className="flex-1 bg-destructive/15 text-destructive border border-destructive/30 hover:bg-destructive/25 backdrop-blur-md font-semibold py-2 px-3 sm:px-4 rounded-sm transition-all duration-300 flex items-center justify-center shadow-[0_8px_16px_-6px_rgba(var(--destructive-rgb),0.1)] whitespace-nowrap"
                >
                  <Trash2 className="w-4 h-4 mr-1 sm:mr-2 shrink-0" />
                  Delete
@@ -1302,7 +1302,7 @@ function AlertsPageInner() {
                <button 
                  onClick={() => setDeleteTarget(null)} 
                  disabled={deletingRuleId === deleteTarget.id}
-                 className="flex-1 bg-secondary/50 border border-border hover:bg-secondary/80 text-text-primary font-semibold py-2 px-3 sm:px-4 rounded-lg transition-colors flex items-center justify-center whitespace-nowrap"
+                 className="flex-1 bg-secondary/50 border border-border hover:bg-secondary/80 text-text-primary font-semibold py-2 px-3 sm:px-4 rounded-sm transition-colors flex items-center justify-center whitespace-nowrap"
                >
                  Cancel
                </button>
@@ -1313,7 +1313,7 @@ function AlertsPageInner() {
 
       {showCreateModal && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 px-4">
-          <div className="w-full max-w-lg max-h-[70vh] sm:max-h-[90vh] rounded-xl border border-border bg-card shadow-xl flex flex-col overflow-hidden">
+          <div className="w-full max-w-lg max-h-[70vh] sm:max-h-[90vh] rounded-sm border border-border bg-card shadow-xl flex flex-col overflow-hidden">
             <div className="flex items-center justify-between p-4 border-b border-border/50 shrink-0">
               <h3 className="text-sm font-semibold text-text-primary">Create alert rule</h3>
               <button onClick={() => {
@@ -1337,7 +1337,7 @@ function AlertsPageInner() {
                     Rule name
                   </label>
                   <input
-                    className="w-full rounded-xl border border-border bg-secondary/20 px-4 py-3 text-sm text-text-primary shadow-sm outline-none transition focus:border-primary/50 focus:bg-card focus:ring-2 focus:ring-primary/20"
+                    className="w-full rounded-sm border border-border bg-secondary/20 px-4 py-3 text-sm text-text-primary shadow-sm outline-none transition focus:border-primary/50 focus:bg-card focus:ring-2 focus:ring-primary/20"
                     placeholder="Critical production regressions"
                     value={name}
                     onChange={(event) => setName(event.target.value)}
@@ -1349,7 +1349,7 @@ function AlertsPageInner() {
                     Issue description
                   </label>
                   <textarea
-                    className="min-h-[108px] w-full resize-y rounded-xl border border-border bg-secondary/20 px-4 py-3 text-sm text-text-primary shadow-sm outline-none transition focus:border-primary/50 focus:bg-card focus:ring-2 focus:ring-primary/20"
+                    className="min-h-[108px] w-full resize-y rounded-sm border border-border bg-secondary/20 px-4 py-3 text-sm text-text-primary shadow-sm outline-none transition focus:border-primary/50 focus:bg-card focus:ring-2 focus:ring-primary/20"
                     placeholder="Describe the issue this alert should create when you trigger it manually."
                     value={issueDescription}
                     onChange={(event) => setIssueDescription(event.target.value)}
@@ -1365,7 +1365,7 @@ function AlertsPageInner() {
                     Project scope
                   </label>
                   <select
-                    className="w-full appearance-none rounded-xl border border-border bg-secondary/20 px-4 py-3 pr-10 text-sm text-text-primary shadow-sm outline-none transition focus:border-primary/50 focus:bg-card focus:ring-2 focus:ring-primary/20"
+                    className="w-full appearance-none rounded-sm border border-border bg-secondary/20 px-4 py-3 pr-10 text-sm text-text-primary shadow-sm outline-none transition focus:border-primary/50 focus:bg-card focus:ring-2 focus:ring-primary/20"
                     style={{
                       backgroundImage:
                         "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 20 20' fill='none'%3E%3Cpath d='M5 7l5 5 5-5' stroke='%239CA3AF' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E\")",
@@ -1390,7 +1390,7 @@ function AlertsPageInner() {
                       Environment
                     </label>
                     <select
-                      className="w-full appearance-none rounded-xl border border-border bg-secondary/20 px-4 py-3 pr-10 text-sm text-text-primary shadow-sm outline-none transition focus:border-primary/50 focus:bg-card focus:ring-2 focus:ring-primary/20"
+                      className="w-full appearance-none rounded-sm border border-border bg-secondary/20 px-4 py-3 pr-10 text-sm text-text-primary shadow-sm outline-none transition focus:border-primary/50 focus:bg-card focus:ring-2 focus:ring-primary/20"
                       style={{
                         backgroundImage:
                           "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 20 20' fill='none'%3E%3Cpath d='M5 7l5 5 5-5' stroke='%239CA3AF' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E\")",
@@ -1414,7 +1414,7 @@ function AlertsPageInner() {
                       Minimum severity
                     </label>
                     <select
-                      className="w-full appearance-none rounded-xl border border-border bg-secondary/20 px-4 py-3 pr-10 text-sm text-text-primary shadow-sm outline-none transition focus:border-primary/50 focus:bg-card focus:ring-2 focus:ring-primary/20"
+                      className="w-full appearance-none rounded-sm border border-border bg-secondary/20 px-4 py-3 pr-10 text-sm text-text-primary shadow-sm outline-none transition focus:border-primary/50 focus:bg-card focus:ring-2 focus:ring-primary/20"
                       style={{
                         backgroundImage:
                           "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 20 20' fill='none'%3E%3Cpath d='M5 7l5 5 5-5' stroke='%239CA3AF' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E\")",
@@ -1440,7 +1440,7 @@ function AlertsPageInner() {
                       Trigger after
                     </label>
                     <input
-                      className="w-full rounded-xl border border-border bg-secondary/20 px-4 py-3 text-sm text-text-primary shadow-sm outline-none transition focus:border-primary/50 focus:bg-card focus:ring-2 focus:ring-primary/20"
+                      className="w-full rounded-sm border border-border bg-secondary/20 px-4 py-3 text-sm text-text-primary shadow-sm outline-none transition focus:border-primary/50 focus:bg-card focus:ring-2 focus:ring-primary/20"
                       inputMode="numeric"
                       value={minOccurrences}
                       onChange={(event) => setMinOccurrences(event.target.value)}
@@ -1453,7 +1453,7 @@ function AlertsPageInner() {
                       Cooldown (minutes)
                     </label>
                     <input
-                      className="w-full rounded-xl border border-border bg-secondary/20 px-4 py-3 text-sm text-text-primary shadow-sm outline-none transition focus:border-primary/50 focus:bg-card focus:ring-2 focus:ring-primary/20"
+                      className="w-full rounded-sm border border-border bg-secondary/20 px-4 py-3 text-sm text-text-primary shadow-sm outline-none transition focus:border-primary/50 focus:bg-card focus:ring-2 focus:ring-primary/20"
                       inputMode="numeric"
                       value={cooldownMinutes}
                       onChange={(event) => setCooldownMinutes(event.target.value)}
@@ -1468,7 +1468,7 @@ function AlertsPageInner() {
                <button 
                  onClick={createRule} 
                  disabled={saving}
-                 className="flex-1 bg-primary hover:bg-primary-hover disabled:opacity-50 text-primary-foreground font-semibold py-2 px-4 rounded-lg transition-colors flex items-center justify-center"
+                 className="flex-1 bg-primary hover:bg-primary-hover disabled:opacity-50 text-primary-foreground font-semibold py-2 px-4 rounded-sm transition-colors flex items-center justify-center"
                >
                  <LoadingButtonContent loading={saving} loadingLabel="Creating..." idleLabel="Create alert" />
                </button>
@@ -1479,7 +1479,7 @@ function AlertsPageInner() {
                    resetForm();
                  }} 
                  disabled={saving}
-                 className="flex-1 bg-secondary/50 border border-border hover:bg-secondary/80 text-text-primary font-semibold py-2 px-4 rounded-lg transition-colors flex items-center justify-center"
+                 className="flex-1 bg-secondary/50 border border-border hover:bg-secondary/80 text-text-primary font-semibold py-2 px-4 rounded-sm transition-colors flex items-center justify-center"
                >
                  Cancel
                </button>
