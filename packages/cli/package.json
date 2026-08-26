@@ -1,6 +1,6 @@
 {
   "name": "usetraceforge-cli",
-  "version": "0.1.50",
+  "version": "0.1.52",
   "description": "Interactive CLI for setting up TraceForge error tracking",
   "bin": {
     "traceforge": "./dist/index.js"
