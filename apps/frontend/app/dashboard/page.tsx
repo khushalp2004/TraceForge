@@ -715,6 +715,16 @@ function DashboardPageInner() {
           signal: controller.signal
         });
 
+        if (analyticsRes.status === 403 || analyticsRes.status === 401) {
+          if (!controller.signal.aborted) {
+            setFrequency([]);
+            setLastSeen([]);
+            // Invalid cached project ID, let's clear it
+            if (selectedProject) setSelectedProject("");
+          }
+          return;
+        }
+
         if (!analyticsRes.ok) {
           throw new Error("Failed to load analytics");
         }
@@ -729,8 +739,10 @@ function DashboardPageInner() {
         if (controller.signal.aborted) {
           return;
         }
-
-        setError(err instanceof Error ? err.message : "Unexpected error");
+        
+        // For new accounts or empty states, don't break the entire dashboard
+        setFrequency([]);
+        setLastSeen([]);
       }
     };
 

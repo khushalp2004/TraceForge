@@ -55,7 +55,7 @@ export const normalizeAiModelId = (value: string | null | undefined) => {
 export const defaultAiModel =
   process.env.GROQ_MODEL && supportedAiModels.some((model) => model.id === process.env.GROQ_MODEL)
     ? process.env.GROQ_MODEL
-    : "groq/compound";
+    : "gemini/gemini-3.1-flash-lite";
 
 export const isSupportedAiModel = (value: string) => {
   const normalized = normalizeAiModelId(value);

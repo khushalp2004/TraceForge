@@ -57,15 +57,15 @@ export default function HomePageClientV2() {
   }, []);
 
   const getThemeImage = () => {
-    if (!mounted) return "https://res.cloudinary.com/drri6ut0i/image/upload/v1787769531/veijgxoxjeehhe3uz9vv.png";
+    if (!mounted) return "https://res.cloudinary.com/dyv5wyxuz/image/upload/v1787844906/axmuwk3mhltg8ojjnfz1.png";
     switch (theme) {
-      case "trace-light": return "https://res.cloudinary.com/drri6ut0i/image/upload/v1787769574/lmgwn5i8tuxue5ko6oev.png"; // 👇 REPLACE WITH TRACE LIGHT IMAGE
-      case "linen-light": return "https://res.cloudinary.com/drri6ut0i/image/upload/v1787769572/vkpw2soxrhxanjighzvp.png";  // 👇 REPLACE WITH MIST LIGHT IMAGE
-      case "sage-light": return "https://res.cloudinary.com/drri6ut0i/image/upload/v1787769574/tfbvp7wptfciwr7nim7t.png";   // 👇 REPLACE WITH SAGE LIGHT IMAGE
-      case "graphite-dark": return "https://res.cloudinary.com/drri6ut0i/image/upload/v1787769531/veijgxoxjeehhe3uz9vv.png"; // 👇 REPLACE WITH GRAPHITE DARK IMAGE
-      case "midnight-dark": return "https://res.cloudinary.com/drri6ut0i/image/upload/v1787769571/q676elrqwf5m78bggnco.png"; // 👇 REPLACE WITH MIDNIGHT DARK IMAGE
-      case "plum-dark": return "https://res.cloudinary.com/drri6ut0i/image/upload/v1787769531/veijgxoxjeehhe3uz9vv.png";     // 👇 REPLACE WITH PLUM DARK IMAGE
-      default: return "https://res.cloudinary.com/drri6ut0i/image/upload/v1787769531/veijgxoxjeehhe3uz9vv.png";
+      case "trace-light": return "https://res.cloudinary.com/dyv5wyxuz/image/upload/v1787844906/uouah7rrsrjve0g45evh.png"; // 👇 REPLACE WITH TRACE LIGHT IMAGE
+      case "linen-light": return "https://res.cloudinary.com/dyv5wyxuz/image/upload/v1787844907/imnqtvrmoi4f5yhxzvvh.png";  // 👇 REPLACE WITH MIST LIGHT IMAGE
+      case "sage-light": return "https://res.cloudinary.com/dyv5wyxuz/image/upload/v1787844906/gqazljgetewwhdedj5w7.png";   // 👇 REPLACE WITH SAGE LIGHT IMAGE
+      case "graphite-dark": return "https://res.cloudinary.com/dyv5wyxuz/image/upload/v1787844906/axmuwk3mhltg8ojjnfz1.png"; // 👇 REPLACE WITH GRAPHITE DARK IMAGE
+      case "midnight-dark": return "https://res.cloudinary.com/dyv5wyxuz/image/upload/v1787844906/hwv61coa6ckjmubjutng.png"; // 👇 REPLACE WITH MIDNIGHT DARK IMAGE
+      case "plum-dark": return "https://res.cloudinary.com/dyv5wyxuz/image/upload/v1787844906/itjnmuumputbwe6tvcq2.png";     // 👇 REPLACE WITH PLUM DARK IMAGE
+      default: return "https://res.cloudinary.com/dyv5wyxuz/image/upload/v1787844906/axmuwk3mhltg8ojjnfz1.png";
     }
   };
 

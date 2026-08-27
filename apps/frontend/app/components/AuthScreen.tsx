@@ -431,7 +431,7 @@ function AuthScreenInner({ mode }: AuthScreenProps) {
             className="w-full max-w-[85%] aspect-video rounded-[12px] overflow-hidden border border-border/30 bg-black/50 shadow-2xl relative mb-12"
           >
             <iframe
-              src="https://player.cloudinary.com/embed/?cloud_name=dyv5wyxuz&public_id=xazri9ab0zo7z2ae6znd&player[autoplay]=true&player[loop]=true&player[muted]=true&player[controls]=false&player[show_logo]=false"
+              src="https://player.cloudinary.com/embed/?cloud_name=dyv5wyxuz&public_id=ygzrydfjwzsd6g5n2hbd&player[autoplay]=true&player[loop]=true&player[muted]=true&player[controls]=false&player[show_logo]=false"
               allow="autoplay; fullscreen; encrypted-media; picture-in-picture"
               allowFullScreen
               frameBorder="0"

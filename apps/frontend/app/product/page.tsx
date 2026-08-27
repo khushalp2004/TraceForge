@@ -123,7 +123,7 @@ export default function ProductPage() {
                 <div className="relative aspect-video bg-black flex items-center justify-center overflow-hidden">
                   {/* NOTE: You can replace this src with your actual demo MP4 URL, or replace the entire video tag with an iframe for YouTube/Vimeo */}
                   <iframe
-                    src="https://player.cloudinary.com/embed/?cloud_name=dyv5wyxuz&public_id=xazri9ab0zo7z2ae6znd&player[autoplay]=true&player[loop]=true&player[muted]=true&player[controls]=false&player[show_logo]=false"
+                    src="https://player.cloudinary.com/embed/?cloud_name=dyv5wyxuz&public_id=ygzrydfjwzsd6g5n2hbd&player[autoplay]=true&player[loop]=true&player[muted]=true&player[controls]=false&player[show_logo]=false"
                     allow="autoplay; fullscreen; encrypted-media; picture-in-picture"
                     allowFullScreen
                     frameBorder="0"

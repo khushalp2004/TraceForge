@@ -104,8 +104,8 @@ export default function ProjectSettingsPage() {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [newProjectName, setNewProjectName] = useState("");
   const [availableAiModels, setAvailableAiModels] = useState<AiModelOption[]>([]);
-  const [defaultAiModel, setDefaultAiModel] = useState("groq/compound");
-  const [newProjectAiModel, setNewProjectAiModel] = useState("groq/compound");
+  const [defaultAiModel, setDefaultAiModel] = useState("gemini/gemini-3.1-flash-lite");
+  const [newProjectAiModel, setNewProjectAiModel] = useState("gemini/gemini-3.1-flash-lite");
   const [availableGithubRepos, setAvailableGithubRepos] = useState<GithubRepo[]>([]);
   const [githubConfigured, setGithubConfigured] = useState(false);
   const [githubConnected, setGithubConnected] = useState(false);
@@ -259,8 +259,8 @@ export default function ProjectSettingsPage() {
 
       setProjects(projectsData.projects || []);
       setAvailableAiModels(projectsData.availableAiModels || []);
-      setDefaultAiModel(projectsData.defaultAiModel || "groq/compound");
-      setNewProjectAiModel(projectsData.defaultAiModel || "groq/compound");
+      setDefaultAiModel(projectsData.defaultAiModel || "gemini/gemini-3.1-flash-lite");
+      setNewProjectAiModel(projectsData.defaultAiModel || "gemini/gemini-3.1-flash-lite");
       if (orgsRes.ok) {
         const fetchedOrgs = orgsData.orgs || [];
         setOrgs(fetchedOrgs);
