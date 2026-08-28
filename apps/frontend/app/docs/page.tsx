@@ -101,6 +101,72 @@ app.use(async (error: unknown, req: Request, _res: Response, next: NextFunction)
   next(error);
 });`;
 
+const fastifySetupSnippet = `import Fastify from "fastify";
+import TraceForge from "usetraceforge";
+
+TraceForge.init({
+  apiKey: process.env.TRACEFORGE_API_KEY!,
+  endpoint: process.env.TRACEFORGE_INGEST_URL,
+  environment: process.env.TRACEFORGE_ENV || "production",
+});
+
+const fastify = Fastify();
+
+fastify.setErrorHandler(async (error, request, reply) => {
+  await TraceForge.captureException(error, {
+    payload: { route: request.url, method: request.method }
+  });
+  reply.status(500).send({ ok: false });
+});`;
+
+const nestjsSetupSnippet = `import { ExceptionFilter, Catch, ArgumentsHost, HttpException } from '@nestjs/common';
+import TraceForge from "usetraceforge";
+
+// Initialize TraceForge in your main.ts before bootstrap
+TraceForge.init({
+  apiKey: process.env.TRACEFORGE_API_KEY!,
+  endpoint: process.env.TRACEFORGE_INGEST_URL,
+});
+
+@Catch()
+export class TraceForgeExceptionFilter implements ExceptionFilter {
+  async catch(exception: unknown, host: ArgumentsHost) {
+    const err = exception instanceof Error ? exception : new Error(String(exception));
+    await TraceForge.captureException(err);
+    // Continue with standard error handling
+  }
+}`;
+
+const angularSetupSnippet = `import { ErrorHandler, Injectable } from '@angular/core';
+import TraceForge from "usetraceforge";
+
+// Initialize in main.ts
+TraceForge.init({
+  apiKey: import.meta.env.VITE_TRACEFORGE_API_KEY,
+  endpoint: import.meta.env.VITE_TRACEFORGE_INGEST_URL,
+});
+
+@Injectable()
+export class TraceForgeErrorHandler implements ErrorHandler {
+  handleError(error: any) {
+    TraceForge.captureException(error);
+    console.error(error);
+  }
+}`;
+
+const svelteSetupSnippet = `// In src/hooks.client.ts or src/hooks.server.ts
+import TraceForge from "usetraceforge";
+import { env } from '$env/dynamic/public';
+
+TraceForge.init({
+  apiKey: env.PUBLIC_TRACEFORGE_API_KEY,
+  endpoint: env.PUBLIC_TRACEFORGE_INGEST_URL,
+});
+
+export const handleError = async ({ error, event }) => {
+  await TraceForge.captureException(error);
+};`;
+
 const pythonInstallSnippet = `pip install usetraceforge python-dotenv`;
 
 const pythonSetupSnippet = `import traceforge
@@ -114,7 +180,7 @@ traceforge.init()
 # Usage in your exception handler:
 # traceforge.capture_exception(exc)`;
 
-const goInstallSnippet = `go get github.com/khushalp2004/TraceForge/packages/sdk-go@v1.0.2`;
+const goInstallSnippet = `go get github.com/khushalp2004/TraceForge/packages/sdk-go@v1.0.5`;
 
 const goSetupSnippet = `import (
     "github.com/joho/godotenv"
@@ -209,6 +275,20 @@ end
 #   TraceForge.capture_exception(exception)
 # end`;
 
+const railsSetupSnippet = `# config/initializers/traceforge.rb
+TraceForge.configure do |config|
+  config.api_key = ENV['TRACEFORGE_API_KEY']
+  config.ingest_url = ENV['TRACEFORGE_INGEST_URL']
+end
+
+# app/controllers/application_controller.rb
+class ApplicationController < ActionController::Base
+  rescue_from StandardError do |exception|
+    TraceForge.capture_exception(exception)
+    raise exception
+  end
+end`;
+
 const restSnippet = `POST /ingest
 X-Traceforge-Key: <PROJECT_API_KEY>
 Content-Type: application/json
@@ -224,7 +304,7 @@ Content-Type: application/json
   }
 }`;
 
-type TechStack = "nextjs" | "react" | "vue" | "nodejs" | "python" | "go" | "java" | "php" | "rust" | "ruby" | "rest";
+type TechStack = "nextjs" | "react" | "vue" | "nodejs" | "python" | "go" | "java" | "php" | "rust" | "ruby" | "rest" | "angular" | "express" | "fastify" | "nestjs" | "svelte" | "laravel" | "spring-boot" | "simulated_rails";
 
 type Toast = {
   message: string;
@@ -300,18 +380,25 @@ export default function DocsPage() {
       showToast("Failed to copy snippet", "error");
     }
   };
-
   const tabs: { id: TechStack; label: string; icon: React.ReactNode; hint?: string }[] = [
     { id: "nextjs", label: "Next.js", icon: <Globe className="w-4 h-4" />, hint: "Full-stack web apps" },
     { id: "react", label: "React / Vite", icon: <Code2 className="w-4 h-4" />, hint: "Frontend UI components" },
     { id: "vue", label: "Vue.js", icon: <Code2 className="w-4 h-4" />, hint: "Frontend UI components" },
+    { id: "angular", label: "Angular", icon: <Globe className="w-4 h-4" />, hint: "Frontend UI components" },
+    { id: "svelte", label: "Svelte", icon: <Code2 className="w-4 h-4" />, hint: "Frontend UI components" },
     { id: "nodejs", label: "Node.js", icon: <Server className="w-4 h-4" />, hint: "JavaScript backend" },
+    { id: "express", label: "Express", icon: <Server className="w-4 h-4" />, hint: "JavaScript backend" },
+    { id: "fastify", label: "Fastify", icon: <Server className="w-4 h-4" />, hint: "JavaScript backend" },
+    { id: "nestjs", label: "NestJS", icon: <Server className="w-4 h-4" />, hint: "JavaScript backend" },
     { id: "python", label: "Python", icon: <Terminal className="w-4 h-4" />, hint: "Backend + AI apps" },
     { id: "java", label: "Java", icon: <Coffee className="w-4 h-4" />, hint: "Enterprise systems" },
+    { id: "spring-boot", label: "Spring Boot", icon: <Coffee className="w-4 h-4" />, hint: "Enterprise systems" },
     { id: "php", label: "PHP", icon: <Globe className="w-4 h-4" />, hint: "Websites & CMS" },
+    { id: "laravel", label: "Laravel", icon: <Globe className="w-4 h-4" />, hint: "Websites & CMS" },
     { id: "go", label: "Go", icon: <Terminal className="w-4 h-4" />, hint: "High-performance backend" },
     { id: "rust", label: "Rust", icon: <Database className="w-4 h-4" />, hint: "Ultra-fast secure systems" },
     { id: "ruby", label: "Ruby", icon: <FileCode2 className="w-4 h-4" />, hint: "Fast MVP/startups" },
+    { id: "simulated_rails", label: "Ruby on Rails", icon: <FileCode2 className="w-4 h-4" />, hint: "Fast MVP/startups" },
     { id: "rest", label: "REST API", icon: <Braces className="w-4 h-4" /> },
   ];
 
@@ -366,22 +453,72 @@ export default function DocsPage() {
       { title: "Install the SDK", description: "Add the TraceForge gem to your `Gemfile`.", codeSnippet: rubyInstallSnippet, codeTitle: "Gemfile" },
       { title: "Initialize & Capture", description: "Initialize the SDK and catch exceptions in your Sinatra routes.", codeSnippet: rubySetupSnippet, codeTitle: "app.rb" }
     ],
+    angular: [
+      { title: "1-Click Install", description: "Use our CLI wizard to automatically install and configure TraceForge!", codeSnippet: cliInstallSnippet, codeTitle: "Terminal" },
+      { title: "Manual Install", description: "Or install the package manually.", codeSnippet: installSnippet, codeTitle: "Terminal" },
+      { title: "Configure Environment", description: "Add your project keys to your environment.", codeSnippet: reactEnvSnippet, codeTitle: ".env" },
+      { title: "Initialize", description: "Set up the global error handler in Angular.", codeSnippet: angularSetupSnippet, codeTitle: "app.module.ts" }
+    ],
+    svelte: [
+      { title: "1-Click Install", description: "Use our CLI wizard to automatically install and configure TraceForge!", codeSnippet: cliInstallSnippet, codeTitle: "Terminal" },
+      { title: "Manual Install", description: "Or install the package manually.", codeSnippet: installSnippet, codeTitle: "Terminal" },
+      { title: "Configure Environment", description: "Add your project keys to your environment.", codeSnippet: reactEnvSnippet, codeTitle: ".env" },
+      { title: "Initialize", description: "Add to your SvelteKit hooks.", codeSnippet: svelteSetupSnippet, codeTitle: "hooks.client.ts" }
+    ],
+    express: [
+      { title: "1-Click Install", description: "Use our CLI wizard to automatically install and configure TraceForge!", codeSnippet: cliInstallSnippet, codeTitle: "Terminal" },
+      { title: "Manual Install", description: "Or install the package manually.", codeSnippet: installSnippet, codeTitle: "Terminal" },
+      { title: "Configure Environment", description: "Add your project keys to `.env`.", codeSnippet: nodeEnvSnippet, codeTitle: ".env" },
+      { title: "Add Express Middleware", description: "Place the error handler *before* your final catch-all error middleware.", codeSnippet: nodeSetupSnippet, codeTitle: "server.ts" }
+    ],
+    fastify: [
+      { title: "1-Click Install", description: "Use our CLI wizard to automatically install and configure TraceForge!", codeSnippet: cliInstallSnippet, codeTitle: "Terminal" },
+      { title: "Manual Install", description: "Or install the package manually.", codeSnippet: installSnippet, codeTitle: "Terminal" },
+      { title: "Configure Environment", description: "Add your project keys to `.env`.", codeSnippet: nodeEnvSnippet, codeTitle: ".env" },
+      { title: "Add Fastify Handler", description: "Set up the global error handler.", codeSnippet: fastifySetupSnippet, codeTitle: "server.ts" }
+    ],
+    nestjs: [
+      { title: "1-Click Install", description: "Use our CLI wizard to automatically install and configure TraceForge!", codeSnippet: cliInstallSnippet, codeTitle: "Terminal" },
+      { title: "Manual Install", description: "Or install the package manually.", codeSnippet: installSnippet, codeTitle: "Terminal" },
+      { title: "Configure Environment", description: "Add your project keys to `.env`.", codeSnippet: nodeEnvSnippet, codeTitle: ".env" },
+      { title: "Add Exception Filter", description: "Create a global exception filter.", codeSnippet: nestjsSetupSnippet, codeTitle: "main.ts" }
+    ],
+    laravel: [
+      { title: "Install the SDK", description: "Require the TraceForge PHP SDK via Composer.", codeSnippet: phpInstallSnippet, codeTitle: "Terminal" },
+      { title: "Initialize & Capture", description: "Initialize the client and hook into your global error handler.", codeSnippet: phpSetupSnippet, codeTitle: "index.php" }
+    ],
+    "spring-boot": [
+      { title: "Install the SDK", description: "Add the JitPack repository and TraceForge dependency to your `pom.xml`.", codeSnippet: javaInstallSnippet, codeTitle: "pom.xml" },
+      { title: "Initialize & Capture", description: "Initialize in your main class and capture exceptions via `@ControllerAdvice`.", codeSnippet: javaSetupSnippet, codeTitle: "Application.java" }
+    ],
+    simulated_rails: [
+      { title: "Install the SDK", description: "Add the TraceForge gem to your `Gemfile`.", codeSnippet: rubyInstallSnippet, codeTitle: "Gemfile" },
+      { title: "Initialize & Capture", description: "Initialize the SDK in an initializer and catch exceptions in your `ApplicationController`.", codeSnippet: railsSetupSnippet, codeTitle: "application_controller.rb" }
+    ],
     rest: [
       { title: "Raw Payload Format", description: "Send a simple JSON payload to the ingest endpoint from any environment, CI script, or language.", codeSnippet: restSnippet, codeTitle: "cURL / HTTP" }
     ]
   };
 
   const demoRepoLinks: Record<string, string> = {
-    nextjs: "https://github.com/khushalp2004/Testing-apps-for-traceforge/tree/main/nextjs-project",
-    react: "https://github.com/khushalp2004/Testing-apps-for-traceforge/tree/main/react-vite-project",
-    vue: "https://github.com/khushalp2004/Testing-apps-for-traceforge/tree/main/vue-project",
-    nodejs: "https://github.com/khushalp2004/Testing-apps-for-traceforge/tree/main/nodejs-project",
-    python: "https://github.com/khushalp2004/Testing-apps-for-traceforge/tree/main/python-project",
-    java: "https://github.com/khushalp2004/Testing-apps-for-traceforge/tree/main/java-project",
-    php: "https://github.com/khushalp2004/Testing-apps-for-traceforge/tree/main/php-project",
-    go: "https://github.com/khushalp2004/Testing-apps-for-traceforge/tree/main/go-project",
-    rust: "https://github.com/khushalp2004/Testing-apps-for-traceforge/tree/main/rust-project",
-    ruby: "https://github.com/khushalp2004/Testing-apps-for-traceforge/tree/main/ruby-project",
+    nextjs: "https://github.com/khushalp2004/Traceforge-config-demos/tree/main/demo",
+    react: "https://github.com/khushalp2004/Traceforge-config-demos/tree/main/react-app",
+    vue: "https://github.com/khushalp2004/Traceforge-config-demos/tree/main/vuejs-app",
+    angular: "https://github.com/khushalp2004/Traceforge-config-demos/tree/main/angular-testing-app",
+    svelte: "https://github.com/khushalp2004/Traceforge-config-demos/tree/main/svelte-testing-app",
+    nodejs: "https://github.com/khushalp2004/Traceforge-config-demos/tree/main/nodejs-app",
+    express: "https://github.com/khushalp2004/Traceforge-config-demos/tree/main/express-app",
+    fastify: "https://github.com/khushalp2004/Traceforge-config-demos/tree/main/fastify-testing-app",
+    nestjs: "https://github.com/khushalp2004/Traceforge-config-demos/tree/main/nestjs-testing-app",
+    python: "https://github.com/khushalp2004/Traceforge-config-demos/tree/main/python-testing-app",
+    java: "https://github.com/khushalp2004/Traceforge-config-demos/tree/main/spring-boot-lab",
+    "spring-boot": "https://github.com/khushalp2004/Traceforge-config-demos/tree/main/spring-boot-lab",
+    php: "https://github.com/khushalp2004/Traceforge-config-demos/tree/main/php-testing-app",
+    laravel: "https://github.com/khushalp2004/Traceforge-config-demos/tree/main/laravel-testing-app",
+    go: "https://github.com/khushalp2004/Traceforge-config-demos/tree/main/go-testing-app",
+    rust: "https://github.com/khushalp2004/Traceforge-config-demos/tree/main/rust-testing-app",
+    ruby: "https://github.com/khushalp2004/Traceforge-config-demos/tree/main/simulated_rails_app",
+    simulated_rails: "https://github.com/khushalp2004/Traceforge-config-demos/tree/main/simulated_rails_app",
     rest: "PLACE_YOUR_REST_LINK_HERE"
   };
 
