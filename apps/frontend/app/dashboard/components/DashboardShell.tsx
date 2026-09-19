@@ -33,7 +33,9 @@ type RealtimeNotificationPayload = {
     | "join_request.received"
     | "alert.triggered"
     | "alert.created"
-    | "alert.deleted";
+    | "alert.deleted"
+    | "quota.exceeded"
+    | "issue.assigned";
   title?: string;
   message?: string;
   createdAt?: string;
@@ -118,6 +120,28 @@ function DashboardShellInner({ children }: { children: React.ReactNode }) {
             tone: "warning",
             actionLabel: "Review request",
             href: "/dashboard?notifications=open&focus=requests"
+          };
+        }
+
+        if (payload.type === "quota.exceeded") {
+          return {
+            id: `quota:${payload.createdAt}:${payload.message}`,
+            title: payload.title || "Quota Exceeded",
+            message: payload.message,
+            tone: "error",
+            actionLabel: "Upgrade Plan",
+            href: "/dashboard/billing"
+          };
+        }
+
+        if (payload.type === "issue.assigned") {
+          return {
+            id: `issue:${payload.createdAt}:${payload.message}`,
+            title: payload.title || "Issue Assigned",
+            message: payload.message,
+            tone: "success",
+            actionLabel: "View Issue",
+            href: "/dashboard/issues"
           };
         }
 

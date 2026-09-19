@@ -63,7 +63,7 @@ type AlertNotification = {
 };
 
 type RealtimeAlertPayload = {
-  type: "alert.triggered" | "alert.created" | "alert.deleted";
+  type: "alert.triggered" | "alert.created" | "alert.deleted" | "quota.exceeded" | "issue.assigned";
   notificationId?: string;
   title: string;
   message: string;
@@ -82,7 +82,7 @@ const isRealtimeAlertPayload = (value: unknown): value is RealtimeAlertPayload =
   }
 
   const type = (value as { type?: unknown }).type;
-  return type === "alert.triggered" || type === "alert.created" || type === "alert.deleted";
+  return type === "alert.triggered" || type === "alert.created" || type === "alert.deleted" || type === "quota.exceeded" || type === "issue.assigned";
 };
 
 type AlertRuleNotificationResponse = {
@@ -877,6 +877,74 @@ function DashboardPageInner() {
           });
         }
 
+        if (
+          isRealtimeAlertPayload(payload) &&
+          payload.type === "quota.exceeded" &&
+          payload.message
+        ) {
+          setAlertNotifications((prev) => {
+            const nextItem: AlertNotification = {
+              kind: "event",
+              id: `quota:${payload.createdAt}:${payload.message}`,
+              message: payload.message,
+              environment: null,
+              triggeredAt: payload.createdAt,
+              project: {
+                id: "system",
+                name: "System"
+              },
+              error: {},
+              alertRule: {
+                id: "quota",
+                name: payload.title || "Quota Limit Reached",
+                severity: "CRITICAL"
+              }
+            };
+
+            const filtered = prev.filter((item) => item.id !== nextItem.id);
+            return [nextItem, ...filtered]
+              .sort(
+                (a, b) =>
+                  new Date(b.triggeredAt).getTime() - new Date(a.triggeredAt).getTime()
+              )
+              .slice(0, 5);
+          });
+        }
+
+        if (
+          isRealtimeAlertPayload(payload) &&
+          payload.type === "issue.assigned" &&
+          payload.message
+        ) {
+          setAlertNotifications((prev) => {
+            const nextItem: AlertNotification = {
+              kind: "event",
+              id: `issue:${payload.createdAt}:${payload.message}`,
+              message: payload.message,
+              environment: null,
+              triggeredAt: payload.createdAt,
+              project: {
+                id: payload.projectId || "",
+                name: payload.projectName || "System"
+              },
+              error: { id: payload.errorId },
+              alertRule: {
+                id: "issue.assigned",
+                name: payload.title || "Issue Assigned",
+                severity: "INFO"
+              }
+            };
+
+            const filtered = prev.filter((item) => item.id !== nextItem.id);
+            return [nextItem, ...filtered]
+              .sort(
+                (a, b) =>
+                  new Date(b.triggeredAt).getTime() - new Date(a.triggeredAt).getTime()
+              )
+              .slice(0, 5);
+          });
+        }
+
         if (!isRealtimeAlertPayload(payload)) {
           void (async () => {
             try {
@@ -1408,7 +1476,13 @@ function DashboardPageInner() {
                                   {alert.project.name}{alert.environment ? ` · ${alert.environment}` : ""} · {formatNotificationDateTime(alert.triggeredAt)}
                                 </p>
                                 <div className="mt-2 flex items-center gap-2">
-                                  <Link href="/dashboard/issues" onClick={() => setShowRequests(false)} className="rounded-sm bg-secondary/80 px-3 py-1 text-[11px] font-semibold text-text-primary transition-colors hover:bg-secondary">View Issues</Link>
+                                  {alert.alertRule.id === "quota" ? (
+                                    <Link href="/dashboard/billing" onClick={() => setShowRequests(false)} className="rounded-sm bg-secondary/80 px-3 py-1 text-[11px] font-semibold text-text-primary transition-colors hover:bg-secondary">Upgrade Plan</Link>
+                                  ) : alert.alertRule.id === "issue.assigned" ? (
+                                    <Link href={`/dashboard/errors/${alert.error?.id}`} onClick={() => setShowRequests(false)} className="rounded-sm bg-secondary/80 px-3 py-1 text-[11px] font-semibold text-text-primary transition-colors hover:bg-secondary">View Issue</Link>
+                                  ) : (
+                                    <Link href="/dashboard/issues" onClick={() => setShowRequests(false)} className="rounded-sm bg-secondary/80 px-3 py-1 text-[11px] font-semibold text-text-primary transition-colors hover:bg-secondary">View Issues</Link>
+                                  )}
                                 </div>
                               </div>
                               <button onClick={() => dismissAlertNotification(alert.id)} className="absolute right-2 top-2 flex h-6 w-6 items-center justify-center rounded-sm text-text-secondary opacity-0 transition-all hover:bg-secondary/50 hover:text-text-primary group-hover:opacity-100 max-[639px]:opacity-100">

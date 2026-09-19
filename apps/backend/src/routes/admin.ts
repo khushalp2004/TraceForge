@@ -10,6 +10,7 @@ import {
 } from "../utils/emailTemplates.js";
 import { getSuperAdminInboxEmail, isSuperAdminEmail } from "../utils/superAdmin.js";
 import { deleteUserAccount, UserLifecycleError } from "../utils/userLifecycle.js";
+import { generateAndSendDigestForProject } from "../workers/digest.js";
 
 export const adminRouter = Router();
 
@@ -413,6 +414,24 @@ adminRouter.post("/announcements/test", async (req, res) => {
   } catch (error) {
     console.error("Failed to send announcement test email", error);
     return res.status(500).json({ error: "Unable to send the test email right now" });
+  }
+});
+
+adminRouter.post("/digests/test", async (req, res) => {
+  const { projectId } = req.body;
+  if (!projectId) {
+    return res.status(400).json({ error: "projectId is required" });
+  }
+
+  const cutoffDate = new Date();
+  cutoffDate.setDate(cutoffDate.getDate() - 7);
+
+  try {
+    await generateAndSendDigestForProject(projectId, cutoffDate);
+    return res.json({ ok: true, message: `Weekly digest sent for project ${projectId}` });
+  } catch (error) {
+    console.error("Failed to generate test digest", error);
+    return res.status(500).json({ error: "Unable to send the test digest" });
   }
 });
 

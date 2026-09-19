@@ -26,9 +26,11 @@
     "helmet": "^7.1.0",
     "jsonwebtoken": "^9.0.2",
     "morgan": "^1.10.0",
+    "node-cron": "^4.6.0",
     "nodemailer": "^6.9.16",
     "opossum": "^9.0.0",
-    "redis": "^4.7.0"
+    "redis": "^4.7.0",
+    "source-map": "^0.8.0"
   },
   "devDependencies": {
     "@types/bcryptjs": "^2.4.6",
@@ -37,6 +39,8 @@
     "@types/jsonwebtoken": "^9.0.6",
     "@types/morgan": "^1.9.9",
     "@types/node": "^20.14.10",
+    "@types/node-cron": "^3.0.11",
+    "@types/source-map": "^0.5.2",
     "prisma": "^5.18.0",
     "tsx": "^4.16.2",
     "typescript": "^5.5.4"

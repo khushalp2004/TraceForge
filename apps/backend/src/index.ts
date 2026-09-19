@@ -3,6 +3,8 @@ import { createApp } from "./app.js";
 import prisma from "./db/prisma.js";
 import { connectRedis, redis, redisPublisher, redisSubscriber } from "./db/redis.js";
 import { closeQueues, billingReconciliationQueue } from "./queue/queues.js";
+import { startCleanupCron } from "./workers/cleanup.js";
+import { startDigestCron } from "./workers/digest.js";
 
 const port = Number(process.env.PORT || 3001);
 const isProduction = process.env.NODE_ENV === "production";
@@ -21,6 +23,9 @@ const start = async () => {
       jobId: "billing-reconciliation-job"
     }
   );
+
+  startCleanupCron();
+  startDigestCron();
 
   const server = app.listen(port, () => {
     if (!isProduction) {

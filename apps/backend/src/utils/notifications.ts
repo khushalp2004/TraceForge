@@ -7,7 +7,9 @@ export type RealtimeNotification = {
     | "join_request.received"
     | "alert.triggered"
     | "alert.created"
-    | "alert.deleted";
+    | "alert.deleted"
+    | "quota.exceeded"
+    | "issue.assigned";
   notificationId?: string;
   title: string;
   message: string;

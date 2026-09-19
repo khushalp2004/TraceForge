@@ -166,7 +166,7 @@ export function PricingPlans() {
   const [inrPerUsd, setInrPerUsd] = useState(DEFAULT_INR_PER_USD);
   const [rateMeta, setRateMeta] = useState<{ provider: string; asOf: string } | null>(null);
   const [pricing, setPricing] = useState<{
-    free?: { aiLimitMonthly?: number; orgMemberLimit?: number; orgCreationLimit?: number };
+    free?: { aiLimitMonthly?: number; orgMemberLimit?: number; orgCreationLimit?: number; errorLimitMonthly?: number };
     dev?: { monthlyPriceInr?: number; aiLimitMonthly?: number };
     pro?: {
       launch?: {
@@ -225,6 +225,7 @@ export function PricingPlans() {
   const freeAi = pricing?.free?.aiLimitMonthly ?? 50;
   const freeMembers = pricing?.free?.orgMemberLimit ?? 5;
   const freeOrganizations = pricing?.free?.orgCreationLimit ?? 3;
+  const freeErrors = pricing?.free?.errorLimitMonthly ?? 1000;
   const teamAi = pricing?.team?.aiLimitMonthly ?? 200;
 
   const proLaunchMonthly = pricing?.pro?.launch?.monthlyPriceInr ?? 399;
@@ -266,9 +267,11 @@ export function PricingPlans() {
   );
   const teamMonthlyEffective = formatMoney(currency, teamYearly / 12, inrPerUsd);
 
+  const freeErrorsFormatted = freeErrors >= 1000 ? `${freeErrors / 1000}k` : String(freeErrors);
+
   const freeFeatures: FeatureItem[] = [
     { label: "3 personal projects", included: true },
-    { label: "1k errors / mo", included: true },
+    { label: `${freeErrorsFormatted} errors / mo`, included: true },
     { label: `${freeAi} AI / mo`, included: true },
     { label: "Repo analysis available", included: true },
     { label: `${freeOrganizations} organizations`, included: true },
@@ -298,6 +301,7 @@ export function PricingPlans() {
     { label: "No limit to add member", included: true },
     { label: "Shared workflows", included: true },
     { label: "Slack & Jira integrations", included: true },
+    { label: "Unlimited errors", included: true },
     { label: "Unlimited organizations", included: false },
     { label: "Unlimited personal AI", included: false }
   ];

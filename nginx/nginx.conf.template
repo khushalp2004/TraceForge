@@ -40,6 +40,11 @@ http {
   server {
     listen 80 http2;
     
+    # ACME Challenge for Certbot
+    location /.well-known/acme-challenge/ {
+      root /var/www/certbot;
+    }
+    
     # Increase client body size
     client_max_body_size 2M;
     

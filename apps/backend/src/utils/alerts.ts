@@ -1,6 +1,70 @@
 import prisma from "../db/prisma.js";
 import { publishNotificationToUser } from "./notifications.js";
 
+const frontendUrl = process.env.FRONTEND_URL || process.env.APP_PUBLIC_URL || "http://localhost:3000";
+
+async function fireWebhook(rule: any, project: any, errorId: string, message: string, severity: string, environment: string | null) {
+  if (!rule.webhookUrl) return;
+  const errorUrl = `${frontendUrl}/dashboard/errors/${errorId}`;
+  
+  try {
+    if (rule.channel === "SLACK_WEBHOOK") {
+      await fetch(rule.webhookUrl, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          text: `[${severity}] ${rule.name} fired for ${project.name}`,
+          blocks: [
+            {
+              type: "section",
+              text: { type: "mrkdwn", text: `*${rule.name} fired for ${project.name}*\n${message}` }
+            },
+            {
+              type: "actions",
+              elements: [
+                { type: "button", text: { type: "plain_text", text: "View Error" }, url: errorUrl }
+              ]
+            }
+          ]
+        })
+      });
+    } else if (rule.channel === "DISCORD_WEBHOOK") {
+      const color = severity === "CRITICAL" ? 16711680 : severity === "WARNING" ? 16776960 : 65280;
+      await fetch(rule.webhookUrl, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          embeds: [{
+            title: `[${severity}] ${rule.name} fired for ${project.name}`,
+            description: message,
+            color,
+            url: errorUrl,
+            footer: { text: `Environment: ${environment || 'production'}` }
+          }]
+        })
+      });
+    } else if (rule.channel === "GENERIC_WEBHOOK") {
+      await fetch(rule.webhookUrl, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          ruleId: rule.id,
+          ruleName: rule.name,
+          projectId: project.id,
+          projectName: project.name,
+          errorId,
+          message,
+          severity,
+          environment,
+          url: errorUrl
+        })
+      });
+    }
+  } catch (err) {
+    console.error("Webhook firing failed", err);
+  }
+}
+
 const severityOrder = {
   INFO: 0,
   WARNING: 1,
@@ -115,33 +179,37 @@ export const evaluateAlertRulesForError = async ({
       })
     ]);
 
-    const recipients = new Set<string>([rule.user.id]);
+    if (rule.channel === "IN_APP") {
+      const recipients = new Set<string>([rule.user.id]);
 
-    if (project.orgId) {
-      const memberships = await prisma.organizationMember.findMany({
-        where: { organizationId: project.orgId },
-        select: { userId: true }
-      });
+      if (project.orgId) {
+        const memberships = await prisma.organizationMember.findMany({
+          where: { organizationId: project.orgId },
+          select: { userId: true }
+        });
 
-      for (const membership of memberships) {
-        recipients.add(membership.userId);
+        for (const membership of memberships) {
+          recipients.add(membership.userId);
+        }
       }
-    }
 
-    for (const recipientId of recipients) {
-      publishNotificationToUser(recipientId, {
-        type: "alert.triggered",
-        notificationId: delivery.id,
-        title: rule.name,
-        message: deliveryMessage,
-        projectId: project.id,
-        projectName: project.name,
-        ruleId: rule.id,
-        errorId,
-        environment: environment ?? null,
-        severity: rule.severity,
-        createdAt: now.toISOString()
-      });
+      for (const recipientId of recipients) {
+        publishNotificationToUser(recipientId, {
+          type: "alert.triggered",
+          notificationId: delivery.id,
+          title: rule.name,
+          message: deliveryMessage,
+          projectId: project.id,
+          projectName: project.name,
+          ruleId: rule.id,
+          errorId,
+          environment: environment ?? null,
+          severity: rule.severity,
+          createdAt: now.toISOString()
+        });
+      }
+    } else {
+      await fireWebhook(rule, project, errorId, message, rule.severity, environment ?? null);
     }
   }
 };

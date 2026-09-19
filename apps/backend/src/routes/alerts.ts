@@ -325,7 +325,8 @@ alertsRouter.post("/rules", async (req, res) => {
     severity,
     minOccurrences,
     cooldownMinutes,
-    channel
+    channel,
+    webhookUrl
   } = req.body as {
     name?: string;
     issueDescription?: string;
@@ -334,7 +335,8 @@ alertsRouter.post("/rules", async (req, res) => {
     severity?: "INFO" | "WARNING" | "CRITICAL";
     minOccurrences?: number;
     cooldownMinutes?: number;
-    channel?: "IN_APP";
+    channel?: "IN_APP" | "SLACK_WEBHOOK" | "DISCORD_WEBHOOK" | "GENERIC_WEBHOOK";
+    webhookUrl?: string;
   };
 
   if (!userId) {
@@ -362,7 +364,8 @@ alertsRouter.post("/rules", async (req, res) => {
         typeof minOccurrences === "number" && minOccurrences > 0 ? minOccurrences : 1,
       cooldownMinutes:
         typeof cooldownMinutes === "number" && cooldownMinutes > 0 ? cooldownMinutes : 30,
-      channel: channel ?? "IN_APP"
+      channel: channel ?? "IN_APP",
+      webhookUrl: webhookUrl?.trim() ? webhookUrl.trim() : null
     },
     include: alertInclude
   });
@@ -398,6 +401,7 @@ alertsRouter.patch("/rules/:id", async (req, res) => {
     minOccurrences,
     cooldownMinutes,
     channel,
+    webhookUrl,
     isActive
   } = req.body as {
     name?: string;
@@ -407,7 +411,8 @@ alertsRouter.patch("/rules/:id", async (req, res) => {
     severity?: "INFO" | "WARNING" | "CRITICAL";
     minOccurrences?: number;
     cooldownMinutes?: number;
-    channel?: "IN_APP";
+    channel?: "IN_APP" | "SLACK_WEBHOOK" | "DISCORD_WEBHOOK" | "GENERIC_WEBHOOK";
+    webhookUrl?: string;
     isActive?: boolean;
   };
 
@@ -451,6 +456,7 @@ alertsRouter.patch("/rules/:id", async (req, res) => {
         ? { cooldownMinutes }
         : {}),
       ...(channel ? { channel } : {}),
+      ...(webhookUrl !== undefined ? { webhookUrl: webhookUrl?.trim() ? webhookUrl.trim() : null } : {}),
       ...(typeof isActive === "boolean" ? { isActive } : {})
     },
     include: alertInclude

@@ -1,6 +1,7 @@
 import prisma from "../db/prisma.js";
 
 export const FREE_MONTHLY_AI_LIMIT = 50;
+export const FREE_MONTHLY_ERROR_LIMIT = 1000;
 export const DEV_MONTHLY_AI_LIMIT = 100;
 export const TEAM_MONTHLY_AI_LIMIT = 200;
 export const FREE_ORG_MEMBER_LIMIT = 5;

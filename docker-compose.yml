@@ -29,8 +29,6 @@ services:
     image: redis:7-alpine
     container_name: traceforge-redis
     restart: unless-stopped
-    ports:
-      - "6379:6379"
     volumes:
       - traceforge_redis:/data
     deploy:
@@ -60,8 +58,6 @@ services:
       RESERVE_POOL_TIMEOUT: 5
       SERVER_IDLE_TIMEOUT: 600
       IGNORE_STARTUP_PARAMETERS: extra_float_digits
-    ports:
-      - "5432:5432"
     depends_on:
       db:
         condition: service_healthy
@@ -72,19 +68,6 @@ services:
         reservations:
           memory: 64M
 
-  mailpit:
-    image: axllent/mailpit:latest
-    container_name: traceforge-mailpit
-    restart: unless-stopped
-    ports:
-      - "1025:1025"
-      - "8025:8025"
-    deploy:
-      resources:
-        limits:
-          memory: 128M
-        reservations:
-          memory: 32M
 
   nginx:
     image: nginx:alpine
@@ -97,6 +80,8 @@ services:
       - NGINX_ENVSUBST_OUTPUT_DIR=/etc/nginx
     volumes:
       - ./nginx/nginx.conf.template:/etc/nginx/templates/nginx.conf.template:ro
+      - ./certbot/conf:/etc/letsencrypt:ro
+      - ./certbot/www:/var/www/certbot:ro
     depends_on:
       - backend
     deploy:
@@ -105,6 +90,13 @@ services:
           memory: 128M
         reservations:
           memory: 32M
+
+  certbot:
+    image: certbot/certbot
+    container_name: traceforge-certbot
+    volumes:
+      - ./certbot/conf:/etc/letsencrypt
+      - ./certbot/www:/var/www/certbot
 
   backend:
     build:
@@ -130,8 +122,7 @@ services:
         condition: service_started
       redis:
         condition: service_started
-      mailpit:
-        condition: service_started
+
     deploy:
       mode: replicated
       replicas: 2
@@ -156,8 +147,6 @@ services:
       REDIS_URL: ${REDIS_URL}
       PORT: 3002
       NOTIFICATIONS_ONLY: "true"
-    ports:
-      - "3002:3002"
     restart: unless-stopped
     depends_on:
       db:
@@ -218,8 +207,6 @@ services:
       NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:80}
       NEXT_PUBLIC_REALTIME_URL: ${NEXT_PUBLIC_REALTIME_URL:-http://localhost:3002}
       NEXT_PUBLIC_SUPPORT_EMAIL: team@usetraceforge.com
-    ports:
-      - "${FRONTEND_PORT}:3000"
     restart: unless-stopped
     depends_on:
       - backend

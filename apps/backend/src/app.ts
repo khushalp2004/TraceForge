@@ -10,6 +10,7 @@ import { healthRouter } from "./routes/health.js";
 import { authRouter } from "./routes/auth.js";
 import { projectsRouter } from "./routes/projects.js";
 import { ingestRouter } from "./routes/ingest.js";
+import { sourcemapsRouter } from "./routes/sourcemaps.js";
 import { errorsRouter } from "./routes/errors.js";
 import { analyticsRouter } from "./routes/analytics.js";
 import { orgsRouter } from "./routes/orgs.js";
@@ -86,8 +87,8 @@ export const createApp = () => {
   app.use(express.urlencoded({ extended: true, limit: "64kb" }));
 
   // The ingest route MUST accept errors from ANY origin (user's websites)
-  app.use("/ingest", cors());
-  app.use("/ingest", ingestRouter);
+  app.use("/ingest/sourcemaps", cors(), sourcemapsRouter);
+  app.use("/ingest", cors(), ingestRouter);
 
   // Global strict CORS for the rest of the API
   app.use((req, res, next) => {

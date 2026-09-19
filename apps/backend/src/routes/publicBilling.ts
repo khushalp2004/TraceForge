@@ -4,6 +4,7 @@ import {
   DEV_MONTHLY_AI_LIMIT,
   DEV_MONTHLY_PRICE_PAISE,
   FREE_MONTHLY_AI_LIMIT,
+  FREE_MONTHLY_ERROR_LIMIT,
   FREE_ORG_CREATION_LIMIT,
   FREE_ORG_MEMBER_LIMIT,
   PRO_LAUNCH_MONTHLY_PRICE_PAISE,
@@ -27,6 +28,7 @@ publicBillingRouter.get("/pricing", async (_req, res) => {
     currency: "INR",
     free: {
       aiLimitMonthly: FREE_MONTHLY_AI_LIMIT,
+      errorLimitMonthly: FREE_MONTHLY_ERROR_LIMIT,
       orgMemberLimit: FREE_ORG_MEMBER_LIMIT,
       orgCreationLimit: FREE_ORG_CREATION_LIMIT
     },

@@ -5,7 +5,9 @@ import { hashErrorSignature } from "../utils/hash.js";
 import { redis } from "../db/redis.js";
 import { ingestRateLimit } from "../middleware/rateLimit.js";
 import { evaluateAlertRulesForError } from "../utils/alerts.js";
-import { isOrgTeamActive, isUserProActive } from "../utils/billing.js";
+import { isOrgTeamActive, isUserProActive, FREE_MONTHLY_ERROR_LIMIT } from "../utils/billing.js";
+import { resolveStackTrace } from "../utils/sourcemap.js";
+import { publishNotificationToUser } from "../utils/notifications.js";
 
 export const ingestRouter = Router();
 
@@ -58,13 +60,15 @@ ingestRouter.post("/", requireProjectApiKey, ingestRateLimit(), async (req, res)
     return res.status(401).json({ error: "Unauthorized" });
   }
 
-  const hash = hashErrorSignature(message, stackTrace);
   const payloadRelease =
     typeof payload?.release === "string" && payload.release.trim()
       ? payload.release.trim()
       : null;
   const releaseVersion =
     typeof release === "string" && release.trim() ? release.trim() : payloadRelease;
+
+  const resolvedStackTrace = await resolveStackTrace(projectId, releaseVersion, stackTrace);
+  const hash = hashErrorSignature(message, resolvedStackTrace);
 
   const now = new Date();
 
@@ -83,7 +87,6 @@ ingestRouter.post("/", requireProjectApiKey, ingestRateLimit(), async (req, res)
   const teamActive = isOrgTeamActive(organization);
 
   if (!proActive && !teamActive) {
-    const limit = 1000;
     const usageKey = `usage:errors:${ownerId}:${currentMonthKey(now)}`;
 
     if (redis.isOpen) {
@@ -92,8 +95,18 @@ ingestRouter.post("/", requireProjectApiKey, ingestRateLimit(), async (req, res)
         await redis.expire(usageKey, 60 * 60 * 24 * 45);
       }
 
-      if (current > limit) {
+      if (current > FREE_MONTHLY_ERROR_LIMIT) {
         await redis.decr(usageKey);
+
+        if (current === FREE_MONTHLY_ERROR_LIMIT + 1) {
+          publishNotificationToUser(ownerId, {
+            type: "quota.exceeded",
+            title: "Quota Exceeded",
+            message: "Your free plan monthly error limit has been reached. Upgrade to Pro to continue ingesting errors.",
+            createdAt: new Date().toISOString()
+          });
+        }
+
         return res.status(402).json({
           error: "Free plan monthly error limit reached. Upgrade to Pro to continue ingesting."
         });
@@ -111,7 +124,15 @@ ingestRouter.post("/", requireProjectApiKey, ingestRateLimit(), async (req, res)
         }
       });
 
-      if (used >= limit) {
+      if (used >= FREE_MONTHLY_ERROR_LIMIT) {
+        if (used === FREE_MONTHLY_ERROR_LIMIT) {
+          publishNotificationToUser(ownerId, {
+            type: "quota.exceeded",
+            title: "Quota Exceeded",
+            message: "Your free plan monthly error limit has been reached. Upgrade to Pro to continue ingesting errors.",
+            createdAt: new Date().toISOString()
+          });
+        }
         return res.status(402).json({
           error: "Free plan monthly error limit reached. Upgrade to Pro to continue ingesting."
         });
@@ -149,7 +170,7 @@ ingestRouter.post("/", requireProjectApiKey, ingestRateLimit(), async (req, res)
       data: {
         projectId,
         message,
-        stackTrace,
+        stackTrace: resolvedStackTrace,
         hash,
         firstSeen: now,
         lastSeen: now,

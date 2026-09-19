@@ -25,6 +25,10 @@ type ErrorDetail = {
   firstSeen: string;
   lastSeen: string;
   isManualAlertIssue?: boolean;
+  status: "OPEN" | "INVESTIGATING" | "RESOLVED" | "IGNORED";
+  assigneeId?: string | null;
+  assignee?: { id: string; fullName: string | null; email: string } | null;
+  assignableUsers?: { id: string; fullName: string | null; email: string }[];
   aiStatus: "PENDING" | "PROCESSING" | "READY" | "FAILED";
   aiRequestedAt?: string | null;
   aiLastError?: string | null;
@@ -44,6 +48,18 @@ type ErrorDetail = {
     githubRepoId?: string | null;
     githubRepoName?: string | null;
     githubRepoUrl?: string | null;
+  };
+};
+
+type ErrorComment = {
+  id: string;
+  userId: string;
+  content: string;
+  createdAt: string;
+  user: {
+    id: string;
+    fullName: string | null;
+    email: string;
   };
 };
 
@@ -206,6 +222,13 @@ export default function ErrorDetailPage({ params }: { params: { id: string } }) 
   const [creatingGithubIssue, setCreatingGithubIssue] = useState(false);
   const debouncedPayloadSearch = useDebouncedValue(payloadSearch, 200);
 
+  // Workflow State
+  const [comments, setComments] = useState<ErrorComment[]>([]);
+  const [newComment, setNewComment] = useState("");
+  const [postingComment, setPostingComment] = useState(false);
+  const [updatingStatus, setUpdatingStatus] = useState(false);
+  const [updatingAssignee, setUpdatingAssignee] = useState(false);
+
   const showToast = (message: string, tone: Toast["tone"]) => {
     setToast({ message, tone });
     window.setTimeout(() => setToast(null), 2400);
@@ -245,17 +268,21 @@ export default function ErrorDetailPage({ params }: { params: { id: string } }) 
     }
 
     try {
-      const [res, userRes] = await Promise.all([
+      const [res, userRes, commentsRes] = await Promise.all([
         fetch(`${API_URL}/errors/${params.id}`, {
           headers: { Authorization: `Bearer ${token}` }
         }),
         fetch(`${API_URL}/auth/me`, {
+          headers: { Authorization: `Bearer ${token}` }
+        }),
+        fetch(`${API_URL}/errors/${params.id}/comments`, {
           headers: { Authorization: `Bearer ${token}` }
         })
       ]);
 
       const data = await res.json();
       const userData = await userRes.json();
+      const commentsData = commentsRes.ok ? await commentsRes.json() : [];
       
       if (!res.ok) {
         throw new Error(data.error || "Failed to load error detail");
@@ -266,6 +293,7 @@ export default function ErrorDetailPage({ params }: { params: { id: string } }) 
 
       setErrorDetail(data.error);
       setUser(userData.user);
+      setComments(Array.isArray(commentsData) ? commentsData : []);
       if (!data.error?.analysis?.suggestedFix) {
         setShowAiDetail(false);
       }
@@ -447,6 +475,85 @@ export default function ErrorDetailPage({ params }: { params: { id: string } }) 
     });
   }, [debouncedPayloadSearch, errorDetail]);
 
+  const updateStatus = async (status: string) => {
+    const token = localStorage.getItem(tokenKey);
+    if (!token || !errorDetail) return;
+    setUpdatingStatus(true);
+    try {
+      const res = await fetch(`${API_URL}/errors/${errorDetail.id}/status`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ status })
+      });
+      if (!res.ok) throw new Error((await res.json()).error || "Failed to update status");
+      setErrorDetail({ ...errorDetail, status: status as any });
+      showToast("Status updated", "success");
+    } catch (err) {
+      showToast(err instanceof Error ? err.message : "Error", "error");
+    } finally {
+      setUpdatingStatus(false);
+    }
+  };
+
+  const updateAssignee = async (assigneeId: string | null) => {
+    const token = localStorage.getItem(tokenKey);
+    if (!token || !errorDetail) return;
+    setUpdatingAssignee(true);
+    try {
+      const res = await fetch(`${API_URL}/errors/${errorDetail.id}/assignee`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ assigneeId })
+      });
+      if (!res.ok) throw new Error((await res.json()).error || "Failed to update assignee");
+      // Re-fetch to get the full assignee object
+      await loadDetail();
+      showToast("Assignee updated", "success");
+    } catch (err) {
+      showToast(err instanceof Error ? err.message : "Error", "error");
+    } finally {
+      setUpdatingAssignee(false);
+    }
+  };
+
+  const postComment = async () => {
+    const token = localStorage.getItem(tokenKey);
+    if (!token || !errorDetail || !newComment.trim()) return;
+    setPostingComment(true);
+    try {
+      const res = await fetch(`${API_URL}/errors/${errorDetail.id}/comments`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ content: newComment })
+      });
+      if (!res.ok) throw new Error((await res.json()).error || "Failed to post comment");
+      const added = await res.json();
+      setComments([...comments, added]);
+      setNewComment("");
+      showToast("Comment posted", "success");
+    } catch (err) {
+      showToast(err instanceof Error ? err.message : "Error", "error");
+    } finally {
+      setPostingComment(false);
+    }
+  };
+
+  const deleteComment = async (commentId: string) => {
+    const token = localStorage.getItem(tokenKey);
+    if (!token || !errorDetail) return;
+    try {
+      const res = await fetch(`${API_URL}/errors/${errorDetail.id}/comments/${commentId}`, {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (!res.ok) throw new Error((await res.json()).error || "Failed to delete comment");
+      setComments(comments.filter(c => c.id !== commentId));
+      showToast("Comment deleted", "success");
+    } catch (err) {
+      showToast(err instanceof Error ? err.message : "Error", "error");
+    }
+  };
+
   if (loading) {
     return (
       <main className="mx-auto max-w-5xl px-4 py-8 md:py-12">
@@ -511,6 +618,30 @@ export default function ErrorDetailPage({ params }: { params: { id: string } }) 
             </div>
           </div>
           <div className="flex w-full flex-wrap items-center gap-3">
+            <select
+              value={errorDetail.status}
+              onChange={(e) => updateStatus(e.target.value)}
+              disabled={updatingStatus}
+              className="h-9 rounded-sm border border-border/60 bg-card/80 px-3 text-[13px] font-medium text-text-primary shadow-sm backdrop-blur-md outline-none focus:border-primary disabled:opacity-50 max-[639px]:w-full sm:w-auto"
+            >
+              <option value="OPEN">Open</option>
+              <option value="INVESTIGATING">Investigating</option>
+              <option value="RESOLVED">Resolved</option>
+              <option value="IGNORED">Ignored</option>
+            </select>
+            <select
+              value={errorDetail.assigneeId || ""}
+              onChange={(e) => updateAssignee(e.target.value || null)}
+              disabled={updatingAssignee}
+              className="h-9 rounded-sm border border-border/60 bg-card/80 px-3 text-[13px] font-medium text-text-primary shadow-sm backdrop-blur-md outline-none focus:border-primary disabled:opacity-50 max-[639px]:w-full sm:w-auto"
+            >
+              <option value="">Unassigned</option>
+              {errorDetail.assignableUsers?.map((u) => (
+                <option key={u.id} value={u.id}>
+                  {u.id === user?.id ? `Assign to me (${u.email})` : (u.fullName || u.email)}
+                </option>
+              ))}
+            </select>
             <button
               className="inline-flex h-9 items-center justify-center gap-2 rounded-sm border border-border/60 bg-card/80 px-4 text-[13px] font-medium text-text-primary shadow-sm backdrop-blur-md transition-all hover:bg-secondary/60 hover:border-border hover:shadow max-[639px]:w-full sm:w-auto"
               onClick={handleCopyStack}
@@ -627,6 +758,58 @@ export default function ErrorDetailPage({ params }: { params: { id: string } }) 
                       Showing {visibleFrames.length} of {frames.length} frames.
                     </div>
                   )}
+                </div>
+              </div>
+            </section>
+
+            <section>
+              <h2 className="mb-4 text-sm font-semibold uppercase tracking-[0.15em] text-text-secondary">
+                Team Comments
+              </h2>
+              <div className="rounded-sm border border-border/60 bg-card/30 p-4 shadow-sm">
+                <div className="mb-4 space-y-4">
+                  {comments.length === 0 ? (
+                    <p className="text-[13px] text-text-secondary">No comments yet. Start the discussion!</p>
+                  ) : (
+                    comments.map(comment => (
+                      <div key={comment.id} className="flex gap-3">
+                        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary/20 text-[12px] font-bold text-primary">
+                          {(comment.user.fullName || comment.user.email)[0].toUpperCase()}
+                        </div>
+                        <div className="flex-1 rounded-sm border border-border/40 bg-card/50 p-3">
+                          <div className="mb-1 flex items-center justify-between">
+                            <span className="text-[13px] font-semibold text-text-primary">{comment.user.fullName || comment.user.email}</span>
+                            <div className="flex items-center gap-3 text-[11px] text-text-secondary">
+                              <span>{new Date(comment.createdAt).toLocaleString()}</span>
+                              {comment.userId === user?.id && (
+                                <button onClick={() => deleteComment(comment.id)} className="hover:text-red-400 transition-colors">
+                                  Delete
+                                </button>
+                              )}
+                            </div>
+                          </div>
+                          <p className="whitespace-pre-wrap text-[13px] text-text-secondary">{comment.content}</p>
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
+                <div className="flex flex-col gap-2">
+                  <textarea
+                    value={newComment}
+                    onChange={(e) => setNewComment(e.target.value)}
+                    placeholder="Add a comment..."
+                    className="min-h-[80px] w-full rounded-sm border border-border/60 bg-card/80 p-3 text-[13px] text-text-primary outline-none focus:border-primary resize-y"
+                  />
+                  <div className="flex justify-end">
+                    <button
+                      onClick={postComment}
+                      disabled={postingComment || !newComment.trim()}
+                      className="h-8 rounded-sm bg-primary px-4 text-[12px] font-medium text-primary-foreground transition-all hover:bg-primary-hover disabled:opacity-50"
+                    >
+                      {postingComment ? "Posting..." : "Post Comment"}
+                    </button>
+                  </div>
                 </div>
               </div>
             </section>

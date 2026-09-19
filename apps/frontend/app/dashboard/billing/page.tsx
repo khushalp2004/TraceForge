@@ -346,7 +346,7 @@ export default function BillingPage() {
     try {
       const ready = await loadRazorpay();
       if (!ready || !window.Razorpay) {
-        throw new Error("Failed to load Razorpay checkout");
+        throw new Error("Failed to load Razorpay checkout. Please ensure you do not have an ad-blocker blocking checkout.razorpay.com.");
       }
 
       const res = await fetch(`${API_URL}/api/payment/create-order`, {

@@ -10,6 +10,7 @@ import { aiGenerateQueue } from "../queue/queues.js";
 import { decryptIntegrationSecret } from "../utils/integrationSecrets.js";
 import { parseGithubMetadata } from "../utils/integrationConnectionState.js";
 import { createGithubIssue, fetchGithubRepos } from "../utils/integrationProviders.js";
+import { publishNotificationToUser } from "../utils/notifications.js";
 
 export const errorsRouter = Router();
 
@@ -430,6 +431,11 @@ errorsRouter.get("/:id", async (req, res) => {
       firstSeen: true,
       lastSeen: true,
       archivedAt: true,
+      status: true,
+      assigneeId: true,
+      assignee: {
+        select: { id: true, fullName: true, email: true }
+      },
       aiStatus: true,
       aiLastError: true,
       aiRequestedAt: true,
@@ -492,10 +498,26 @@ errorsRouter.get("/:id", async (req, res) => {
 
   const { errorRecord: reconciledError, queue } = await reconcileAiRequestState(errorRecord);
 
+  let assignableUsers: { id: string; fullName: string | null; email: string }[] = [];
+  if (errorRecord.project.orgId) {
+    const members = await prisma.organizationMember.findMany({
+      where: { organizationId: errorRecord.project.orgId },
+      include: { user: { select: { id: true, fullName: true, email: true } } }
+    });
+    assignableUsers = members.map(m => m.user);
+  } else {
+    const owner = await prisma.user.findUnique({
+      where: { id: errorRecord.project.userId },
+      select: { id: true, fullName: true, email: true }
+    });
+    if (owner) assignableUsers.push(owner);
+  }
+
   return res.json({
     error: {
       ...reconciledError,
       queue,
+      assignableUsers,
       isManualAlertIssue: hasManualAlertSource(errorRecord.events)
     }
   });
@@ -1056,4 +1078,187 @@ errorsRouter.delete("/:id", async (req, res) => {
   ]);
 
   return res.status(200).json({ status: "deleted" });
+});
+
+// FEATURE 2: Issue Assignment & Workflow
+
+errorsRouter.patch("/:id/status", async (req, res) => {
+  const { id } = req.params;
+  const { status } = req.body;
+
+  if (!status || !["OPEN", "INVESTIGATING", "RESOLVED", "IGNORED"].includes(status)) {
+    return res.status(400).json({ error: "Invalid status" });
+  }
+
+  const errorRecord = await prisma.error.findUnique({
+    where: { id },
+    include: { project: true }
+  });
+
+  if (!errorRecord) return res.status(404).json({ error: "Error not found" });
+
+  const userId = req.user!.id;
+  const isOwner = errorRecord.project.userId === userId;
+  
+  if (!isOwner && errorRecord.project.orgId) {
+    const allowedOrgs = await getCachedUserOrgIds(userId);
+    if (!allowedOrgs.includes(errorRecord.project.orgId)) {
+      return res.status(403).json({ error: "Forbidden" });
+    }
+  } else if (!isOwner) {
+    return res.status(403).json({ error: "Forbidden" });
+  }
+
+  const updated = await prisma.error.update({
+    where: { id },
+    data: { status: status as any }
+  });
+
+  return res.json({ status: "success", data: updated });
+});
+
+errorsRouter.patch("/:id/assignee", async (req, res) => {
+  const { id } = req.params;
+  const { assigneeId } = req.body; // can be null to unassign
+
+  const errorRecord = await prisma.error.findUnique({
+    where: { id },
+    include: { project: true }
+  });
+
+  if (!errorRecord) return res.status(404).json({ error: "Error not found" });
+
+  const userId = req.user!.id;
+  const isOwner = errorRecord.project.userId === userId;
+  
+  if (!isOwner && errorRecord.project.orgId) {
+    const allowedOrgs = await getCachedUserOrgIds(userId);
+    if (!allowedOrgs.includes(errorRecord.project.orgId)) {
+      return res.status(403).json({ error: "Forbidden" });
+    }
+  } else if (!isOwner) {
+    return res.status(403).json({ error: "Forbidden" });
+  }
+
+  const updated = await prisma.error.update({
+    where: { id },
+    data: { assigneeId }
+  });
+
+  if (assigneeId && assigneeId !== req.user!.id) {
+    const errorUrl = `${process.env.FRONTEND_URL || "http://localhost:3000"}/dashboard/errors/${id}`;
+    publishNotificationToUser(assigneeId, {
+      type: "issue.assigned",
+      title: "Issue Assigned",
+      message: `You have been assigned to an issue in ${errorRecord.project.name}.`,
+      projectId: errorRecord.projectId,
+      projectName: errorRecord.project.name,
+      errorId: id,
+      createdAt: new Date().toISOString()
+    } as any);
+  }
+
+  return res.json({ status: "success", data: updated });
+});
+
+errorsRouter.get("/:id/comments", async (req, res) => {
+  const { id } = req.params;
+
+  const errorRecord = await prisma.error.findUnique({
+    where: { id },
+    include: { project: true }
+  });
+
+  if (!errorRecord) return res.status(404).json({ error: "Error not found" });
+
+  const userId = req.user!.id;
+  const isOwner = errorRecord.project.userId === userId;
+  
+  if (!isOwner && errorRecord.project.orgId) {
+    const allowedOrgs = await getCachedUserOrgIds(userId);
+    if (!allowedOrgs.includes(errorRecord.project.orgId)) {
+      return res.status(403).json({ error: "Forbidden" });
+    }
+  } else if (!isOwner) {
+    return res.status(403).json({ error: "Forbidden" });
+  }
+
+  const comments = await prisma.errorComment.findMany({
+    where: { errorId: id },
+    include: {
+      user: {
+        select: { id: true, fullName: true, email: true }
+      }
+    },
+    orderBy: { createdAt: "asc" }
+  });
+
+  return res.json(comments);
+});
+
+errorsRouter.post("/:id/comments", async (req, res) => {
+  const { id } = req.params;
+  const { content } = req.body;
+
+  if (!content || typeof content !== "string" || !content.trim()) {
+    return res.status(400).json({ error: "Comment content is required" });
+  }
+
+  const errorRecord = await prisma.error.findUnique({
+    where: { id },
+    include: { project: true }
+  });
+
+  if (!errorRecord) return res.status(404).json({ error: "Error not found" });
+
+  const userId = req.user!.id;
+  const isOwner = errorRecord.project.userId === userId;
+  
+  if (!isOwner && errorRecord.project.orgId) {
+    const allowedOrgs = await getCachedUserOrgIds(userId);
+    if (!allowedOrgs.includes(errorRecord.project.orgId)) {
+      return res.status(403).json({ error: "Forbidden" });
+    }
+  } else if (!isOwner) {
+    return res.status(403).json({ error: "Forbidden" });
+  }
+
+  const comment = await prisma.errorComment.create({
+    data: {
+      errorId: id,
+      userId,
+      content: content.trim()
+    },
+    include: {
+      user: {
+        select: { id: true, fullName: true, email: true }
+      }
+    }
+  });
+
+  return res.json(comment);
+});
+
+errorsRouter.delete("/:id/comments/:commentId", async (req, res) => {
+  const { id, commentId } = req.params;
+  const userId = req.user!.id;
+
+  const comment = await prisma.errorComment.findUnique({
+    where: { id: commentId }
+  });
+
+  if (!comment || comment.errorId !== id) {
+    return res.status(404).json({ error: "Comment not found" });
+  }
+
+  // Only the author can delete their comment
+  if (comment.userId !== userId) {
+    return res.status(403).json({ error: "Forbidden" });
+  }
+
+  await prisma.errorComment.delete({
+    where: { id: commentId }
+  });
+
+  return res.json({ status: "deleted" });
 });

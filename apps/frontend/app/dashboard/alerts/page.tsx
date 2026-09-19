@@ -28,7 +28,8 @@ type AlertRule = {
   severity: "INFO" | "WARNING" | "CRITICAL";
   minOccurrences: number;
   cooldownMinutes: number;
-  channel: "IN_APP";
+  channel: "IN_APP" | "SLACK_WEBHOOK" | "DISCORD_WEBHOOK" | "GENERIC_WEBHOOK";
+  webhookUrl: string | null;
   isActive: boolean;
   lastTriggeredAt: string | null;
   createdAt: string;
@@ -146,6 +147,8 @@ function AlertsPageInner() {
   const [severity, setSeverity] = useState<AlertRule["severity"]>("CRITICAL");
   const [minOccurrences, setMinOccurrences] = useState("1");
   const [cooldownMinutes, setCooldownMinutes] = useState("30");
+  const [channel, setChannel] = useState<AlertRule["channel"]>("IN_APP");
+  const [webhookUrl, setWebhookUrl] = useState("");
   const [search, setSearch] = useState("");
   const [projectFilter, setProjectFilter] = useState("");
   const [environmentFilter, setEnvironmentFilter] = useState("");
@@ -405,6 +408,8 @@ function AlertsPageInner() {
     setSeverity("CRITICAL");
     setMinOccurrences("1");
     setCooldownMinutes("30");
+    setChannel("IN_APP");
+    setWebhookUrl("");
   };
 
   useEffect(() => {
@@ -458,7 +463,8 @@ function AlertsPageInner() {
           severity,
           minOccurrences: Number(minOccurrences),
           cooldownMinutes: Number(cooldownMinutes),
-          channel: "IN_APP"
+          channel,
+          webhookUrl: webhookUrl.trim() || undefined
         })
       });
 
@@ -903,6 +909,11 @@ function AlertsPageInner() {
                           <h3 className="text-[15px] font-semibold text-text-primary truncate">
                             {rule.name}
                           </h3>
+                          {rule.channel !== "IN_APP" && (
+                            <span className="shrink-0 rounded-sm bg-primary/20 text-primary px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wider">
+                              {rule.channel.replace("_WEBHOOK", "")}
+                            </span>
+                          )}
                           <span className={`shrink-0 text-[10px] uppercase tracking-wider font-semibold ${
                             rule.severity === "CRITICAL" ? "text-red-500" :
                             rule.severity === "WARNING" ? "text-amber-500" :
@@ -1460,6 +1471,47 @@ function AlertsPageInner() {
                       placeholder="30"
                     />
                   </div>
+                </div>
+
+                <div className="grid gap-5 sm:grid-cols-2 mt-5">
+                  <div>
+                    <label className="mb-2 block text-xs font-semibold uppercase tracking-[0.14em] text-text-secondary">
+                      Delivery Channel
+                    </label>
+                    <select
+                      className="w-full appearance-none rounded-sm border border-border bg-secondary/20 px-4 py-3 pr-10 text-sm text-text-primary shadow-sm outline-none transition focus:border-primary/50 focus:bg-card focus:ring-2 focus:ring-primary/20"
+                      style={{
+                        backgroundImage:
+                          "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 20 20' fill='none'%3E%3Cpath d='M5 7l5 5 5-5' stroke='%239CA3AF' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E\")",
+                        backgroundRepeat: "no-repeat",
+                        backgroundPosition: "right 16px center",
+                        backgroundSize: "12px 12px"
+                      }}
+                      value={channel}
+                      onChange={(event) =>
+                        setChannel(event.target.value as AlertRule["channel"])
+                      }
+                    >
+                      <option value="IN_APP">In-App Notification</option>
+                      <option value="SLACK_WEBHOOK">Slack Webhook</option>
+                      <option value="DISCORD_WEBHOOK">Discord Webhook</option>
+                      <option value="GENERIC_WEBHOOK">Generic Webhook</option>
+                    </select>
+                  </div>
+
+                  {channel !== "IN_APP" && (
+                    <div>
+                      <label className="mb-2 block text-xs font-semibold uppercase tracking-[0.14em] text-text-secondary">
+                        Webhook URL
+                      </label>
+                      <input
+                        className="w-full rounded-sm border border-border bg-secondary/20 px-4 py-3 text-sm text-text-primary shadow-sm outline-none transition focus:border-primary/50 focus:bg-card focus:ring-2 focus:ring-primary/20"
+                        value={webhookUrl}
+                        onChange={(event) => setWebhookUrl(event.target.value)}
+                        placeholder="https://..."
+                      />
+                    </div>
+                  )}
                 </div>
               </div>
             </div>

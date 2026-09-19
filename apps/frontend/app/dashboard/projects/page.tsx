@@ -264,9 +264,9 @@ export default function ProjectSettingsPage() {
       if (orgsRes.ok) {
         const fetchedOrgs = orgsData.orgs || [];
         setOrgs(fetchedOrgs);
-        if (selectedOrgId && !fetchedOrgs.some((o: Org) => o.id === selectedOrgId)) {
-          setSelectedOrgId("");
-        }
+        setSelectedOrgId((prev) => 
+          prev && !fetchedOrgs.some((o: Org) => o.id === prev) ? "" : prev
+        );
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Unexpected error");
