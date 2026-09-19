@@ -1,5 +1,6 @@
 import { SourceMapConsumer, NullableMappedPosition } from "source-map";
 import prisma from "../db/prisma.js";
+import { downloadFromR2 } from "./r2.js";
 
 interface StackFrame {
   line: string;
@@ -73,7 +74,17 @@ export async function resolveStackTrace(
 
         if (sourceMapRecord) {
           try {
-            const rawSourceMap = JSON.parse(sourceMapRecord.content);
+            let rawJson = sourceMapRecord.content;
+            
+            // Check if offloaded to R2
+            if (rawJson.startsWith("r2://")) {
+              const urlParts = rawJson.split("/");
+              // The key is everything after r2://bucketName/
+              const r2Key = urlParts.slice(3).join("/");
+              rawJson = await downloadFromR2(r2Key);
+            }
+
+            const rawSourceMap = JSON.parse(rawJson);
             consumer = await new SourceMapConsumer(rawSourceMap);
             consumers[fileName] = consumer;
           } catch (e) {

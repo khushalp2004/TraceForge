@@ -1,6 +1,7 @@
 import { Router } from "express";
 import prisma from "../db/prisma.js";
 import { requireProjectApiKey } from "../middleware/apiKey.js";
+import { isR2Configured, r2BucketName, uploadToR2 } from "../utils/r2.js";
 
 export const sourcemapsRouter = Router();
 
@@ -25,6 +26,15 @@ sourcemapsRouter.post("/", requireProjectApiKey, async (req, res) => {
   }
 
   try {
+    let finalContent = content;
+
+    // Offload to R2 if configured
+    if (isR2Configured && r2BucketName) {
+      const r2Key = `sourcemaps/${projectId}/${release}/${fileName}`;
+      await uploadToR2(r2Key, content);
+      finalContent = `r2://${r2BucketName}/${r2Key}`;
+    }
+
     // Upsert the source map for this release and fileName
     const sourceMap = await prisma.sourceMap.upsert({
       where: {
@@ -35,14 +45,14 @@ sourcemapsRouter.post("/", requireProjectApiKey, async (req, res) => {
         }
       },
       update: {
-        content,
+        content: finalContent,
         createdAt: new Date()
       },
       create: {
         projectId,
         release,
         fileName,
-        content
+        content: finalContent
       }
     });
 
